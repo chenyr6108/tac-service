@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="bankAccount">
+	<!-- 查询所有银行账号-->
+	<!-- modify by xuyuefei 增加查询币种，帐号性质，开户行，编码 -->
+ 	<select id="queryBankAccountAllInfo" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 		select  account.baba_id					baba_id,
+ 				account.account_name			account_name,
+ 				account.account_no				account_no,
+ 				account.account_code			account_code,
+ 				account.account_property        account_property,
+ 				account.currency                currency,
+ 				account.account_type			account_type,
+ 				tb.BANK_NAME              bank_name
+ 		from t_bank_bankaccount account
+ 		left join T_BANK_BANKINFO tb on tb.BABI_ID=account.BABI_ID and tb.STATUS = 0
+ 		where account.status = 0 
+ 		]]>
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				(account.account_name like '%$content$%' 
+				or account.account_no like '%$content$%' 
+				or account.account_alias like '%$content$%' 
+				)  
+				]]>
+			</isNotEmpty>
+		</dynamic>	
+		<![CDATA[
+ 		order by account.baba_id desc
+ 		]]>
+ 	</select>
+ 	
+ 		<!-- 查询所有银行账号的个数 -->
+ 	<select id="queryBankAccountAllInfo_count" parameterClass="map" resultClass="java.lang.Integer">
+ 		<![CDATA[
+ 		select count(*) from t_bank_bankaccount account where account.status = 0
+ 		]]>
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				(account.account_name like '%$content$%' 
+				or account.account_no like '%$content$%' 
+				or account.account_alias like '%$content$%' 
+				)  
+				]]>
+			</isNotEmpty>
+		</dynamic>	 
+ 	</select>
+ 	
+ 	<!-- 查找所有的主账号 及其所在银行  用于添加-->
+	<select id="getParentAccount" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t1.baba_id				baba_id,
+			       t1.account_no		    account_no,
+			       t1.account_alias		    account_alias,
+                   t2.bank_name             bank_name,
+                   t2.babi_id               babi_id
+ 			       from t_bank_bankaccount t1
+                   left join t_bank_bankinfo t2 on t2.babi_id = t1.babi_id
+			       where t1.status = 0 and t2.status = 0 and t1.type = 0
+		]]>
+	</select>
+	
+		<!-- 查找所有的主账号 及其所在银行   用于修改 -->
+	<select id="getParentAccountForUpdate" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t1.baba_id				baba_id,
+			       t1.account_no		    account_no,
+			       t1.account_alias		    account_alias,
+                   t2.bank_name             bank_name,
+                   t2.babi_id               babi_id
+ 			       from t_bank_bankaccount t1
+                   left join t_bank_bankinfo t2 on t2.babi_id = t1.babi_id
+			       where t1.status = 0 and t2.status = 0 and t1.type = 0 and t1.baba_id != #baba_id#
+		]]>
+	</select>
+	
+		<!-- 插入一条银行账户的信息 -->
+		<!-- modify by xuyuefei 2014/8/19   -->
+	<insert id="create" parameterClass="map">
+		<![CDATA[	
+		insert into t_bank_bankaccount
+			(create_user_id,
+			modify_user_id,
+			account_name,
+			account_no,
+			account_type,
+			babi_id,
+			currency,
+			account_property,
+			account_code
+			)
+		values
+		(#s_employeeId#,
+		#s_employeeId#,
+		#account_name#,
+		#account_no#,
+		#account_type#,
+		#babi_id#,
+		#currency#,
+		#accountProperty#,
+		#accountCode#
+		)
+		]]>
+	</insert>
+	 	<!-- 根据ID查询一条银行记录 -->
+	 	<!-- modify by xuyuefei 新增查询账号性质，币种，编码 -->
+	<select id="getBankAccountInfoById" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		select  account.baba_id          	baba_id,
+				account.create_time			create_time,
+				tuu.name					username,
+				account.modify_time			modify_time,
+				tuu2.name					modifyname,
+				account.type				type,
+				account.account_name		account_name,
+				account.account_no			account_no,
+				account.account_type		account_type,
+				account.account_alias		account_alias,
+				account.babi_id				babi_id,
+				bank.bank_name				bank_name,
+				account.parent_id			parent_id,
+				t1.account_no				parent_account_no,
+				account.currency            currency,
+				account.account_property    accountProperty,
+				account.account_code        accountCode
+		from t_bank_bankaccount account
+		left join t_user_user tuu 			on 		account.create_user_id = tuu.id
+		left join t_user_user tuu2 			on  	account.modify_user_id = tuu2.id
+		left join t_bank_bankaccount t1 	on 		t1.baba_id = account.parent_id
+		left join t_bank_bankinfo bank 		on 		bank.babi_id = account.babi_id 
+		where account.status = 0 			and 	account.baba_id = #baba_id#
+		]]>
+	</select>
+		<!-- 作废一条数据 -->
+	<update id="invalid" parameterClass="map">
+		<![CDATA[
+		update t_bank_bankaccount set status=-2,modify_time=getdate(),modify_user_id = #s_employeeId# where baba_id=#baba_id#
+		]]>
+	</update>
+		<!-- 查询一个账户下面子账户的个数 -->
+	<select id="getAccountCountByParentId" parameterClass="map" resultClass="java.lang.Integer"> 
+		<![CDATA[
+			select count(*) count from t_bank_bankaccount account
+			where account.status = 0  and  account.parent_id = #baba_id#
+		]]>
+	</select>
+		<!-- 更新一条数据 -->
+		<!-- 增加币种，账号性质，编码的修改 -->
+	<update id="update" parameterClass="map">
+		<![CDATA[
+		update  t_bank_bankaccount
+		set 	modify_time     = getdate(),
+				modify_user_id	= #s_employeeId#,
+				type			= #type#,
+				account_type    = #account_type#,
+				account_name	= #account_name#,
+				account_no		= #account_no#,
+				babi_id			= #babi_id#,
+				account_alias	= #account_alias#,
+				parent_id		= #parent_id#,
+				currency        = #currency#,
+				account_property= #accountProperty#,
+				account_code    = #accountCode#		  
+		where baba_id=#baba_id#
+		]]>
+	</update>
+
+	<!-- 根据account_no来查找此账户的个数，确保此账户的唯一性 -->
+	<select id="getCountByAccountNo" parameterClass="map" resultClass="java.lang.Integer"> 
+		<![CDATA[
+			select count(*) from t_bank_bankaccount account
+			where account.status = 0 and account.type = 0 and  account.account_no = #account_no#
+		]]>
+	</select>
+	
+	<!-- 根据account_no来查找此账户的baba_id -->
+	<select id="getAccountByAccountNo" parameterClass="map" resultClass="java.lang.Long"> 
+		<![CDATA[
+			select account.baba_id		baba_id
+			from t_bank_bankaccount account
+			where account.status = 0 and account.type = 0 and  account.account_no = #parent_no#
+		]]>
+	</select>
+	
+	<!-- 根据银行名称查询银行名称是否存在 -->
+	<select id="getBlackBankByBankName" parameterClass="map" resultClass="java.lang.Integer"> 
+			select count(*) from T_BLACK_BANK_MANAGE 
+			where status = 0 and BANK_NAME=#BANK_NAME#
+	</select>
+	
+		<!-- 根据银行名称查询银行名称是否存在 -->
+	<select id="queryAllBlackBankInfo" parameterClass="map" resultClass="java.util.HashMap"> 
+   		select t1.*,tuu.NAME from T_BLACK_BANK_MANAGE  t1
+      	left join T_USER_USER tuu
+      	on t1.CREATE_ID=tuu.ID
+		where t1.status = 0 
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+					(
+						t1.BANK_NAME like '%$content$%' 
+					)  
+				]]>
+			</isNotEmpty>
+		</dynamic>			
+	</select>
+
+		<!-- 插入一条银行黑名单的信息 -->
+	<insert id="addBlackBank" parameterClass="map">
+		<![CDATA[	
+		insert into T_BLACK_BANK_MANAGE
+			(BANK_NAME,
+			CREATE_ID,
+			CREATE_TIME,
+			STATUS,
+			MEMO
+			)
+		values
+		(
+		#BANK_NAME#,
+		#s_employeeId#,
+		getDate(),
+		0,
+		#MEMO#
+		)
+		]]>
+	</insert>
+	
+	<update id="deleteBlackBankByID" parameterClass="map">
+		<![CDATA[
+		update  T_BLACK_BANK_MANAGE
+		set status='-2'		  
+		where ID=#ID#
+		]]>
+	</update>	
+	
+	<!-- 验证 账号 add by xuyuefei 2014/8/15 -->	
+	<select id="checkNo" resultClass="int">
+	   select count(1) from 	T_BANK_BANKACCOUNT T1 where T1.ACCOUNT_NO=#no# and status=0
+	</select>
+	
+	<select id="getAllAccountProperty" resultClass="java.util.HashMap">
+	  select 
+	  DATA_ID,
+	  flag 
+	  from T_DATA_DICTIONARY 
+	  where type='银行帐号性质' and STATUS=0
+	</select>
+	
+	<select id="getBankAccountInfo" resultClass="java.util.HashMap">
+	      select TBF.BANK_NAME, 
+	      TBB.ACCOUNT_NO,
+	      TBB.account_code
+          from T_BANK_BANKACCOUNT TBB
+          left join T_BANK_BANKINFO TBF ON TBB.BABI_ID = TBF.BABI_ID AND TBF.STATUS=0
+          where TBB.STATUS=0
+	</select>
+	
+	<!-- 通过银行账号得到编码 -->
+	<select id="getCode" resultClass="java.util.HashMap">
+	SELECT account_code FROM T_BANK_BANKACCOUNT WHERE ACCOUNT_NO=#account# AND STATUS=0
+	</select>
+</sqlMap>	
+
+	
+

@@ -1,0 +1,927 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="backVisit">
+	<!-- 查询所有公司的个数 -->
+ 	<select id="queryAllBackVisit_count" parameterClass="map" resultClass="java.lang.Integer">
+ 		<![CDATA[
+		select count(*) from(
+		select (
+				case 
+					when t2.SHOULD_PAYDATE<=convert(datetime,convert(varchar,GETDATE(),23)) and t2.SHOULD_PAYDATE>=convert(datetime,convert(varchar,GETDATE(),23))-7 and t.RECT_ID not in (select RECT_ID from T_VISIT_REVIEWRECORDS where STATUS='0')
+					then '2'
+					when t2.SHOULD_PAYDATE<=convert(datetime,convert(varchar,GETDATE(),23)) and t2.SHOULD_PAYDATE>=convert(datetime,convert(varchar,GETDATE(),23))-7 and t.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID order by VISIT_ID desc) and VISIT_RESULTS='0')
+					then '3'
+					when t2.SHOULD_PAYDATE<=convert(datetime,convert(varchar,GETDATE(),23)) and t2.SHOULD_PAYDATE>=convert(datetime,convert(varchar,GETDATE(),23))-7 and t.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID order by VISIT_ID desc) and VISIT_RESULTS='1')
+					then '4'
+				end
+				
+		) as state,
+		t.RECT_ID,t.lease_code,t1.END_DATE,t.CUST_NAME,t.CUST_ID,(
+				case when t.PROVINCE_ID=t3.ID 
+					then t3.NAME
+				end) as province,(
+				case when t.CITY_ID=t4.ID 
+					then t4.NAME
+				end) as city
+		  from t_dun_daily t2
+		  left join t_cust_customer t5 on t2.cust_id = t5.cust_id
+		  left join t_rent_contract t on t2.rect_id = t.rect_id
+		  left join t_rent_collectionplan t1 on t2.recp_id=t1.recp_id
+		  left join T_AREA t3 on t.PROVINCE_ID=t3.ID
+		left join T_AREA t4 on t.CITY_ID=t4.ID
+		  where t2.status=0  and convert(datetime,convert(varchar,t2.create_date,23))=convert(datetime,convert(varchar,(getdate()),23))
+		  and t2.SHOULD_PAYDATE<=convert(datetime,convert(varchar,GETDATE(),23)) and t2.SHOULD_PAYDATE>=(convert(datetime,convert(varchar,GETDATE(),23))-7)
+		  
+union
+select (
+				case 
+					when t1.START_DATE+91<=getdate() and t1.END_DATE>=GETDATE() and t.RECT_ID not in (select RECT_ID from T_VISIT_REVIEWRECORDS where STATUS='0')
+					then '1'
+					when t1.START_DATE+91<=getdate() and t1.END_DATE>=GETDATE() and t.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID order by VISIT_ID desc) and VISIT_RESULTS='0')
+					then '0'
+					when t1.START_DATE+91<=getdate() and t1.END_DATE>=GETDATE() and t.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID order by VISIT_ID desc) and VISIT_RESULTS='-1')
+					then '-1'
+				end
+				
+		) as state,
+		t.RECT_ID,t.lease_code,t1.END_DATE,t.CUST_NAME,t.CUST_ID,(
+				case when t.PROVINCE_ID=t3.ID 
+					then t3.NAME
+				end) as province,(
+				case when t.CITY_ID=t4.ID 
+					then t4.NAME
+				end) as city
+ 		from T_RENT_CONTRACT t 
+		left join T_RENT_COLLECTIONPLAN t1 on t.RECT_ID=t1.RECT_ID 
+		left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+		left join T_AREA t3 on t.PROVINCE_ID=t3.ID
+		left join T_AREA t4 on t.CITY_ID=t4.ID
+		where t.STATUS='0' and t1.STATUS='0' and (t1.START_DATE+91)<=getdate() and t1.END_DATE>=GETDATE()
+) as un where 1=1
+ 		]]>
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="cust_name">
+	 			<![CDATA[
+				(un.CUST_NAME like '%$cust_name$%')  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="lease_code">
+	 			<![CDATA[
+				(un.LEASE_CODE like '%$lease_code$%')  
+				]]>
+			</isNotEmpty>
+		</dynamic>
+		group by un.city,un.CUST_ID,un.CUST_NAME,un.END_DATE,un.LEASE_CODE,un.province,un.state,un.RECT_ID
+ 	</select>
+
+	<!-- 查询所有符合条件的回访 -->
+ 	<select id="queryAllBackVisit" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 		select * from(
+select (
+				case 
+					when t1.START_DATE+91<=getdate() and t1.END_DATE>=GETDATE() and t.RECT_ID not in (select RECT_ID from T_VISIT_REVIEWRECORDS where STATUS='0')
+					then '1'
+					when t1.START_DATE+91<=getdate() and t1.END_DATE>=GETDATE() and t.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID order by VISIT_ID desc) and VISIT_RESULTS='0')
+					then '0'
+					when t1.START_DATE+91<=getdate() and t1.END_DATE>=GETDATE() and t.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID order by VISIT_ID desc) and VISIT_RESULTS='1')
+					then '-1'
+				end
+				
+		) as state,
+		t.RECT_ID,t.lease_code,t1.END_DATE,t.CUST_NAME,t.CUST_ID,(
+				case when t.PROVINCE_ID=t3.ID 
+					then t3.NAME
+				end) as province,(
+				case when t.CITY_ID=t4.ID 
+					then t4.NAME
+				end) as city
+ 		from T_RENT_CONTRACT t 
+		left join T_RENT_COLLECTIONPLAN t1 on t.RECT_ID=t1.RECT_ID 
+		left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+		left join T_AREA t3 on t.PROVINCE_ID=t3.ID
+		left join T_AREA t4 on t.CITY_ID=t4.ID
+		where t.STATUS='0' and t1.STATUS='0' and (t1.START_DATE+91)<=getdate() and t1.END_DATE>=GETDATE()
+		union
+		select (
+				case 
+					when t2.SHOULD_PAYDATE<=convert(datetime,convert(varchar,GETDATE(),23)) and t2.SHOULD_PAYDATE>=convert(datetime,convert(varchar,GETDATE(),23))-7 and t.RECT_ID not in (select RECT_ID from T_VISIT_REVIEWRECORDS where STATUS='0')
+					then '2'
+					when t2.SHOULD_PAYDATE<=convert(datetime,convert(varchar,GETDATE(),23)) and t2.SHOULD_PAYDATE>=convert(datetime,convert(varchar,GETDATE(),23))-7 and t.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID order by VISIT_ID desc) and VISIT_RESULTS='0')
+					then '3'
+					when t2.SHOULD_PAYDATE<=convert(datetime,convert(varchar,GETDATE(),23)) and t2.SHOULD_PAYDATE>=convert(datetime,convert(varchar,GETDATE(),23))-7 and t.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID order by VISIT_ID desc) and VISIT_RESULTS='1')
+					then '4'
+				end
+				
+		) as state,
+		t.RECT_ID,t.lease_code,t1.END_DATE,t.CUST_NAME,t.CUST_ID,(
+				case when t.PROVINCE_ID=t3.ID 
+					then t3.NAME
+				end) as province,(
+				case when t.CITY_ID=t4.ID 
+					then t4.NAME
+				end) as city
+		  from t_dun_daily t2
+		  left join t_cust_customer t5 on t2.cust_id = t5.cust_id
+		  left join t_rent_contract t on t2.rect_id = t.rect_id
+		  left join t_rent_collectionplan t1 on t2.recp_id=t1.recp_id
+		  left join T_AREA t3 on t.PROVINCE_ID=t3.ID
+		left join T_AREA t4 on t.CITY_ID=t4.ID
+		  where t2.status=0  and convert(datetime,convert(varchar,t2.create_date,23))=convert(datetime,convert(varchar,(getdate()),23))
+		  and t2.SHOULD_PAYDATE<=convert(datetime,convert(varchar,GETDATE(),23)) and t2.SHOULD_PAYDATE>=(convert(datetime,convert(varchar,GETDATE(),23))-7)
+) as un where 1=1 
+]]>
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="cust_name">
+	 			<![CDATA[
+				(un.CUST_NAME like '%$cust_name$%')  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="lease_code">
+	 			<![CDATA[
+				(un.LEASE_CODE like '%$lease_code$%')  
+				]]>
+			</isNotEmpty>
+		</dynamic>
+		group by un.city,un.CUST_ID,un.CUST_NAME,un.END_DATE,un.LEASE_CODE,un.province,un.state,un.RECT_ID
+order by un.LEASE_CODE
+ 	</select>
+	
+	<!-- 查询合同的客户产品 -->
+ 	<select id="queryAllContractByLeaseCode" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 		select 
+ 			t1.RECT_ID,t1.THING_KIND,t1.THING_NAME,t1.MODEL_SPEC,t1.BRAND,
+ 			t1.STAYBUY_PRICE,t1.UNIT_PRICE,t1.AMOUNT,t1.UNIT,t1.MEMO,t2.LEASE_CODE 
+ 		from T_RENT_CONTRACTDETAIL t1,T_RENT_CONTRACT t2 
+ 		where 
+ 			t1.RECT_ID=t2.RECT_ID and t1.STATUS='0'
+ 		]]>
+ 		<dynamic prepend="and">
+			<isNotEmpty prepend="and" property="lease_code_List">
+	 			<![CDATA[
+				(t2.RECT_ID = #lease_code_List#)  
+				]]>
+			</isNotEmpty>
+		</dynamic>
+ 	</select>
+ 	
+ 	<!-- 根据合同编号查询该合同下的信息 -->
+ 	<select id="queryVisitReviewRecordByLeaseCode" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 		select t.RECT_ID,t.LEASE_CODE,t1.END_DATE,t.CUST_NAME,t.CUST_ID,(
+				case when t.PROVINCE_ID=t3.ID 
+					then t3.NAME
+				end) as province,(
+				case when t.CITY_ID=t4.ID 
+					then t4.NAME
+				end) as city
+ 		from T_RENT_CONTRACT t 
+		left join T_RENT_COLLECTIONPLAN t1 on t.RECT_ID=t1.RECT_ID 
+		left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+		left join T_AREA t3 on t.PROVINCE_ID=t3.ID
+		left join T_AREA t4 on t.CITY_ID=t4.ID
+		where t.STATUS='0' and t1.STATUS='0' 
+ 		]]>
+ 		<dynamic prepend="and">
+			<isNotEmpty prepend="and" property="lease_code_List">
+	 			<![CDATA[
+				(t.LEASE_CODE like '%$lease_code_List$%')  
+				]]>
+			</isNotEmpty>
+		</dynamic>
+ 	</select>
+ 	
+ 	
+ 	<!-- 根据合同号新增一条回访记录 -->
+ 	<insert id="createVisitManager" parameterClass="map">
+		<![CDATA[
+			insert into T_VISIT_REVIEWRECORDS
+			  (RECT_ID, CREATE_ID, VISIT_USER_ID, VISIT_DATE, IS_BUSINESS, VISIT_CONPERSON, IS_PRODUCTS, PROD_DEGREE, IS_RUN, PROD_DEGREE_DETAILED, VISIT_RESULTS, IS_BACKVISIT, MODIFY_DATE, MODIFY_ID, STATUS, VISIT_NOTE,VISIT_RESON)
+			values
+			  (#RECT_ID#,#create_id#,#create_id#,convert(datetime,convert(varchar,(#visitNewDate#),23)),#is_business#,#visit_conperson#,#is_products#,#prod_degree#,#is_run#,#prod_degree_detailed#,#visit_results#,#is_backVisit#,getdate(),#create_id#,'0',#visit_note#,#STATECON#)
+		]]>
+	</insert>
+	
+		<!-- 增加回访催收 -->
+	<insert id="createDunRecord" parameterClass="map">
+		<![CDATA[
+		INSERT INTO T_DUN_DUNNINGRECORD
+				  ( call_user_id,call_content,call_date,status,cust_code,result,ANSWERPHONE_NAME, PHONE_NUMBER)
+			VALUES( #s_employeeId#,#VISITRECORD#,getDate(),0,#CUST_CODE#,15,#ANSWERPHONE_NAME#,#PHONE_NUMBER#)
+		]]>
+	</insert>
+	
+	<!-- 根据合同号查看一条回访记录（存在回访记录时） -->
+	<select id="viewVisitReviewRecordByLeaseCode" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 		select t.RECT_ID,t.LEASE_CODE,t1.END_DATE,t.CUST_NAME,t.CUST_ID,(
+				case when t.PROVINCE_ID=t3.ID 
+					then t3.NAME
+				end) as province,(
+				case when t.CITY_ID=t4.ID 
+					then t4.NAME
+				end) as city,t5.*,t6.NAME
+ 		from T_RENT_CONTRACT t 
+		left join T_RENT_COLLECTIONPLAN t1 on t.RECT_ID=t1.RECT_ID 
+		left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+		left join T_AREA t3 on t.PROVINCE_ID=t3.ID
+		left join T_AREA t4 on t.CITY_ID=t4.ID
+		left join T_VISIT_REVIEWRECORDS as t5 on t.RECT_ID=t5.RECT_ID
+		left join T_USER_USER as t6 on t5.VISIT_USER_ID=t6.ID
+		where t.STATUS='0' and t1.STATUS='0' 
+ 		]]>
+ 		<dynamic prepend="and">
+			<isNotEmpty prepend="and" property="lease_code_List">
+	 			<![CDATA[
+				(t.LEASE_CODE like '%$lease_code_List$%')  
+				]]>
+			</isNotEmpty>
+		</dynamic>
+ 	</select>
+	
+	<!-- 根据合同号修改一条回访记录（存在回访记录时） -->
+	<update id="updateVisitByVisit_Id" parameterClass="map">
+		<![CDATA[
+			update T_VISIT_REVIEWRECORDS set VISIT_USER_ID=#create_id#,VISIT_DATE=convert(datetime,convert(varchar,(#visitNewDate#),23)),IS_BUSINESS=#is_business#, VISIT_CONPERSON=#visit_conperson#, IS_PRODUCTS=#is_products#, PROD_DEGREE=#prod_degree#, IS_RUN=#is_run#, PROD_DEGREE_DETAILED=#prod_degree_detailed#, VISIT_RESULTS=#visit_results#, IS_BACKVISIT=#is_backVisit#, MODIFY_DATE=getDate(), MODIFY_ID=#create_id#, VISIT_NOTE=#visit_note# 
+			where VISIT_ID=#visit_id#
+		]]>
+	</update>
+	
+	<!-- 根据合同号修改一条回访记录（存在回访记录时）new -->
+	<update id="updateVisitByVisit_IdNew" parameterClass="map">
+		<![CDATA[
+			update T_VISIT_REVIEWRECORDS set VISIT_USER_ID=#create_id#,RECD_ID=#recd_id#,VISIT_DATE=convert(datetime,convert(varchar,(#visitNewDate#),23)),IS_BUSINESS=#is_business#, VISIT_CONPERSON=#visit_conperson#, IS_PRODUCTS=#is_products#, PROD_DEGREE=#prod_degree#, IS_RUN=#is_run#, PROD_DEGREE_DETAILED=#prod_degree_detailed#, VISIT_RESULTS=#visit_results#, IS_BACKVISIT=#is_backVisit#, MODIFY_DATE=getDate(), MODIFY_ID=#create_id#, VISIT_NOTE=#visit_note#,READY_VISIT_DATE=#ready_visit_date# 
+			where VISIT_ID=#visit_id#
+		]]>
+	</update>
+	
+	
+	
+	<!-- 查询所有公司的个数 -->
+ 	<select id="queryAllBackVisitNew_count" parameterClass="map" resultClass="java.lang.Integer">
+ 	<!-- Modify by Michael 2012 07-17 重新修改抓取数据逻辑 -->	
+ 	<!--
+<![CDATA[
+select count(*) from (select (
+					case 
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID not in (select RECT_ID from T_VISIT_REVIEWRECORDS where STATUS='0' and t3.RECD_ID=RECD_ID)
+					then '2'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and t3.RECD_ID=RECD_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='0')
+					then '3'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and t3.RECD_ID=RECD_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='1')
+					then '4'
+					end
+				) as state,t1.RECT_ID,
+	 			   t3.RECD_ID,
+	 			   t1.RECT_STATUS,
+			       t1.CUST_NAME,
+			       t1.LEASE_CODE,
+			       t2.RECP_CODE,
+			       t4.THING_KIND,
+			       t4.THING_NAME,
+			       t4.MODEL_SPEC,
+			       t4.BRAND,
+			       t4.UNIT_PRICE,
+			       t2.END_DATE,
+			       t1.CUST_ID
+from T_RENT_COLLECTIONPLAN  t2
+left join T_RENT_COLLECTIONDETAIL t on t.RECP_ID=t2.RECP_ID
+left join T_DUN_DAILY t5 on t5.RECP_ID=t2.RECP_ID and t.PERIOD_NUM=t5.PERIOD_NUM
+left join T_RENT_CONTRACT t1 on t1.RECT_ID = t2.RECT_ID
+left join T_RENT_CONTRACTDETAIL t3 on t1.RECT_ID = t3.RECT_ID and t3.RECP_ID=t2.RECP_ID
+left join T_EQMT_EQUIPMENT t4 on t3.EQMT_ID = t4.EQMT_ID
+where t.STATUS=0 and t1.STATUS=0 and t5.STATUS=0 and t2.STATUS=0 and t3.STATUS=0 and t4.STATUS=0 
+group by t1.RECT_ID,t3.RECD_ID,t1.RECT_STATUS,t1.CUST_NAME,t1.LEASE_CODE,t2.RECP_CODE,t4.THING_KIND,t4.THING_NAME,t4.MODEL_SPEC,t4.BRAND,t4.UNIT_PRICE,t2.END_DATE,t1.CUST_ID
+union
+select (
+			       case 
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID not in (select RECT_ID from T_VISIT_REVIEWRECORDS where STATUS='0' and t3.RECD_ID=RECD_ID)
+					then '1'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and t3.RECD_ID=RECD_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='0')
+					then '0'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and t3.RECD_ID=RECD_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='1')
+					then '-1'
+					end
+				) as state,t1.RECT_ID,
+	 			   t3.RECD_ID,
+	 			   t1.RECT_STATUS,
+			       t1.CUST_NAME,
+			       t1.LEASE_CODE,
+			       t2.RECP_CODE,
+			       t4.THING_KIND,
+			       t4.THING_NAME,
+			       t4.MODEL_SPEC,
+			       t4.BRAND,
+			       t4.UNIT_PRICE,
+			       t2.END_DATE,
+			       t1.CUST_ID
+			  from T_RENT_CONTRACT t1
+			  left join T_RENT_COLLECTIONPLAN t2 on t1.RECT_ID = t2.RECT_ID
+			  left join T_RENT_CONTRACTDETAIL t3 on t1.RECT_ID = t3.RECT_ID and t3.RECP_ID=t2.RECP_ID
+			  left join T_EQMT_EQUIPMENT t4 on t3.EQMT_ID = t4.EQMT_ID
+			 where t1.STATUS = 0 and t3.STATUS=0 and t2.status=0 and t4.STATUS=0 
+			 and t3.RECD_ID not in
+			 (select  t3.RECD_ID
+from T_RENT_COLLECTIONPLAN  t2
+left join T_RENT_COLLECTIONDETAIL t on t.RECP_ID=t2.RECP_ID
+left join T_DUN_DAILY t5 on t5.RECP_ID=t2.RECP_ID and t.PERIOD_NUM=t5.PERIOD_NUM
+left join T_RENT_CONTRACT t1 on t1.RECT_ID = t2.RECT_ID
+left join T_RENT_CONTRACTDETAIL t3 on t1.RECT_ID = t3.RECT_ID
+left join T_EQMT_EQUIPMENT t4 on t3.EQMT_ID = t4.EQMT_ID
+where t.STATUS=0 and t1.STATUS=0 and t5.STATUS=0 and t2.STATUS=0 and t3.STATUS=0 and t4.STATUS=0)
+group by t1.RECT_ID,t3.RECD_ID,t1.RECT_STATUS,t1.CUST_NAME,t1.LEASE_CODE,t2.RECP_CODE,t4.THING_KIND,t4.THING_NAME,t4.MODEL_SPEC,t4.BRAND,t4.UNIT_PRICE,t2.END_DATE,t1.CUST_ID
+) as un
+			  where 1=1
+]]>
+-->	
+			<!-- select count(*) from (select (
+					case 
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID not in (select RECT_ID from T_VISIT_REVIEWRECORDS where STATUS='0' and t1.RECT_ID=RECT_ID)
+					then '2'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='0')
+					then '3'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='1')
+					then '4'
+					end
+				) as state,t1.RECT_ID,
+	 			   t1.RECT_STATUS,
+			       t1.CUST_NAME,
+			       t1.LEASE_CODE,
+			       t2.RECP_CODE,			     
+			       t2.END_DATE,
+			       t1.CUST_ID,trcd.BRAND
+			from T_RENT_COLLECTIONPLAN  t2
+			left join T_RENT_COLLECTIONDETAIL t on t.RECP_ID=t2.RECP_ID
+			left join T_DUN_DAILY t5 on t5.RECP_ID=t2.RECP_ID and t.PERIOD_NUM=t5.PERIOD_NUM
+			left join T_RENT_CONTRACT t1 on t1.RECT_ID = t2.RECT_ID
+			left join (select MAX(BRAND) BRAND,RECT_ID from T_RENT_CONTRACTDETAIL where STATUS=0
+			group by RECT_ID) trcd on trcd.RECT_ID=t1.RECT_ID 
+			where t.STATUS=0 and t1.STATUS=0 and t5.STATUS=0 and t2.STATUS=0 and  t2.END_DATE>=GETDATE()
+			group by t1.RECT_ID,t1.RECT_STATUS,t1.CUST_NAME,t1.LEASE_CODE,t2.RECP_CODE,t2.END_DATE,t1.CUST_ID,trcd.BRAND
+			union
+			select (
+			       case 
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID not in (select RECT_ID from T_VISIT_REVIEWRECORDS where STATUS='0' and RECT_ID=t1.RECT_ID)
+					then '1'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='0')
+					then '0'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='1')
+					then '-1'
+					end
+				) as state,t1.RECT_ID,
+	 			    t1.RECT_STATUS,
+			       t1.CUST_NAME,
+			       t1.LEASE_CODE,
+			       t2.RECP_CODE,			      
+			       t2.END_DATE,
+			       t1.CUST_ID,trcd.BRAND
+			  from T_RENT_CONTRACT t1
+			  left join T_RENT_COLLECTIONPLAN t2 on t1.RECT_ID = t2.RECT_ID	
+			  left join (select MAX(BRAND) BRAND,RECT_ID from T_RENT_CONTRACTDETAIL where STATUS=0
+			group by RECT_ID) trcd on trcd.RECT_ID=t1.RECT_ID 		
+						 where t1.STATUS = 0 and t2.status=0 and t2.END_DATE>=GETDATE() 
+						  and t2.RECP_ID not in(select RECP_ID from T_DUN_DAILY where STATUS='0' and t2.RECT_ID=RECT_ID)
+			group by t1.RECT_ID,t1.RECT_STATUS,t1.CUST_NAME,t1.LEASE_CODE,t2.RECP_CODE,t2.END_DATE,t1.CUST_ID,trcd.BRAND) as un
+             LEFT JOIN T_RENT_CONTRACT trct ON trct.RECT_ID = un.RECT_ID     
+             LEFT JOIN T_USER_USER T6 ON trct.SENSOR_ID = T6.ID
+             left join T_USER_USER upper on upper.id = T6.upper_user
+             left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+             left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			where 1=1 
+ 			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.SENSOR_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+		  			  
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="cust_name">
+	 			<![CDATA[
+				(un.CUST_NAME like '%$cust_name$%')  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="lease_code">
+	 			<![CDATA[
+				(un.LEASE_CODE like '%$lease_code$%')  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="STATECON">
+	 			<![CDATA[
+				(un.state=#STATECON#)  
+				]]>
+			</isNotEmpty>
+		</dynamic> -->
+		SELECT COUNT(1) FROM
+		(
+		select T6.NAME USER_NAME,upper.NAME SUPER_NAME,t9.DECP_NAME_CN,MAX(MAX_VISITRECORD.VISIT_DATE)  as VISIT_DATE,MAX(trct.RECT_ID) RECT_ID,
+	 			    MAX(trct.RECT_STATUS) RECT_STATUS,
+			       trct.CUST_NAME,
+			       MAX(trct.LEASE_CODE) LEASE_CODE,
+			       MAX(t2.RECP_CODE) RECP_CODE,			      
+			       MAX(t2.END_DATE) END_DATE,
+			       trct.CUST_ID,MAX(trcd.BRAND) BRAND
+			  from T_RENT_CONTRACT trct
+			  left join T_RENT_COLLECTIONPLAN t2 on trct.RECT_ID = t2.RECT_ID	
+			  left join (select MAX(BRAND) BRAND,RECT_ID from T_RENT_CONTRACTDETAIL where STATUS=0
+			group by RECT_ID) trcd on trcd.RECT_ID=trct.RECT_ID 		
+             LEFT JOIN T_USER_USER T6 ON trct.SENSOR_ID = T6.ID
+             left join T_USER_USER upper on upper.id = T6.upper_user
+             left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+             left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		    left join (select max(VISIT_DATE) VISIT_DATE,rect_id from T_VISIT_REVIEWRECORDS where status=0 group by rect_id) MAX_VISITRECORD
+		    on trct.RECT_ID = MAX_VISITRECORD.RECT_ID
+		    where trct.status=0
+ 			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(trct.SENSOR_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+		  			  
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="cust_name">
+	 			<![CDATA[
+				(trct.CUST_NAME like '%$cust_name$%')  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="lease_code">
+	 			<![CDATA[
+				(trct.LEASE_CODE like '%$lease_code$%')  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="STATECON">
+	 			<![CDATA[
+				exists(select rect_id from T_VISIT_REVIEWRECORDS TVR
+				    where TVR.visit_reson=#STATECON#
+				    and TVR.rect_id=trct.rect_id
+				    group by TVR.RECT_ID)  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="visit_results">
+	 			<![CDATA[
+				exists(select rect_id from T_VISIT_REVIEWRECORDS TVR2
+				    where TVR2.VISIT_RESULTS=#visit_results#
+				    and TVR2.rect_id=trct.rect_id
+				    group by TVR2.RECT_ID)  
+				]]>
+			</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[
+				exists(select rect_id from T_VISIT_REVIEWRECORDS TLF
+				where CONVERT(date,TLF.VISIT_DATE,23)>=CONVERT(date,#QSTART_DATE#,23) 
+			]]>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+				<![CDATA[
+					CONVERT(date,TLF.VISIT_DATE,23)<=CONVERT(date,#QEND_DATE#,23) 
+				]]>
+			</isNotEmpty>
+			<![CDATA[
+				and TLF.RECT_ID=trct.RECT_ID 
+				group by  RECT_ID
+				)  
+			]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QEND_DATE">
+			<isEmpty prepend="and" property="QSTART_DATE">
+				<![CDATA[
+				exists(select rect_id from T_VISIT_REVIEWRECORDS TLF
+				where CONVERT(date,TLF.VISIT_DATE,23)<=CONVERT(date,#QEND_DATE#,23)
+				and TLF.RECT_ID=trct.RECT_ID 
+				group by  RECT_ID
+				)  
+				]]>
+			</isEmpty>
+		</isNotEmpty>
+		</dynamic>
+		GROUP BY T6.NAME,upper.NAME,t9.DECP_NAME_CN,trct.CUST_NAME,trct.CUST_ID
+		)
+ 	</select>
+
+	<!-- 查询所有符合条件的回访 -->
+	<!-- Modify by Michael 2012 07-16 修改抓取逻辑 -->
+ 	<select id="queryAllBackVisitNew" parameterClass="map" resultClass="java.util.HashMap">
+ 	<!--
+ 		<![CDATA[
+ 		select un.* from (select (
+					case 
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID not in (select RECT_ID from T_VISIT_REVIEWRECORDS where STATUS='0' and t3.RECD_ID=RECD_ID)
+					then '2'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and t3.RECD_ID=RECD_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='0')
+					then '3'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and t3.RECD_ID=RECD_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='1')
+					then '4'
+					end
+				) as state,t1.RECT_ID,
+	 			   t3.RECD_ID,
+	 			   t1.RECT_STATUS,
+			       t1.CUST_NAME,
+			       t1.LEASE_CODE,
+			       t2.RECP_CODE,
+			       t4.THING_KIND,
+			       t4.THING_NAME,
+			       t4.MODEL_SPEC,
+			       t4.BRAND,
+			       t4.UNIT_PRICE,
+			       t2.END_DATE,
+			       t1.CUST_ID
+from T_RENT_COLLECTIONPLAN  t2
+left join T_RENT_COLLECTIONDETAIL t on t.RECP_ID=t2.RECP_ID
+left join T_DUN_DAILY t5 on t5.RECP_ID=t2.RECP_ID and t.PERIOD_NUM=t5.PERIOD_NUM
+left join T_RENT_CONTRACT t1 on t1.RECT_ID = t2.RECT_ID
+left join T_RENT_CONTRACTDETAIL t3 on t1.RECT_ID = t3.RECT_ID and t3.RECP_ID=t2.RECP_ID
+left join T_EQMT_EQUIPMENT t4 on t3.EQMT_ID = t4.EQMT_ID
+where t.STATUS=0 and t1.STATUS=0 and t5.STATUS=0 and t2.STATUS=0 and t3.STATUS=0 and t4.STATUS=0 
+group by t1.RECT_ID,t3.RECD_ID,t1.RECT_STATUS,t1.CUST_NAME,t1.LEASE_CODE,t2.RECP_CODE,t4.THING_KIND,t4.THING_NAME,t4.MODEL_SPEC,t4.BRAND,t4.UNIT_PRICE,t2.END_DATE,t1.CUST_ID
+union
+select (
+			       case 
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID not in (select RECT_ID from T_VISIT_REVIEWRECORDS where STATUS='0' and t3.RECD_ID=RECD_ID)
+					then '1'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and t3.RECD_ID=RECD_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='0')
+					then '0'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and t3.RECD_ID=RECD_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='1')
+					then '-1'
+					end
+				) as state,t1.RECT_ID,
+	 			   t3.RECD_ID,
+	 			   t1.RECT_STATUS,
+			       t1.CUST_NAME,
+			       t1.LEASE_CODE,
+			       t2.RECP_CODE,
+			       t4.THING_KIND,
+			       t4.THING_NAME,
+			       t4.MODEL_SPEC,
+			       t4.BRAND,
+			       t4.UNIT_PRICE,
+			       t2.END_DATE,
+			       t1.CUST_ID
+			  from T_RENT_CONTRACT t1
+			  left join T_RENT_COLLECTIONPLAN t2 on t1.RECT_ID = t2.RECT_ID
+			  left join T_RENT_CONTRACTDETAIL t3 on t1.RECT_ID = t3.RECT_ID and t3.RECP_ID=t2.RECP_ID
+			  left join T_EQMT_EQUIPMENT t4 on t3.EQMT_ID = t4.EQMT_ID
+			 where t1.STATUS = 0 and t3.STATUS=0 and t2.status=0 and t4.STATUS=0
+			 and t3.RECD_ID not in
+			 (select  t3.RECD_ID
+from T_RENT_COLLECTIONPLAN  t2
+left join T_RENT_COLLECTIONDETAIL t on t.RECP_ID=t2.RECP_ID
+left join T_DUN_DAILY t5 on t5.RECP_ID=t2.RECP_ID and t.PERIOD_NUM=t5.PERIOD_NUM
+left join T_RENT_CONTRACT t1 on t1.RECT_ID = t2.RECT_ID
+left join T_RENT_CONTRACTDETAIL t3 on t1.RECT_ID = t3.RECT_ID
+left join T_EQMT_EQUIPMENT t4 on t3.EQMT_ID = t4.EQMT_ID
+where t.STATUS=0 and t1.STATUS=0 and t5.STATUS=0 and t2.STATUS=0 and t3.STATUS=0 and t4.STATUS=0)
+group by t1.RECT_ID,t3.RECD_ID,t1.RECT_STATUS,t1.CUST_NAME,t1.LEASE_CODE,t2.RECP_CODE,t4.THING_KIND,t4.THING_NAME,t4.MODEL_SPEC,t4.BRAND,t4.UNIT_PRICE,t2.END_DATE,t1.CUST_ID) as un
+			  where 1=1 
+]]>
+ -->
+ <!--  
+		 <![CDATA[
+			select un.*,T6.NAME USER_NAME,upper.NAME SUPER_NAME,t9.DECP_NAME_CN from (select (
+					case 
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID not in (select RECT_ID from T_VISIT_REVIEWRECORDS where STATUS='0' and t1.RECT_ID=RECT_ID)
+					then '2'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='0')
+					then '3'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='1')
+					then '4'
+					end
+				) as state,t1.RECT_ID,
+	 			   t1.RECT_STATUS,
+			       t1.CUST_NAME,
+			       t1.LEASE_CODE,
+			       t2.RECP_CODE,			     
+			       t2.END_DATE,
+			       t1.CUST_ID,trcd.BRAND
+			from T_RENT_COLLECTIONPLAN  t2
+			left join T_RENT_COLLECTIONDETAIL t on t.RECP_ID=t2.RECP_ID
+			left join T_DUN_DAILY t5 on t5.RECP_ID=t2.RECP_ID and t.PERIOD_NUM=t5.PERIOD_NUM
+			left join T_RENT_CONTRACT t1 on t1.RECT_ID = t2.RECT_ID
+			left join (select MAX(BRAND) BRAND,RECT_ID from T_RENT_CONTRACTDETAIL where STATUS=0
+			group by RECT_ID) trcd on trcd.RECT_ID=t1.RECT_ID 
+			where t.STATUS=0 and t1.STATUS=0 and t5.STATUS=0 and t2.STATUS=0 and  t2.END_DATE>=GETDATE()
+			group by t1.RECT_ID,t1.RECT_STATUS,t1.CUST_NAME,t1.LEASE_CODE,t2.RECP_CODE,t2.END_DATE,t1.CUST_ID,trcd.BRAND
+			union
+			select (
+			       case 
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID not in (select RECT_ID from T_VISIT_REVIEWRECORDS where STATUS='0' and RECT_ID=t1.RECT_ID)
+					then '1'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='0')
+					then '0'
+					when  t2.END_DATE>=GETDATE() and t1.RECT_ID in (select RECT_ID from T_VISIT_REVIEWRECORDS where VISIT_ID in(select top 1 VISIT_ID from T_VISIT_REVIEWRECORDS where RECT_ID=t1.RECT_ID and STATUS=0 order by VISIT_ID desc) and VISIT_RESULTS='1')
+					then '-1'
+					end
+				) as state,t1.RECT_ID,
+	 			    t1.RECT_STATUS,
+			       t1.CUST_NAME,
+			       t1.LEASE_CODE,
+			       t2.RECP_CODE,			      
+			       t2.END_DATE,
+			       t1.CUST_ID,trcd.BRAND
+			  from T_RENT_CONTRACT t1
+			  left join T_RENT_COLLECTIONPLAN t2 on t1.RECT_ID = t2.RECT_ID	
+			  left join (select MAX(BRAND) BRAND,RECT_ID from T_RENT_CONTRACTDETAIL where STATUS=0
+			group by RECT_ID) trcd on trcd.RECT_ID=t1.RECT_ID 		
+						 where t1.STATUS = 0 and t2.status=0 and t2.END_DATE>=GETDATE() 
+						  and t2.RECP_ID not in(select RECP_ID from T_DUN_DAILY where STATUS='0' and t2.RECT_ID=RECT_ID)
+			group by t1.RECT_ID,t1.RECT_STATUS,t1.CUST_NAME,t1.LEASE_CODE,t2.RECP_CODE,t2.END_DATE,t1.CUST_ID,trcd.BRAND) as un
+             LEFT JOIN T_RENT_CONTRACT trct ON trct.RECT_ID = un.RECT_ID     
+             LEFT JOIN T_USER_USER T6 ON trct.SENSOR_ID = T6.ID
+             left join T_USER_USER upper on upper.id = T6.upper_user
+             left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+             left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			where 1=1 
+		 ]]>
+		 -->
+  			<!-- select T6.NAME USER_NAME,upper.NAME SUPER_NAME,t9.DECP_NAME_CN,MAX_VISITRECORD.VISIT_DATE  as VISIT_DATE,trct.RECT_ID,
+	 			    trct.RECT_STATUS,
+			       trct.CUST_NAME,
+			       trct.LEASE_CODE,
+			       t2.RECP_CODE,			      
+			       t2.END_DATE,
+			       trct.CUST_ID,trcd.BRAND -->
+			       select T6.NAME USER_NAME,upper.NAME SUPER_NAME,t9.DECP_NAME_CN,MAX(MAX_VISITRECORD.VISIT_DATE)  as VISIT_DATE,MAX(trct.RECT_ID) RECT_ID,
+	 			    MAX(trct.RECT_STATUS) RECT_STATUS,
+			       trct.CUST_NAME,
+			       MAX(trct.LEASE_CODE) LEASE_CODE,
+			       MAX(t2.RECP_CODE) RECP_CODE,			      
+			       MAX(t2.END_DATE) END_DATE,
+			       trct.CUST_ID,MAX(trcd.BRAND) BRAND
+			  from T_RENT_CONTRACT trct
+			  left join T_RENT_COLLECTIONPLAN t2 on trct.RECT_ID = t2.RECT_ID	
+			  left join (select MAX(BRAND) BRAND,RECT_ID from T_RENT_CONTRACTDETAIL where STATUS=0
+			group by RECT_ID) trcd on trcd.RECT_ID=trct.RECT_ID 		
+             LEFT JOIN T_USER_USER T6 ON trct.SENSOR_ID = T6.ID
+             left join T_USER_USER upper on upper.id = T6.upper_user
+             left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+             left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		    left join (select max(VISIT_DATE) VISIT_DATE,rect_id from T_VISIT_REVIEWRECORDS where status=0 group by rect_id) MAX_VISITRECORD
+		    on trct.RECT_ID = MAX_VISITRECORD.RECT_ID
+		    where trct.status=0
+ 			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(trct.SENSOR_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+		  			  
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="cust_name">
+	 			<![CDATA[
+				(trct.CUST_NAME like '%$cust_name$%')  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="lease_code">
+	 			<![CDATA[
+				(trct.LEASE_CODE like '%$lease_code$%')  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="STATECON">
+	 			<![CDATA[
+				exists(select rect_id from T_VISIT_REVIEWRECORDS TVR
+				    where TVR.visit_reson=#STATECON#
+				    and TVR.rect_id=trct.rect_id
+				    group by TVR.RECT_ID)  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="visit_results">
+	 			<![CDATA[
+				exists(select rect_id from T_VISIT_REVIEWRECORDS TVR2
+				    where TVR2.VISIT_RESULTS=#visit_results#
+				    and TVR2.rect_id=trct.rect_id
+				    group by TVR2.RECT_ID)  
+				]]>
+			</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[
+				exists(select rect_id from T_VISIT_REVIEWRECORDS TLF
+				where CONVERT(date,TLF.VISIT_DATE,23)>=CONVERT(date,#QSTART_DATE#,23) 
+			]]>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+				<![CDATA[
+					CONVERT(date,TLF.VISIT_DATE,23)<=CONVERT(date,#QEND_DATE#,23) 
+				]]>
+			</isNotEmpty>
+			<![CDATA[
+				and TLF.RECT_ID=trct.RECT_ID 
+				group by  RECT_ID
+				)  
+			]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QEND_DATE">
+			<isEmpty prepend="and" property="QSTART_DATE">
+				<![CDATA[
+				exists(select rect_id from T_VISIT_REVIEWRECORDS TLF
+				where CONVERT(date,TLF.VISIT_DATE,23)<=CONVERT(date,#QEND_DATE#,23)
+				and TLF.RECT_ID=trct.RECT_ID 
+				group by  RECT_ID
+				)  
+				]]>
+			</isEmpty>
+		</isNotEmpty>
+		</dynamic>
+		GROUP BY T6.NAME,upper.NAME,t9.DECP_NAME_CN,trct.CUST_NAME,trct.CUST_ID
+ 	</select>
+ 
+   	<select id="queryAllVisitReviewrecords" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select DISTINCT VISIT_USER.NAME VISIT_USER,t6.name,trct.cust_name,t9.DECP_NAME_CN ,tvrv.VISIT_DATE,
+					IS_BUSINESS,VISIT_CONPERSON,IS_PRODUCTS,PROD_DEGREE,IS_RUN,VISIT_RESULTS,VISIT_RESON,READY_VISIT_DATE,
+					O.CUST_ID,CONVERT(varchar,DIFFDATE.OPPOSING_DATE,101) as OPPOSING_DATE,DIFFDATE.DAYS,DIFFDATE.AUDIT_DATE
+ 			from T_VISIT_REVIEWRECORDS	tvrv
+			left join T_RENT_CONTRACT trct
+			on tvrv.RECT_ID=trct.RECT_ID and trct.STATUS=0
+			left join T_RENT_COLLECTIONPLAN t2 on trct.RECT_ID = t2.RECT_ID
+			LEFT JOIN T_USER_USER VISIT_USER ON tvrv.VISIT_USER_ID = VISIT_USER.ID
+			LEFT JOIN T_USER_USER T6 ON trct.SENSOR_ID = T6.ID
+			left join T_USER_USER upper on upper.id = T6.upper_user
+			left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+			left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0	
+		 	LEFT JOIN 
+		      (
+		          SELECT TVRV.VISIT_DATE VISIT_DATE,TRCT.CUST_ID 
+		            FROM (select VISIT_DATE,RECT_ID from T_VISIT_REVIEWRECORDS where status=0 group by VISIT_DATE,RECT_ID) TVRV
+		       LEFT JOIN T_RENT_CONTRACT TRCT ON TVRV.RECT_ID=TRCT.RECT_ID AND TRCT.STATUS=0
+		        GROUP BY TRCT.CUST_ID,TVRV.VISIT_DATE
+		      ) O ON O.CUST_ID=trct.CUST_ID AND CONVERT(DATE,tvrv.VISIT_DATE) = CONVERT(DATE,O.VISIT_DATE)
+		      LEFT JOIN 
+			     (
+			     SELECT OUTVISIT.RECP_ID,OUTVISIT.AUDIT_DATE, MIN(TFI.OPPOSING_DATE) AS OPPOSING_DATE, 
+			            DATEDIFF( DAY,OUTVISIT.AUDIT_DATE, MIN(TFI.OPPOSING_DATE) ) AS DAYS 
+			      FROM  (SELECT TDD.RECP_ID, MAX(TDA.AUDIT_DATE) AS AUDIT_DATE FROM T_DUN_AUDIT  TDA
+			                LEFT JOIN T_DUN_DAILY TDD ON TDD.DAILY_ID=TDA.DAILY_ID
+			                WHERE TDA.AUDIT_TYPE=2
+			                GROUP BY TDD.RECP_ID
+			            ) OUTVISIT
+			      LEFT JOIN T_FINA_COLLECTIONBILL TFC ON TFC.RECP_ID =OUTVISIT.RECP_ID
+			      Left join T_FINA_INCOME TFI on TFI.FIIN_ID=TFC.FIIN_ID
+			      
+			      
+			      WHERE  CONVERT(DATE,OUTVISIT.AUDIT_DATE) < CONVERT(DATE,TFI.OPPOSING_DATE )
+			      GROUP BY  OUTVISIT.RECP_ID,OUTVISIT.AUDIT_DATE  
+			      ) DIFFDATE  ON DIFFDATE.RECP_ID=T2.RECP_ID
+			where tvrv.status=0	 AND O.CUST_ID IS NOT NULL	
+ 		]]>
+		<isEqual prepend="and" property="p_usernode" compareValue="1">
+	  	 	<![CDATA[ 
+	  	 	(trct.SENSOR_ID = #s_employeeId#
+	  	 	or upper.ID = #s_employeeId#)
+	  	 	]]>
+	  	</isEqual>
+	  			  
+		<isEqual prepend="and" property="p_usernode" compareValue="2">
+			<![CDATA[
+				exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+				where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+			]]>
+		</isEqual>
+ 		<dynamic prepend="and">
+			<isNotEmpty prepend="and" property="lease_code">
+	 			<![CDATA[
+				(trct.LEASE_CODE like '%$lease_code$%')  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="STATECON">
+	 			<![CDATA[
+				 	tvrv.visit_reson=#STATECON#
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="visit_results">
+	 			<![CDATA[
+					tvrv.VISIT_RESULTS=#visit_results#
+				]]>
+			</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[
+			 	CONVERT(date,tvrv.VISIT_DATE,23)>=CONVERT(date,#QSTART_DATE#,23) 
+			]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[	 
+				CONVERT(date,tvrv.VISIT_DATE,23)<=CONVERT(date,#QEND_DATE#,23) 
+			]]>
+		</isNotEmpty>
+		</dynamic>	
+	  	 	<![CDATA[ 
+				order by tvrv.VISIT_DATE desc
+	  	 	]]>	
+ 	</select>
+ 			
+  	<select id="queryDunDetailByRecpID" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[	
+		select  MIN(t2.PERIOD_NUM) min_PERIOD_NUM,
+		MAX(t2.PERIOD_NUM) max_PERIOD_NUM,
+		convert(varchar,MAX(t2.SHOULD_PAYDATE),23) PAY_DATE,
+	   (MIN(t2.PERIOD_NUM)-1)   AL_PERIOD_NUM,
+		MAX(t2.DUN_DAY) DUN_DAY, t2.RECP_ID,MIN(SHOULD_PAYPRICE)SHOULD_PAYPRICE
+	   from T_RENT_COLLECTIONDETAIL t1
+		   left join T_DUN_DAILY t2 on t1.RECP_ID=t2.RECP_ID and t1.PERIOD_NUM=t2.PERIOD_NUM
+		   join t_rent_contract t4 on t4.rect_id = t2.rect_id					   
+		where  t2.PERIOD_NUM is not null 
+		and convert(datetime,convert(varchar,t2.CREATE_DATE,23))=convert(datetime,convert(varchar,GETDATE(),23))
+		and t1.RECP_ID=#RECP_ID#
+		group by t2.RECP_ID
+		]]>
+ 	</select>	
+ 	<!-- 根据合同编号查询该合同下的信息 -->
+ 	<select id="queryVisitReviewRecordByLeaseCodeNew" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+			select t.RECT_ID,t.LEASE_CODE,t1.END_DATE,t.CUST_NAME,t.CUST_ID,t.CUST_CODE,(
+				case when t.PROVINCE_ID=t3.ID 
+					then t3.NAME
+				end) as province,(
+				case when t.CITY_ID=t4.ID 
+					then t4.NAME
+				end) as city,
+				t1.RECP_CODE,t1.recp_id
+ 		from T_RENT_CONTRACT t 
+		left join T_RENT_COLLECTIONPLAN t1 on t.RECT_ID=t1.RECT_ID 
+		left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+		left join T_AREA t3 on t.PROVINCE_ID=t3.ID 
+		left join T_AREA t4 on t.CITY_ID=t4.ID
+		where t.STATUS='0' and t1.STATUS='0' and t.RECT_ID=#rect_id#
+ 		]]>
+ 		<dynamic prepend="and">
+			<isNotEmpty prepend="and" property="lease_code_List">
+	 			<![CDATA[
+				(t.LEASE_CODE like '%$lease_code_List$%')  
+				]]>
+			</isNotEmpty>
+		</dynamic>
+ 	</select>
+ 	
+ 	<!-- 根据合同号查看一条回访记录（存在回访记录时） -->
+	<select id="viewVisitReviewRecordByLeaseCodeNew" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 		select t5.VISIT_ID, t.RECT_ID,t.LEASE_CODE,t1.END_DATE,t.CUST_NAME,t.CUST_ID,(
+				case when t.PROVINCE_ID=t3.ID 
+					then t3.NAME
+				end) as province,(
+				case when t.CITY_ID=t4.ID 
+					then t4.NAME
+				end) as city,t5.*,t6.NAME,
+				t7.RECD_ID,t7.THING_NAME,t7.MODEL_SPEC,t7.THING_KIND,t1.RECP_CODE
+ 		from T_RENT_CONTRACT t 
+		left join T_RENT_COLLECTIONPLAN t1 on t.RECT_ID=t1.RECT_ID 
+		left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+		left join T_AREA t3 on t.PROVINCE_ID=t3.ID
+		left join T_AREA t4 on t.CITY_ID=t4.ID
+		left join T_VISIT_REVIEWRECORDS as t5 on t.RECT_ID=t5.RECT_ID
+		left join T_USER_USER as t6 on t5.VISIT_USER_ID=t6.ID
+		left join T_RENT_CONTRACTDETAIL t7 on t7.RECT_ID=t.RECT_ID and t5.RECD_ID=t7.RECD_ID and t7.RECP_ID=t1.RECP_ID
+		where t.STATUS='0' and t1.STATUS='0' and t.cust_id=#cust_id# AND t5.VISIT_ID IS NOT NULL
+ 		]]>
+ 		<!-- <dynamic prepend="and">
+			<isNotEmpty prepend="and" property="lease_code_List">
+	 			<![CDATA[
+				(t.LEASE_CODE like '%$lease_code_List$%')  
+				]]>
+			</isNotEmpty>
+			
+		</dynamic> -->
+ 	</select>
+ 	
+ 	
+ 	<!-- 根据合同号新增一条回访记录 new-->
+ 	<insert id="createVisitManagerNew" parameterClass="map">
+		<![CDATA[
+			insert into T_VISIT_REVIEWRECORDS
+			  (RECT_ID, CREATE_ID, VISIT_USER_ID, VISIT_DATE, IS_BUSINESS, VISIT_CONPERSON, IS_PRODUCTS, PROD_DEGREE, IS_RUN, PROD_DEGREE_DETAILED, VISIT_RESULTS, IS_BACKVISIT, MODIFY_DATE, MODIFY_ID, STATUS, VISIT_NOTE,RECD_ID,READY_VISIT_DATE,AL_PERIOD_NUM,DUN_DAY,SHOULD_PAYPRICE,PAY_DATE,VISIT_RESON)
+			values
+			  (#RECT_ID#,#clerk_id#,#clerk_id#,convert(datetime,convert(varchar,(#visitNewDate#),23)),#is_business#,#visit_conperson#,#is_products#,#prod_degree#,#is_run#,#prod_degree_detailed#,#visit_results#,#is_backVisit#,getdate(),#s_employeeId#,'0',#visit_note#,#RECD_ID#,#ready_visit_date#,#AL_PERIOD_NUM#,#DUN_DAY#,#SHOULD_PAYPRICE#,#PAY_DATE#,#STATECON#)
+		]]>
+		<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS visit_id
+		</selectKey>
+	</insert>
+	
+	
+	<select id="getVisitReviewRecordsByRectId" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT TOP 1 * FROM T_VISIT_REVIEWRECORDS
+		WHERE RECT_ID = #rectId#
+		ORDER BY VISIT_DATE DESC
+	</select>
+	
+</sqlMap>

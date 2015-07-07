@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap namespace="bpmTask">
+	
+	<insert id="insertTask" parameterClass="com.brick.bpm.ins.Task">
+		INSERT INTO T_BPM_INS_TASK(TASK_STATUS,PROCESS_INS_ID,FLOW_INS_ID,URL,DESCRIPTION,CHARGE,DELEGATE,OPERATOR,BEGIN_DATE,DUE_DATE,END_DATE,RESULT,COMMENT,PRIORITY,OPERATE_LIST,FLOW_DEF_ID)
+		VALUES(#taskStatus#,#processId#,#flowId#,#url#,#description#,#charge#,#delegate#,#operator#,#beginDate#,#dueDate#,#endDate#,#result#,#comment#,#priority#,#operateList#,#flowDefId#)
+		<selectKey resultClass="java.lang.Integer" keyProperty="taskId">
+			SELECT @@IDENTITY taskId
+		</selectKey>
+	</insert>
+	
+	<delete id="deleteTask" parameterClass="com.brick.bpm.ins.Task">
+		DELETE FROM T_BPM_INS_TASK WHERE TASK_INS_ID = #taskId#
+	</delete>
+	
+	<update id="updateTask" parameterClass="com.brick.bpm.ins.Task">
+		UPDATE T_BPM_INS_TASK SET
+		<isNotEmpty property="taskStatus">
+			TASK_STATUS = #taskStatus#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="beginDate">
+			BEGIN_DATE = #beginDate#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="endDate">
+			END_DATE = #endDate#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="operator">
+			OPERATOR = #operator#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="delegate">
+			DELEGATE = #delegate#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="result">
+			RESULT = #result#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="comment">
+			COMMENT = #comment#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="priority">
+			PRIORITY = #priority#
+		</isNotEmpty>
+		WHERE TASK_INS_ID = #taskId#
+	</update>
+	
+	<select id="selectTask" parameterClass="com.brick.bpm.filter.TaskFilter" resultClass="com.brick.bpm.ins.Task">
+		SELECT
+			TASK.TASK_INS_ID taskId,
+			TASK.TASK_STATUS taskStatus,
+			TASK.PROCESS_INS_ID processId,
+			TASK.FLOW_INS_ID flowId,
+			FLOW.FLOW_NAME flowName,
+			TASK.FLOW_DEF_ID flowDefId,
+			TASK.URL url,
+			TASK.DESCRIPTION description,
+			TASK.CHARGE charge,
+	    	CU.[NAME] chargeName,
+			TASK.DELEGATE delegate,
+	    	DU.[NAME] delegateName,
+			TASK.OPERATOR operator,
+	    	OU.[NAME] operatorName,
+			TASK.BEGIN_DATE beginDate,
+			TASK.DUE_DATE dueDate,
+			TASK.END_DATE endDate,
+			TASK.RESULT result,
+			TASK.COMMENT comment,
+			TASK.PRIORITY priority,
+			TASK.OPERATE_LIST operateList
+			FROM T_BPM_INS_TASK TASK
+	    LEFT JOIN T_USER_USER CU ON TASK.CHARGE = CAST(CU.ID AS NVARCHAR)
+	    LEFT JOIN T_USER_USER DU ON TASK.DELEGATE = CAST(DU.ID AS NVARCHAR)
+	    LEFT JOIN T_USER_USER OU ON TASK.OPERATOR = CAST(OU.ID AS NVARCHAR)
+	    LEFT JOIN T_BPM_INS_FLOW FLOW ON TASK.FLOW_INS_ID = FLOW.FLOW_INS_ID
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="taskId">
+				<![CDATA[ TASK.TASK_INS_ID = #taskId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="taskStatus">
+				<![CDATA[ TASK.TASK_STATUS = #taskStatus# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="processId">
+				<![CDATA[ TASK.PROCESS_INS_ID = #processId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="flowId">
+				<![CDATA[ TASK.FLOW_INS_ID = #flowId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="userId">
+				<![CDATA[ (TASK.CHARGE = #userId# OR TASK.DELEGATE=#userId#) ]]>
+			</isNotEmpty>
+		</dynamic>
+		<isEmpty property="sort">
+			ORDER BY TASK.PRIORITY ASC
+		</isEmpty>
+		<isNotEmpty property="sort">
+			<isEqual property="sort" compareValue="taskId">
+				ORDER BY TASK.TASK_INS_ID ASC
+			</isEqual>
+			<isEqual property="sort" compareValue="priority">
+				ORDER BY TASK.PRIORITY ASC
+			</isEqual>
+			<isEqual property="sort" compareValue="endDate">
+				ORDER BY TASK.END_DATE ASC
+			</isEqual>
+		</isNotEmpty>
+	</select>
+	
+	<select id="getDept" parameterClass="map" resultClass="java.util.HashMap">
+			SELECT DATA_ID ,
+			CREATE_TIME ,
+			MODIFY_TIME ,
+			CREATE_USER_ID ,
+			MODIFY_USER_ID ,
+			STATUS ,
+			TYPE ,
+			FLAG ,
+			REMARK ,
+			CODE ,
+			DEFAULT_VALUE,
+			SHORTNAME,
+			LEVEL_NUM 
+			FROM 
+			T_DATA_DICTIONARY T 
+			WHERE T.TYPE=#type#
+			<isEqual property="companyCode" compareValue="1">
+				AND CODE NOT BETWEEN '100' AND '199'
+			</isEqual>
+			<isEqual property="companyCode" compareValue="2">
+				AND CODE BETWEEN '100' AND '199'
+			</isEqual>
+			ORDER BY LEVEL_NUM
+	</select>
+	
+</sqlMap>

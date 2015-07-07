@@ -1,0 +1,1033 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="statement">
+	<!-- 查询所有已分解的承租人信息的个数 -->
+	<select id="queryDecomposeCustInfo_count" parameterClass="map"
+		resultClass="java.lang.Integer">
+		<![CDATA[
+			select count(1)
+			  from (select distinct ficb.cust_code,
+			                        rect.cust_name,
+			                        rect.cust_type,
+			                        (case
+			                          when rect.cust_type = 1 then
+			                           rect.corp_oragnization_code
+			                          else
+			                           rect.natu_idcard
+			                        end) type_code,
+			                        rect.cust_linkman,
+			                        rect.cust_phone,
+			                        rect.province_name,
+			                        rect.cust_address
+			          from t_fina_collectionbill ficb
+			          left join (select rect.*, ta.name province_name
+			                      from t_rent_contract rect
+			                      left join t_area ta on rect.province_id = ta.id) rect on ficb.cust_code =  rect.cust_code
+			         where ficb.status = 0
+			           and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			           and ficb.cust_code is not null) cust
+		]]>
+		<dynamic prepend="where">
+			<isNotEmpty prepend="where" property="search_content" >
+				cust_code like '%$search_content$%' or
+				cust_name like '%$search_content$%' or
+				cust_type like '%$search_content$%' or
+				type_code like '%$search_content$%' or
+				cust_linkman like '%$search_content$%' or
+				cust_phone like '%$search_content$%' or
+				province_name like '%$search_content$%' or
+				cust_address like '%$search_content$%' 
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	<!-- 查询所有已分解的承租人信息 -->
+	<select id="queryDecomposeCustInfo" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select *
+			  from (select distinct ficb.cust_code,
+			                        rect.cust_name,
+			                        rect.cust_type,
+			                        (case
+			                          when rect.cust_type = 1 then
+			                           rect.corp_oragnization_code
+			                          else
+			                           rect.natu_idcard
+			                        end) type_code,
+			                        rect.cust_linkman,
+			                        rect.cust_phone,
+			                        rect.province_name,
+			                        rect.cust_address
+			          from t_fina_collectionbill ficb
+			          left join (select rect.*, ta.name province_name
+			                      from t_rent_contract rect
+			                      left join t_area ta on rect.province_id = ta.id) rect on ficb.cust_code =
+			                                                                               rect.cust_code
+			         where ficb.status = 0
+			           and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			           and ficb.cust_code is not null) cust
+		]]>
+		<dynamic prepend="where">
+			<isNotEmpty prepend="where" property="search_content" >
+				cust_code like '%$search_content$%' or
+				cust_name like '%$search_content$%' or
+				cust_type like '%$search_content$%' or
+				type_code like '%$search_content$%' or
+				cust_linkman like '%$search_content$%' or
+				cust_phone like '%$search_content$%' or
+				province_name like '%$search_content$%' or
+				cust_address like '%$search_content$%' 
+			</isNotEmpty>
+		</dynamic>
+		<![CDATA[
+			order by cust_name
+		]]>
+	</select>
+	<!-- 查询客户应付款情况 -->
+	<select id="queryCustPaymentInfo" parameterClass="map" resultClass="java.util.HashMap">
+	
+	
+	select * from (
+	<!--  
+					select distinct recp.recp_code,
+ 						convert(varchar,recp.start_date,23)  pay_date, 
+		                ISNULL(recp.pledge_price, 0) + ISNULL(recp.head_hire, 0) +
+		                ISNULL(recp.management_fee, 0) +
+		                ISNULL(recp.business_trip_price, 0) +
+		                ISNULL((select sprice
+		                      from (select recp.insure_price as sprice, recp.recp_id
+		                              from t_rent_contract rect,
+		                                   (select recp.recp_id,
+		                                           recp.recp_code,
+		                                           recp.fund_status,
+		                                           recp.rect_id,
+		                                           recp.start_date,
+		                                           recp.version_code,
+		                                           reci.insure_price,
+		                                           recp.status
+		                                      from (select reci.recp_id,
+		                                                   reci.start_date,
+		                                                   reci.insure_price
+		                                              from (select reci.recp_id,
+		                                                           substring(reci.start_date,
+		                                                                  1,
+		                                                                  4) start_date,
+		                                                           sum(reci.insure_price) insure_price
+		                                                      from t_rent_collectioninsure reci
+		                                                     where substring(reci.start_date,
+		                                                                  1,
+		                                                                  4) =
+		                                                           (select min(substring(reci2.start_date,
+		                                                                              1,
+		                                                                              4))
+		                                                              from t_rent_collectioninsure reci2
+		                                                             where reci.recp_id =
+		                                                                   reci2.recp_id)
+		                                                     group by reci.recp_id,
+		                                                              substring(reci.start_date,
+		                                                                     1,
+		                                                                     4)) reci) reci
+		                                      left join t_rent_collectionplan recp on reci.recp_id =
+		                                                                              recp.recp_id) recp
+		                             where recp.rect_id = rect.rect_id
+		                               and recp.fund_status = 0
+		                               and recp.status = 0
+		                               and recp.version_code =
+		                                   (select max(version_code)
+		                                      from t_rent_collectionplan recp2
+		                                     where recp2.recp_code = recp.recp_code)) recp2
+		                     where recp2.recp_id = recp.recp_id),
+		                    0) first_rent,
+		                0 expect_rent,
+		                0 each_rent,
+		                0 deposit_price,
+		                '' k3shouldbillno,
+		                (select ISNULL(sum(ficb.real_price), 0)
+		                   from t_fina_collectionbill ficb
+		                  where ficb.recp_id = recp.recp_id
+		                    and ficb.status = 0
+		                    and ficb.recd_type = 1
+		                    and (ficb.ficb_state = 4 or ficb.ficb_state = 5)) real_price
+		  from t_rent_collectionplan recp
+		  left join t_rent_contract rect on recp.rect_id = rect.rect_id
+		  left join t_fina_collectionbill ficb on recp.recp_id = ficb.recp_id
+		 where rect.cust_code = #cust_code#
+		   and ficb.ficb_id is not null
+		   and recp.status = 0
+		   and recp.version_code =
+		       (select max(recp2.version_code)
+		          from t_rent_collectionplan recp2
+		         where recp2.recp_code = recp.recp_code)
+		union 
+		-->
+		<![CDATA[
+		select distinct recp.recp_code,
+						convert(varchar,recd.pay_date,23)  pay_date,
+		                0 as first_rent,
+		                recd.month_price expect_rent,
+		                recd.irr_month_price each_rent,
+		                recd.deposit_price deposit_price,
+		                '' k3shouldbillno,
+		                ISNULL(recd.reduce_own_price, 0) real_price
+		  from t_rent_collectiondetail recd
+		  left join (select recp.*, rect.cust_code
+		               from t_rent_collectionplan recp
+		               left join t_rent_contract rect on recp.rect_id = rect.rect_id) recp on recd.recp_id =
+		                                                                                      recp.recp_id
+		 where (recd.reduce_own_price is not null)
+		   and recp.status = 0
+		   and recp.version_code =
+		       (select max(recp2.version_code)
+		          from t_rent_collectionplan recp2
+		         where recp2.recp_code = recp.recp_code)
+		   and recp.cust_code = #cust_code#) t11
+		   order by recp_code,pay_date,each_rent
+		 ]]>
+	</select>
+	<select id="queryCustPaymentInfoByRecpId"  parameterClass="map" resultClass="java.util.HashMap">
+		<!-- 
+ 		select * from  ( 
+ 					select distinct recp.recp_code,
+ 						convert(varchar,recp.start_date,23)  pay_date,
+		                ISNULL(recp.pledge_price, 0) + ISNULL(recp.head_hire, 0) +
+		                ISNULL(recp.management_fee, 0) +
+		                ISNULL(recp.business_trip_price, 0) +
+		                ISNULL((select sprice
+		                      from (select recp.insure_price as sprice, recp.recp_id
+		                              from t_rent_contract rect,
+		                                   (select recp.recp_id,
+		                                           recp.recp_code,
+		                                           recp.fund_status,
+		                                           recp.rect_id,
+		                                           recp.start_date,
+		                                           recp.version_code,
+		                                           reci.insure_price,
+		                                           recp.status
+		                                      from (select reci.recp_id,
+		                                                   reci.start_date,
+		                                                   reci.insure_price
+		                                              from (select reci.recp_id,
+		                                                           substring(reci.start_date,
+		                                                                  1,
+		                                                                  4) start_date,
+		                                                           sum(reci.insure_price) insure_price
+		                                                      from t_rent_collectioninsure reci
+		                                                     where substring(reci.start_date,
+		                                                                  1,
+		                                                                  4) =
+		                                                           (select min(substring(reci2.start_date,
+		                                                                              1,
+		                                                                              4))
+		                                                              from t_rent_collectioninsure reci2
+		                                                             where reci.recp_id =
+		                                                                   reci2.recp_id)
+		                                                     group by reci.recp_id,
+		                                                              substring(reci.start_date,
+		                                                                     1,
+		                                                                     4)) reci) reci
+		                                      left join t_rent_collectionplan recp on reci.recp_id =
+		                                                                              recp.recp_id) recp
+		                             where recp.rect_id = rect.rect_id
+		                               and recp.fund_status = 0
+		                               and recp.status = 0
+		                               and recp.version_code =
+		                                   (select max(version_code)
+		                                      from t_rent_collectionplan recp2
+		                                     where recp2.recp_code = recp.recp_code)) recp2
+		                     where recp2.recp_id = recp.recp_id),
+		                    0) first_rent,
+		                0 expect_rent,
+		                0 each_rent,
+		                0 deposit_price,
+		                '' k3shouldbillno,
+		                (select ISNULL(sum(ficb.real_price), 0)
+		                   from t_fina_collectionbill ficb
+		                  where ficb.recp_id = recp.recp_id
+		                    and ficb.status = 0
+		                    and ficb.recd_type = 1
+		                    and (ficb.ficb_state = 4 or ficb.ficb_state = 5)) real_price
+		  from t_rent_collectionplan recp
+		  left join t_rent_contract rect on recp.rect_id = rect.rect_id
+		  left join t_fina_collectionbill ficb on recp.recp_id = ficb.recp_id
+		 where recp.recp_id = #recp_id#
+		   and ficb.ficb_id is not null
+		   and recp.status = 0
+		   and recp.version_code =
+		       (select max(recp2.version_code)
+		          from t_rent_collectionplan recp2
+		         where recp2.recp_code = recp.recp_code)
+		union
+		
+		
+		select distinct recp.recp_code,
+						convert(varchar,recd.pay_date,23)  pay_date,
+		                0 as first_rent,
+		                recd.month_price expect_rent,
+		                recd.irr_month_price each_rent,
+		                recd.deposit_price deposit_price,
+		                '' k3shouldbillno,
+		                ISNULL(recd.reduce_own_price, 0) real_price
+		  from t_rent_collectiondetail recd
+		  left join (select recp.*, rect.cust_code
+		               from t_rent_collectionplan recp
+		               left join t_rent_contract rect on recp.rect_id = rect.rect_id) recp on recd.recp_id =
+		                                                                                      recp.recp_id
+		 where (recd.reduce_own_price is not null)
+		   and recp.status = 0
+		   and recp.version_code =
+		       (select max(recp2.version_code)
+		          from t_rent_collectionplan recp2
+		         where recp2.recp_code = recp.recp_code)
+		   and recp.recp_id = #recp_id#) t11
+		   order by recp_code,pay_date,each_rent
+		   -->
+		    <!-- 
+		   SELECT * FROM (
+				select
+					 recp.recp_code,
+					convert(varchar,recd.pay_date,23)  pay_date,
+	                0 as first_rent,
+	                recd.month_price expect_rent,
+	                recd.irr_month_price each_rent,
+	                recd.deposit_price deposit_price,
+	                '' k3shouldbillno,
+	                ISNULL(T.REAL_PRICE,0) real_price
+				from	t_rent_collectiondetail recd
+						left join (
+									   select recp.*, rect.cust_code
+									   from t_rent_collectionplan recp
+									   left join t_rent_contract rect on recp.rect_id = rect.rect_id
+								   )  recp on recd.recp_id =recp.recp_id
+						LEFT JOIN T_FINA_COLLECTIONBILL T ON T.RECP_ID = RECP.RECP_ID AND T.STATUS = 0 AND T.FICB_STATE = 5 AND T.RECD_PERIOD = recd.PERIOD_NUM
+				 where (recd.reduce_own_price is not null)
+					   and recp.status = 0
+					   and recp.version_code =
+						   (select max(recp2.version_code)
+							  from t_rent_collectionplan recp2
+							 where recp2.recp_code = recp.recp_code)
+					   and recp.recp_id = #recp_id#
+				   ) t11
+				   order by recp_code,pay_date,each_rent
+		-->
+		<![CDATA[
+				select * from (SELECT * FROM (
+					select
+						T.CREATE_DATE,
+						 recp.recp_code,
+						convert(varchar,recd.pay_date,23)  pay_date,
+		                0 as first_rent,
+		                recd.month_price expect_rent,
+		                recd.irr_month_price each_rent,
+		                recd.deposit_price deposit_price,
+		                '' k3shouldbillno,
+		                ISNULL(T.REAL_PRICE,0) real_price,
+		                t.RECD_PERIOD,
+		                t.FICB_ITEM
+					from	t_rent_collectiondetail recd
+							left join (
+										   select recp.*, rect.cust_code
+										   from t_rent_collectionplan recp
+										   left join t_rent_contract rect on recp.rect_id = rect.rect_id
+									   )  recp on recd.recp_id =recp.recp_id
+							LEFT JOIN T_FINA_COLLECTIONBILL T ON T.RECP_ID = RECP.RECP_ID AND T.STATUS = 0 AND T.FICB_STATE = 5 AND T.RECD_PERIOD = recd.PERIOD_NUM
+					 where (recd.reduce_own_price is not null)
+						   and recp.status = 0
+						   and recp.version_code =
+							   (select max(recp2.version_code)
+								  from t_rent_collectionplan recp2
+								 where recp2.recp_code = recp.recp_code)
+						   and recp.recp_id = #recp_id#
+					   ) t11
+					   
+			UNION
+				SELECT 
+					T.CREATE_DATE,
+					T1.recp_code,
+					''  pay_date,
+					0 as first_rent,
+					0 expect_rent,
+					0 each_rent,
+					0 deposit_price,
+					'' k3shouldbillno,
+					ISNULL(T.REAL_PRICE,0) real_price,
+					t.RECD_PERIOD,
+					t.ficb_item
+				FROM 
+					T_FINA_COLLECTIONBILL T
+					LEFT JOIN T_RENT_COLLECTIONPLAN T1 ON T1.RECP_ID = T.RECP_ID AND T1.STATUS = 0
+				WHERE
+					T.STATUS = 0
+					AND T.RECP_ID = #recp_id#
+					AND T.FICB_STATE = 5
+					AND T.RECD_PERIOD = 0
+					AND T.FICB_ITEM != #daifenjielaikuan#
+					
+					) t
+			order by recp_code,pay_date,each_rent
+		]]>
+	</select>
+	<!-- 查询客户的来款情况 -->
+	<select id="queryCustIncomeInfo" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<!-- Modify by Michael 2012 4-20 修正数据抓取逻辑 -->
+		<!--
+		<![CDATA[
+					select distinct *
+			  from (select convert(varchar,fiin.opposing_date,23)  opposing_date,
+			               fiin.income_money,
+			               fiin.opposing_type,
+			               fiin.opposing_postscript,
+			               '' k3realbillno,
+			               '' invoice_num,
+			               '' receipt_num,
+			               fiin.fiin_id,
+			               ficb.decompose_date
+			          from t_fina_income fiin
+			          left join (select ficb.fiin_id,
+			                           ficb.cust_code,
+			                           ficb.status,
+			                           max(ficb.decompose_date) decompose_date
+			                      from t_fina_collectionbill ficb
+			                     group by ficb.fiin_id, ficb.cust_code, ficb.status) ficb on fiin.fiin_id =
+			                                                                                 ficb.fiin_id
+			         where ficb.status = 0
+			           and fiin.status = 0
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)
+			           and ficb.cust_code = #cust_code#
+			        union
+			        select distinct 
+			        				convert(varchar,fiin.opposing_date,23)  opposing_date,
+			                        -ficb.real_price income_money,
+			                        '1' opposing_type,
+			                        fiin.opposing_postscript,
+			                        '' k3realbillno,
+			                        '' invoice_num,
+			                        '' receipt_num,
+			                        fiin.fiin_id,
+			                        ficb.decompose_date
+			          from t_fina_collectionbill ficb
+			          left join t_fina_income fiin on ficb.fiin_id = fiin.fiin_id
+			         where ficb.status = 0
+			           and fiin.status = 0
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)
+			           and ficb.cust_code = #cust_code#
+			           and ficb.recd_type = 4) y
+			 order by opposing_date, decompose_date,income_money desc
+		]]>
+		-->
+		<![CDATA[
+			select distinct *
+			  from (select convert(varchar,fiin.opposing_date,23)  opposing_date,
+			               fiin.income_money,
+			               fiin.opposing_type,
+			               fiin.opposing_postscript,fiin.opposing_unit,
+			               '' k3realbillno,
+			               '' invoice_num,
+			               '' receipt_num,
+			               fiin.fiin_id,
+			               ficb.decompose_date
+			          from t_fina_income fiin
+			          left join (select ficb.fiin_id,
+			                           ficb.recp_id,
+			                           ficb.status,ficb.cust_code, 
+			                           max(ficb.decompose_date) decompose_date
+			                      from t_fina_collectionbill ficb
+			                     group by ficb.fiin_id, ficb.recp_id, ficb.cust_code, ficb.status) ficb on fiin.fiin_id =
+			                                                                                 ficb.fiin_id
+			         where ficb.status = 0
+			           and fiin.status = 0
+			           and fiin.income_money != 0
+			           AND fiin.RED_ID IS NULL
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)
+			           and ficb.cust_code = #cust_code#
+			        union
+			       	SELECT distinct 
+							convert(varchar,T.opposing_date,23)  opposing_date,
+				            -T.INCOME_MONEY INCOME_MONEY,
+				            '1' opposing_type,
+				            T.opposing_postscript,T.opposing_unit,
+				            '' k3realbillno,
+				            '' invoice_num,
+				            '' receipt_num,
+				            T2.fiin_id,
+				            T1.decompose_date
+					FROM
+						(		 
+							SELECT 
+								T.RED_ID,T.FIIN_ID
+							FROM
+								T_FINA_INCOME T
+								LEFT JOIN T_FINA_COLLECTIONBILL T1 ON T1.FIIN_ID = T.FIIN_ID AND T1.STATUS = 0
+							WHERE
+								T.STATUS = 0
+								AND T1.cust_code = #cust_code#
+								AND T.INCOME_MONEY = 0
+								AND T.RED_ID IS NOT NULL
+								AND(T.decompose_status = 4 or T.decompose_status = 5)
+							GROUP BY
+								RED_ID,T.FIIN_ID
+							) T2
+						LEFT JOIN T_FINA_INCOME T ON T2.RED_ID = T.FIIN_ID AND T.STATUS = 0
+						LEFT JOIN T_FINA_COLLECTIONBILL T1 ON T.FIIN_ID = T1.FIIN_ID AND T1.STATUS = 0
+					WHERE
+						T1.cust_code = #cust_code#
+						AND (T.decompose_status = 4 or T.decompose_status = 5)) y
+			 order by opposing_date, decompose_date,income_money desc
+		]]>
+	</select>
+	<select id="queryCustIncomeInfoByRecpId" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<!-- 
+		<![CDATA[
+			select distinct *
+			  from (select convert(varchar,fiin.opposing_date,23)  opposing_date,
+			               fiin.income_money,
+			               fiin.opposing_type,
+			               fiin.opposing_postscript,
+			               '' k3realbillno,
+			               '' invoice_num,
+			               '' receipt_num,
+			               fiin.fiin_id,
+			               ficb.decompose_date
+			          from t_fina_income fiin
+			          left join (select ficb.fiin_id,
+			                           ficb.recp_id,
+			                           ficb.status,
+			                           max(ficb.decompose_date) decompose_date
+			                      from t_fina_collectionbill ficb
+			                     group by ficb.fiin_id, ficb.recp_id, ficb.status) ficb on fiin.fiin_id =
+			                                                                                 ficb.fiin_id
+			         where ficb.status = 0
+			           and fiin.status = 0
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)
+			           and ficb.recp_id = #recp_id#
+			        union
+			        select distinct 
+			        				convert(varchar,fiin.opposing_date,23)  opposing_date,
+			                        -ficb.real_price income_money,
+			                        '1' opposing_type,
+			                        fiin.opposing_postscript,
+			                        '' k3realbillno,
+			                        '' invoice_num,
+			                        '' receipt_num,
+			                        fiin.fiin_id,
+			                        ficb.decompose_date
+			          from t_fina_collectionbill ficb
+			          left join t_fina_income fiin on ficb.fiin_id = fiin.fiin_id
+			         where ficb.status = 0
+			           and fiin.status = 0
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)
+			           and ficb.recp_id = #recp_id#
+			           and ficb.recd_type = 4) y
+			 order by opposing_date, decompose_date,income_money desc
+		]]>
+		-->
+		<![CDATA[
+			select distinct *
+			  from (select convert(varchar,fiin.opposing_date,23)  opposing_date,
+			               fiin.income_money,
+			               fiin.opposing_type,
+			               fiin.opposing_postscript,
+			               '' k3realbillno,
+			               '' invoice_num,
+			               '' receipt_num,
+			               fiin.fiin_id,
+			               ficb.decompose_date
+			          from t_fina_income fiin
+			          left join (select ficb.fiin_id,
+			                           ficb.recp_id,
+			                           ficb.status,
+			                           max(ficb.decompose_date) decompose_date
+			                      from t_fina_collectionbill ficb
+			                     group by ficb.fiin_id, ficb.recp_id, ficb.status) ficb on fiin.fiin_id =
+			                                                                                 ficb.fiin_id
+			         where ficb.status = 0
+			           and fiin.status = 0
+			           and fiin.income_money != 0
+			           AND fiin.RED_ID IS NULL
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)
+			           and ficb.recp_id = #recp_id#
+			        union
+			       	SELECT distinct 
+							convert(varchar,T.opposing_date,23)  opposing_date,
+				            -T.INCOME_MONEY INCOME_MONEY,
+				            '1' opposing_type,
+				            T.opposing_postscript,
+				            '' k3realbillno,
+				            '' invoice_num,
+				            '' receipt_num,
+				            T2.fiin_id,
+				            T1.decompose_date
+					FROM
+						(		 
+							SELECT 
+								T.RED_ID,T.FIIN_ID
+							FROM
+								T_FINA_INCOME T
+								LEFT JOIN T_FINA_COLLECTIONBILL T1 ON T1.FIIN_ID = T.FIIN_ID AND T1.STATUS = 0
+							WHERE
+								T.STATUS = 0
+								AND T1.RECP_ID = #recp_id#
+								AND T.INCOME_MONEY = 0
+								AND T.RED_ID IS NOT NULL
+								AND(T.decompose_status = 4 or T.decompose_status = 5)
+							GROUP BY
+								RED_ID,T.FIIN_ID
+							) T2
+						LEFT JOIN T_FINA_INCOME T ON T2.RED_ID = T.FIIN_ID AND T.STATUS = 0
+						LEFT JOIN T_FINA_COLLECTIONBILL T1 ON T.FIIN_ID = T1.FIIN_ID AND T1.STATUS = 0
+					WHERE
+						T1.RECP_ID = #recp_id#
+						AND (T.decompose_status = 4 or T.decompose_status = 5)) y
+			 order by opposing_date, decompose_date,income_money desc
+		]]>
+	</select>
+	<select id="custStatementPDFInfo" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT 
+				T.CUST_NAME,
+				T.LEASE_CODE, 
+				T1.FUND_STATUS
+			FROM 
+				T_RENT_CONTRACT T
+				LEFT JOIN T_RENT_COLLECTIONPLAN T1 ON T1.RECT_ID = T.RECT_ID  AND T1.STATUS = 0
+			WHERE 
+				T.STATUS = 0
+				AND RECP_ID = #recp_id#
+		]]>
+	</select>
+	<select id="custStatementPDFList" parameterClass="map" resultClass="java.util.HashMap">
+			<!--
+		 		  select    
+						distinct t1.RECP_CODE ,
+						t1.RECD_PERIOD,     
+						0.0 FINE,         
+						0.0 REAL_FINE, 
+						0.0  OTHER,   
+						convert(varchar,MAX(t1.CHECK_DATE),23) CHECK_DATE, 
+						convert(varchar,t1.PAY_DATE,23)  PAY_DATE,	
+						ISNULL(SUM(t1.REAL_PRICE),0.0) REAL_PRICE, 
+						ISNULL(t1.SHOULD_PRICE,0.0)  SHOULD_PRICE	, 
+						ISNULL(SUM(t1.REAL_PRICE),0) HE   
+		  from t_rent_collectiondetail recd
+		  left join 	T_FINA_COLLECTIONBILL t1 on	 t1.RECP_ID=recd.RECP_ID				                     
+          left join (select recp.*, rect.cust_code
+		               from t_rent_collectionplan recp
+		               left join t_rent_contract rect on recp.rect_id = rect.rect_id 
+		               where recp.FUND_STATUS = 0
+		               ) recp on recd.recp_id =recp.recp_id
+		  where  t1.FICB_STATE=5  
+		  and t1.FICB_ITEM= #ficbItem#
+		  and recp.version_code =(select max(recp2.version_code)from t_rent_collectionplan recp2 where recp2.recp_code = recp.recp_code)
+		  and recp.cust_code = #cust_code#
+		  AND recd.status = 0
+		  GROUP BY RECD_PERIOD,t1.PAY_DATE,SHOULD_PRICE,t1.RECP_CODE 
+		  -->
+	<!-- Modify by michael 2012 02/01 修正实还日期，实还日期为来款日期  -->
+		  <![CDATA[
+			 SELECT  
+							distinct t1.RECD_PERIOD,     
+							0.0 FINE,         
+							0.0 REAL_FINE, 
+							0.0  OTHER,   
+							convert(varchar,t1.CHECK_DATE,23) CHECK_DATE, 
+							convert(varchar,t1.PAY_DATE,23)  PAY_DATE,	
+							ISNULL(t1.REAL_PRICE,0.0) REAL_PRICE, 
+							ISNULL(t1.SHOULD_PRICE,0.0)  SHOULD_PRICE	, 
+							ISNULL(t1.REAL_PRICE,0) HE   
+			  from t_rent_collectiondetail recd
+			  LEFT join (
+					select RECD_PERIOD,ISNULL(SUM(REAL_PRICE),0.0) REAL_PRICE ,RECP_ID,SHOULD_PRICE,
+					MAX(t2.OPPOSING_DATE) CHECK_DATE,
+					MAX(PAY_DATE) PAY_DATE
+					  FROM T_FINA_COLLECTIONBILL t1
+					  left join
+					  T_FINA_INCOME t2
+					  on t1.FIIN_ID=t2.FIIN_ID  
+					  WHERE 
+						RECP_ID = #recp_id#
+						AND FICB_ITEM= #ficbItem#
+						AND FICB_STATE=5  
+						GROUP BY RECD_PERIOD,RECP_ID,SHOULD_PRICE
+						
+			  ) t1 on t1.RECP_ID=recd.RECP_ID   
+			  left join (select recp.*, rect.LEASE_CODE
+						   from t_rent_collectionplan recp
+						   left join t_rent_contract rect on recp.rect_id = rect.rect_id 
+						   ) recp on recd.recp_id =recp.recp_id
+			
+			  where   recp.RECP_ID = #recp_id#
+			  AND recd.status = 0
+			  AND t1.REAL_PRICE != 0
+			  order by recd_period
+		  ]]>
+	</select>
+	<select id="custStatementPDFPeriod" parameterClass="map" resultClass="java.util.HashMap">
+	<!-- 应还期数 -->
+	<!-- 实还期数 -->
+		 <!-- 
+		 		select   
+			MAX(recd.PERIOD_NUM)  PERIOD_NUM, 
+			max(t1.RECD_PERIOD)   RECD_PERIOD  
+		from t_rent_collectiondetail recd
+			left join 	T_FINA_COLLECTIONBILL t1 on	 t1.RECP_ID=recd.RECP_ID				                     
+			left join 
+				(	
+					select recp.*, rect.cust_code
+					from t_rent_collectionplan recp
+						left join t_rent_contract rect on recp.rect_id = rect.rect_id
+				) recp on recd.recp_id =recp.recp_id
+			where  t1.FICB_STATE=5  
+				and t1.FICB_ITEM= #ficbItem#
+				and recp.version_code = (
+						select max(recp2.version_code)
+						from t_rent_collectionplan recp2
+						where recp2.recp_code = recp.recp_code
+					) 
+				and recp.recp_id = #recp_id#
+				AND recd.STATUS = 0
+				-->
+		<![CDATA[
+				select   
+					T.PERIOD_NUM  PERIOD_NUM, 
+					t1.RECD_PERIOD   RECD_PERIOD  
+				from 
+				T_RENT_COLLECTIONPLAN T2 
+				LEFT JOIN
+				(
+					SELECT max(PERIOD_NUM) PERIOD_NUM ,RECP_ID
+					FROM 
+						T_RENT_COLLECTIONDETAIL 
+					WHERE
+						 STATUS= 0
+						 AND RECP_ID = #recp_id#
+					GROUP BY RECP_ID
+				) T ON T.RECP_ID = T2.RECP_ID
+				left join 
+				(
+					SELECT 
+						RECP_ID,MAX(RECD_PERIOD) RECD_PERIOD
+					FROM
+						T_FINA_COLLECTIONBILL
+					WHERE 
+						FICB_STATE=5
+						AND FICB_ITEM= #ficbItem#
+						AND STATUS = 0
+						AND RECP_ID = #recp_id#
+					GROUP BY 
+						RECP_ID
+				) t1 on	 t1.RECP_ID = T2.RECP_ID				                     
+				
+				where T2.recp_id = #recp_id#
+		]]>
+	</select>
+	
+	<!-- modify by Michael 2012 6-20 增加 FICB_STATE=5条件限制 -->
+	<select id="custStatementPDFRent" parameterClass="map" resultClass="java.util.HashMap">
+	<!-- 应还 已还 期付款 -->
+		<![CDATA[
+	      select sum(isnull(trcd.REDUCE_OWN_PRICE,0)) YI_RENT, 
+	      sum(trcd.IRR_MONTH_PRICE+isnull(trcd.VALUE_ADDED_TAX,0))-sum(isnull(trcd.REDUCE_OWN_PRICE,0)) ZONG_RENT,
+	      sum(trcd.IRR_MONTH_PRICE+isnull(trcd.VALUE_ADDED_TAX,0))YING_RENT from T_RENT_COLLECTIONPLAN trcp
+	      left join T_RENT_COLLECTIONDETAIL trcd on trcp.RECP_ID = trcd.RECP_ID
+	      where trcd.STATUS=0 and trcp.recp_id=#recp_id#
+		]]>
+	</select>
+	<select id="custStatementFine" parameterClass="map" resultClass="java.util.HashMap">
+	<!-- Modify by Michael 2012 1/10 用新逻辑计算罚息  -->
+	<!--应还 已还罚息 
+		SELECT ISNULL(SUM(DUN_FINE),0.0) YING_FINE,ISNULL(SUM(T2.SUM_REAL),0.0) YI_FINE 
+		FROM
+			T_DUN_DAILY T
+			left join  t_rent_contract t1 on t1.CUST_ID = t.CUST_ID
+			LEFT JOIN (
+				SELECT T.RECP_ID,sum(REAL_PRICE) SUM_REAL
+				FROM 
+					T_FINA_COLLECTIONBILL T
+					LEFT JOIN T_RENT_COLLECTIONPLAN T1 ON T1.RECP_ID = T.RECP_ID
+				WHERE 
+					T.FICB_ITEM = #ficbItem#
+					AND T1.FUND_STATUS = 0
+					AND T1.version_code =(select max(recp2.version_code)from t_rent_collectionplan recp2 where recp2.recp_code = T1.recp_code)
+				GROUP BY T.RECP_ID
+			) T2 ON T2.RECP_ID = T.RECP_ID
+		WHERE
+			t1.CUST_CODE = #cust_code#
+			AND T.STATUS = 0
+		GROUP BY t1.CUST_CODE
+		-->
+		<!--
+		<![CDATA[		
+			SELECT 
+					ISNULL(SUM(DUN_FINE),0.0) YING_FINE,
+					ISNULL(SUM(T2.SUM_REAL),0.0) YI_FINE ,
+					ISNULL(SUM(DUN_FINE),0.0) - ISNULL(SUM(T2.SUM_REAL),0.0) ZONG_FINE
+			FROM
+				T_DUN_DAILY T
+				left join  t_rent_contract t1 on t1.CUST_ID = t.CUST_ID
+				LEFT JOIN (
+					SELECT T.RECP_ID,sum(REAL_PRICE) SUM_REAL
+					FROM 
+						T_FINA_COLLECTIONBILL T
+						LEFT JOIN T_RENT_COLLECTIONPLAN T1 ON T1.RECP_ID = T.RECP_ID
+					WHERE 
+						T.FICB_ITEM = #ficbItem#
+						AND T1.version_code =(select max(recp2.version_code)from t_rent_collectionplan recp2 where recp2.recp_code = T1.recp_code)
+					GROUP BY T.RECP_ID
+				) T2 ON T2.RECP_ID = T.RECP_ID
+				 JOIN (
+					SELECT 
+						MAX(DAILY_ID) DAILY_ID
+					FROM 
+						T_DUN_DAILY
+					WHERE 
+						STATUS = 0 
+						AND RECP_ID = #recp_id#
+					GROUP BY 
+						RECP_ID
+				) T3 ON T3.DAILY_ID = T.DAILY_ID 
+			WHERE
+				t2.RECP_ID = #recp_id#
+				AND T.STATUS = 0
+			GROUP BY t2.recp_id	
+		]]>
+		-->
+		<![CDATA[
+		select dun_price,sprice wei_dun_price ,dun_price-sprice yi_dun_price from(	
+			select 
+             trcpd.fine dun_price,
+			        trcpd.fine-isnull(
+			  (select sum(ficb.real_price)
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = #ficbItem#
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.RECP_ID = trcpd.RECP_ID 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = #ficbItem#
+			        ),0 )- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(select SUM(fine) fine,RECP_ID from ( 
+select tfcbd.recd_period as period_num,convert(varchar,tfcbd.pay_date, 23) pay_date,convert(varchar,tfcbd.opposing_date, 23) opposing_date,dun_day,should_price as dun_price, trcd.irr_month_price + ISNULL(trcd.VALUE_ADDED_TAX,0) as month_price,convert(decimal(18,2),tfcbd.real_price) real_price,
+			(case when trcp.fine_type = 2 then
+			round(real_price *
+			     power(1 + trcp.fine_rate / 100, dun_day) -
+			     real_price,2)
+			else
+			 round(real_price * dun_day * fine_rate / 100,2)
+			end) fine,trcp.recp_id,trc.CUST_NAME
+			from              
+			(select tfcb.RECP_ID,tfcb.pay_date,tfcb.recd_period,max(tfcb.should_price) should_price ,
+			sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+			from t_fina_collectionbill tfcb
+			left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+			where
+			 (tfcb.ficb_state=4 or tfcb.ficb_state=5) 
+			and tfi.red_type is null and tfcb.FICB_type='0'
+			and (tfcb.FICB_ITEM='租金' or tfcb.FICB_ITEM='增值税')
+			and datediff(d,tfcb.pay_date,opposing_date)>0 
+			group by RECP_ID,pay_date,recd_period,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+			left join
+			t_rent_collectionplan  trcp
+			on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+			left join t_rent_contract trc 
+			on trcp.rect_id =trc.rect_id and trc.status=0
+			left join
+			t_rent_collectiondetail trcd
+			on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+			where trcp.RECP_ID=#recp_id#
+			union all
+			select 
+			trcp.period_num,
+			convert(varchar,trcp.pay_date, 23) pay_date,
+			null as opposing_date ,
+			datediff(d,trcp.pay_date,getdate())  dun_day,
+			trcp.month_price-reduce_price as dun_price,
+			month_price, convert(decimal(18,2),reduce_price) as real_price,
+			(case when trcp.fine_type = 2 then
+			round((trcp.month_price-reduce_price) *
+			     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+			     (trcp.month_price-reduce_price),2)
+			else
+			 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+			end) fine,trcp.recp_id,cust_name
+			from (          
+			 select 
+			     trcp.recp_id,
+			     trcp.rect_id,
+			     trcp.warn_status,
+			     trcd.pay_date,
+			     trcd.period_num, 
+			     trcp.fine_type,
+			     trcp.fine_rate,
+			     isnull(trcd.IRR_MONTH_PRICE, 0)+isnull(trcd.VALUE_ADDED_TAX, 0) month_price,  
+			     isnull(trcd.reduce_own_price, 0) reduce_price,trc.CUST_NAME
+			from t_rent_collectionplan trcp
+			left join t_rent_contract trc on trcp.rect_id =
+			trc.rect_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id =
+			trcd.recp_id
+			where trcp.status = 0 and trc.status=0
+			  and (trcp.fund_status=0 or trcp.fund_status=1)
+			 and  trcd.pay_date < = cast(getdate() as datetime)-1
+			and isnull(trcd.IRR_MONTH_PRICE, 0)+isnull(trcd.VALUE_ADDED_TAX, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+			left join  
+			(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+			  from t_fina_collectionbill tfcb
+			  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+			 where tfi.opposing_date <= cast(getdate() as datetime)
+			 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+			 and tfi.red_type is null 
+			 group by recp_id
+			 ) tfcd 
+			on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+			where (case when tfcd.opposing_date is null or
+			tfcd.opposing_date <= trcp.pay_date then
+			datediff(d,trcp.pay_date,getdate()) else
+			datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+			and trcp.RECP_ID=#recp_id#
+			)TT
+			group by RECP_ID) trcpd
+			left join
+			T_RENT_SETTLE tdfdr
+			on trcpd.RECP_ID=tdfdr.RECP_ID
+			and tdfdr.status = 0 and tdfdr.state = 1
+			)ttt
+		]]>
+	</select>
+	
+	<select id="custStatementPDFStaybuy" parameterClass="map" resultClass="java.util.HashMap">
+	<!-- 设备留购价 -->
+	<!-- Modify by Michael 2012 1/10 修正设备留购款计算Bug -->
+	<!-- SELECT 
+		ISNULL(SUM(T.STAYBUY_PRICE),0.0) STAYBUY_PRICE
+	FROM 
+		T_RENT_CONTRACTDETAIL T
+		LEFT JOIN T_RENT_CONTRACT T1 ON T1.RECT_ID = T.RECT_ID 
+		LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECP_ID = T.RECP_ID
+	WHERE 
+		T.STATUS = 0
+		AND	T2.RECP_ID = #recp_id#
+		AND T.STATUS = 0
+		AND T2.version_code =(select max(recp2.version_code)from t_rent_collectionplan recp2 where recp2.recp_code = T2.recp_code)
+	-->
+	<![CDATA[
+		select  staybuy_price,round(wei_STAYBUY_PRICE,2) wei_STAYBUY_PRICE, round((staybuy_price-wei_STAYBUY_PRICE ),2) yi_STAYBUY_PRICE  from(
+		select rectd.staybuy_price,
+	       rectd.staybuy_price - (case
+	         when exists (select ficb.ficb_item, sum(ficb.real_price)
+	                 from t_fina_collectionbill ficb
+	                where ficb.recp_code = recp.recp_code
+	                  and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+	                  and ficb.status = 0
+	                group by ficb.ficb_item
+	               having ficb.ficb_item = #staybuy#) then
+	          (select sum(ficb.real_price)
+	             from t_fina_collectionbill ficb
+	            where ficb.ficb_item = #staybuy#
+	              and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+	              and ficb.status = 0
+	              and ficb.recp_code = recp.recp_code)
+	         else
+	          0
+	       end)-ISNULL((select DIFF_STAYBUY_PRICE from T_RENT_SETTLE trst
+			where  trst.RECP_ID=recp.RECP_ID
+			and trst.status = 0 and trst.state = 1),0) as wei_STAYBUY_PRICE
+		  from t_rent_contract rect, t_rent_collectionplan recp,(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+		 where recp.rect_id = rect.rect_id
+			   and recp.status = 0 
+		   and rectd.RECT_ID=rect.RECT_ID
+		   and	recp.RECP_ID = #recp_id# ) tt   		   
+		]]>
+	</select>
+
+	<select id="custStatementPDFLawyFee" parameterClass="map" resultClass="java.util.HashMap">
+	<!-- 法务费用 -->
+	<![CDATA[
+		select  sum_lawyfee,round(sprice,2) wei_lawyfee, round((sum_lawyfee-sprice ),2) yi_lawyfee  
+		from(
+			select sum_lawyfee,
+			lawfee.sum_lawyfee - (
+			(select isnull(sum(ficb.real_price),0)
+			from t_fina_collectionbill ficb
+			where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = #ficbItem#) 
+			and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			and ficb.status = 0
+			and ficb.recp_id = recp.recp_id)
+	    	) as sprice,recp.RECP_ID
+			from t_rent_collectionplan recp,
+			(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+			where recp.recp_id = lawfee.recp_id
+			and recp.status = 0 
+		   and	recp.RECP_ID = #recp_id# ) tt   		   
+		]]>
+	</select>
+	
+	<select id="queryCustomerStatementInfo" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[	
+			select * from (SELECT * FROM (
+					select
+						T.CREATE_DATE,
+						 recp.recp_code,
+						convert(varchar,recd.pay_date,23)  pay_date,
+		                0 as first_rent,
+		                recd.month_price expect_rent,
+		                recd.irr_month_price each_rent,
+		                recd.deposit_price deposit_price,
+		                '' k3shouldbillno,
+		                ISNULL(T.REAL_PRICE,0) real_price,
+		                t.RECD_PERIOD,
+		                t.FICB_ITEM
+					from	t_rent_collectiondetail recd
+							left join (
+										   select recp.*, rect.cust_code
+										   from t_rent_collectionplan recp
+										   left join t_rent_contract rect on recp.rect_id = rect.rect_id
+									   )  recp on recd.recp_id =recp.recp_id
+							LEFT JOIN T_FINA_COLLECTIONBILL T ON T.RECP_ID = RECP.RECP_ID AND T.STATUS = 0 AND T.FICB_STATE = 5 AND T.RECD_PERIOD = recd.PERIOD_NUM
+					 where (recd.reduce_own_price is not null)
+						   and recp.status = 0
+						   and recp.version_code =
+							   (select max(recp2.version_code)
+								  from t_rent_collectionplan recp2
+								 where recp2.recp_code = recp.recp_code)
+						   and t.CUST_CODE = #cust_code#
+					   ) t11
+					   
+			UNION
+				SELECT 
+					T.CREATE_DATE,
+					T1.recp_code,
+					''  pay_date,
+					0 as first_rent,
+					0 expect_rent,
+					0 each_rent,
+					0 deposit_price,
+					'' k3shouldbillno,
+					ISNULL(T.REAL_PRICE,0) real_price,
+					t.RECD_PERIOD,
+					t.ficb_item
+				FROM 
+					T_FINA_COLLECTIONBILL T
+					LEFT JOIN T_RENT_COLLECTIONPLAN T1 ON T1.RECP_ID = T.RECP_ID AND T1.STATUS = 0
+				WHERE
+					T.STATUS = 0
+					AND T.CUST_CODE = #cust_code#
+					AND T.FICB_STATE = 5
+					AND T.RECD_PERIOD = 0
+					AND T.FICB_ITEM != #daifenjielaikuan#
+					
+					) t
+			order by pay_date
+		]]>
+	</select>		   
+	
+	<select id="queryCustomerInfoByCustID" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select * from T_CUST_CUSTOMER
+			where CUST_ID=#CUST_ID#
+	   ]]>
+   </select>
+</sqlMap>

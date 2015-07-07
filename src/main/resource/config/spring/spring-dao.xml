@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	     http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+	     http://www.springframework.org/schema/context
+	     http://www.springframework.org/schema/context/spring-context-3.2.xsd
+	     http://www.springframework.org/schema/tx
+	     http://www.springframework.org/schema/tx/spring-tx-3.2.xsd">
+    
+	<bean id="riskAuditDAO" class="com.brick.risk_audit.dao.RiskAuditDAO" parent="baseDAO"/>
+	
+	<bean id="achievementReportDAO" class="com.brick.bussinessReport.dao.AchievementReportDAO" parent="baseDAO"/>
+	
+	<bean id="businessSupportDAO" class="com.brick.businessSupport.dao.BusinessSupportDAO" parent="baseDAO"/>
+	
+	<bean id="achievementDailyDAO" class="com.brick.bussinessReport.dao.AchievementDailyDAO" parent="baseDAO"/>
+	
+	<bean id="jobDAO" class="com.brick.job.dao.JobDAO" parent="baseDAO"/>
+	
+	<bean id="dateInitializeDAO" class="com.brick.bussinessReport.dao.DateInitializeDAO" parent="baseDAO"/>
+	
+	<bean id="achievementCompareDAO" class="com.brick.bussinessReport.dao.AchievementCompareDAO" parent="baseDAO"/>
+
+	<bean id="loanDAO" class="com.brick.activityLog.dao.LoanDAO" parent="baseDAO"/>
+	
+	<bean id="achievementBatchJobDAO" class="com.brick.batchjob.dao.AchievementBatchJobDAO" parent="baseDAO"/>
+
+	<bean id="reportCancelBatchJobDAO" class="com.brick.batchjob.dao.ReportCancelBatchJobDAO" parent="baseDAO"/>
+
+	<bean id="achievementCaseDAO" class="com.brick.bussinessReport.dao.AchievementCaseDAO" parent="baseDAO"/>
+	
+	<bean id="visitationDAO" class="com.brick.visitation.dao.VisitationDAO" parent="baseDAO"/>
+
+	<bean id="avgPayMoneyBatchJobDAO" class="com.brick.batchjob.dao.AvgPayMoneyBatchJobDAO" parent="baseDAO"/>
+
+	<bean id="caseCompareDayDAO" class="com.brick.batchjob.dao.CaseCompareDayDAO" parent="baseDAO"/>
+
+	<bean id="creditDisabledEnabledDAO" class="com.brick.businessSupport.dao.CreditDisabledEnabledDAO" parent="baseDAO"/>
+
+	<bean id="supplerContributeDAO" class="com.brick.batchjob.dao.SupplerContributeDAO" parent="baseDAO"/>
+	
+	<bean id="customerCaseBatchJobDAO" class="com.brick.batchjob.dao.CustomerCaseBatchJobDAO" parent="baseDAO"/>
+	
+	<bean id="supplerCustomerCaseBatchJobDAO" class="com.brick.batchjob.dao.SupplerCustomerCaseBatchJobDAO" parent="baseDAO"/>
+	
+	<bean id="mailSettingDAO" class="com.brick.common.mail.dao.MailSettingDAO" parent="baseDAO"/>
+	
+	<bean id="mailUtilDAO" class="com.brick.common.mail.dao.MailUtilDAO" parent="baseDAO"/>
+	
+	<bean id="loanReminderBatchJobDAO" class="com.brick.batchjob.dao.LoanReminderBatchJobDAO" parent="baseDAO"/>
+	
+	<bean id="customerVisitDAO" class="com.brick.customerVisit.DAO.CustomerVisitDAO" parent="baseDAO"/>
+	
+	<bean id="dataDictionaryDAO" class="com.brick.sys.DAO.DataDictionaryDAO" parent="baseDAO"/>
+	
+	<bean id="accessCustomerPlanReportDAO" class="com.brick.bussinessReport.dao.AccessCustomerPlanReportDAO" parent="baseDAO"/>
+
+	<bean id="unnaturalCaseDAO" class="com.brick.unnaturalCase.dao.UnnaturalCaseDAO" parent="baseDAO"/>
+	
+	<bean id="customerVisitReportDAO" class="com.brick.bussinessReport.dao.CustomerVisitReportDAO" parent="baseDAO"/>
+	
+	<bean id="completedFileDao" class="com.brick.completedFile.dao.CompletedFileDao" parent="baseDAO"/>
+	
+	<bean id="modifyOrderDao" class="com.brick.modifyOrder.dao.ModifyOrderDao" parent="baseDAO"/>
+	
+	<bean id="dunCaseDAO" class="com.brick.bussinessReport.dao.DunCaseDAO" parent="baseDAO"/>
+
+	<bean id="supplierGroupDAO" class="com.brick.supplier.dao.SupplierGroupDAO" parent="baseDAO"/>
+	
+	<bean id="commonDAO" class="com.brick.common.dao.CommonDAO" parent="baseDAO"/>
+	
+	<bean id="employeeDAO" class="com.brick.employee.dao.EmployeeDAO" parent="baseDAO"/>
+	
+	<bean id="litigationDao" class="com.brick.litigation.dao.LitigationDao" parent="baseDAO"/>
+	
+	<bean id="deptCmpyDAO" class="com.brick.deptCmpy.dao.DeptCmpyDAO" parent="baseDAO"/>
+	
+	<bean id="deptMapDAO" class="com.brick.common.dao.DeptMapDAO" parent="baseDAO"/>
+	
+	<bean id="ichartDao" class="com.brick.ichart.dao.IchartDao" parent="baseDAO"/>
+	
+	<bean id="deskDAO" class="com.brick.desk.dao.DeskDAO" parent="baseDAO"/>
+		
+	<bean id="amountDao" class="com.brick.targetAmount.dao.AmountDao" parent="baseDAO"/>
+	
+	<bean id="creditSpecialDAO" class="com.brick.special.dao.CreditSpecialDAO" parent="baseDAO"/>
+
+	<bean id="insuranceFeeRemainderReportDAO" class="com.brick.financialReport.dao.InsuranceFeeRemainderReportDAO" parent="baseDAO"/>
+	
+	<bean id="contractControlSheetDAO" class="com.brick.financial.dao.ContractControlSheetDAO" parent="baseDAO"/>
+	
+	<bean id="tagDAO" class="com.brick.project.dao.TagDAO" parent="baseDAO"/>
+	
+	<bean id="interestIncomeReportDAO" class="com.brick.financialReport.dao.InterestIncomeReportDAO" parent="baseDAO"/>
+	
+	<bean id="supplierDAO" class="com.brick.supplier.dao.SupplierDAO" parent="baseDAO"/>
+	
+	<bean id="rentFinanceDAO" class="com.brick.rent.dao.RentFinanceDAO" parent="baseDAO"/>
+
+	
+	<bean id="helpDAO" class="com.brick.help.dao.HelpDAO" parent="baseDAO" />
+
+	
+	<bean id="contributionDao" class="com.brick.contribution.dao.ContributionDao" parent="baseDAO"/>
+
+	<bean id="caseAuditSituationDAO" class="com.brick.bussinessReport.dao.CaseAuditSituationDAO" parent="baseDAO"/>
+
+	<bean id="recordDAO" class="com.brick.record.RentContractRecordDAO" parent="baseDAO"></bean>
+
+	<bean id="userDAO" class="com.tac.user.dao.UserDAO" parent="baseDAO" />
+	
+	<bean id="deptDAO" class="com.tac.dept.dao.DeptDAO" parent="baseDAO" />
+	
+	<bean id="companyDAO" class="com.tac.company.dao.CompanyDAO" parent="baseDAO" />
+	
+	<bean id="visitDao" class="com.brick.dataStatistics.service.dao.VisitDao" parent="baseDAO"></bean>
+	
+	<bean id="informationDao" class="com.brick.information.dao.InformationDao" parent="baseDAO"></bean>
+	
+	<bean id="estimatePayDao" class="com.brick.estimatePay.dao.EstimatePayDao" parent="baseDAO"></bean>
+
+	<bean id="invoiceManagementDAO" class="com.brick.invoiceManagement.dao.InvoiceManagementDAO" parent="baseDAO"/>
+
+	<bean id="payerDAO" class="com.brick.payer.dao.PayerDAO" parent="baseDAO" />
+	
+	<bean id="agentDao" class="com.tac.agent.dao.AgentDao" parent="baseDAO"></bean>
+	
+	<bean id="signOrderDao" class="com.brick.signOrder.dao.SignOrderDao" parent="baseDAO"></bean>
+	
+	<bean id="bpmDefinitionDao" class="com.brick.bpm.dao.DefinitionDao" parent="baseDAO"></bean>
+	
+	<bean id="bpmInstanceDao" class="com.brick.bpm.dao.InstanceDao" parent="baseDAO"></bean>
+	
+	<bean id="bpmTaskDao" class="com.brick.bpm.dao.TaskDao" parent="baseDAO"></bean>
+	
+	<bean id="approvalDao" class="com.brick.aprv.dao.ApprovalDao" parent="baseDAO"></bean>
+
+	<bean id="kingDeerDAO" class="com.brick.kingDeer.dao.KingDeerDAO" parent="baseDAO"></bean>
+</beans>

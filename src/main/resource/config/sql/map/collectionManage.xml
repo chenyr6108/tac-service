@@ -1,0 +1,1298 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="collectionManage">
+
+	<resultMap class="java.util.HashMap" id="paylistMap">
+		<result property="RECP_ID" column="RECP_ID"/>
+		<result property="CREATE_USER_ID" column="MODIFY_USER_ID"/>
+		<result property="RECT_ID" column="RECT_ID"/>
+		<result property="LEASE_TOPRIC" column="LEASE_TOPRIC"/>
+		<result property="LEASE_TERM" column="LEASE_TERM"/>
+		<result property="LEASE_PERIOD" column="LEASE_PERIOD"/>
+		<result property="PLEDGE_PRICE" column="PLEDGE_PRICE"/>
+		<result property="PLEDGE_PRICE_RATE" column="PLEDGE_PRICE_RATE"/>
+		<result property="HEAD_HIRE" column="HEAD_HIRE"/>
+		<result property="HEAD_HIRE_PERCENT" column="HEAD_HIRE_PERCENT"/>
+		<result property="FLOAT_RATE" column="FLOAT_RATE"/>
+		<result property="YEAR_INTEREST_TYPE" column="YEAR_INTEREST_TYPE"/>
+		<result property="YEAR_INTEREST" column="YEAR_INTEREST"/>
+		<result property="PAY_WAY" column="PAY_WAY"/>
+		<result property="FINE_TYPE" column="FINE_TYPE"/>
+		<result property="FINE_RATE" column="FINE_RATE"/>
+		<result property="START_DATE" column="START_DATE"/>
+		<result property="END_DATE" column="END_DATE"/>
+		<result property="VERSION_CODE" column="VERSION_CODE"/>
+		<result property="DEAL_WAY" column="DEAL_WAY"/>
+		<result property="EQUPMENT_ADDRESS" column="EQUPMENT_ADDRESS"/>
+		<result property="RECP_CODE" column="RECP_CODE"/>
+		<result property="BUSINESS_TRIP_PRICE" column="BUSINESS_TRIP_PRICE"/>
+		<result property="BUY_INSURANCE_WAY" column="BUY_INSURANCE_WAY"/>
+		<result property="BUY_INSURANCE_TIME" column="BUY_INSURANCE_TIME"/>
+		<result property="INSURE_REBATE_RATE" column="INSURE_REBATE_RATE"/>
+		<result property="INSURANCE_COMPANY_ID" column="INSURANCE_COMPANY_ID"/>
+		<result property="LEASE_RZE" column="LEASE_RZE"/>
+		<result property="PAYDATE_FLAG" column="PAYDATE_FLAG"/>
+		<result property="LEASE_CODE" column="LEASE_CODE"/>
+		<result property="CUST_NAME" column="CUST_NAME"/>
+		<result property="CONTRACT_PRICE" column="CONTRACT_PRICE"/>
+		<result property="PLEDGE_WAY" column="PLEDGE_WAY"/>
+		<result property="PLEDGE_PERIOD" column="PLEDGE_PERIOD"/>
+		<result property="SALES_TAX_RATE" column="SALES_TAX_RATE"/>
+		<result property="TR_RATE" column="TR_RATE"/>  
+		<result property="STAMP_TAX_TOPRIC" column="STAMP_TAX_TOPRIC"/>  
+		<result property="STAMP_TAX_MONTHPRIC" column="STAMP_TAX_MONTHPRIC"/>  
+		<result property="OTHER_TAX" column="OTHER_TAX"/>  
+		<result property="INSURE_BASE_RATE" column="INSURE_BASE_RATE"/>   
+		<result property="STAMP_TAX_PRICE" column="STAMP_TAX_PRICE"/>   
+		<result property="TR_RATE" column="TR_RATE"/>   
+		<result property="STAMP_TAX_INSUREPRIC" column="STAMP_TAX_INSUREPRIC"/>   
+		<result property="TR_IRR_RATE" column="TR_IRR_RATE"/>   
+		<result property="PLEDGE_REALPRIC" column="PLEDGE_REALPRIC"/>   
+		 <result property="equipment" column="RECP_ID"  select="collectionManage.equipmentsForExportExcel"/>
+		<result property="insure" column="RECP_ID" select="collectionManage.inusresForExportExcel"/>
+		<result property="otherfee" column="RECP_ID" select="collectionManage.otherFeesForExportExcel"/>
+		<result property="payline" column="RECP_ID"   select="collectionManage.paylinesForExportExcel"/>
+		<result property="feeListRZE" column="RECT_ID"   select="collectionManage.getCreditFeeListRZE"/>
+		<result property="feeList" column="RECT_ID"   select="collectionManage.getCreditFeeList"/>
+		 
+	</resultMap> 
+	<resultMap class="java.util.HashMap" id="payEquipmentMap">
+		<result property="THING_KIND" column="THING_KIND"/>
+		<result property="THING_NAME" column="THING_NAME"/>
+		<result property="MODEL_SPEC" column="MODEL_SPEC"/>
+		<result property="BRAND" column="BRAND"/>
+		<result property="UNIT_PRICE" column="UNIT_PRICE"/>
+		<result property="AMOUNT" column="AMOUNT"/>
+		<result property="UNIT" column="UNIT"/>
+		<result property="MEMO" column="MEMO"/> 
+	</resultMap>
+	<resultMap class="java.util.HashMap" id="payinsureMap">
+		<result property="INSURE_ITEM" column="IINSURE_ITEM"/>
+		<result property="INTP_NAME" column="IINTP_NAME"/>
+		<result property="START_DATE" column="ISTART_DATE"/>
+		<result property="END_DATE" column="IEND_DATE"/>
+		<result property="INSURE_RATE" column="IINSURE_RATE"/>
+		<result property="INSURE_PRICE" column="IINSURE_PRICE"/> 
+		<result property="MEMO" column="IMEMO"/>   
+	</resultMap>
+	<resultMap class="java.util.HashMap" id="payotherfeeMap"> 
+		<result property="RECO_ID" column="ORECO_ID"/>
+		<result property="OTHER_NAME" column="OOTHER_NAME"/>
+		<result property="OTHER_PRICE" column="OOTHER_PRICE"/>
+		<result property="OTHER_DATE" column="OOTHER_DATE"/>
+		<result property="MEMO" column="OMEMO"/> 
+	</resultMap>
+	<resultMap class="java.util.HashMap" id="paylineMap"> 
+		<result property="LOCKED" column="LOCKED"/>
+		<result property="PERIOD_NUM" column="PERIOD_NUM"/>
+		<result property="PAY_DATE" column="PAY_DATE"/>
+		<result property="MONTH_PRICE" column="MONTH_PRICE"/>
+		<result property="OWN_PRICE" column="OWN_PRICE"/>
+		<result property="REN_PRICE" column="REN_PRICE"/>
+		<result property="LAST_PRICE" column="LAST_PRICE"/>
+		<result property="LOSS_PRICE" column="LOSS_PRICE"/>
+		<result property="OTHER_PRICE" column="OTHER_PRICE"/>
+		<result property="REDUCE_OWN_PRICE" column="REDUCE_OWN_PRICE"/>
+		<result property="REDUCE_REN_PRICE" column="REDUCE_REN_PRICE"/>
+		<result property="REDUCE_OTHER_PRICE" column="REDUCE_OTHER_PRICE"/>
+		<result property="REDUCE_LOSS_PRICE" column="REDUCE_LOSS_PRICE"/>
+		<result property="DEPOSIT_PRICE" column="DEPOSIT_PRICE"/>
+		<result property="IRR_PRICE" column="IRR_PRICE"/>
+		<result property="IRR_MONTH_PRICE" column="IRR_MONTH_PRICE"/>
+		<result property="SALES_TAX" column="SALES_TAX"/>
+		<result property="INSURE_PRICE" column="INSURE_PRICE"/>
+	</resultMap>
+	<!-- Modify by Michael 2012 02/02导出excel时不重新计算利差,直接取值 -->
+	<select id="paylistForExportExcel" parameterClass="map" resultClass="hashmap">
+	  <![CDATA[ 
+		SELECT T1.RECP_ID,T1.RECT_ID,
+		       T1.CREATE_USER_ID,
+		       T1.MODIFY_USER_ID,
+		       T1.RECT_ID,
+		       T1.LEASE_TOPRIC,
+		       T1.LEASE_TERM,
+		       T1.LEASE_PERIOD,
+		       ISNULL(T1.PLEDGE_PRICE,0) PLEDGE_PRICE,
+		       T1.PLEDGE_PRICE_RATE,
+		       ISNULL(T1.HEAD_HIRE,0) HEAD_HIRE,
+		       T1.HEAD_HIRE_PERCENT,
+		       T1.FLOAT_RATE,
+		       T1.YEAR_INTEREST_TYPE,
+		       T1.YEAR_INTEREST,
+		       T1.PAY_WAY PAY_WAY,
+		       T1.FINE_TYPE,
+		       T1.FINE_RATE,
+		       T1.START_DATE,
+		       T1.END_DATE,
+		       T1.VERSION_CODE,
+		       T10.FLAG DEAL_WAY,
+		       T1.EQUPMENT_ADDRESS,
+		       T1.RECP_CODE,
+		       T1.BUSINESS_TRIP_PRICE,
+		       T1.BUY_INSURANCE_WAY,
+		       T1.BUY_INSURANCE_TIME,
+		       T1.INSURE_REBATE_RATE,
+		       t8.INCP_NAME INSURANCE_COMPANY_ID,
+		       T1.LEASE_RZE,
+		       T1.PAYDATE_FLAG,
+		       T2.LEASE_CODE,
+		       T2.CUST_NAME,
+		       ROUND(T2.LEASE_TOPRIC,0) CONTRACT_PRICE,
+		       T1.PLEDGE_WAY,
+		       T1.PLEDGE_PERIOD,
+		       T1.SALES_TAX_RATE,
+		       T1.TR_RATE,
+		       T1.STAMP_TAX_TOPRIC,
+		       T1.STAMP_TAX_MONTHPRIC,
+		       T1.OTHER_TAX,
+		       T1.INSURE_BASE_RATE,
+		       T1.STAMP_TAX_PRICE,
+		       T1.TR_RATE,
+		       T1.STAMP_TAX_INSUREPRIC,
+		       T1.TR_IRR_RATE, 
+		       T1.PLEDGE_ENTER_CMPRICE,
+		       T1.PLEDGE_ENTER_CMRATE,
+		       T1.PLEDGE_ENTER_AG,
+		       T1.PLEDGE_ENTER_AGRATE,
+		       T1.PLEDGE_ENTER_MCTOAG,
+		       T1.LOAN_RATE,
+		       T1.MANAGE_RATE,
+		       t11.FLAG SUPL_TRUE,
+		       ISNULL(T1.PLEDGE_REALPRIC,0) PLEDGE_REALPRIC ,
+		       T1.FIRST_PAYDATE,
+		       T1.RATE_DIFF,T1.TAX_PLAN_CODE
+		  FROM T_RENT_COLLECTIONPLAN T1
+		  LEFT JOIN T_RENT_CONTRACT T2 ON T1.RECT_ID = T2.RECT_ID
+		  left join T_INSU_COMPANY t8 on t1.INSURANCE_COMPANY_ID=t8.INCP_ID
+		  left join T_DATA_DICTIONARY t9 on t1.PAY_WAY=t9.CODE and t9.type=#pay_way_type#
+		  left join T_DATA_DICTIONARY t10 on t1.DEAL_WAY=t10.CODE and t10.type=#deal_way_type#
+		  left join T_DATA_DICTIONARY t11 on t1.SUPL_TRUE=t11.CODE and t11.type=#supl_true_type#
+		  WHERE  T1.STATUS<>-2
+		  and  T1.RECP_ID in 
+		  ]]>
+		  <iterate property="ids" open="(" close=")" conjunction=",">
+			#ids[]#
+		  </iterate>
+		  ORDER BY T1.RECP_ID DESC 
+	</select>
+	
+	
+	<select id="equipmentsForExportExcel" parameterClass="int" resultClass="hashmap">
+		<![CDATA[
+			SELECT T1.RECD_ID,
+				   T1.THING_KIND,
+			       T1.THING_NAME,
+			       T1.BRAND,
+			       T1.MODEL_SPEC,
+			       T1.UNIT_PRICE,
+			       T1.AMOUNT,
+			       T1.UNIT,
+			       T1.MEMO,
+			       T1.THING_NUMBER,
+			       T1.LOCK_CODE
+			  FROM T_RENT_CONTRACTDETAIL T1
+			 WHERE T1.RECP_ID = #RECP_ID#
+			 	AND T1.STATUS<>-2
+			 ORDER BY T1.THING_KIND,
+			          T1.THING_NAME,
+			          T1.BRAND,
+			          T1.MODEL_SPEC,
+			          T1.UNIT_PRICE,
+			          T1.AMOUNT,
+			          T1.UNIT,
+			          T1.MEMO,
+			          T1.THING_NUMBER
+          ]]>
+	</select>
+	<select id="inusresForExportExcel" parameterClass="int"  resultClass="hashmap">
+		<![CDATA[
+			SELECT T1.RECI_ID,
+			       T1.INSURE_ITEM,
+			       T2.INTP_NAME,
+			       T1.START_DATE,
+			       T1.END_DATE,
+			       T1.INSURE_RATE,
+			       T1.INSURE_PRICE,
+			       T1.MEMO
+			  FROM T_RENT_COLLECTIONINSURE T1
+			  LEFT JOIN T_INSU_INSURETYPE T2 ON T2.INTP_ID = T1.INSURE_ITEM
+			 WHERE T1.RECP_ID = #RECP_ID#  AND T1.STATUS<>-2
+			 ORDER BY T1.START_DATE, T2.INTP_NAME, T1.INSURE_PRICE
+          ]]>
+	</select>
+	<select id="otherFeesForExportExcel" parameterClass="int"  resultClass="hashmap">
+		<![CDATA[
+			SELECT T1.RECO_ID, T1.OTHER_NAME, T1.OTHER_PRICE, T1.OTHER_DATE, T1.MEMO
+				  FROM T_RENT_COLLECTIONOTHERFEE T1
+				 WHERE T1.RECP_ID = #RECP_ID#
+				   AND T1.STATUS<>-2
+          ]]>
+	</select>
+	<select id="paylinesForExportExcel" parameterClass="int"  resultClass="hashmap">
+		<![CDATA[
+			SELECT T1.RECD_ID,
+				   T1.RECP_ID,
+			       T1.LOCKED,
+			       T1.PERIOD_NUM,
+			       T1.PAY_DATE,
+			      
+			       T1.MONTH_PRICE,
+			       T1.OWN_PRICE,
+			       T1.REN_PRICE,
+			       T1.LAST_PRICE,
+			       T1.LOSS_PRICE,
+			       T1.OTHER_PRICE,
+			       ISNULL(REDUCE_OWN_PRICE,0)   REDUCE_OWN_PRICE,    
+			       ISNULL(REDUCE_REN_PRICE,0)   REDUCE_REN_PRICE,    
+			       ISNULL(REDUCE_OTHER_PRICE,0)  REDUCE_OTHER_PRICE,
+			       ISNULL(REDUCE_LOSS_PRICE,0)  REDUCE_LOSS_PRICE,
+			         DEPOSIT_PRICE,IRR_PRICE,IRR_MONTH_PRICE,SALES_TAX,INSURE_PRICE,isnull(VALUE_ADDED_TAX,0) VALUE_ADDED_TAX,isnull(VALUE_ADDED_TAX_TRUE,0) VALUE_ADDED_TAX_TRUE
+			  FROM T_RENT_COLLECTIONDETAIL T1
+			 WHERE T1.RECP_ID = #RECP_ID#
+			 	AND T1.STATUS <> -2
+			 ORDER BY T1.PERIOD_NUM
+          ]]>
+	</select>
+	
+	
+	
+	<!--  query -->
+	<!-- Modify by Michael 2012 07-13 增加案件号查询 -->
+	<select id="queryPaylist_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ 
+		SELECT count(1)
+		  FROM T_RENT_COLLECTIONPLAN T1
+		  LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = T1.RECT_ID
+		  LEFT JOIN T_USER_USER T4 ON T4.ID = T2.SENSOR_ID
+		  LEFT JOIN T_USER_USER T3 ON T3.id = T4.upper_user
+		  LEFT JOIN ( SELECT RECP_ID,MAX(CHECK_DATE) DATE 
+					  FROM T_FINA_COLLECTIONBILL
+					  WHERE STATUS = 0
+						AND FICB_TYPE = 0
+						AND FICB_STATE = 5
+					  GROUP BY RECP_ID
+					) T5 ON T5.RECP_ID = T1.RECP_ID
+		  LEFT JOIN T_PRJT_CREDIT tpc ON tpc.ID = T2.PRCD_ID
+		  WHERE T1.STATUS=0 
+		]]>
+		<!-- Add By Michael 2011 11/18 增加权限管理，业务员只能看自己的案子的支付表 -->
+		<isEqual prepend="and" property="p_usernode" compareValue="1">
+			<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+	  	 	t2.sensor_id = #s_employeeId#  
+	  	 	-->
+	  	 	<![CDATA[ 
+	  	 	(t2.SENSOR_ID = #s_employeeId#
+	  	 	or T3.id = #s_employeeId#)
+	  	 	]]>
+		</isEqual>
+		<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+		<isEqual prepend="and" property="p_usernode" compareValue="2">
+			<![CDATA[	
+				exists(select ID from T_USER_USER
+				where DEPT_ID in 
+				(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+				where uc.USER_ID = #s_employeeId#)
+				and ID = t2.SENSOR_ID)
+			]]>
+		</isEqual>
+		<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+				(T1.RECP_CODE LIKE '%$QSEARCH_VALUE$%' OR T2.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+			  OR T3.NAME LIKE '%$QSEARCH_VALUE$%' OR T4.NAME LIKE '%$QSEARCH_VALUE$%' OR tpc.CREDIT_RUNCODE LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[	T1.START_DATE >= CONVERT(date,#QSTART_DATE#)  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[	T1.START_DATE <= CONVERT(date,#QEND_DATE# ) ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="" property="QSELECT_STATUS">
+			<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+				<![CDATA[ t1.RECP_STATUS = #QSELECT_STATUS# ]]>
+			</isNotEqual>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="JQSTART_DATE">
+			<![CDATA[	 T5.DATE >=  CONVERT(date,#JQSTART_DATE#) ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="JQEND_DATE">
+			<![CDATA[	 T5.DATE <=  CONVERT(date,#JQEND_DATE#) ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="fundStatus">
+			<![CDATA[ t1.fund_status = #fundStatus# ]]>
+		</isNotEmpty>
+	</select>
+	<select id="queryPaylist" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+		SELECT T1.RECP_ID,
+		       T1.RECP_STATUS,
+		       T1.CREATE_TIME,
+		       T1.RECP_CODE,
+		       T1.VERSION_CODE,
+		       T1.START_DATE,
+		       T1.FIRST_PAYDATE,
+		       T1.PAYDATE_FLAG,
+		       T2.RECT_ID,
+		       T2.SENSOR_ID sensor_id,
+		       T2.CUST_NAME,
+		       T2.CUST_ID,
+		       T3.NAME CLERKNAME,
+		       T4.NAME SENSORNAME ,
+		       T1.LEASE_PERIOD ,
+		       t2.CORP_ORAGNIZATION_CODE ,
+		       T2.CUST_ADDRESS,
+		       t5.DATE JQDATE,
+		       tpc.CREDIT_RUNCODE,T2.LEASE_CODE,t1.TAX_PLAN_CODE
+		  FROM T_RENT_COLLECTIONPLAN T1
+		  LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = T1.RECT_ID
+		  LEFT JOIN T_USER_USER T4 ON T4.ID = T2.SENSOR_ID
+		  LEFT JOIN T_USER_USER T3 ON T3.id = T4.upper_user
+  		  LEFT JOIN ( SELECT RECP_ID,MAX(CHECK_DATE) DATE 
+					  FROM T_FINA_COLLECTIONBILL
+					  WHERE STATUS = 0
+						AND FICB_TYPE = 0
+						AND FICB_STATE = 5
+					  GROUP BY RECP_ID
+					) T5 ON T5.RECP_ID = T1.RECP_ID
+		LEFT JOIN T_PRJT_CREDIT tpc ON tpc.ID = T2.PRCD_ID
+		  WHERE T1.STATUS=0 
+		]]>
+		<isNotEmpty prepend="and" property="companyCode">
+  					tpc.company_code = #companyCode#
+		</isNotEmpty>
+		<!-- Add By Michael 2011 11/18 增加权限管理，业务员只能看自己的案子的支付表 -->
+		<isEqual prepend="and" property="p_usernode" compareValue="1">
+	  	 	<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+	  	 	t2.sensor_id = #s_employeeId#  
+	  	 	-->
+	  	 	<![CDATA[ 
+	  	 	(t2.SENSOR_ID = #s_employeeId#
+	  	 	or T3.id = #s_employeeId#)
+	  	 	]]>
+		</isEqual>
+		<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+		<isEqual prepend="and" property="p_usernode" compareValue="2">
+			<![CDATA[	
+				exists(select ID from T_USER_USER
+				where DEPT_ID in 
+				(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+				where uc.USER_ID = #s_employeeId#)
+				and ID = T2.SENSOR_ID)
+			]]>
+		</isEqual>
+		<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+				(T1.RECP_CODE LIKE '%$QSEARCH_VALUE$%' OR T2.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+			  OR T3.NAME LIKE '%$QSEARCH_VALUE$%' OR T4.NAME LIKE '%$QSEARCH_VALUE$%' OR tpc.CREDIT_RUNCODE LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[	 T1.START_DATE >=  CONVERT(date,#QSTART_DATE#) ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[	 T1.START_DATE <= CONVERT(date,#QEND_DATE# )]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="" property="QSELECT_STATUS">
+			<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+				<![CDATA[ t1.RECP_STATUS = #QSELECT_STATUS# ]]>
+			</isNotEqual>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="JQSTART_DATE">
+			<![CDATA[	 T5.DATE >=  CONVERT(date,#JQSTART_DATE#) ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="JQEND_DATE">
+			<![CDATA[	 T5.DATE <=  CONVERT(date,#JQEND_DATE#) ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="fundStatus">
+			<![CDATA[ t1.fund_status = #fundStatus# ]]>
+		</isNotEmpty>
+	</select>
+
+	<statement id="queryEquipment" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		SELECT T1.RECD_ID,
+		       T1.THING_KIND,
+		       T1.THING_NAME,
+		       T1.MODEL_SPEC,
+		       T1.BRAND,
+		       T1.UNIT_PRICE,
+		       T1.AMOUNT,
+		       T1.UNIT,
+		       T1.MEMO,
+		       T1.shui_price SHUI_PRICE,
+		       T2.LEASE_CODE,
+		       T2.CUST_CODE,
+		       T2.CUST_NAME,
+		       T6.TYPE EQUIP_TYPE ,
+		       T1.LOCK_CODE
+		  FROM T_RENT_CONTRACTDETAIL T1
+			  LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID=T1.RECT_ID
+			  LEFT JOIN T_EQMT_EQUIPMENT T3 ON T3.EQMT_ID = T1.EQMT_ID
+			  LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID = T3.SUEQ_ID
+			  LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T4.PRODUCT_ID
+			  LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID
+			 WHERE T1.STATUS=0 AND T2.STATUS=0 AND T3.STATUS=0
+			 	AND T1.RECP_ID IS NULL 
+			 	AND T1.RECT_ID = #RECT_ID#
+			 	
+		 	 ORDER BY T1.THING_KIND,
+		       T1.THING_NAME,
+		       T1.MODEL_SPEC,
+		       T1.BRAND,
+		       T1.UNIT_PRICE
+		]]>
+	</statement>
+	<statement id="queryEquipmentByIds" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT T1.RECD_ID,
+	       T1.THING_KIND,
+	       T1.THING_NAME,
+	       T1.MODEL_SPEC,
+	       T1.BRAND,
+	       T1.SHUI_PRICE,
+	       T1.UNIT_PRICE,
+	       T1.AMOUNT,
+	       T1.UNIT,
+	       T1.MEMO,
+	       T1.LOCK_CODE
+	  FROM T_RENT_CONTRACTDETAIL T1
+		 WHERE T1.STATUS=0 
+			AND T1.RECD_ID IN 
+		<iterate property="recdIds" open="(" close=")" conjunction=",">
+			#recdIds[]#
+		</iterate>
+	</statement>
+	<!-- SELECT SEQ_RENT_COLLECTIONPLAN.NEXTVAL AS RECP_ID FROM DUAL -->
+	<!--增加利差 -->
+	<insert id="createPaylist" parameterClass="map">
+		<![CDATA[
+			INSERT INTO T_RENT_COLLECTIONPLAN
+			  (CREATE_USER_ID,MODIFY_USER_ID,RECT_ID,LEASE_TOPRIC,LEASE_TERM,LEASE_PERIOD,PLEDGE_PRICE,PLEDGE_PRICE_RATE,
+			   HEAD_HIRE, HEAD_HIRE_PERCENT,FLOAT_RATE,YEAR_INTEREST_TYPE,YEAR_INTEREST,
+			   PAY_WAY,FINE_TYPE,FINE_RATE,START_DATE,END_DATE,VERSION_CODE,DEAL_WAY,EQUPMENT_ADDRESS,RECP_CODE,BUSINESS_TRIP_PRICE,
+			   BUY_INSURANCE_WAY,BUY_INSURANCE_TIME,INSURE_REBATE_RATE,INSURANCE_COMPANY_ID,LEASE_RZE,PAYDATE_FLAG,
+			   PLEDGE_PERIOD,INSURE_BASE_RATE,SALES_TAX_RATE,STAMP_TAX_TOPRIC,STAMP_TAX_MONTHPRIC,STAMP_TAX_PRICE,
+			   TR_RATE, STAMP_TAX_INSUREPRIC, TR_IRR_RATE, PLEDGE_REALPRIC,
+			   PLEDGE_AVE_PRICE,PLEDGE_BACK_PRICE,PLEDGE_LAST_PRICE,PLEDGE_LAST_PERIOD,PLEDGE_ENTER_WAY,PLEDGE_ENTER_CMPRICE,
+			   PLEDGE_ENTER_CMRATE,PLEDGE_ENTER_AG,PLEDGE_ENTER_AGRATE,PLEDGE_ENTER_MCTOAG,PLEDGE_ENTER_MCTOAGRATE,LOAN_RATE,MANAGE_RATE,SUPL_TRUE,FIRST_PAYDATE,RATE_DIFF,TAX_PLAN_CODE,PLEDGE_LAST_PRICE_TAX,INSURE_PRICE,DEFER_PERIOD)
+			VALUES
+			  (#S_EMPLOYEEID#,#S_EMPLOYEEID#,#RECT_ID#,#LEASE_TOPRIC#,#LEASE_TERM#,#LEASE_PERIOD#,#PLEDGE_PRICE#,#PLEDGE_PRICE_RATE#,
+			   #HEAD_HIRE#,#HEAD_HIRE_PERCENT#,#FLOAT_RATE#,#YEAR_INTEREST_TYPE#,#YEAR_INTEREST#,
+			   #PAY_WAY#,#FINE_TYPE#,#FINE_RATE#,#START_DATE#,#END_DATE#, #VERSION_CODE#,#DEAL_WAY#,#EQUPMENT_ADDRESS#,#RECP_CODE#,#BUSINESS_TRIP_PRICE#,
+			   #BUY_INSURANCE_WAY#,#BUY_INSURANCE_TIME#,#INSURE_REBATE_RATE#,#INSURANCE_COMPANY_ID#,#LEASE_RZE#,#PAYDATE_FLAG#,
+			   #PLEDGE_PERIOD#,#INSURE_BASE_RATE#,#SALES_TAX_RATE#,#STAMP_TAX_TOPRIC#,#STAMP_TAX_MONTHPRIC#,#STAMP_TAX_PRICE#,
+			   #TR_RATE#, #STAMP_TAX_INSUREPRIC#, #TR_IRR_RATE#, #PLEDGE_REALPRIC#,
+			   #PLEDGE_AVE_PRICE#,#PLEDGE_BACK_PRICE#,#PLEDGE_LAST_PRICE#,#PLEDGE_LAST_PERIOD#,#PLEDGE_ENTER_WAY#,#PLEDGE_ENTER_CMPRICE#,
+			   #PLEDGE_ENTER_CMRATE#,#PLEDGE_ENTER_AG#,#PLEDGE_ENTER_AGRATE#,#PLEDGE_ENTER_MCTOAG#,#PLEDGE_ENTER_MCTOAGRATE#,#LOAN_RATE#,#MANAGE_RATE#,#SUPL_TRUE#,#FIRST_PAYDATE#,#RATE_DIFF#,#TAX_PLAN_CODE#,#PLEDGE_LAST_PRICE_TAX#,#INSURE_PRICE#,#DEFER_PERIOD#)
+		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="RECP_ID">
+			<![CDATA[	SELECT @@IDENTITY  AS RECP_ID ]]>
+		</selectKey>
+	</insert>
+	<insert id="createPaylines" parameterClass="map">
+	<!-- Modify by Michael 2012 01/16 增加 当期本金 当期利息 当期本金余额 -->
+		<![CDATA[
+		INSERT INTO T_RENT_COLLECTIONDETAIL
+				  ( CREATE_USER_ID,MODIFY_USER_ID,RECP_ID,LOCKED,PERIOD_NUM,PAY_DATE,MONTH_PRICE,OWN_PRICE,REN_PRICE,LAST_PRICE,
+				    DEPOSIT_PRICE,IRR_PRICE,IRR_MONTH_PRICE,SALES_TAX,INSURE_PRICE,REAL_OWN_PRICE,NET_CURRENT_FINANCE,CURRENT_RENPRICE,NET_FINANCE,CURRENT_FINANCE_COST_REN,PV_PRICE,FINANCE_DATE)
+			VALUES( #S_EMPLOYEEID#,#S_EMPLOYEEID#,#RECP_ID#,#LOCKED#,#PERIOD_NUM#,#PAY_DATE#,#MONTH_PRICE#,#OWN_PRICE#,#REN_PRICE#,#LAST_PRICE#,
+					#DEPOSIT_PRICE#,#IRR_PRICE#,#IRR_MONTH_PRICE#,#SALES_TAX#,#INSURE_PRICE#,#REAL_OWN_PRICE#,#NETCURRENTFINANCE#,#CURRENTRENPRICE#,#NETFINANCE#,#CURRENTFINANCECOSTREN#,#PV_PRICE#,#FINANCE_DATE#)
+		]]>
+	</insert>
+	<!-- Added by Michael 2012 09-25 增加支付表明细 For增值税 -->
+	<insert id="createPaylinesByValueAdded" parameterClass="map">
+		<![CDATA[
+		INSERT INTO T_RENT_COLLECTIONDETAIL
+				  ( CREATE_USER_ID,MODIFY_USER_ID,RECP_ID,LOCKED,PERIOD_NUM,PAY_DATE,MONTH_PRICE,OWN_PRICE,REN_PRICE,LAST_PRICE,
+				    DEPOSIT_PRICE,IRR_PRICE,IRR_MONTH_PRICE,INSURE_PRICE,REAL_OWN_PRICE,NET_CURRENT_FINANCE,CURRENT_RENPRICE,NET_FINANCE,CURRENT_FINANCE_COST_REN,PV_PRICE,FINANCE_DATE,VALUE_ADDED_TAX,VALUE_ADDED_TAX_TRUE)
+			VALUES( #S_EMPLOYEEID#,#S_EMPLOYEEID#,#RECP_ID#,#LOCKED#,#PERIOD_NUM#,#PAY_DATE#,#MONTH_PRICE#,#OWN_PRICE#,#REN_PRICE#,#LAST_PRICE#,
+					#DEPOSIT_PRICE#,#IRR_PRICE#,#IRR_MONTH_PRICE#,#INSURE_PRICE#,#REAL_OWN_PRICE#,#NETCURRENTFINANCE#,#CURRENTRENPRICE#,#NETFINANCE#,#CURRENTFINANCECOSTREN#,#PV_PRICE#,#FINANCE_DATE#,#VALUE_ADDED_TAX#,#VALUE_ADDED_TAX_TRUE#)
+		]]>
+	</insert>
+	
+	<update id="updateRentContractDetail" parameterClass="map">
+		<![CDATA[
+		UPDATE T_RENT_CONTRACTDETAIL  SET RECP_ID=#RECP_ID# WHERE RECD_ID=#RECD_ID#
+		]]>
+	</update>
+	<insert id="createPayInsures" parameterClass="map">
+		<![CDATA[
+		INSERT INTO T_RENT_COLLECTIONINSURE( CREATE_USER_ID,MODIFY_USER_ID,RECP_ID,INSURE_ITEM,START_DATE,END_DATE,INSURE_RATE,INSURE_PRICE,MEMO) 
+      	   VALUES( #S_EMPLOYEEID#,#S_EMPLOYEEID#,#RECP_ID#,#INSURE_ITEM#,#START_DATE#,#END_DATE#,#INSURE_RATE#,#INSURE_PRICE#,#MEMO#)
+		]]>
+	</insert>
+	<insert id="createPayOtherFee" parameterClass="map">
+		<![CDATA[
+		INSERT INTO T_RENT_COLLECTIONOTHERFEE( CREATE_USER_ID,MODIFY_USER_ID,RECP_ID,OTHER_NAME,OTHER_PRICE,OTHER_DATE,MEMO)
+			VALUES( #S_EMPLOYEEID#,#S_EMPLOYEEID#,#RECP_ID#,#OTHER_NAME#,#OTHER_PRICE#,#OTHER_DATE#,#MEMO#)
+		]]>
+	</insert>
+	
+	<!-- Modify by Michael 2012 1/5增加利差 -->
+	<statement id="readPaylistById" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT 
+  			t2.RECT_ID, t2.CREATE_TIME, t2.CREATE_USER_ID, t2.MODIFY_TIME, t2.MODIFY_USER_ID, 
+		  	RECT_STATUS, RECT_TYPE, CUST_ID, PRJT_ID, CLERK_ID, SENSOR_ID, PRCD_ID,
+		   	LEASE_CODE, LESSOR_TIME, LESSEE_TIME, LESSOR, LESSEE, CUST_TYPE, PROVINCE_ID, 
+		   	CITY_ID, CUST_CODE, CUST_NAME, NATU_IDCARD, CUST_ADDRESS, CUST_ZIP, CUST_PHONE, 
+		  	CUST_FAX, NATU_MATE_NAME, NATU_MATE_IDCARD, CUST_LINKMAN, CORP_ORAGNIZATION_CODE, 
+		   	OPEN_BANK, BANK_ACCOUNTS, t2.LEASE_TOPRIC LEASE_TOPRIC, OTHER_AGREEMENT, t2.STATUS, DECP_ID, area_id, 
+		   	ID_CARD_TYPE, CORP_REGISTE_ADDRESS, CORP_WORK_ADDRESS,round(t2.LEASE_TOPRIC,0) CONTRACT_PRICE,		   
+		  	RECP_ID, t1.CREATE_TIME, t1.MODIFY_TIME, t1.MODIFY_USER_ID, t1.STATUS, 
+		  	RECP_STATUS, TYPE, t1.RECT_ID, round(t1.LEASE_TOPRIC,0) LEASE_TOPRIC, LEASE_TERM, LEASE_PERIOD, 
+		  	PLEDGE_PRICE, PLEDGE_PRICE_RATE, HEAD_HIRE, HEAD_HIRE_PERCENT,  
+		  	FLOAT_RATE, YEAR_INTEREST_TYPE, YEAR_INTEREST, PAY_WAY, 
+		  	FINE_TYPE, FINE_RATE,START_DATE, convert(date,START_DATE,23) STR_START_DATE, END_DATE, VERSION_CODE, DEAL_WAY, EQUPMENT_ADDRESS, 
+		  	PARENT_ID, REIP_ID, RECP_CODE, BUSINESS_TRIP_PRICE, BUY_INSURANCE_WAY, BUY_INSURANCE_TIME, 
+		  	INSURE_REBATE_RATE, INSURANCE_COMPANY_ID, LEASE_RZE, PAYDATE_FLAG, ASSET_STATUS, FUND_STATUS,
+		   	WARN_STATUS, t1.CREATE_USER_ID, TR_RATE, PLEDGE_WAY, PLEDGE_PERIOD, SALES_TAX_RATE, STAMP_TAX_TOPRIC, 
+		   	STAMP_TAX_MONTHPRIC, OTHER_TAX, INSURE_BASE_RATE, STAMP_TAX_PRICE, STAMP_TAX_INSUREPRIC, TR_IRR_RATE, 
+		   	PLEDGE_REALPRIC, FASSETTAX_MONEY, PLEDGE_AVE_PRICE, PLEDGE_BACK_PRICE, PLEDGE_LAST_PRICE, 
+		   	PLEDGE_LAST_PERIOD, PLEDGE_ENTER_WAY, PLEDGE_ENTER_CMPRICE, PLEDGE_ENTER_CMRATE, PLEDGE_ENTER_AG,
+		    LOAN_RATE, MANAGE_RATE,FIRST_PAYDATE, convert(date,FIRST_PAYDATE,23) STR_FIRST_PAYDATE, PLEDGE_ENTER_AGRATE, PLEDGE_ENTER_MCTOAG, PLEDGE_ENTER_MCTOAGRATE,SUPL_TRUE,RATE_DIFF,T1.TAX_PLAN_CODE,t1.DEFER_PERIOD			
+			
+		  	FROM T_RENT_COLLECTIONPLAN T1
+		  	LEFT JOIN T_RENT_CONTRACT T2 ON T1.RECT_ID = T2.RECT_ID
+		  	WHERE T1.RECP_ID=#RECP_ID#
+		]]>
+	</statement>
+
+	<statement id="readPayEquipments" parameterClass="map" resultClass="java.util.HashMap">
+		<!-- 
+		<![CDATA[
+			SELECT T1.RECD_ID,
+				   T1.THING_KIND,
+			       T1.THING_NAME,
+			       T1.BRAND,
+			       T1.MODEL_SPEC,
+			       T1.SHUI_PRICE,
+			       T1.UNIT_PRICE,
+			       T1.AMOUNT,
+			       T1.UNIT,
+			       T1.MEMO,
+			       T1.LOCK_CODE
+			  FROM T_RENT_CONTRACTDETAIL T1
+			 WHERE T1.RECP_ID = #RECP_ID#
+			 	AND T1.STATUS<>-2
+			 ORDER BY T1.THING_KIND,
+			          T1.THING_NAME,
+			          T1.BRAND,
+			          T1.MODEL_SPEC,
+			          T1.SHUI_PRICE,
+			          T1.UNIT_PRICE,
+			          T1.AMOUNT,
+			          T1.UNIT,
+			          T1.MEMO
+          ]]>
+           -->
+           <![CDATA[
+           	SELECT T1.RECD_ID, T1.THING_KIND,
+			       T6.NAME THING_NAME,
+			       T1.BRAND,
+			       T5.NAME MODEL_SPEC,
+			       T1.SHUI_PRICE,
+			       T1.UNIT_PRICE,
+			       T1.AMOUNT,
+			       T1.UNIT,
+			       T1.MEMO,
+			       T1.LOCK_CODE FROM T_RENT_CONTRACTDETAIL T1
+			  LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID=T1.RECT_ID and T2.STATUS=0
+			  LEFT JOIN T_EQMT_EQUIPMENT T3 ON T3.EQMT_ID = T1.EQMT_ID and T3.STATUS=0
+			  LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID = T3.SUEQ_ID and T4.STATUS=0
+			  LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T4.PRODUCT_ID and T5.STATUS=0
+			  LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID
+			 WHERE T1.RECP_ID = #RECP_ID# AND T1.STATUS<>-2
+            ]]>
+	</statement>
+	<statement id="readPayInusres" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T1.RECI_ID,
+			       T1.INSURE_ITEM,
+			       T2.INTP_NAME,
+			       T1.START_DATE,
+			       T1.END_DATE,
+			       T1.INSURE_RATE,
+			       T1.INSURE_PRICE,
+			       T1.MEMO
+			  FROM T_RENT_COLLECTIONINSURE T1
+			  LEFT JOIN T_INSU_INSURETYPE T2 ON T2.INTP_ID = T1.INSURE_ITEM
+			 WHERE T1.RECP_ID = #RECP_ID#  AND T1.STATUS=0
+			 ORDER BY T1.START_DATE, T2.INTP_NAME, T1.INSURE_PRICE
+          ]]>
+	</statement>
+	<statement id="readPayOtherFees" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T1.RECO_ID, T1.OTHER_NAME, T1.OTHER_PRICE, T1.OTHER_DATE, T1.MEMO
+				  FROM T_RENT_COLLECTIONOTHERFEE T1
+				 WHERE T1.RECP_ID = #RECP_ID#
+				   AND T1.STATUS=0
+          ]]>
+	</statement>
+	<statement id="readPaylines" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T1.RECD_ID,
+				   T1.RECP_ID,
+			       T1.LOCKED,
+			       T1.PERIOD_NUM,
+			       T1.PAY_DATE,
+			       T1.REAL_OWN_PRICE,
+			       T1.MONTH_PRICE,
+			       T1.OWN_PRICE,
+			       T1.REN_PRICE,
+			       T1.LAST_PRICE,
+			       T1.LOSS_PRICE,
+			       T1.OTHER_PRICE,
+			       ISNULL(REDUCE_OWN_PRICE,0)   REDUCE_OWN_PRICE,    
+			       ISNULL(REDUCE_REN_PRICE,0)   REDUCE_REN_PRICE,    
+			       ISNULL(REDUCE_OTHER_PRICE,0)  REDUCE_OTHER_PRICE,
+			       ISNULL(REDUCE_LOSS_PRICE,0)  REDUCE_LOSS_PRICE,
+			         DEPOSIT_PRICE,IRR_PRICE,
+			         IRR_MONTH_PRICE,
+			         SALES_TAX,T1.INSURE_PRICE,
+			          LEASE_PERIOD,
+			        T2.LEASE_RZE,
+			        T1.NET_CURRENT_FINANCE,
+			        T1.CURRENT_RENPRICE,
+			        T1.NET_FINANCE,
+			        T1.CURRENT_FINANCE_COST_REN,
+			        T1.PV_PRICE,isnull(T1.VALUE_ADDED_TAX,0) VALUE_ADDED_TAX,isnull(T1.VALUE_ADDED_TAX_TRUE,0) VALUE_ADDED_TAX_TRUE,
+			        CASE WHEN (ISNULL(REDUCE_OWN_PRICE,0)+ISNULL(REDUCE_REN_PRICE,0)+ISNULL(REDUCE_OTHER_PRICE,0)+ISNULL(REDUCE_LOSS_PRICE,0))>0
+                   		 THEN 'PAY'
+                   		 ELSE 'NOT_PAY'
+                    	  END FLAG
+			  FROM T_RENT_COLLECTIONDETAIL T1
+			  LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECP_ID = T1.RECP_ID AND T2.STATUS = 0
+			 WHERE T1.RECP_ID = #RECP_ID#
+			 	AND T1.STATUS = 0
+			 ORDER BY T1.PERIOD_NUM
+          ]]>
+	</statement>
+	<!-- wuzd  -->
+	<update id="updateSupportPay" parameterClass="map">
+	<![CDATA[
+			update t_rent_collectionplan
+			   set  modify_time = getdate(),
+			       modify_user_id = #S_EMPLOYEEID#,
+			       insurance_company_id = #INSURANCE_COMPANY_ID2#
+			WHERE recp_id=#RECP_ID#			
+	]]>
+</update>
+	<statement id="readPaylistByIdfForExpPay" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T1.RECP_ID,      
+		       T1.RECT_ID,
+		       T1.RECP_CODE,
+		       T2.LEASE_CODE,
+		       T2.CUST_NAME,
+		       T2.CUST_CODE CUST_CODE	       
+		  FROM T_RENT_COLLECTIONPLAN T1
+		  LEFT JOIN T_RENT_CONTRACT T2 ON T1.RECT_ID = T2.RECT_ID
+		  LEFT JOIN T_DEPT_COMPANY T3 ON T3.DECP_ID=T2.DECP_ID
+		  WHERE T1.RECP_ID=#RECP_ID#
+		]]>
+	</statement>
+
+
+	<select id="queryOpenInvoice_count" parameterClass="map" resultClass="java.lang.Integer">		
+	<![CDATA[	
+		select count(1) CNT from(	
+			SELECT *
+			FROM (
+				select t1.recd_id,t2.pay_way,t1.period_num,CONVERT(varchar,t1.pay_date,23) PAY_DATE,t1.month_price,CONVERT(varchar,t1.reserve_time,23) RESERVE_TIME,
+					t1.ren_price,t2.recp_code,t4.cust_code,t4.cust_name,isnull(t4.CORP_TAX_CODE,'') CORP_TAX_CODE,t2.lease_period,t1.irr_month_price IRR_MONTH_PRICE,
+					CONVERT(varchar,dateadd(day,-1,t1.pay_date),23) zhi,
+					CONVERT(varchar,dateadd(month,-1,t1.pay_date),23) qi,
+					convert(varchar,dateadd(day,-1,dateadd(month,1,t1.pay_date)),23) qinew,		
+					substring(CONVERT(varchar,getdate(),23),1,8)+'04' yu,
+					t1.invoice_code,t1.open_user,t1.open_time,
+					CONVERT(VARCHAR,DATEADD(m,t1.PERIOD_NUM - 1,t2.FIRST_PAYDATE),23) QI_DATE ,
+					CONVERT(VARCHAR,DATEADD(D,-1,DATEADD(M,T1.PERIOD_NUM ,T2.FIRST_PAYDATE)),23) QIQI_DATE
+				from t_rent_collectiondetail t1
+					left join t_rent_collectionplan t2 on t1.recp_id=t2.recp_id AND T2.STATUS = 0
+					left join t_rent_contract t3 on t2.rect_id=t3.rect_id AND T3.STATUS = 0
+					left join t_cust_customer t4 on t3.cust_id=t4.cust_id AND T4.STATUS = 0
+					left join t_prjt_credit tpc on tpc.id = t3.prcd_id and tpc.status = 0
+				where t1.status=0	
+				]]>
+		  <dynamic>	
+		    <isNotEmpty prepend="and" property="companyCode">
+		  		tpc.company_code = #companyCode#
+		  	</isNotEmpty>	
+		  	<isNotEmpty prepend="and" property="content">
+		  		(t4.cust_name like '%$content$%' or t4.cust_code like '%$content$%' or t2.recp_code like '%$content$%' )
+		  	</isNotEmpty>		  	  
+		  	<isNotEmpty  prepend="and"  property="isopen">		  	 	  			
+			  	<isEqual  property="isopen" compareValue="1">
+			  		 t1.isopen is null
+			  	</isEqual>
+			  	<isEqual  property="isopen" compareValue="2">
+			  		 t1.isopen is not null
+			  	</isEqual>			  		  			  			  	 				
+		  	</isNotEmpty>	
+		  	</dynamic>
+		  	) TT
+		  	<dynamic prepend="WHERE">
+				<isNotEmpty prepend="and" property="QSTART_DATE">
+					<![CDATA[ TT.QI_DATE >= #QSTART_DATE# ]]>
+				</isNotEmpty>
+				<isNotEmpty prepend="and" property="QEND_DATE">
+					<![CDATA[ TT.QI_DATE <= #QEND_DATE# ]]>		
+				</isNotEmpty> 					
+		  </dynamic>
+		  ) T
+	</select>
+	<select id="queryOpenInvoice" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+			SELECT *
+			FROM (
+				select t1.recd_id,t2.pay_way,t1.period_num,CONVERT(varchar,t1.pay_date,23) PAY_DATE,t1.month_price,CONVERT(varchar,t1.reserve_time,23) RESERVE_TIME,
+					t1.ren_price,t2.recp_code,t4.cust_code,t4.cust_name,isnull(t4.CORP_TAX_CODE,'') CORP_TAX_CODE,t2.lease_period,t1.irr_month_price IRR_MONTH_PRICE,
+					CONVERT(varchar,dateadd(day,-1,t1.pay_date),23) zhi,
+					CONVERT(varchar,dateadd(month,-1,t1.pay_date),23) qi,
+					convert(varchar,dateadd(day,-1,dateadd(month,1,t1.pay_date)),23) qinew,		
+					substring(CONVERT(varchar,getdate(),23),1,8)+'04' yu,
+					t1.invoice_code,t1.open_user,t1.open_time,
+					CONVERT(VARCHAR,DATEADD(m,t1.PERIOD_NUM - 1,t2.FIRST_PAYDATE),23) QI_DATE ,
+					CONVERT(VARCHAR,DATEADD(D,-1,DATEADD(M,T1.PERIOD_NUM ,T2.FIRST_PAYDATE)),23) QIQI_DATE
+				from t_rent_collectiondetail t1
+					left join t_rent_collectionplan t2 on t1.recp_id=t2.recp_id AND T2.STATUS = 0
+					left join t_rent_contract t3 on t2.rect_id=t3.rect_id AND T3.STATUS = 0
+					left join t_cust_customer t4 on t3.cust_id=t4.cust_id AND T4.STATUS = 0
+					left join t_prjt_credit tpc on tpc.id = t3.prcd_id and tpc.status = 0
+				where t1.status=0	
+				]]>
+		  <dynamic>	
+		     <isNotEmpty prepend="and" property="companyCode">
+		  		tpc.company_code = #companyCode#
+		  	</isNotEmpty>	
+		  	<isNotEmpty prepend="and" property="content">
+		  		(t4.cust_name like '%$content$%' or t4.cust_code like '%$content$%' or t2.recp_code like '%$content$%' )
+		  	</isNotEmpty>		  	  
+		  	<isNotEmpty  prepend="and"  property="isopen">		  	 	  			
+			  	<isEqual  property="isopen" compareValue="1">
+			  		 t1.isopen is null
+			  	</isEqual>
+			  	<isEqual  property="isopen" compareValue="2">
+			  		 t1.isopen is not null
+			  	</isEqual>			  		  			  			  	 				
+		  	</isNotEmpty>	
+		  	</dynamic>
+		  	) TT
+		  	<dynamic prepend="WHERE">
+				<isNotEmpty prepend="and" property="QSTART_DATE">
+					<![CDATA[ TT.QI_DATE >= #QSTART_DATE# ]]>
+				</isNotEmpty>
+				<isNotEmpty prepend="and" property="QEND_DATE">
+					<![CDATA[ TT.QI_DATE <= #QEND_DATE# ]]>		
+				</isNotEmpty> 					
+		  </dynamic>
+			  ORDER BY  TT.RECD_ID 		  
+	</select>	
+	
+	<update id="updatePayIsopen" parameterClass="map">
+	<![CDATA[
+			update t_rent_collectiondetail
+			   set  isopen =#isopen#,
+			       open_user = #open_user#,
+			       open_time = getDate()
+			WHERE recd_id=#recd_id#			
+	]]>
+	</update>
+	
+	<insert id="createInvoiceDetail" parameterClass="map">
+		<![CDATA[
+		INSERT INTO T_RENT_INVOICEDETAIL
+				  ( TRCD_ID,CREATE_USER_ID,STATE,CREATE_TIME)
+			VALUES( #RECD_ID#,#USERID#,1,getdate())
+		]]>
+	</insert>
+	<insert id="createInvoiceDetail2" parameterClass="map">
+		<![CDATA[
+		INSERT INTO T_RENT_INVOICEDETAIL
+				  ( TRCD_ID,CREATE_USER_ID,STATE,CREATE_TIME,PATH,RENT_PRICE,RECP_ID)
+			VALUES( #recd_id#,#s_employeeId#,2,getdate(),#file_name#,#rent_price#,#recp_id#)
+		]]>
+	</insert>
+	
+	<update id="updateYuDate" parameterClass="map">
+		<![CDATA[ update t_rent_collectiondetail   set reserve_time=CONVERT(datetime,#yud#) WHERE recd_id=#recd_id# ]]>
+	</update>	
+	
+	<select id="queryOpenInvoiceForPart" parameterClass="map" resultClass="java.util.HashMap">
+			select t1.recd_id,t2.pay_way,t1.period_num,CONVERT(varchar,t1.pay_date,23) PAY_DATE,t1.month_price,CONVERT(varchar,t1.reserve_time,23) RESERVE_TIME,
+			t1.ren_price,t2.recp_code,t4.cust_code,t4.cust_name,isnull(t4.corp_tax_code,'') CORP_TAX_CODE,t2.lease_period,t1.irr_month_price IRR_MONTH_PRICE,
+			CONVERT(varchar,dateadd(day,-1,t1.pay_date),23) zhi,
+			CONVERT(varchar,dateadd(month,-1,t1.pay_date),23) qi,
+			substring(CONVERT(varchar,getdate(),23),1,8)+'04' yu,
+			t1.invoice_code,t1.open_user,t1.open_time,
+			CONVERT(VARCHAR,DATEADD(m,t1.PERIOD_NUM - 1,t2.FIRST_PAYDATE),23) QI_DATE ,
+			CONVERT(VARCHAR,DATEADD(D,-1,DATEADD(M,T1.PERIOD_NUM ,T2.FIRST_PAYDATE)),23) QIQI_DATE
+			 from t_rent_collectiondetail t1
+			left join t_rent_collectionplan t2 on t1.recp_id=t2.recp_id
+			left join t_rent_contract t3 on t2.rect_id=t3.rect_id
+			left join t_cust_customer t4 on t3.cust_id=t4.cust_id
+			where t1.status=0	 and t1.recd_id in
+		<iterate property="idss" open="(" close=")" conjunction=",">
+			#idss[]#
+		</iterate>			 		  	
+			  ORDER BY  T1.RECD_ID 		  
+	</select>	
+	<insert id="createCollectionIrrMonthPrice" parameterClass="map">
+		<![CDATA[
+			INSERT INTO T_RENT_COLLECTIONPLANIRR
+	           (CREATE_ID
+	           ,CREATE_DATE
+	           ,STATUS
+	           ,TYPE
+	           ,REPI_STATUS
+	           ,IRR_MONTH_PRICE
+	           ,IRR_MONTH_PRICE_START
+	           ,IRR_MONTH_PRICE_END
+	           ,RECP_ID)
+	     VALUES
+	           (#S_EMPLOYEEID#,
+	           GETDATE(),
+	           0,
+	           0,
+	           0,
+	           #IRR_MONTH_PRICE#,
+	           #IRR_MONTH_PRICE_START#,
+	           #IRR_MONTH_PRICE_END#,
+	           #RECP_ID#)
+		]]>
+	</insert>
+	<select id="readCollectionplanSchemaIrrByRecpid" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT REPI_ID
+			      ,CREATE_ID
+			      ,CREATE_DATE
+			      ,MODIFY_ID
+			      ,MODIFY_DATE
+			      ,STATUS
+			      ,TYPE
+			      ,REPI_STATUS
+			      ,IRR_MONTH_PRICE
+			      ,IRR_MONTH_PRICE_START
+			      ,IRR_MONTH_PRICE_END
+			      ,RECP_ID
+			  FROM T_RENT_COLLECTIONPLANIRR WHERE STATUS=0 AND RECP_ID=#RECP_ID#
+		]]>
+	</select>
+	<delete id="deleteCollectionplanIrr" parameterClass="map">
+		<![CDATA[
+			delete from t_rent_collectionplanirr where recp_id=#recp_id#
+		]]>
+	</delete>
+	
+	
+	<select id="queryRZSY" parameterClass="map"  resultClass="hashmap">
+		<![CDATA[
+			select  trcp.LEASE_TOPRIC,
+			        trcd.PAY_DATE,
+			        ROUND(trcd.MONTH_PRICE,2) MONTH_PRICE,
+			        ROUND(trcd.IRR_MONTH_PRICE,2) IRR_MONTH_PRICE,
+					ROUND(trcd.REN_PRICE,2) REN_PRICE,
+			        ROUND((ROUND(trcd.MONTH_PRICE,2)-ROUND(trcd.REN_PRICE,2)),2) jianshaoe,
+			        tcc.CUST_NAME,tcc.CORP_TAX_CODE
+			from T_RENT_COLLECTIONDETAIL trcd
+			left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID
+			left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = trc.CUST_ID
+			where trcp.RECP_ID = #id#
+          ]]>
+	</select>
+	<select id="queryFirstPayDate" parameterClass="map"  resultClass="java.util.Date">
+		<![CDATA[
+			SELECT 
+				T.FIRST_PAYDATE
+			FROM
+				T_RENT_COLLECTIONPLAN T
+			WHERE
+				T.STATUS = 0
+				AND T.RECP_ID = #id#
+          ]]>
+	</select>
+	
+	<select id="queryirrMonthpaylines" parameterClass="map"  resultClass="hashmap">
+		<![CDATA[
+			select * from dbo.T_RENT_COLLECTIONPLANIRR where RECP_ID=#RECP_ID#
+          ]]>
+	</select>
+	
+	<select id="pledgeAvgPrice" parameterClass="map" resultClass="java.lang.Float">
+		select PLEDGE_AVE_PRICE/LEASE_PERIOD AVE from T_RENT_COLLECTIONPLAN where RECP_ID=#RECP_ID#
+	</select>
+	
+	<update id="updateFundStatus" parameterClass="map" >
+		UPDATE 
+			T_RENT_COLLECTIONPLAN
+		SET 
+			FUND_STATUS = #fund_type# ,
+			RECP_STATUS = #recp_status#
+		WHERE 
+			RECP_ID = #recp_id#
+	</update>
+	<!-- 修改锁码方式 -->
+	<update id="updateLockCode" parameterClass="map" >
+		UPDATE 
+			T_RENT_CONTRACTDETAIL
+		SET
+			LOCK_CODE = #LOCK_CODE#
+		WHERE
+			RECD_ID = #RECD_ID# 
+	</update>
+	
+		<!-- Modify by Michael 2012 1/5增加利差 -->
+	<statement id="readPaylistSchemaByID" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT *
+		  	FROM T_RENT_COLLECTIONPLAN T1
+		  	WHERE T1.RECP_ID=#RECP_ID#
+		]]>
+	</statement>
+		<!--Add By Michael 2012 1/14  -->
+	<!--查询报告费用明细  影响概算成本为1 不影响为0 -->
+		<select id="getCreditFeeListRZE" parameterClass="int"  resultClass="hashmap">
+		select * from t_rent_contract_feelist where is_leaserze_cost='1' and RECT_ID=#RECT_ID#
+	</select>
+	<select id="getCreditFeeList" parameterClass="int"  resultClass="hashmap">
+		select * from t_rent_contract_feelist where is_leaserze_cost='0' and  RECT_ID=#RECT_ID#
+	</select>
+
+	<!-- Modify by Michael 2012 01/16 增加 当期本金 当期利息 当期本金余额 -->	
+		<insert id="createPaylinesTemp" parameterClass="map">
+		<![CDATA[
+		INSERT INTO T_TEMP_RENT_COLLECTIONDETAIL_BACKUP
+				  ( CREATE_USER_ID,MODIFY_USER_ID,RECP_ID,LOCKED,PERIOD_NUM,MONTH_PRICE,OWN_PRICE,REN_PRICE,LAST_PRICE,
+				    DEPOSIT_PRICE,IRR_PRICE,IRR_MONTH_PRICE,SALES_TAX,INSURE_PRICE,REAL_OWN_PRICE,NET_CURRENT_FINANCE,CURRENT_RENPRICE,NET_FINANCE,CURRENT_FINANCE_COST_REN,PV_PRICE)
+			VALUES( #S_EMPLOYEEID#,#S_EMPLOYEEID#,#RECP_ID#,#LOCKED#,#PERIOD_NUM#,#MONTH_PRICE#,#OWN_PRICE#,#REN_PRICE#,#LAST_PRICE#,
+					#DEPOSIT_PRICE#,#IRR_PRICE#,#IRR_MONTH_PRICE#,#SALES_TAX#,#INSURE_PRICE#,#REAL_OWN_PRICE#,#NETCURRENTFINANCE#,#CURRENTRENPRICE#,#NETFINANCE#,#CURRENTFINANCECOSTREN#,#PV_PRICE#)
+		]]>
+	</insert>
+	
+	<!-- Modify by Michael 2012 2/23 查询合同类型 -->
+	<statement id="queryContractTypeByRecpID" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[
+	 		SELECT 
+				t3.CONTRACT_TYPE
+		  	FROM T_RENT_COLLECTIONPLAN T1
+		  	LEFT JOIN T_RENT_CONTRACT T2 ON T1.RECT_ID = T2.RECT_ID and t2.STATUS=0
+		  	Left join t_prjt_credit  t3 on t2.PRCD_ID=t3.ID and t3.STATUS=0		  	
+			WHERE T1.RECP_ID=#RECP_ID#
+		]]>
+	</statement>	
+	
+	<select id="queryEquipmentForCount" parameterClass="map" resultClass="java.util.HashMap">
+			SELECT   SUM(T1.UNIT_PRICE) UNIT_PRICE,
+				     COUNT(T1.AMOUNT) AMOUNT,
+				     SUM(T1.SHUI_PRICE) TAX_PRICE
+			  FROM T_RENT_CONTRACTDETAIL T1
+				   LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID=T1.RECT_ID
+				   LEFT JOIN T_EQMT_EQUIPMENT T3 ON T3.EQMT_ID = T1.EQMT_ID
+				   LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID = T3.SUEQ_ID
+				   LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T4.PRODUCT_ID
+				   LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID
+			 WHERE T1.STATUS=0 AND T2.STATUS=0 AND T3.STATUS=0
+			   AND T1.RECP_ID IS NULL 
+			   AND T1.RECT_ID = #RECT_ID#
+		  GROUP BY T1.RECT_ID
+	</select>	
+	
+<!-- Add by Michael 2012 4-20 增加本息摊还表 -->	
+	<select id="queryOwnLastPrice" parameterClass="map"  resultClass="hashmap">
+		<![CDATA[
+			select  trcd.PAY_DATE,trcd.PERIOD_NUM,
+			        ROUND(trcd.MONTH_PRICE,2) MONTH_PRICE,
+			        ROUND(trcd.IRR_MONTH_PRICE,2) IRR_MONTH_PRICE,
+					ROUND(trcd.REN_PRICE,2) REN_PRICE,
+			        ROUND(trcd.OWN_PRICE,2) OWN_PRICE,
+			        ROUND(trcd.LAST_PRICE,2) LAST_PRICE,isnull(VALUE_ADDED_TAX,0) VALUE_ADDED_TAX,isnull(VALUE_ADDED_TAX_TRUE,0) VALUE_ADDED_TAX_TRUE,
+			        tcc.CUST_NAME,tcc.CORP_TAX_CODE,trc.LEASE_CODE
+			from T_RENT_COLLECTIONDETAIL trcd
+			left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID
+			left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = trc.CUST_ID
+			where trcp.RECP_ID = #id#
+          ]]>
+	</select>
+	
+<!-- Add by Michael 2012 5-25 查询重车扣款账户信息 -->	
+	<select id="queryCarPayAccount" parameterClass="map"  resultClass="hashmap">
+		<![CDATA[
+			select  RECP_ID,PAY_MAN,BANK_NAME,BANK_ACCOUNT,ID_CAR
+			from T_CAR_PAY_APPLYINFO 
+			where RECP_ID = #recp_id#
+          ]]>
+	</select>	
+
+	<!-- Add by Michael 2012 05/25 增加 重车扣款账户信息 -->	
+	<insert id="createCarPayAccount" parameterClass="map">
+		<![CDATA[
+		INSERT INTO T_CAR_PAY_APPLYINFO
+				  ( RECP_ID,PAY_MAN,BANK_NAME,BANK_ACCOUNT,ID_CAR,CREATE_ID,CREATE_DATE)
+			VALUES( #recp_id#,#PAY_MAN#,#BANK_NAME#,#BANK_ACCOUNT#,#ID_CAR#,#s_employeeId#,getdate())
+		]]>
+	</insert>	
+	
+		<!-- Add by Michael 2012 05/25 修改 重车扣款账户信息 -->
+	<update id="modifyCarPayAccount" parameterClass="map" >
+		UPDATE 
+			T_CAR_PAY_APPLYINFO
+		SET
+			PAY_MAN = #PAY_MAN#,BANK_NAME=#BANK_NAME#,BANK_ACCOUNT=#BANK_ACCOUNT#,ID_CAR=#ID_CAR#,MODIFY_ID=#s_employeeId#,MODIFY_DATE=getdate()
+		WHERE
+			RECP_ID = #recp_id# 
+	</update>
+	
+	<!-- Add by Michael 2012 09-12 增加法务费用 -->
+	<insert id="createLawFee" parameterClass="map">
+		<![CDATA[
+		INSERT INTO T_LAWY_FEELIST
+				  ( RECP_ID,FEE_NAME,FEE_VALUE,MEMO,STATUS,CREATE_TIME,CREATE_ID)
+			VALUES( #RECP_ID#,#FEE_NAME#,#FEE_VALUE#,#MEMO#,0,getDate(),#s_employeeId#)
+		]]>
+	</insert>
+	<!-- 增加法务催收 -->
+	<insert id="createDunRecord" parameterClass="map">
+		<![CDATA[
+		INSERT INTO T_DUN_DUNNINGRECORD
+				  ( call_user_id,call_content,call_date,status,cust_code,result,ANSWERPHONE_NAME, PHONE_NUMBER)
+			VALUES( #s_employeeId#,#LAWYFEERECORD#,getDate(),0,#CUST_CODE#,15,#ANSWERPHONE_NAME#,#PHONE_NUMBER#)
+		]]>
+	</insert>
+	<!-- Add by Michael 2012 09-12 更新法务费用 -->
+	<update id="modifyLawFee" parameterClass="map" >
+		UPDATE 
+			T_LAWY_FEELIST
+		SET
+			FEE_NAME = #FEE_NAME#,FEE_VALUE=#FEE_VALUE#,MEMO=#MEMO#,MODIFY_ID=#s_employeeId#,MODIFY_TIME=getdate()
+		WHERE
+			RECP_ID = #RECP_ID# and ID=#ID#
+	</update>
+	
+	<!-- Add by Michael 2012 09-12 删除法务费用 -->
+	<update id="deleteLawFee" parameterClass="map" >
+		UPDATE 
+			T_LAWY_FEELIST
+		SET
+			STATUS =-2,MODIFY_ID=#s_employeeId#,MODIFY_TIME=getdate()
+		WHERE
+			ID=#ID#
+	</update>
+	
+	<!-- Add by Michael 2012 09-12 增加法务费用查询，通过RECP_ID -->
+	<select id="queryLawFeeListByRecpID" parameterClass="map"  resultClass="hashmap">
+		<![CDATA[
+			select tlfl.ID,tlfl.RECP_ID,tlfl.FEE_VALUE,tlfl.MEMO,tlfl.CREATE_TIME,tdd.FLAG,tuu.NAME
+			from T_LAWY_FEELIST tlfl     
+			left join T_DATA_DICTIONARY tdd on tdd.CODE=tlfl.FEE_NAME and tdd.TYPE='法务费用' 
+			left join T_USER_USER tuu on tuu.ID=tlfl.CREATE_ID    
+			where tlfl.STATUS=0 and  tlfl.RECP_ID = #RECP_ID#
+          ]]>
+	</select>	
+	
+		<!-- Add by Michael 2012 09-12 增加法务费用查询，通过RECP_ID -->
+	<select id="queryLawFeePayListByRecpID" parameterClass="map"  resultClass="hashmap">
+		<![CDATA[
+			select tlfl.ID,tlfl.RECP_ID,tlfl.FEE_VALUE,tlfl.MEMO,tlfl.CREATE_TIME,tdd.FLAG,tfcb.FICB_ID,tuu.NAME,isnull(tfcb.REAL_PRICE,0) REAL_PRICE
+			from T_LAWY_FEELIST tlfl     
+			left join T_DATA_DICTIONARY tdd on tdd.CODE=tlfl.FEE_NAME and tdd.TYPE='法务费用' 
+			left join T_FINA_COLLECTIONBILL tfcb    
+			on tlfl.RECP_ID=tfcb.RECP_ID and tlfl.ID=tfcb.RECD_PERIOD and tfcb.FICB_ITEM=tdd.FLAG 
+			left join T_USER_USER tuu on tuu.ID=tlfl.CREATE_ID    
+			where tlfl.STATUS=0 and  tlfl.RECP_ID = #RECP_ID#
+          ]]>
+	</select>
+	
+	<!-- Add by Michael 根据id 查询法务费用 -->
+	<select id="queryLawFeeListByID" parameterClass="map"  resultClass="hashmap">
+		<![CDATA[
+			select *
+			from T_LAWY_FEELIST tlfl
+			where ID=#ID#
+          ]]>
+	</select>
+	
+	<select id="queryLawyFeePaylist" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+	SELECT T1.RECP_ID,
+		       T1.RECP_STATUS,
+		       T1.CREATE_TIME,
+		       T1.RECP_CODE,
+		       T1.VERSION_CODE,
+		       T1.START_DATE,
+		       T1.FIRST_PAYDATE,
+		       T1.PAYDATE_FLAG,
+		       T2.RECT_ID,
+		       T2.SENSOR_ID sensor_id,
+		       T2.CUST_NAME,
+		       T2.CUST_ID,
+		       T3.NAME CLERKNAME,
+		       T4.NAME SENSORNAME ,
+		       T1.LEASE_PERIOD ,
+		       t2.CORP_ORAGNIZATION_CODE ,
+		       T2.CUST_ADDRESS,
+		       tpc.CREDIT_RUNCODE,T2.LEASE_CODE,t1.TAX_PLAN_CODE,t2.cust_code
+		  FROM T_RENT_COLLECTIONPLAN T1
+		  LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = T1.RECT_ID
+		  LEFT JOIN T_USER_USER T4 ON T4.ID = T2.SENSOR_ID
+		  LEFT JOIN T_USER_USER T3 ON T3.id = T4.upper_user
+		LEFT JOIN T_PRJT_CREDIT tpc ON tpc.ID = T2.PRCD_ID
+		  WHERE T1.STATUS=0
+		]]>
+		
+		<isNotEmpty prepend="and" property="companyCode">
+			tpc.company_code = #companyCode#
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+				(T1.RECP_CODE LIKE '%$QSEARCH_VALUE$%' OR T2.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+			  OR T3.NAME LIKE '%$QSEARCH_VALUE$%' OR T4.NAME LIKE '%$QSEARCH_VALUE$%' OR tpc.CREDIT_RUNCODE LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QUERY_FEE_NAME">
+			<![CDATA[	
+				T1.RECP_ID in (select recp_id from T_LAWY_FEELIST
+      			where fee_name =#QUERY_FEE_NAME#
+			]]>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+				<![CDATA[
+					CONVERT(date,create_time,23)>=CONVERT(date,#QSTART_DATE#,23) 
+				]]>
+				<isNotEmpty prepend="and" property="QEND_DATE">
+					<![CDATA[
+						CONVERT(date,create_time,23)<=CONVERT(date,#QEND_DATE#,23) 
+					]]>
+				</isNotEmpty>
+			</isNotEmpty>
+			
+			<isNotEmpty prepend="and" property="QEND_DATE">
+				<isEmpty prepend="and" property="QSTART_DATE">
+					<![CDATA[
+						 CONVERT(date,create_time,23)<=CONVERT(date,#QEND_DATE#,23)
+					]]>
+				</isEmpty>
+			</isNotEmpty>
+			)
+		</isNotEmpty>	
+		<isEmpty prepend="" property="QUERY_FEE_NAME">	
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+				<![CDATA[
+					exists(select RECP_ID from T_LAWY_FEELIST TLF
+					where CONVERT(date,TLF.create_time,23)>=CONVERT(date,#QSTART_DATE#,23) 
+				]]>
+				<isNotEmpty prepend="and" property="QEND_DATE">
+					<![CDATA[
+						CONVERT(date,TLF.create_time,23)<=CONVERT(date,#QEND_DATE#,23) 
+					]]>
+				</isNotEmpty>
+				<![CDATA[
+					and TLF.RECP_ID=T1.RECP_ID 
+					group by  RECP_ID
+					)  
+				]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QEND_DATE">
+			<isEmpty prepend="and" property="QSTART_DATE">
+				<![CDATA[
+					exists(select RECP_ID from T_LAWY_FEELIST TLF
+					where CONVERT(date,TLF.create_time,23)<=CONVERT(date,#QEND_DATE#,23)
+					and TLF.RECP_ID=T1.RECP_ID 
+					group by  RECP_ID
+					)  
+				]]>
+			</isEmpty>
+		</isNotEmpty>
+		</isEmpty>
+	</select>
+
+	<select id="queryLawyFeePaylistForExport" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+		SELECT   DISTINCT TLFL.ID,TLFL.RECP_ID,TLFL.FEE_VALUE,TLFL.MEMO
+      ,CONVERT(VARCHAR(16),TLFL.CREATE_TIME,20)CREATE_TIME,TDD.FLAG,TFCB.FICB_ID,TUU.NAME,ISNULL(TFCB.REAL_PRICE,0) REAL_PRICE
+			,T2.LEASE_CODE,T2.CUST_NAME,T4.NAME USER_NAME,T3.NAME UPPER_NAME,T9.DECP_NAME_CN,
+      TPCP.BRAND,tpc.company_code
+      	FROM T_LAWY_FEELIST TLFL     
+			LEFT JOIN T_DATA_DICTIONARY TDD ON TDD.CODE=TLFL.FEE_NAME AND TDD.TYPE='法务费用' 
+			LEFT JOIN T_FINA_COLLECTIONBILL TFCB    
+			ON TLFL.RECP_ID=TFCB.RECP_ID AND TLFL.ID=TFCB.RECD_PERIOD AND TFCB.FICB_ITEM=TDD.FLAG 
+			LEFT JOIN T_USER_USER TUU ON TUU.ID=TLFL.CREATE_ID   
+      		LEFT JOIN  T_RENT_COLLECTIONPLAN T1 ON T1.RECP_ID=TLFL.RECP_ID AND T1.STATUS=0
+		  LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = T1.RECT_ID
+		  LEFT JOIN T_USER_USER T4 ON T4.ID = T2.SENSOR_ID
+		  LEFT JOIN T_USER_USER T3 ON T3.ID = T4.UPPER_USER
+		  LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = T4.DEPT_ID AND DEPT.STATUS = 0
+  		LEFT JOIN T_DEPT_COMPANY T9 ON DEPT.DECP_ID = T9.DECP_ID AND T9.STATUS = 0
+  	LEFT JOIN T_PRJT_CREDITEQUIPMENT TPCP ON TPCP.CREDIT_ID=T2.PRCD_ID
+  	left join t_prjt_credit tpc on tpc.id = T2.prcd_id and tpc.status = 0
+		WHERE TLFL.STATUS=0 and TLFL.RECP_ID >0
+		]]>
+	<isNotEmpty prepend="and" property="companyCode">
+		tpc.company_code = #companyCode#
+	</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[
+			 	CONVERT(date,tlfl.create_time,23)>=CONVERT(date,#QSTART_DATE#,23) 
+			]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[	 
+				CONVERT(date,tlfl.create_time,23)<=CONVERT(date,#QEND_DATE#,23) 
+			]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QUERY_FEE_NAME">
+			<![CDATA[	
+				tlfl.fee_name =#QUERY_FEE_NAME#
+			]]>
+		</isNotEmpty>
+		
+	</select>
+	
+	<select id="getRecpListByCustId" resultClass="java.util.HashMap">
+	           SELECT DISTINCT T1.RECP_ID,T2.LEASE_CODE,MIN(CONVERT(DATE,TSP.PAY_DATE)) PAY_DATE,TPC.LEASE_RZE,TPCE.TR_IRR_RATE,T1.RECP_CODE,T1.RECT_ID,
+			          ISNULL((SELECT DISTINCT 'Y' 
+		                        FROM T_DUN_DAILY TD 
+		                       WHERE TD.STATUS=0 
+		                         AND TD.RECP_ID=T1.RECP_ID 
+		                         ),'') HAS_DUN,
+		              (SELECT TOP 1 TPRC.PRC_ID FROM T_PRJT_RISK_CONTROL TPRC WHERE TPRC.STATUS=0 AND TPRC.STATE=1 AND TPRC.CREDIT_ID=MAX(T2.PRCD_ID)) PRC_ID,
+		              T2.PRCD_ID,T1.RECP_STATUS
+	        	 FROM T_RENT_COLLECTIONPLAN T1
+	      LEFT JOIN T_RENT_CONTRACT T2 ON T1.RECT_ID = T2.RECT_ID AND T2.STATUS = 0
+	      LEFT JOIN T_PRJT_CREDITSCHEME TPC ON TPC.STATUS = 0 AND TPC.CREDIT_ID = T2.PRCD_ID
+	      LEFT JOIN T_SUPL_PLAYDETIL TSP ON TSP.STATUS = 0 AND TSP.CREDIT_ID = T2.PRCD_ID
+	      LEFT JOIN T_PRJT_CREDITSCHEME TPCE ON TPCE.STATUS = 0 AND TPCE.CREDIT_ID=T2.PRCD_ID
+	        	WHERE T2.CUST_ID=#cust_id#
+	            AND T1.STATUS=0
+	            AND T2.PRCD_ID!=#credit_id#
+	       GROUP BY T1.RECP_ID,T1.RECT_ID,T2.LEASE_CODE,TPC.LEASE_RZE,TPCE.TR_IRR_RATE,T1.RECP_CODE,T2.PRCD_ID,T1.RECP_STATUS
+	</select>
+	
+	<insert id="createInvoiceCodeFile" parameterClass="map">
+		<![CDATA[
+			INSERT INTO T_RENT_INVOICECODE
+				  ( CREATE_USER_ID,CREATE_TIME,PATH)
+			VALUES( #s_employeeId#,getdate(),#file_name#)
+		]]>
+	</insert>
+	
+	<update id="updateInvoiceCode" parameterClass="map">
+		<![CDATA[
+				update t_rent_collectiondetail
+				   set invoice_code = #invoice_code#
+				WHERE recd_id=#recd_id#			
+		]]>
+	</update>
+	
+	<select id="getCompanyCodeByRecdId" parameterClass="map" resultClass ="java.lang.String">
+		select p.COMPANY_CODE from t_rent_collectiondetail t
+		left join T_RENT_COLLECTIONPLAN pc on pc.RECP_ID = t.RECP_ID and pc.STATUS = 0
+		left join t_rent_contract c on c.RECT_ID = pc.RECT_ID and c.STATUS = 0
+		left join T_PRJT_CREDIT p on p.ID = c.PRCD_ID and p.STATUS = 0
+		where t.recd_id=#recd_id#	
+	</select>
+</sqlMap>

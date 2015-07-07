@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMapConfig
+PUBLIC "-//iBATIS.com//DTD SQL Map Config 2.0//EN"
+"http://www.ibatis.com/dtd/sql-map-config-2.dtd">
+
+<sqlMapConfig>
+	<settings maxRequests="300" maxSessions="300" maxTransactions="300" lazyLoadingEnabled="true" useStatementNamespaces="true" />
+	<!-- <transactionManager type="JDBC" commitRequired="true">
+		<dataSource type="SIMPLE">
+			<property value="com.microsoft.sqlserver.jdbc.SQLServerDriver"
+				name="JDBC.Driver" />
+			<property value="jdbc:sqlserver://10.2.1.237:1433;databaseName=financelease" name="JDBC.ConnectionURL" />
+			<property value="jdbc:sqlserver://10.2.1.225:1433;databaseName=financelease_2012_03_22" name="JDBC.ConnectionURL" />
+			<property value="sa" name="JDBC.Username" />
+			<property value="1234abcd." name="JDBC.Password" />
+			<property value="300" name="Pool.MaximumActiveConnections" />
+			<property value="300" name="Pool.MaximumIdleConnections" />
+			<property value="1000" name="Pool.MaximumWait" />
+		</dataSource>
+	</transactionManager> -->
+	<!-- <transactionManager type="JDBC">
+		<dataSource type="JNDI">
+			<property name="DataSource" value="java:comp/env/jdbc/tactest" />
+		</dataSource>
+	</transactionManager> -->
+	
+	
+	<sqlMap resource="config/sql/map/user.xml" />
+	<sqlMap resource="config/sql/map/document.xml" />
+	<sqlMap resource="config/sql/map/sys.xml" />
+	<sqlMap resource="config/sql/map/permission.xml" />
+	<sqlMap resource="config/sql/map/role.xml" />
+	<sqlMap resource="config/sql/map/assignmentPermission.xml" />
+	<sqlMap resource="config/sql/map/supplier.xml" />
+	<sqlMap resource="config/sql/map/log.xml" />
+	<sqlMap resource="config/sql/map/department.xml" />
+	<sqlMap resource="config/sql/map/employee.xml" />
+	<sqlMap resource="config/sql/map/creditPriorRecords.xml" />
+	<sqlMap resource="config/sql/map/creditCustomer.xml" />
+	<sqlMap resource="config/sql/map/creditReportManage.xml" />
+	<sqlMap resource="config/sql/map/creditCustomerCorp.xml" />
+	<sqlMap resource="config/sql/map/prdcKind.xml" />
+	<sqlMap resource="config/sql/map/prdcType.xml" />
+	<sqlMap resource="config/sql/map/prdc.xml" />
+	<sqlMap resource="config/sql/map/pointItems.xml" />
+	<sqlMap resource="config/sql/map/area.xml" />
+	<sqlMap resource="config/sql/map/suplEquiment.xml" />
+	<sqlMap resource="config/sql/map/rentContract.xml" />
+	<sqlMap resource="config/sql/map/collectionManage.xml" />
+	<sqlMap resource="config/sql/map/deposit.xml" />
+	<sqlMap resource="config/sql/map/handlePaylist.xml" />
+	<sqlMap resource="config/sql/map/payRate.xml" />
+	<sqlMap resource="config/sql/map/customer.xml" />
+	<sqlMap resource="config/sql/map/dataDictionary.xml" />
+	<sqlMap resource="config/sql/map/coderule.xml" />
+	<sqlMap resource="config/sql/map/insuCompany.xml" />
+	<sqlMap resource="config/sql/map/insureType.xml" />
+	<sqlMap resource="config/sql/map/bankInfo.xml" />
+	<sqlMap resource="config/sql/map/bankAccount.xml" />
+	<sqlMap resource="config/sql/map/upload_picture.xml" />
+	<sqlMap resource="config/sql/map/pucsContract.xml" />
+	<sqlMap resource="config/sql/map/risk_audit.xml" />
+	<sqlMap resource="config/sql/map/risk_auditUpdate.xml" />
+	<sqlMap resource="config/sql/map/decompose.xml" />
+	<sqlMap resource="config/sql/map/receivables.xml" />
+    <sqlMap resource="config/sql/map/report.xml" />
+	<sqlMap resource="config/sql/map/statement.xml" />
+	<sqlMap resource="config/sql/map/upload_compose_excel.xml" />
+	<sqlMap resource="config/sql/map/deliveryNotice.xml" />
+	<sqlMap resource="config/sql/map/payment.xml" />
+	<sqlMap resource="config/sql/map/rentContractPact.xml" />
+	<sqlMap resource="config/sql/map/show.xml" />
+	<sqlMap resource="config/sql/map/checkContract.xml" />
+	<sqlMap resource="config/sql/map/dunRent.xml" />
+	<sqlMap resource="config/sql/map/sysBusinessLog.xml" />
+	<sqlMap resource="config/sql/map/dunTask.xml" />
+	<sqlMap resource="config/sql/map/companyManage.xml" />
+	<sqlMap resource="config/sql/map/rentFile.xml" />
+	<sqlMap resource="config/sql/map/fileManage.xml" />
+	<sqlMap resource="config/sql/map/invoiceContract.xml" />
+	<sqlMap resource="config/sql/map/supportCreditReportDelete.xml" />
+	<sqlMap resource="config/sql/map/creditVouch.xml" />
+	<sqlMap resource="config/sql/map/supportPayList.xml" />
+	<sqlMap resource="config/sql/map/supportRiskDelete.xml" />
+	<sqlMap resource="config/sql/map/supportUpdatePay.xml" />
+	<sqlMap resource="config/sql/map/projectManage.xml" />
+	<sqlMap resource="config/sql/map/dunDaily.xml" />
+	<sqlMap resource="config/sql/map/riskLevel.xml" />
+	<sqlMap resource="config/sql/map/salesLeads.xml" />
+	<sqlMap resource="config/sql/map/lockManagement.xml" />
+	<sqlMap resource="config/sql/map/biReport.xml" />
+	<sqlMap resource="config/sql/map/exportQuoToPdf.xml" />
+	<sqlMap resource="config/sql/map/achievement.xml" />
+	<sqlMap resource="config/sql/map/moneyRate.xml" />
+	<sqlMap resource="config/sql/map/differentReport.xml" />
+	<sqlMap resource="config/sql/map/priceReport.xml" />
+	<sqlMap resource="config/sql/map/exportContractPdf.xml" />
+	<sqlMap resource="config/sql/map/applycompanymanage.xml" />
+	<sqlMap resource="config/sql/map/customerCredit.xml" />
+	<sqlMap resource="config/sql/map/productCredit.xml" />
+	<sqlMap resource="config/sql/map/supplierReports.xml" />
+	<sqlMap resource="config/sql/map/custcomterguihumanage.xml" />
+	<sqlMap resource="config/sql/map/danbaorenrguihumanage.xml" />
+	<sqlMap resource="config/sql/map/backVisit.xml" />
+	<sqlMap resource="config/sql/map/beforemakecontract.xml" />
+	<sqlMap resource="config/sql/map/bonusManage.xml" />
+	<sqlMap resource="config/sql/map/payMoney.xml" />
+	<sqlMap resource="config/sql/map/creditVoucher.xml" />
+	<sqlMap resource="config/sql/map/equipmentManager.xml" />
+	<sqlMap resource="config/sql/map/truecontact.xml" />
+	<sqlMap resource="config/sql/map/activitiesLog.xml" />
+	<sqlMap resource="config/sql/map/activityLogging.xml" />
+	<sqlMap resource="config/sql/map/contractCustomerHAB.xml" />
+	<sqlMap resource="config/sql/map/insurance.xml" />
+	<sqlMap resource="config/sql/map/insuranceExp.xml"/>
+	<sqlMap resource="config/sql/map/satisfaction.xml"/>
+	<sqlMap resource="config/sql/map/surrender.xml"/>
+	<sqlMap resource="config/sql/map/officeTable.xml"/>
+	<sqlMap resource="config/sql/map/backVisitImage.xml"/>
+	<sqlMap resource="config/sql/map/prdcNumber.xml"/>
+	<sqlMap resource="config/sql/map/companyBankAccount.xml"/>
+	<sqlMap resource="config/sql/map/expbuyback.xml"/>
+	<sqlMap resource="config/sql/map/settleManage.xml"/>
+	<sqlMap resource="config/sql/map/interestDetail.xml"/>
+	<sqlMap resource="config/sql/map/supplierImage.xml"/>
+	<sqlMap resource="config/sql/map/caseReportService.xml"/>
+	<!-- Add By Michael 2011 09/20 For Modify Equipment Info -->
+	<sqlMap resource="config/sql/map/rentContractEquipMDF.xml"/>
+	<!-- <sqlMap resource="config/sql/map/yangYunTest.xml"/> -->
+	<!-- Add By Michael 2012 1/13 For PayList Fee Set -->
+	<sqlMap resource="config/sql/map/paylistFeeSet.xml"/>
+	<!-- 业务支撑 -->
+	<sqlMap resource="config/sql/map/businessSupport.xml"/>
+	
+	<!-- 公用方法 -->
+	<sqlMap resource="config/sql/map/leaseUtil.xml"/>
+	<!-- 发送短信 -->
+	<sqlMap resource="config/sql/map/sendMessage.xml"/>
+	<!-- Quartz Job -->
+	<sqlMap resource="config/sql/map/job.xml"/>
+	<!-- 销账日报表 -->
+	<sqlMap resource="config/sql/map/financeDecomposeReport.xml"/>
+	<sqlMap resource="config/sql/map/loan.xml"/>
+	<sqlMap resource="config/sql/map/businessReport.xml"/>
+	<sqlMap resource="config/sql/map/visitation.xml"/>
+	<!-- Add by Michael 2012 6-8  报价单管理 -->
+	<sqlMap resource="config/sql/map/quotation.xml"/>
+	<sqlMap resource="config/sql/map/common.xml"/>
+
+	<sqlMap resource="config/sql/map/actionLog.xml"/>
+	<sqlMap resource="config/sql/map/customerVisit.xml"/>
+	<sqlMap resource="config/sql/map/auditReport.xml"/>
+	<!-- 异常案件分析 -->
+	<sqlMap resource="config/sql/map/unnaturalCase.xml"/>
+	<sqlMap resource="config/sql/map/rentReceipt.xml"/>
+	<!-- 更改单 -->
+	<sqlMap resource="config/sql/map/modifyOrder.xml"/>
+	<sqlMap resource="config/sql/map/litigation.xml"/>
+	<!-- 专案维护 -->
+	<sqlMap resource="config/sql/map/creditSpecial.xml"/>
+	<!-- 金蝶资料抛转 -->
+	<sqlMap resource="config/sql/map/kingDeerTransfer.xml"/>
+	
+	<sqlMap resource="config/sql/map/targetAmount.xml"/>
+	
+	<sqlMap resource="config/sql/map/financialReport.xml"/>
+	
+	<!-- 标签管理 -->
+	<sqlMap resource="config/sql/map/tag.xml"/>
+	<!-- 发票管理 -->
+	<sqlMap resource="config/sql/map/invoice.xml" />
+	
+	<sqlMap resource="config/sql/map/reportDateUtil.xml"/>
+	
+	<!-- 新架构租金分解 -->
+	<sqlMap resource="config/sql/map/rentFinance.xml"/>
+
+	<!-- 帮助文档 -->
+	<sqlMap resource="config/sql/map/help.xml"/>
+
+	<!-- 贡献度报表 -->
+	<sqlMap resource="config/sql/map/contribution.xml"/>
+	<!-- 合同档案表 -->
+	<sqlMap resource="config/sql/map/rentContractRecord.xml"/>
+	<!-- 起诉申请单 -->
+	<sqlMap resource="config/sql/map/sue.xml"/>
+	
+	<sqlMap resource="config/sql/map/shopping.xml"/>
+	
+	<!-- 资讯需求单 -->
+	<sqlMap resource="config/sql/map/demand.xml"/>
+	<!-- 用户 -->
+	<sqlMap resource="config/sql/map/user_new.xml"/>
+	<!-- 部门 -->
+	<sqlMap resource="config/sql/map/dept.xml"/>
+	<!-- 公司 -->
+	<sqlMap resource="config/sql/map/company.xml"/>
+	
+	 	<!-- 统计访厂次数 -->
+    <sqlMap resource="config/sql/map/visitStatistics.xml"/>
+    
+    <!-- 统计资讯 -->
+    <sqlMap resource="config/sql/map/informationStatistics.xml"/>
+    
+    <!-- 预估拨款 -->
+      <sqlMap resource="config/sql/map/estimatePay.xml"/>
+      
+    <!-- 供应商交机前拨款统计 -->  
+      <sqlMap resource="config/sql/map/prePayStaticForSupplier.xml"/>
+
+	<!-- 每日应收租金,实际来款 -->
+	<sqlMap resource="config/sql/map/dataStaticReport.xml"/>
+	
+	<sqlMap resource="config/sql/map/invoiceManagement.xml"/>
+	
+	<sqlMap resource="config/sql/map/payer.xml"/>
+	
+	<!-- 代理模组 -->
+	<sqlMap resource="config/sql/map/agent.xml"/>
+	
+
+
+	<!-- 签办单 --> 
+	<sqlMap resource="config/sql/map/signOrder.xml"/>
+	
+	<!-- bpm定义 -->
+	<sqlMap resource="config/sql/map/bpm_def.xml"/>
+	<sqlMap resource="config/sql/map/bpm_ins.xml"/>
+	<sqlMap resource="config/sql/map/bpm_task.xml"/>
+	
+	<!-- 核准函 -->
+	<sqlMap resource="config/sql/map/approval.xml"/>
+	
+	<sqlMap resource="config/sql/map/kingDeer.xml"/>
+</sqlMapConfig>

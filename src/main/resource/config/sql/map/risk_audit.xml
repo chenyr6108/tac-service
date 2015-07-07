@@ -1,0 +1,2166 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="riskAudit">
+	<resultMap class="hashmap" id="resultFen" groupBy="points_id">
+		<result property="points_id" column="points_id" />
+		<result property="points_name" column="points_name" />
+		<result property="memo" column="memo" />
+		<result property="standard_score" column="standard_score" />
+		<result property="type_code" column="type_code" />
+		<result property="state" column="state" />
+		<result property="status" column="status" />
+		<result property="flag" column="flag" />
+		<result property="xiangList" resultMap="riskAudit.resultXiang"
+			javaType="java.util.List" />
+	</resultMap>
+
+	<resultMap class="hashmap" id="resultFenForUpdate" groupBy="points_id">
+		<result property="points_id" column="points_id" />
+		<result property="points_name" column="points_name" />
+		<result property="memo" column="memo" />
+		<result property="standard_score" column="standard_score" />
+		<result property="type_code" column="type_code" />
+		<result property="state" column="state" />
+		<result property="status" column="status" />
+		<result property="flag" column="flag" />
+		<result property="t_prp_content" column="t_prp_content" />
+		<result property="t_prp_point" column="t_prp_point" />
+		<result property="psType" column="psType" />
+		<result property="xiangList" resultMap="riskAudit.resultXiang"
+			javaType="java.util.List" />
+	</resultMap>
+	<resultMap class="hashmap" id="resultXiang">
+		<result property="subitem_id" column="subitem_id" />
+		<result property="subitem_content" column="subitem_content" />
+		<result property="subitem_point" column="subitem_point" />
+		<result property="status" column="status" />
+	</resultMap>
+
+	<select id="getRiskAudits" parameterClass="map" resultClass="hashmap">
+	 	<![CDATA[
+	 	select * from (
+			select distinct
+			  prcd.ID,
+			  prcd.[TYPE],
+			  prcd.CONTRACT_TYPE,
+			  prcd.STATE,
+			  prcd.CUST_ID,
+			  cust.CUST_NAME,
+			  cust.CUST_TYPE,
+			  uu.ID clerk_id,
+			  uu.name clerk_name,
+			  u.id sensor_id,
+			  u.name sensor_name,
+			  prcs.LEASE_RZE,
+			  prcr.real_prc_hao,
+			  prcr.STATE as WIND_STATE,
+			  prcr.PRC_LEVEL_ID,  
+			  prcr.COMMIT_TIME as CREATE_TIME, 
+			  prcr.PRC_ID as prc_id,
+			  prcd.wind_state tpc_wind_state,
+			  prcd.gr_state as gr_state,
+			  prcd.LEASE_CODE as LEASE_CODE,
+			  vi.REAL_VISIT_DATE as VISIT_DATE,
+			  vi.NONE_VISIT_MEMO,
+			  vi.NONE_VISIT_REASON,
+			  (select count(0) from T_PRJT_RISK_POINT
+			  where PRC_ID = prcr.PRC_ID) as count_point,
+			  prcd.vip_flag,
+			  prcd.CREDIT_RUNCODE,
+			  decp.DECP_NAME_CN,
+			  prcr.PRC_NODE,
+			  prcr.SCORE_CARD,
+			  prcr.SCORE
+			from T_PRJT_RISK_CONTROL prcr
+			left join T_PRJT_CREDIT prcd on prcr.CREDIT_ID = prcd.ID
+			left join T_PRJT_CREDITSCHEME prcs on prcs.CREDIT_ID = prcd.ID
+			left join T_USER_USER u on u.ID = prcd.SENSOR_ID
+			left join T_USER_USER uu on uu.ID = u.upper_user
+			left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+			left join T_DEPT_COMPANY decp on decp.DECP_ID = dept.DECP_ID
+			left join T_PRJT_VISIT vi 
+			on vi.CREDIT_ID = prcd.ID and vi.VISIT_STATUS >= 3 and vi.STATUS = 0
+			left join T_CUST_CUSTOMER cust on cust.CUST_ID = prcd.CUST_ID
+			where prcr.STATUS = 0 
+		)t
+		where 1 = 1
+	 	]]>
+		<!-- <dynamic prepend="where"> -->
+		<!-- Add BY Michael 2011 11/18 For 增加权限，业务员只能看到自己的案件 -->
+		<isEqual prepend="and" property="p_usernode" compareValue="1">
+			<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件) <![CDATA[ 
+				sensor_id = #s_employeeId# ]]> -->
+		  	 	<![CDATA[ 
+		  	 	(t.sensor_id = #s_employeeId# 
+		  	 	or t.clerk_id = #s_employeeId#)
+		  	 	]]>
+		</isEqual>
+		<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+		<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = t.sensor_id)
+				]]>
+		</isEqual>
+		<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		<isNotEmpty prepend="and" property="content">
+			(t.CREDIT_RUNCODE like '%$content$%' or t.cust_type like '%$content$%' or t.cust_name
+			like '%$content$%' or t.clerk_name like '%$content$%' or
+			t.sensor_name like '%$content$%' )
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="start_date">
+			t.create_time&gt;=CONVERT(datetime,#start_date#)
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="end_date">
+			t.create_time&lt;=CONVERT(datetime,#end_date#)+1
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="wind_state">
+			<isEqual property="wind_state" compareValue="-1">
+				prc_node is null
+				and wind_state = 0
+			</isEqual>
+			<isEqual property="wind_state" compareValue="1">
+				wind_state = 0
+			</isEqual>
+			<isEqual property="wind_state" compareValue="5">
+				wind_state=1
+			</isEqual>
+			<isEqual property="wind_state" compareValue="3">
+				wind_state=3
+			</isEqual>
+			<isEqual property="wind_state" compareValue="4">
+				wind_state=4
+			</isEqual>
+			<isEqual property="wind_state" compareValue="0">
+				wind_state=0
+				and prc_node = #prc_node#
+			</isEqual>
+		</isNotEmpty>
+		<!-- <isNotEmpty prepend="and" property="prc_node">
+			prc_node = #prc_node#
+		</isNotEmpty> -->
+		<isEqual property="search_decp" compareValue="-1">
+			and exists (
+			select uc.ID
+			from T_USER_USER2COMPANY uc
+			left join T_DEPT_DEPARTMENT dept on uc.DEPT_ID = dept.ID
+			where uc.[USER_ID] = t.SENSOR_ID
+			and dept.DECP_ID in (
+			select dept.DECP_ID
+			from T_USER_USER2COMPANY uc
+			left join T_DEPT_DEPARTMENT dept on uc.DEPT_ID = dept.ID
+			where uc.[USER_ID] = #s_employeeId#
+			)
+			)
+		</isEqual>
+		<isNotEqual property="search_decp" compareValue="-1">
+			<isNotEqual property="search_decp" compareValue="0">
+				and t.SENSOR_ID in (
+				select u.ID from T_DEPT_DEPARTMENT dept
+				left join T_USER_USER u on u.DEPT_ID = dept.ID
+				where dept.DECP_ID = #search_decp#
+				)
+			</isNotEqual>
+		</isNotEqual>
+		<isNotEmpty property="vip_flag">
+			<isEqual property="vip_flag" compareValue="0">
+				and (t.vip_flag = #vip_flag# or t.vip_flag is null)
+			</isEqual>
+			<isEqual property="vip_flag" compareValue="1">
+				and t.vip_flag = #vip_flag#
+			</isEqual>
+		</isNotEmpty>
+		<isNotEmpty property="rate_of_progress">
+			<isEqual property="rate_of_progress" compareValue="0">
+				and prc_node is null
+				and t.WIND_STATE = 0
+			</isEqual>
+			<isEqual property="rate_of_progress" compareValue="1">
+				and prc_node = 0
+				and t.WIND_STATE = 0
+			</isEqual>
+			<isEqual property="rate_of_progress" compareValue="2">
+				and prc_node = 1
+				and t.WIND_STATE = 0
+			</isEqual>
+			<isEqual property="rate_of_progress" compareValue="3">
+				and prc_node = 2
+				and t.WIND_STATE = 0
+			</isEqual>
+			<isEqual property="rate_of_progress" compareValue="4">
+				and prc_node = 3
+				and t.WIND_STATE = 0
+			</isEqual>
+			<isEqual property="rate_of_progress" compareValue="5">
+				and t.WIND_STATE in (1,3,4)
+			</isEqual>
+		</isNotEmpty>
+	</select>
+	
+	<select id="getRiskAuditsShow" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+		select * from (
+			select distinct
+			  rect.RECT_ID,
+			  prcd.ID,
+			  prcd.[TYPE],
+			  prcd.CONTRACT_TYPE,
+			  prcd.STATE,
+			  prcd.CUST_ID,
+			  cust.CUST_NAME,
+			  cust.CUST_TYPE,
+			  uu.ID clerk_id,
+			  uu.name clerk_name,
+			  u.id sensor_id,
+			  u.name sensor_name,
+			  prcs.LEASE_RZE,
+			  prcr.real_prc_hao,
+			  prcr.STATE as WIND_STATE,
+			  prcr.PRC_LEVEL_ID,  
+			  prcr.COMMIT_TIME as CREATE_TIME, 
+			  prcr.PRC_ID prc_id,
+			  prcd.wind_state tpc_wind_state,
+			  prcd.gr_state as gr_state,
+			  prcd.LEASE_CODE as LEASE_CODE,
+			  vi.REAL_VISIT_DATE as VISIT_DATE,
+			  vi.NONE_VISIT_MEMO,
+			  vi.NONE_VISIT_REASON,
+			  (select count(0) from T_PRJT_RISK_POINT
+			  where PRC_ID = prcr.PRC_ID) as count_point,
+			  prcd.vip_flag,
+			  prcd.CREDIT_RUNCODE,
+			  decp.DECP_NAME_CN,
+			  prcr.PRC_NODE
+			from T_PRJT_CREDIT prcd
+			left join T_PRJT_CREDITSCHEME prcs on prcs.CREDIT_ID = prcd.ID 
+			and prcs.STATUS = 0
+			left join T_RENT_CONTRACT rect on rect.LEASE_CODE = prcd.LEASE_CODE
+			and rect.STATUS = 0
+			left join T_USER_USER u on u.ID = prcd.SENSOR_ID
+			left join T_USER_USER uu on uu.ID = u.upper_user
+			left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+			left join T_DEPT_COMPANY decp on decp.DECP_ID = dept.DECP_ID
+			left join T_PRJT_VISIT vi 
+			on vi.CREDIT_ID = prcd.ID and vi.VISIT_STATUS >= 3 and vi.STATUS = 0
+			left join T_CUST_CUSTOMER cust on cust.CUST_ID = prcd.CUST_ID
+			left join T_PRJT_RISK_CONTROL prcr on prcr.CREDIT_ID = prcd.ID 
+			where prcd.STATUS = 0 
+		  	and prcr.STATUS = 0 
+			and (prcd.WIND_STATE != 4 or prcd.WIND_STATE is null)
+		)t
+		where 1 = 1
+	 	]]>
+		<!-- <dynamic prepend="where"> -->
+		<!-- Add BY Michael 2011 11/18 For 增加权限，业务员只能看到自己的案件 -->
+		<isEqual prepend="and" property="p_usernode" compareValue="1">
+			<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件) <![CDATA[ 
+				sensor_id = #s_employeeId# ]]> -->
+		  	 	<![CDATA[ 
+		  	 	(t.sensor_id = #s_employeeId# 
+		  	 	or t.clerk_id = #s_employeeId#)
+		  	 	]]>
+		</isEqual>
+		<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+		<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = t.sensor_id)
+				]]>
+		</isEqual>
+		<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		<isNotEmpty prepend="and" property="content">
+			(t.CREDIT_RUNCODE like '%$content$%' or t.cust_type like '%$content$%' or t.cust_name
+			like '%$content$%' or t.clerk_name like '%$content$%' or
+			t.sensor_name like '%$content$%' )
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="start_date">
+			t.create_time&gt;=CONVERT(datetime,#start_date#)
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="end_date">
+			t.create_time&lt;=CONVERT(datetime,#end_date#)+1
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="wind_state">
+			<isEqual property="wind_state" compareValue="-1">
+				prc_node is null
+				and wind_state = 0
+			</isEqual>
+			<isEqual property="wind_state" compareValue="1">
+				wind_state = 0
+			</isEqual>
+			<isEqual property="wind_state" compareValue="5">
+				wind_state=1
+			</isEqual>
+			<isEqual property="wind_state" compareValue="3">
+				wind_state=3
+			</isEqual>
+			<isEqual property="wind_state" compareValue="4">
+				wind_state=4
+			</isEqual>
+			<isEqual property="wind_state" compareValue="0">
+				wind_state=0
+				and prc_node = #prc_node#
+			</isEqual>
+		</isNotEmpty>
+		<!-- <isNotEmpty prepend="and" property="prc_node">
+			prc_node = #prc_node#
+		</isNotEmpty> -->
+		<isEqual property="search_decp" compareValue="-1">
+			and exists (
+			select uc.ID
+			from T_USER_USER2COMPANY uc
+			left join T_DEPT_DEPARTMENT dept on uc.DEPT_ID = dept.ID
+			where uc.[USER_ID] = t.SENSOR_ID
+			and dept.DECP_ID in (
+			select dept.DECP_ID
+			from T_USER_USER2COMPANY uc
+			left join T_DEPT_DEPARTMENT dept on uc.DEPT_ID = dept.ID
+			where uc.[USER_ID] = #s_employeeId#
+			)
+			)
+		</isEqual>
+		<isNotEqual property="search_decp" compareValue="-1">
+			<isNotEqual property="search_decp" compareValue="0">
+				and t.SENSOR_ID in (
+				select u.ID from T_DEPT_DEPARTMENT dept
+				left join T_USER_USER u on u.DEPT_ID = dept.ID
+				where dept.DECP_ID = #search_decp#
+				)
+			</isNotEqual>
+		</isNotEqual>
+		<isNotEmpty property="vip_flag">
+			<isEqual property="vip_flag" compareValue="0">
+				and (t.vip_flag = #vip_flag# or t.vip_flag is null)
+			</isEqual>
+			<isEqual property="vip_flag" compareValue="1">
+				and t.vip_flag = #vip_flag#
+			</isEqual>
+		</isNotEmpty>
+		<isNotEmpty property="rate_of_progress">
+			<isEqual property="rate_of_progress" compareValue="0">
+				and prc_node is null
+				and t.WIND_STATE = 0
+			</isEqual>
+			<isEqual property="rate_of_progress" compareValue="1">
+				and prc_node = 0
+				and t.WIND_STATE = 0
+			</isEqual>
+			<isEqual property="rate_of_progress" compareValue="2">
+				and prc_node = 1
+				and t.WIND_STATE = 0
+			</isEqual>
+			<isEqual property="rate_of_progress" compareValue="3">
+				and prc_node = 2
+				and t.WIND_STATE = 0
+			</isEqual>
+			<isEqual property="rate_of_progress" compareValue="4">
+				and prc_node = 3
+				and t.WIND_STATE = 0
+			</isEqual>
+			<isEqual property="rate_of_progress" compareValue="5">
+				and t.WIND_STATE in (1,3,4)
+			</isEqual>
+		</isNotEmpty>
+	</select>
+
+	<select id="selectCreditBaseInfo" parameterClass="map"
+		resultClass="hashmap">
+		select tpc.id credit_id,
+		tpc.type credit_type,
+		ta.name prov_name,
+		taa.name city_name,
+		tcc.cust_type cust_type,
+		tpc.CUST_ID CUST_ID,
+		tpc.credit_code CREDIT_CODE,
+		tcc.cust_name cust_name,
+		tcc.cust_code cust_code,
+		tcc.natu_home_address natu_home_address,
+		tcc.corp_work_address corp_work_address,
+		tcc.corp_registe_capital corp_registe_capital,
+		tcc.corp_setup_date corp_setup_date,
+		tcc.corp_paiclup_capital corp_paiclup_capital,
+		tcc.CORP_ORAGNIZATION_CODE CORP_ORAGNIZATION_CODE,
+
+
+		tpccmp.corp_name_cn,
+		tpccmp.corp_name_en,
+		tpccmp.employee_count EMPLOYEE_COUNT,
+		tpccmp.corp_type,
+		CONVERT(varchar,tpccmp.incorporating_date,23) INCORPORATING_DATE,
+		tpccmp.registered_capital,
+		tpccmp.registered_office_address REGISTERED_OFFICE_ADDRESS,
+		tpccmp.contributed_capital CONTRIBUTED_CAPITAL,
+		tpccmp.link_man LINK_NAME,
+		tpccmp.link_mobile_number1 LINK_MOBILE_NUMBER1,
+		tpnl.NATU_IDCARD NATU_IDCARD,
+		tpnl.MOBILE_PHONE MOBILE_PHONE,
+		tpnl.NATU_FAX NATU_FAX,
+		tpnl.MATE_NAME MATE_NAME,
+		tpnl.MATE_MOBILE MATE_MOBILE,
+		tpnl.MATE_IDCARD MATE_IDCARD,
+		tpnl.HOME_ADDR HOME_ADDR,
+		tpnl.NATU_ZIP NATU_ZIP,
+		tpnl.NATU_LINKMAN NATU_LINKMAN,
+		tpnl.LINKMAN_PHONE LINKMAN_PHONE,
+		tpc.contract_type CONTRACT_TYPE,
+		tpc.modify_date,
+		tpc.VIP_FLAG,
+		case when vi.REAL_VISIT_DATE is not null then convert(nvarchar,
+		vi.REAL_VISIT_DATE)
+		else vi.NONE_VISIT_REASON end as VISIT_DATE,
+		vi.NONE_VISIT_MEMO,
+		vi.NONE_VISIT_REASON,
+		vu.[NAME] as VISITOR,
+		tpc.IS_NEW_PRODUCTION,
+		tpce.IS_IMPORT_EQIP
+		,tpc.PRODUCTION_TYPE
+		,tpc.GROUP_INSIDE
+
+		from t_prjt_credit tpc
+		  <![CDATA[ left join t_prjt_visit vi on vi.credit_id = tpc.id and vi.status = 0 and vi.VISIT_STATUS >= 3 ]]>
+		left join T_USER_USER vu on vi.REAL_VISITOR = vu.ID
+		left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		left join t_area ta on ta.id = tpc.province_id
+		left join t_area taa on taa.id = tpc.city_id
+		left join t_prjt_creditcustomercorp tpccmp on tpccmp.credit_id=tpc.id
+		left join t_prjt_natunal tpnl on tpnl.credit_id=tpc.id
+		left join t_prjt_creditscheme tpce on tpce.credit_id = tpc.id and tpce.status = 0
+		where tpc.id =#credit_id# and tpc.status=0
+	</select>
+	<select id="selectCreditEquipment" parameterClass="map"
+		resultClass="hashmap">
+		<!-- select tpce.sueq_id sueq_id, tpce.thing_name thing_name, tpce.brand 
+			brand, tpce.model_spec model_spec, tpce.unit_price unit_price, tpce.memo 
+			memo, tpce.staybuy_price staybuy_price, sum(tpce.amount) amount, sum(tpce.unit_price 
+			* tpce.amount) total, tpce.unit unit, tpce.thing_kind thing_kind, tpce.shui_price 
+			shui_price from t_prjt_creditequipment tpce where tpce.credit_id = #credit_id# 
+			and tpce.EQMT_STATUS = 0 group by tpce.sueq_id, tpce.thing_name, tpce.brand, 
+			tpce.model_spec, tpce.unit_price, tpce.memo, tpce.staybuy_price, tpce.unit, 
+			tpce.thing_kind, shui_price -->
+		select tpce.sueq_id sueq_id,
+		t6.name thing_name,
+		tpce.brand brand,
+		t5.name model_spec,
+		tpce.unit_price unit_price,
+		tpce.memo memo,
+		tpce.staybuy_price staybuy_price,
+		sum(tpce.amount) amount,
+		sum(tpce.unit_price * tpce.amount) total,
+		tpce.unit unit,
+		tpce.thing_kind thing_kind,
+		tpce.shui_price shui_price,
+		T7.NAME TYPE_NAME,
+		T7.Manufacturer,
+		tpce.lock_code lock_code,
+		tpce.MOUNTINGS
+		from t_prjt_creditequipment tpce
+		LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID = tpce.SUEQ_ID and T4.STATUS=0
+		LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T4.PRODUCT_ID and T5.STATUS=0
+		LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID AND T6.PRDC_KIND_STATUS
+		= 0
+		LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = T6.TYPE_ID AND
+		T7.PRDC_TYPE_STATUS = 0
+		where tpce.credit_id = #credit_id#
+		and tpce.EQMT_STATUS = 0
+		group by tpce.sueq_id,
+		t6.name,
+		tpce.brand,
+		t5.name,
+		tpce.unit_price,
+		tpce.memo,
+		tpce.staybuy_price,
+		tpce.unit,
+		tpce.thing_kind,
+		shui_price ,
+		T7.NAME,
+		T7.Manufacturer,
+		tpce.lock_code,tpce.MOUNTINGS
+	</select>
+
+
+	<select id="selectCreditEquipmentSum" parameterClass="map"
+		resultClass="hashmap">
+		select ISNULL(sum(total),0) sumtotal from
+		(select tpce.sueq_id sueq_id,
+		tpce.thing_name thing_name,
+		tpce.brand brand,
+		tpce.model_spec model_spec,
+		tpce.unit_price unit_price,
+		tpce.memo memo,
+		tpce.staybuy_price staybuy_price,
+		sum(tpce.amount) sumamount,
+		sum(tpce.unit_price * tpce.amount) total,
+		tpce.unit unit,
+		tpce.thing_kind thing_kind,
+		tpce.EQMT_TYPE eqmt_type,
+		tpce.AMOUNT amount
+		from t_prjt_creditequipment tpce
+		where tpce.credit_id = #credit_id#
+		and tpce.EQMT_STATUS = 0
+		group by tpce.sueq_id,
+		tpce.thing_name,
+		tpce.brand,
+		tpce.model_spec,
+		tpce.unit_price,
+		tpce.memo,
+		tpce.staybuy_price,
+		tpce.unit,
+		tpce.thing_kind,
+		tpce.eqmt_type,
+		tpce.amount) t
+	</select>
+
+
+	<select id="selectCreditScheme" parameterClass="map"
+		resultClass="hashmap">
+		select
+		tpcs.prcs_id PRCS_ID,
+		tpcs.lease_term LEASE_TERM,
+		tpcs.lease_course LEASE_COURSE,
+		tpcs.pledge_price PLEDGE_PRICE,
+		tpcs.head_hire HEAD_HIRE,
+		tpcs.head_hire_percent,
+		tpcs.business_trip_price BUSINESS_TRIP_PRICE,
+		tpcs.float_rate FLOAT_RATE,
+		tpcs.management_fee MANAGEMENT_FEE,
+		tpcs.year_interest_type,
+		tpcs.year_interest YEAR_INTEREST,
+		tpcs.lease_topric,
+		tpcs.pay_way PAY_WAY,
+		CONVERT(varchar,tpcs.start_date, 23) START_DATE,
+		tpcs.fine_type,
+		tpcs.fine_rate FINE_RATE,
+		tpcs.lease_rze LEASE_RZE,
+		tpcs.deal_way,
+		tpcs.equpment_address EQUPMENT_ADDRESS,
+		tpcs.insurance_company_id INSURANCE_COMPANY_ID,
+		tico.incp_name incp_name,
+		tpcs.buy_insurance_way BUY_INSURANCE_WAY,
+		tpcs.buy_insurance_time BUY_INSURANCE_TIME,
+		tpcs.insure_rebate_rate INSURE_REBATE_RATE,
+		tpcs.SUPL_TRUE SUPL_TRUE,
+		tpcs.status,
+		tpcs.type,
+		tpcs.credit_id,
+		tpcs.pledge_price_rate,
+		tpcs.TAX_PLAN_CODE,
+		tpcs.TOTAL_VALUEADDED_TAX,
+		tpcs.management_fee_rate,
+		tpcs.SALES_PAY,
+		tpcs.INCOME_PAY,
+		tpcs.OUT_PAY,
+		tpcs.APPROPRIATION_WAY,
+		tpcs.ENDORSER_1,
+		tpcs.ENDORSER_2,tpcs.DEFER_PERIOD
+		from t_prjt_creditscheme tpcs
+		left join t_insu_company tico
+		on tpcs.INSURANCE_COMPANY_ID=tico.INCP_ID
+		where tpcs.credit_id=#credit_id# and tpcs.status=0
+	</select>
+	<select id="selectCreditInsure" parameterClass="map"
+		resultClass="hashmap">
+		select
+		tpci.pjci_id PJCI_ID,
+		tpci.insure_item,
+		tpci.start_date START_DATE,
+		tpci.end_date END_DATE,
+		tpci.insure_rate INSURE_RATE,
+		tpci.insure_price INSURE_PRICE,
+		tpci.memo MEMO,
+		tpci.status,
+		tpci.type,
+		tpci.create_date,
+		tpci.modify_date,
+		tpci.credit_id,
+		tiit.intp_name INTP_NAME,
+		tiit.INTP_ID INTP_ID
+		from t_prjt_creditinsure tpci
+		left join t_insu_insuretype tiit
+		on tiit.INTP_ID=tpci.insure_item
+		where tpci.credit_id=#credit_id# and
+		tpci.status=0
+	</select>
+
+	<select id="selectCreditInsureSum" parameterClass="map"
+		resultClass="hashmap">
+		select ISNULL(sum(INSURE_PRICE),0) suminsure_price from
+		( select
+		tpci.pjci_id PJCI_ID,
+		tpci.insure_item,
+		tpci.start_date START_DATE,
+		tpci.end_date END_DATE,
+		tpci.insure_rate INSURE_RATE,
+		tpci.insure_price INSURE_PRICE,
+		tpci.memo MEMO,
+		tpci.status,
+		tpci.type,
+		tpci.create_date,
+		tpci.modify_date,
+		tpci.credit_id,
+		tiit.intp_name INTP_NAME,
+		tiit.INTP_ID INTP_ID
+		from t_prjt_creditinsure tpci
+		left join t_insu_insuretype tiit
+		on tiit.INTP_ID=tpci.insure_item
+		where tpci.credit_id=#credit_id# and
+		tpci.status=0) t
+	</select>
+
+
+	<select id="selectCreditOtherPrice" parameterClass="map"
+		resultClass="hashmap">
+		select
+		tpcop.pjco_id PJCO_ID,
+		tpcop.credit_id,
+		tpcop.other_name OTHER_NAME,
+		tpcop.other_price OTHER_PRICE,
+		CONVERT(varchar,tpcop.other_date, 23) OTHER_DATE,
+		tpcop.memo MEMO,
+		tpcop.status,
+		tpcop.type,
+		tpcop.create_date,
+		tpcop.modify_date
+		from t_prjt_creditotherprice tpcop
+		where tpcop.credit_id=#credit_id# and tpcop.status=0
+	</select>
+
+
+
+
+	<select id="selectCreditOtherPriceSum" parameterClass="map"
+		resultClass="hashmap">
+		select ISNULL(sum(other_price),0) sumother_price from
+		( select
+		tpcop.pjco_id PJCO_ID,
+		tpcop.credit_id,
+		tpcop.other_name OTHER_NAME,
+		tpcop.other_price OTHER_PRICE,
+		CONVERT(varchar,tpcop.other_date, 23) OTHER_DATE,
+		tpcop.memo MEMO,
+		tpcop.status,
+		tpcop.type,
+		tpcop.create_date,
+		tpcop.modify_date
+		from t_prjt_creditotherprice tpcop
+		where tpcop.credit_id=#credit_id# and tpcop.status=0 ) t
+	</select>
+	<select id="selectCreditExplain" parameterClass="map"
+		resultClass="hashmap">
+		select
+		tpcppj.pcpp_id,
+		tpcppj.project_name PROJECT_NAME,
+		tpcppj.project_priod,
+		tpcppj.state,
+		tpcppj.status,
+		tpcppj.crate_date,
+		tpcppj.credit_id,
+		CONVERT(varchar,tpcppj.project_content) PROJECT_CONTENT
+		from t_prjt_creditpriorprojects tpcppj
+		where tpcppj.credit_id=#credit_id# and tpcppj.status=0 and tpcppj.state=2
+	</select>
+
+
+	<select id="selectPSIdea" parameterClass="map" resultClass="hashmap">
+		select top 1 tpcppj.PCPP_ID, tpcppj.crate_date, tpcppj.project_content PROJECT_CONTENT,
+		tuu.NAME NAME
+		from t_prjt_creditpriorprojects tpcppj
+		left join t_prjt_credit tpc on tpc.id=tpcppj.credit_id
+		left join t_user_user tuu on tuu.id = tpc.CREATE_PERSION_ID
+		where tpcppj.credit_id=#credit_id# and tpcppj.status=0 and tpcppj.state=1
+		order by tpcppj.CRATE_DATE desc
+	</select>
+
+	<select id="selectPSIdeaOther" parameterClass="map" resultClass="hashmap">
+		select top 1 tpcppj.PCPP_ID, tpcppj.crate_date, tpcppj.project_content PROJECT_CONTENT,
+		tuu.NAME NAME
+		from t_prjt_creditpriorprojects tpcppj
+		left join t_prjt_credit tpc on tpc.id=tpcppj.credit_id
+		left join t_user_user tuu on tuu.id = tpc.CREATE_PERSION_ID
+		where tpcppj.credit_id=#credit_id# and tpcppj.status=0 and tpcppj.state=50
+		order by tpcppj.CRATE_DATE desc
+	</select>
+
+	<select id="selectWindExplain" parameterClass="map" resultClass="hashmap">
+		select tprcl.prc_id PRC_ID,
+		tprcl.credit_id CREDIT_ID,
+		tprcl.state STATE,
+		CONVERT(varchar,tprcl.sec_suggestion) SEC_SUGGESTION,
+		tprcl.sec_user_id SEC_USER_ID,
+		tprcl.sec_date SEC_DATE,
+		CONVERT(varchar,tprcl.synthesize_suggestion) SYNTHESIZE_SUGGESTION,
+		tprcl.synthesize_user_id SYNTHESIZE_USER_ID,
+		tprcl.synthesize_date SYNTHESIZE_DATE,
+		CONVERT(varchar,tprcl.gm_suggestion) GM_SUGGESTION,
+		tprcl.gm_user_id GM_USER_ID,
+		tprcl.gm_date GM_DATE,
+		CONVERT(varchar,tprcl.decision_content) DECISION_CONTENT,
+		tprcl.decision_user_id DECISION_USER_ID,
+		tprcl.decision_date DECISION_DATE,
+		tprcl.status,
+		tprcl.prc_node PRC_NODE,
+		tuu.name USERNAME,
+		tprcl.prc_hao PRC_HAO,
+		tprcl.riskinfo RISKINFO,
+		tprcl.real_prc_hao REAL_PRC_HAO,
+		tprcl.RISK_LEVEL,
+		tprcl.RISK_LEVEL_MEMO
+		, tprcl.SCORE
+		from t_prjt_risk_control tprcl
+		left join t_user_user tuu on tprcl.sec_user_id= tuu.id
+		where tprcl.prc_id=#prc_id# and tprcl.status=0
+	</select>
+
+
+	<insert id="inserttowind" parameterClass="map">
+		insert into t_prjt_risk_control
+		(
+		state,
+		credit_id,
+		status,
+		prc_node,
+		riskinfo,
+		prc_hao,
+		RISK_LEVEL,
+		RISK_LEVEL_MEMO)
+		values
+		(
+		0,
+		#credit_id#,
+		0,
+		#memoLevel#-1,
+		#RISKINFO#,
+		#prc_hao#,
+		#riskLevel#,
+		#riskMsg#)
+		<selectKey resultClass="java.lang.Long" keyProperty="prc_id">
+			<![CDATA[	select @@IDENTITY as prc_id  ]]>
+		</selectKey>
+	</insert>
+	
+	<update id="updateRiskControl" parameterClass="com.brick.risk_audit.to.RiskAuditTo">
+		update t_prjt_risk_control
+		set state = #state#
+			,prc_node = #prcNode#
+			<isNotEmpty property="prcCode">
+				,prc_hao = #prcCode#
+			</isNotEmpty>
+			<isNotEmpty property="prcLevelId">
+				,PRC_LEVEL_ID = #prcLevelId#
+			</isNotEmpty>
+			<isNotEmpty property="realPrcCode">
+				,real_prc_hao = #realPrcCode#
+			</isNotEmpty>
+			<isNotEmpty property="status">
+				,status = #status#
+			</isNotEmpty>
+			<isNotEmpty property="finishTime">
+				,FINISH_TIME = #finishTime#
+			</isNotEmpty>
+			<isNotEmpty property="returnClassLevelOne">
+				,RETURN_CLASS_LEVEL_ONE = #returnClassLevelOne#
+			</isNotEmpty>
+			<isNotEmpty property="returnClassLevelTwo">
+				,RETURN_CLASS_LEVEL_TWO = #returnClassLevelTwo#
+			</isNotEmpty>
+				
+		where prc_id = #prcId#
+	</update>
+	
+	<insert id="doCommitRisk" parameterClass="map">
+		insert into T_PRJT_RISK_CONTROL
+		(
+			CREDIT_ID,
+			STATUS,
+			STATE,
+			COMMIT_TIME,
+			RISK_LEVEL,
+			RISK_LEVEL_MEMO
+		)
+		values(
+			#credit_id#,
+			0,
+			0,
+			getdate(),
+			#risk_level#,
+			#risk_level_memo#
+		)
+	</insert>
+	
+	<insert id="inserttowind2" parameterClass="map">
+		insert into t_prjt_risk_control
+		(
+		credit_id,
+		status,
+		prc_hao,
+		STATE,
+		PRC_NODE,
+		RISKINFO,
+		PRC_LEVEL_ID)
+		values
+		(
+		#credit_id#,
+		0,
+		#prc_hao#,
+		#memo#,
+		4,
+		#RISKINFO#,
+		#memoLevelUrl#)
+		<selectKey resultClass="java.lang.Long" keyProperty="prc_id">
+			<![CDATA[	select @@IDENTITY as prc_id ]]>
+		</selectKey>
+	</insert>
+
+	<update id="upRiskConForUser" parameterClass="map">
+		update
+		t_prjt_risk_control set PRC_LEVEL_ID=#memoLevelUrl# where prc_id =
+		#prc_id#
+	</update>
+	<insert id="inserttoRiskMemoForSummit" parameterClass="map">
+		insert into t_prjt_risk_controlmemo
+		(
+		prc_id,
+		prcm_context,
+		prcm_level,
+		create_time,
+		create_user_id,
+		status,
+		prcm_user_level)
+		values
+		(
+		#prc_id#,
+		#context#,
+		#memoLevel#,
+		getdate(),
+		#s_employeeId#,
+		0,
+		#memoLevelUrl#)
+	</insert>
+
+	<insert id="inserttoRiskMemoForResult" parameterClass="map">
+		insert into t_prjt_risk_controlmemo
+		( prc_id,
+		prcm_context,
+		create_time,
+		create_user_id,
+		status,
+		prcm_user_level)
+		values
+		(#prc_id#,
+		#context#,
+		getdate(),
+		#s_employeeId#,
+		0,
+		#memoLevelUrl#)
+	</insert>
+	
+	<insert id="insertRiskMemo" parameterClass="com.brick.risk_audit.to.RiskAuditTo">
+		insert into t_prjt_risk_controlmemo
+		(
+			prc_id,
+			prcm_context,
+			prcm_user_level,
+			create_time,
+			create_user_id,
+			status
+		) values (
+			#prcId#,
+			#prcmContext#,
+			#prcmLevel#,
+			getdate(),
+			#create_by#,
+			0
+		)
+	</insert>
+	
+	<update id="updatetowindfeng" parameterClass="map">
+		update
+		t_prjt_risk_control set STATE = #memo#,PRC_NODE =
+		4,PRC_LEVEL_ID=#memoLevelUrl# where prc_id = #prc_id#
+	</update>
+	<update id="updatetowind" parameterClass="map">
+		update
+		t_prjt_risk_control
+		set PRC_NODE = #memoLevel#-1
+		,RISKINFO=#RISKINFO#
+		where prc_id = #prc_id#
+	</update>
+	<update id="updatecredit" parameterClass="map">
+		update t_prjt_credit
+		set WIND_STATE = #memo# where id = #credit_id#
+	</update>
+
+	<update id="updatecredit_gr" parameterClass="map">
+		update t_prjt_credit
+		set
+		GR_STATE =0
+		, MODIFY_DATE = GETDATE()
+		where id = #credit_id#
+	</update>
+
+	<update id="updatecreditstate" parameterClass="map">
+		update
+		t_prjt_credit set state=0 where id = #credit_id#
+	</update>
+	<update id="updatecreditLeaseCode" parameterClass="map">
+		update
+		t_prjt_credit set
+		lease_code=#le_code#,wind_result_user=#s_employeeId#,wind_result_date=getdate(),state=1
+		where id = #credit_id#
+	</update>
+	<update id="updateWindRealCode" parameterClass="map">
+		update t_prjt_risk_control set real_prc_hao=#real_code#
+		<isNotEmpty property="newRiskLevel">
+			, RISK_LEVEL = #newRiskLevel#
+		</isNotEmpty>
+		where prc_id = #prc_id#
+	</update>
+	<select id="selectCreditLeaseCode" parameterClass="map"
+		resultClass="java.lang.String">
+		<![CDATA[
+			SELECT LEASE_CODE FROM T_PRJT_CREDIT WHERE ID = #credit_id#
+		]]>
+	</select>
+	<select id="selectFen" resultMap="resultFen" resultClass="hashmap">
+		select
+		tsp.points_id points_id,
+		tsp.points_name,
+		tsp.memo,
+		tsp.standard_score,
+		tsp.type_code,
+		tsp.state,
+		tsp.status,
+		tdd.flag,
+		tsspi.subitem_id,
+		tsspi.subitem_content,
+		tsspi.subitem_point,
+		tsspi.status
+		from t_sys_pointsitems tsp
+		left join t_data_dictionary tdd on
+		tdd.code=tsp.type_code
+		left join t_sys_subpointitems tsspi on
+		tsspi.points_id=tsp.points_id
+		where tdd.type=#fenTy# and tsp.state=1
+		and tsspi.status=0
+		<isNotEqual property="typeOfContract" compareValue="3">
+			<!-- not equal 3 类型是非重车的评分报表,对应的数据字典的评分code是1,2,3,4 -->
+			AND tdd.code IN ('1','2','3','4')
+		</isNotEqual>
+		<isEqual property="typeOfContract" compareValue="3">
+			<!-- equal 3 类型是重车的评分报表,对应的数据字典的评分code是5,6,7,8,9 -->
+			AND tdd.code IN ('5','6','7','8','9')
+		</isEqual>
+		order by tsp.type_code,tsspi.subitem_point
+	</select>
+
+	<select id="selectFenForUpdate" resultMap="resultFenForUpdate"
+		resultClass="hashmap">
+		select tsp.points_id points_id,
+		tsp.points_name,
+		tsp.memo,
+		tsp.standard_score,
+		tsp.type_code,
+		tsp.state,
+		tsp.status,
+		tdd.flag,
+		tsspi.subitem_id,
+		tsspi.subitem_content,
+		tsspi.subitem_point,
+		tsspi.status,
+		tprp.t_prp_content,
+		tprp.t_prp_point,
+		tprp.psType PSTYPE
+		from t_sys_pointsitems tsp
+		left join t_prjt_risk_point tprp on tsp.points_id = tprp.points_id
+		left join t_data_dictionary tdd on tdd.code = tsp.type_code
+		left join t_sys_subpointitems tsspi on tsspi.points_id = tsp.points_id
+		where tdd.type =#fenTy#
+		and tsp.state = 1
+		and tsspi.status = 0
+		and tprp.prc_id = #prc_id#
+		and tprp.points_id is not null
+		order by tsp.type_code, tsspi.subitem_point
+	</select>
+
+	<insert id="inserttopoint" parameterClass="map">
+		insert into
+		t_prjt_risk_point
+		( points_id, t_prp_content, t_prp_point, credit_id,prc_id,psType)
+		values
+		(#fen_id#,#fencontext#,#fen#,#credit_id#,#prc_id#,#psTypeBuut#)
+	</insert>
+
+
+	<select id="selectRentFile" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+		select t1.file_name FILE_NAME, ISNULL(t2.file_count, 0) FILE_COUNT, ISNULL(t2.copyfile_count, 0)	COPYFILE_COUNT,t2.file_memo  MEMO,t1.refi_id REFI_ID,ISNULL(t2.refd_id,0)	REFD_ID
+		  from t_rent_file t1
+		  left join (select t1.refi_id,
+		                    t1.file_name,
+		                    ISNULL(t2.file_count, 0) file_count,
+		                    ISNULL(t2.copyfile_count, 0) copyfile_count,
+		                    t2.file_memo,
+		                    t2.refd_id
+		               from t_rent_file t1
+		               left join t_rent_filedetail t2 on t2.refi_id = t1.refi_id
+		              where t1.file_type = #cardFlag#+1
+		                and t2.prcd_id = #prcd_id#
+		                and t1.FILE_STATUS=0
+		             ) t2 on t2.refi_id = t1.refi_id
+		 where t1.file_type = #cardFlag#+1 and t1.FILE_STATUS=0
+		 order by t1.refi_id
+		 ]]>
+	</select>
+
+	<select id="selectInfor" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+			select  t.lease_code LEASE_CODE,
+					t1.cust_name CUST_NAME,
+					t1.cust_type CUST_TYPE,
+					t1.natu_mobile NATU_MOBILE,
+					t1.corp_hs_link_mode CORP_HS_LINK_MODE    
+			from t_prjt_credit t
+			left join t_cust_customer t1 on t.cust_id=t1.cust_id
+			where t.id=#prcd_id# and t.status=0
+		 ]]>
+	</select>
+
+	<select id="selectLevelMap" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+			select   t.rank RANK,  t.level_price_low LEVEL_PRICE_LOW, t.level_price_upper LEVEL_PRICE_UPPER,t.GRANT_PRICE_LOW,t.GRANT_PRICE_UPPER from t_prjt_risklevel t where t.status=0 and t.rank=#rank#	
+		 ]]>
+	</select>
+	<!-- risk context for see -->
+	<select id="selectRiskMemoList" parameterClass="map"
+		resultClass="hashmap">
+	<![CDATA[
+			select  t.prcm_id PRCM_ID,
+				t.prcm_context  PRCM_CONTEXT,  
+				t.create_time  CREATE_TIME,   
+				t1.name NAME,
+				t.prcm_level PRCM_LEVEL,
+				t.prcm_user_level PRCM_USER_LEVEL
+				
+			  from t_prjt_risk_controlmemo t  
+			  left join t_user_user t1 on t.create_user_id=t1.id
+			  where t.status=0   and t.prc_id=#prc_id# 
+		 ]]>
+	</select>
+
+	<!-- Modify by Michael 2012 3-8 离职人员的评审记录也要现实出来 -->
+	<select id="selectRiskMemoListByCreditid" parameterClass="map"
+		resultClass="hashmap">
+	<![CDATA[
+			select prcm.prcm_id PRCM_ID,
+			  prcm.prcm_context  PRCM_CONTEXT,  
+			  prcm.create_time  CREATE_TIME,   
+			  u.name NAME,
+			  prcm.prcm_user_level PRCM_USER_LEVEL 
+			from T_PRJT_RISK_CONTROL prc
+			left join T_PRJT_RISK_CONTROLMEMO prcm on prcm.PRC_ID = prc.PRC_ID
+			left join T_USER_USER u on prcm.CREATE_USER_ID = u.ID
+			where prc.STATUS = 0 and prc.CREDIT_ID = #credit_id#
+			order by prcm.create_time
+		 ]]>
+	</select>
+
+	<!-- 2012/02/27 Yang Yun 增加重车核准函 查询案件的类型. -->
+	<select id="getContractType" parameterClass="map" resultClass="java.lang.Integer">
+		select CONTRACT_TYPE from T_PRJT_CREDIT
+		where ID = #credit_id#
+	</select>
+
+
+	<!-- risk context for update -->
+	<select id="selectRiskMemoListForUpdate" parameterClass="map"
+		resultClass="hashmap">
+	<![CDATA[
+			select  t.prcm_id PRCM_ID,t.prcm_context  PRCM_CONTEXT,  t.create_time  CREATE_TIME,   t1.name NAME,isnull(t.prcm_level,0) PRCM_LEVEL,t.prcm_user_level PRCM_USER_LEVEL
+			  from t_prjt_risk_controlmemo t  
+			  left join t_user_user t1 on t.create_user_id=t1.id
+			  where t.status=0   and t.prc_id=#prc_id# and  t.prcm_user_level=#PRCM_USER_LEVEL#
+		 ]]>
+	</select>
+	<!-- 实施支持的删除风控 -->
+	<select id="deleteRisk_count" parameterClass="map" resultClass="int">
+		select count(rprcl.prc_id) cnt
+		from t_prjt_risk_control rprcl
+		left join t_prjt_credit tpc on rprcl.credit_id=tpc.id
+		left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		left join t_area ta on ta.id = tpc.province_id
+		left join t_user_user tuu on tuu.id = tpc.clerk_id
+		left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		left join t_prjt_creditscheme t2 on t2.credit_id=rprcl.credit_id
+		where rprcl.status=0
+		<dynamic>
+			<isNotEmpty prepend="and" property="content">
+				(tcc.cust_name like '%$content$%' or tuu.name like '%$content$%' or tuu2.name like
+				'%$content$%')
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	<select id="deleteRisk" resultClass="hashmap">
+		select rprcl.prc_id PRC_ID,
+		rprcl.credit_id,
+		rprcl.state STATE,
+		rprcl.status,
+		rprcl.prc_node PRC_NODE,
+		rprcl.prc_hao PRC_HAO,
+		rprcl.prc_level_id PRC_LEVEL_ID,
+		tpc.id ID,
+		tpc.type type,
+		tpc.cust_id cust_id,
+		tpc.sensor_id sensor_id,
+		tpc.clerk_id clerk_id,
+		CONVERT(varchar,tpc.create_date,23) create_date,
+		tcc.cust_name cust_name,
+		tcc.cust_type cust_type,
+		tuu.name clerk_name,
+		tuu2.name sensor_name,
+		t2.lease_rze LEASE_RZE,
+		t33.prcm_context one_context,
+		t44.prcm_context two_context,
+		t55.prcm_context three_context
+		from t_prjt_risk_control rprcl
+		left join t_prjt_credit tpc on rprcl.credit_id=tpc.id
+		left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		left join t_area ta on ta.id = tpc.province_id
+		left join t_user_user tuu on tuu.id = tpc.clerk_id
+		left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		left join t_prjt_creditscheme t2 on t2.credit_id=rprcl.credit_id
+		left join t_prjt_risk_controlmemo t33 on t33.prc_id=rprcl.prc_id and
+		t33.prcm_user_level=1
+		left join t_prjt_risk_controlmemo t44 on t44.prc_id=rprcl.prc_id and
+		t44.prcm_user_level=2
+		left join t_prjt_risk_controlmemo t55 on t55.prc_id=rprcl.prc_id and
+		t55.prcm_user_level=3
+		where rprcl.status=0
+		<isNotEmpty prepend="and" property="content">
+			(tcc.cust_name like '%$content$%' or tuu.name like '%$content$%' or tuu2.name like
+			'%$content$%')
+		</isNotEmpty>
+		order by rprcl.prc_id desc
+	</select>
+	<update id="updateCreditMemo" parameterClass="map">
+		update
+		t_prjt_creditmemo set tprc_id = #prc_id# where prcm_id=#prcm_id#
+	</update>
+
+	<select id="updateCreditForResult_count" parameterClass="map"
+		resultClass="int">
+		select count(rprcl.prc_id) CNT
+		from t_prjt_risk_control rprcl
+		left join t_prjt_credit tpc on rprcl.credit_id=tpc.id
+		left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		left join t_user_user tuu on tuu.id = tpc.clerk_id
+		left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		left join t_prjt_creditscheme t2 on t2.credit_id=rprcl.credit_id
+		left join t_prjt_creditmemo tpco on tpco.tprc_id=rprcl.prc_id
+		where rprcl.status=0 and rprcl.state=4
+		<dynamic>
+			<isNotEmpty prepend="and" property="content">
+				(tcc.cust_name like '%$content$%' or tuu.name like '%$content$%' or tuu2.name like
+				'%$content$%' or rprcl.prc_hao like '%$content$%' )
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	<select id="updateCreditForResult" parameterClass="map"
+		resultClass="hashmap">
+		select rprcl.prc_id PRC_ID,
+		rprcl.credit_id,
+		rprcl.state STATE,
+		rprcl.prc_level_id PRC_LEVEL_ID,
+		rprcl.prc_node PRC_NODE,
+		rprcl.prc_hao PRC_HAO,
+		rprcl.status STATUS,
+		tpc.id ID,
+		tpc.type type,
+		tpc.cust_id cust_id,
+		tcc.cust_name cust_name,
+		tcc.cust_type cust_type,
+		tpc.clerk_id clerk_id,
+		tpc.sensor_id sensor_id,
+		tpc.create_date create_date,
+		tuu.name clerk_name,
+		tuu2.name sensor_name,
+		t2.lease_rze LEASE_RZE ,
+		tpco.tprc_id TPRC_ID,
+		tpco.create_time CREATE_TIME
+		from t_prjt_risk_control rprcl
+		left join t_prjt_credit tpc on rprcl.credit_id=tpc.id
+		left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		left join t_user_user tuu on tuu.id = tpc.clerk_id
+		left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		left join t_prjt_creditscheme t2 on t2.credit_id=rprcl.credit_id
+		left join t_prjt_creditmemo tpco on tpco.tprc_id=rprcl.prc_id
+		where rprcl.status=0 and rprcl.state=4
+		<dynamic>
+			<isNotEmpty prepend="and" property="content">
+				(tcc.cust_name like '%$content$%' or tuu.name like '%$content$%' or tuu2.name like
+				'%$content$%' or rprcl.prc_hao like '%$content$%' )
+			</isNotEmpty>
+		</dynamic>
+		order by rprcl.prc_id desc
+	</select>
+
+	<update id="updateRiskResult" parameterClass="map">
+		update
+		t_prjt_risk_control set state=3 where prc_id=#prc_id#
+	</update>
+	<update id="updateCreditResult" parameterClass="map">
+		update
+		t_prjt_credit set WIND_STATE=3,STATE=0 where id=#id#
+	</update>
+
+	<select id="getCustomerBycredit_id" parameterClass="map"
+		resultClass="hashmap">
+		select tpc.id credit_id,
+		tpc.type credit_type,
+		tpc.contract_type CONTRACT_TYPE,
+		ta.name prov_name,
+		taa.name city_name,
+		tcc.cust_type cust_type,
+		tpc.CUST_ID CUST_ID,
+		tpc.credit_code CREDIT_CODE,
+		tcc.corp_work_address corp_work_address,
+		tcc.CORP_ORAGNIZATION_CODE CORP_ORAGNIZATION_CODE,
+		tcc.CUST_NAME ,
+		tcc.CORP_ENTERPRISES_PROPERTY as CORP_TYPE ,
+		tcc.CUST_CODE,
+		CONVERT(varchar,CONVERT(datetime,tcc.CORP_SETUP_DATE),23) as INCORPORATING_DATE ,
+		tcc.CORP_REGISTE_CAPITAL as REGISTERED_CAPITAL ,
+		tcc.CORP_PAICLUP_CAPITAL as CONTRIBUTED_CAPITAL ,
+		tcc.CORP_HEAD_SIGNATURE as LEGAL_PERSON ,
+		tcc.CORP_HS_IDCARD as LEGAL_ID_CARD ,
+		tcc.CORP_HS_LINK_MODE as LEGAL_MOBILE_NUMBER1 ,
+		tcc.CORP_HS_HOME_ADDRESS as LEGAL_HOME_ADDRESS ,
+		tcc.CORP_BUSINESS_LICENSE as BUSINESS_LICENCE_CODE ,
+		tcc.CORP_TAX_CODE as TAX_REGISTRATION_NUMBER ,
+		tcc.CORP_ORAGNIZATION_CODE as ORGANIZATION_CODE_CERTIFICATE ,
+		tcc.CORP_PERIOD_VALIDITY as BUSINESS_TIME_LIMIT ,
+		tcc.CORP_REGISTE_ADDRESS as REGISTERED_OFFICE_ADDRESS ,
+		tcc.CORP_WORK_ADDRESS as COMMON_OFFICE_ADDRESS ,
+		tcc.CORP_BUSINESS_RANGE as MANAGING_SCOPE ,
+		tcc.CORP_COMPANY_ZIP as POSTCODE ,
+		tcc.CORP_COMPANY_PHONE as TELEPHONE,
+		tpc.modify_date,
+		vi.REAL_VISIT_DATE as VISIT_DATE,
+		vi.NONE_VISIT_MEMO,
+		vi.NONE_VISIT_REASON,
+		vu.[NAME] as VISITOR
+
+		from t_prjt_credit tpc
+		  <![CDATA[ left join t_prjt_visit vi on vi.credit_id = tpc.id and vi.status = 0 and vi.VISIT_STATUS >= 3 ]]>
+		left join T_USER_USER vu on vi.REAL_VISITOR = vu.ID
+		left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		left join t_area ta on ta.id = tpc.province_id
+		left join t_area taa on taa.id = tpc.city_id
+		where tpc.id =#credit_id# and tpc.status=0
+	</select>
+
+	<select id="selectBefore" parameterClass="map" resultClass="hashmap">
+		select SUM(tt.T_PRP_POINT) BEFORE,tt.CREDIT_ID,tt.PRC_ID from
+		T_PRJT_RISK_POINT tt where tt.CREDIT_ID=#credit_id# and tt.PRC_ID in (
+		select MAX(t.prc_id) from T_PRJT_RISK_POINT t where
+		t.CREDIT_ID=#credit_id#)
+		group by tt.CREDIT_ID,tt.PRC_ID
+	</select>
+
+	<select id="showBeforeMemo" parameterClass="map" resultClass="hashmap">
+		select t1.PRCM_CONTEXT,
+			t2.NAME,
+			t1.PRCM_USER_LEVEL,
+			convert(varchar,t1.CREATE_TIME,20) CREATE_TIME 
+		from T_PRJT_RISK_CONTROL t
+		left join T_PRJT_RISK_CONTROLMEMO t1 on t.PRC_ID=t1.PRC_ID
+		left join T_USER_USER t2 on t1.CREATE_USER_ID=t2.ID
+		where t.CREDIT_ID=#credit_id# and t.STATUS=0
+		order by t1.CREATE_TIME
+	</select>
+	<select id="selectRiskControlByCreditID" parameterClass="map"
+		resultClass="hashmap">
+		select
+		*
+		from
+		t_prjt_risk_control
+		where
+		prc_id = (
+		select
+		MAX(PRC_ID)
+		from
+		t_prjt_risk_control
+		where
+		CREDIT_ID = #credit_id#
+		AND STATUS = 0
+		AND PRC_ID != #prc_id#
+		)
+	</select>
+
+	<!-- Add by Michael 2012 02/08 For 以不通过附条件时 是否需要保留合同号 -->
+	<select id="selectLeaseCodeByLeaseCode" parameterClass="map"
+		resultClass="int">
+		<![CDATA[
+			SELECT ID FROM T_PRJT_CREDIT WHERE LEASE_CODE = #LEASE_CODE#
+		]]>
+	</select>
+
+	<select id="getRectByLeaseCode" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0) as 'C' from T_RENT_CONTRACT
+		where LEASE_CODE = #LEASE_CODE#
+		and status = 0
+	</select>
+
+	<insert id="insertLeaseFlag" parameterClass="map">
+		insert into T_REJECT_FLAG(
+		   LEASE_CODE
+		  ,FLAG
+		  ,STATUS
+		  ,CREATE_TIME
+		  ,CREATE_BY
+		) VALUES (
+		   #LEASE_CODE#
+		  ,#rejectFlag#
+		  ,0
+		  ,getdate()
+		  ,#s_employeeId#
+		)
+	</insert>
+
+	<!-- Add by Michael 2012 02/08 For it使用 以不通过附条件 -->
+	<update id="updatePrjtStateByLeaseCode" parameterClass="map">
+		update
+		T_PRJT_CREDIT
+		set STATE='0',WIND_STATE='3'
+		where LEASE_CODE=#LEASE_CODE#
+	</update>
+
+	<!-- Add by Michael 2012 02/08 For it使用 以不通过附条件 -->
+	<update id="updatePrjtRISKStateByCreditID" parameterClass="map">
+		update T_PRJT_RISK_CONTROL
+		set STATE='3'
+		where CREDIT_ID=#CREDIT_ID#
+	</update>
+
+	<!-- Add by Michael 2012 02/08 For 以不通过附条件时 是否需要保留合同号 -->
+	<update id="updatePrjtLeaseCodeByCreditID" parameterClass="map">
+		update T_PRJT_CREDIT
+		set LEASE_CODE=null
+		where id=#CREDIT_ID#
+	</update>
+
+	<!-- 2012/03/19 Yang Yun 显示共案 -->
+	<select id="getMergedByProject" parameterClass="map"
+		resultClass="hashmap">
+		select m.CREDIT_ID, c.CREDIT_CODE
+		from T_PRJT_MERGE m
+		left
+		join T_PRJT_CREDIT c on m.CREDIT_ID = c.ID and c.STATUS = 0
+		where
+		GROUP_CODE in (
+		select t.GROUP_CODE from T_PRJT_MERGE t
+		where t.CREDIT_ID = #credit_id#
+		and t.STATUS = 0
+		) and m.CREDIT_ID != #credit_id#
+		and m.STATUS = 0
+	</select>
+
+	<resultMap class="com.brick.user.to.UserTo" id="getTheSameResultMap">
+		<result property="userId" column="ID" javaType="Integer" />
+		<result property="userName" column="NAME" javaType="String" />
+	</resultMap>
+	<select id="getTheSame" parameterClass="com.brick.base.to.BaseTo"
+		resultMap="getTheSameResultMap">
+		select top 8 ID, NAME from T_USER_USER
+		where ([NAME] like '%$content$%'
+		or CODE like '%$content$%')
+		and status = 0
+	</select>
+
+	<!-- 更新供应商担保 add by ShenQi -->
+	<update id="updateSupl">
+		UPDATE T_PRJT_CREDITSCHEME SET SUPL_TRUE=#SUPL# WHERE CREDIT_ID=#CREDIT_ID#
+		AND STATUS=0
+	</update>
+
+	<select id="getContractTypeForRiskLevel" parameterClass="com.brick.credit.to.CreditTo"
+		resultClass="com.brick.credit.to.CreditTo">
+		select prcd.ID as creditId, 
+			prcd.CONTRACT_TYPE as contractType,
+			IS_NEW_PRODUCTION as isNewProduction
+		from t_prjt_credit prcd
+		where prcd.ID = #creditId#
+	</select>
+
+	<select id="getLeaseRzeSum" parameterClass="com.brick.credit.to.CreditTo"
+		resultClass="java.lang.Double">
+		select sum(s.LEASE_RZE) from T_PRJT_CREDITSCHEME s
+		where s.CREDIT_ID in (
+			select m.CREDIT_ID from T_PRJT_MERGE m
+			where
+			m.GROUP_CODE in (
+			select m1.GROUP_CODE from T_PRJT_MERGE m1
+			where
+			m1.STATUS = 0 and m1.CREDIT_ID = #creditId#
+			) and m.STATUS = 0
+		)
+		and not exists(
+		  select 0 from T_PRJT_CREDIT prcd
+		  left join T_PRJT_RISK_CONTROL risk on risk.CREDIT_ID = prcd.ID
+		  	and risk.STATE = 1 and risk.STATUS = 0
+		  where prcd.ID = s.CREDIT_ID
+		  and (prcd.FINANCECONTRACT_DATE is not null
+  			or prcd.STATE = -1 or risk.PRC_ID is not null)
+		)
+		and s.STATUS = 0
+	</select>
+
+	<select id="getFinanceInfo" parameterClass="com.brick.credit.to.CreditTo"
+		resultClass="hashmap">
+		select s_sale_net_income as ying_ye_shou_ru,
+		(sd_one_year + sd_other +
+		lang_debt +
+		other_long_debt + other_debt)as zong_fu_zhai ,
+		(ca_cash_price + ca_short_Invest +
+		ca_bills_should + ca_Funds_should + ca_Goods_stock +
+		ca_other + ca_other_Funds_should) as liu_dong_1,
+		(sd_one_year + sd_other)as
+		liu_dong_2,
+		(share_capital + surplus_Capital + surplus_income +
+		this_losts + project_changed) as zong_zi_can,
+		s_interest_expense as
+		li_xi_zhi_chu,
+		(select max(LEASE_TERM) as LEASE_TERM from
+		T_PRJT_CREDITSCHEME
+		where CREDIT_ID in
+		(select ID from T_PRJT_CREDIT
+		where CUST_ID in (
+		select CUST_ID from T_PRJT_CREDIT
+		where id = t.credit_id
+		)))as qi_shu,
+		(select max(s_sale_net_income -
+		s_sale_cost + s_other_gross_profit -
+		s_operating_expenses +
+		s_nonbusiness_income - s_interest_expense
+		- s_other_nonbusiness_expense
+		- s_income_tax_expense) as shun_yi
+		from T_PRJT_CREDITCORPREPORT
+		where
+		credit_id = t.credit_id
+		group by credit_id) as max_jing_li_run,
+		cust.zi_li, cust.shang_shi, cust.cheng_li_shi_jian
+		from
+		T_PRJT_CREDITCORPREPORT t
+		left join (
+		select max(EXPERIENCE) as zi_li, min(ISLISTED) as shang_shi,
+		max(datediff(year,INCORPORATING_DATE,getdate())) as cheng_li_shi_jian,
+		CREDIT_ID
+		from T_PRJT_CREDITCUSTOMERCORP
+		group by CREDIT_ID
+		) cust on cust.CREDIT_ID = t.credit_id
+		where
+		year(project_item) = year(getdate()) - 1
+		and t.credit_id = #creditId#
+	</select>
+
+	<select id="getDunInfo" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0)
+		from T_RENT_COLLECTIONDETAIL recd
+		left join T_RENT_DECOMPOSE d
+			on d.RECP_ID = recd.RECP_ID
+			and d.PERIOD_NUM = recd.PERIOD_NUM
+			and d.BILL_CODE = 'RENT'
+			and d.STATUS = 0
+		  	and d.DECOMPOSE_STATUS = 2
+			and d.DECOMPOSE_TYPE = 0
+		left join T_RENT_INCOME i
+			on d.INCOME_ID = i.INCOME_ID
+			and i.STATUS = 0
+		where recd.status = 0
+		<![CDATA[
+		and (
+		datediff(day,recd.PAY_DATE,i.INCOME_DATE) >= #dunDay#
+		or (i.INCOME_DATE is null and 
+		datediff(day,recd.pay_date,getdate()) >= #dunDay#)
+		)
+		]]>
+		<isNotEmpty property="selectFlag">
+		<![CDATA[
+		and datediff(month,recd.PAY_DATE,getdate()) <= 6 
+		]]>
+		</isNotEmpty>
+		and recd.RECP_ID in (
+		select RECP_ID from T_RENT_COLLECTIONPLAN
+		where status=0 and RECT_ID in (
+		select rect_id from T_RENT_CONTRACT
+		where status=0 and PRCD_ID in (
+		select ID from T_PRJT_CREDIT
+		where CUST_ID = (
+		select CUST_ID from T_PRJT_CREDIT
+		where ID = #creditId#
+		)
+		) and PRCD_ID != #creditId#
+		)
+		)
+	</select>
+
+	<select id="checkIncorporatingDate" parameterClass="com.brick.credit.to.CreditTo" resultClass="java.lang.Integer">
+		<![CDATA[
+		select datediff(month, INCORPORATING_DATE, getdate()) from T_PRJT_CREDITCUSTOMERCORP
+		where CREDIT_ID = #creditId#
+		]]>
+	</select>
+
+	<select id="getCorporationInfo" parameterClass="com.brick.credit.to.CreditTo"
+		resultClass="hashMap">
+  		<![CDATA[
+	  		select datediff(month,cm.INCORPORATING_DATE,getdate())
+			from T_PRJT_CREDITCUSTOMERCORP cm
+			where datediff(month,cm.INCORPORATING_DATE,getdate()) < 6
+			and exists(
+			  select cs.PRCS_ID from T_PRJT_CREDITSCHEME cs
+			  where cs.CREDIT_ID = cm.CREDIT_ID
+			  and cs.SUPL_TRUE = 4
+			)
+			and not exists(
+			  select vc.PJCCC_ID from T_PRJT_VOUCHCUSTOMERCORP vc
+			  where vc.PRCD_ID = cm.CREDIT_ID
+			  and vc.CORP_NAME_CN != cm.CORP_NAME_CN
+			)
+			and cm.CREDIT_ID = #creditId#
+		]]>
+	</select>
+
+	<select id="getHolderInfo" parameterClass="com.brick.credit.to.CreditTo"
+		resultClass="hashMap">
+  		<![CDATA[
+	  		select h.PCCSH_ID 
+			from T_PRJT_CREDITCORPSHAREHOLDER h
+			where CREDIT_ID = #creditId#
+			and HOLDER_RATE > 50
+			and not exists(
+			  select c.PRON_ID
+			  from T_PRJT_CREDITVOUCHNATU c
+			  where c.PRCD_ID = h.CREDIT_ID
+			  and c.CUST_NAME = h.HOLDER_NAME
+			)
+		]]>
+	</select>
+
+	<select id="getRiskLevel" parameterClass="map" resultClass="java.lang.Integer">
+		select max(RISK_LEVEL)as RISK_LEVEL
+		from T_PRJT_RISK_CONTROL
+		where CREDIT_ID = #credit_id#
+		and STATE = 1
+	</select>
+
+	<select id="getHolderInfoAnother" parameterClass="com.brick.credit.to.CreditTo"
+		resultClass="hashMap">
+		select LEGAL_PERSON
+		from T_PRJT_CREDITCUSTOMERCORP
+		where CREDIT_ID =
+		#creditId#
+		and LEGAL_PERSON in (
+		select CUST_NAME from T_PRJT_CREDITVOUCHNATU
+		where PRCD_ID = #creditId#
+		)
+	</select>
+
+	<select id="getCustIdByPrcdId" parameterClass="com.brick.credit.to.CreditTo"
+		resultClass="java.lang.Integer">
+		select cust_id from T_PRJT_CREDIT
+		where ID = #creditId#
+	</select>
+
+	<select id="getTrAndCustType" parameterClass="com.brick.credit.to.CreditTo"
+		resultClass="hashMap">
+		select isnull(prcs.TR_IRR_RATE,0) as tr ,
+		isnull(cust.CORP_ENTERPRISES_PROPERTY,0) as cust_type ,
+		prcd.VIP_FLAG
+		from
+		T_PRJT_CREDIT prcd
+		left join T_PRJT_CREDITSCHEME prcs on prcs.CREDIT_ID
+		= prcd.ID
+		left join T_CUST_CUSTOMER cust on prcd.CUST_ID = cust.CUST_ID
+		where prcd.ID = #creditId#
+	</select>
+
+	<select id="getInfoByBeforeDelivery" parameterClass="com.brick.credit.to.CreditTo"
+		resultClass="com.brick.credit.to.CreditTo">
+		select top 1 prcd.ID as creditId
+			, prca.APPRORIATENAME as suplName
+			, prca.APPRORIATEMON as approriateMoney
+		from T_PRJT_CREDIT
+		prcd
+		left join T_PRJT_CREDITAPPROPIATE prca on prca.CREDIT_ID = prcd.ID
+		where prca.[TYPE] = 0 and prcd.STATUS = 0
+		and prcd.ID = #creditId#
+	</select>
+	
+	<select id="getSuppLevel" parameterClass="com.brick.credit.to.CreditTo" resultClass="java.lang.String">
+		select top 1 SUPP_LEVEL from T_SUPL_SUPPLIER
+		where NAME = #suplName#
+		and STATUS = 0
+	</select>
+	
+	<update id="updatecreditCheckPay" parameterClass="map">
+		update T_PRJT_CREDITSCHEME
+		set
+		IS_CHECK_PAY =#IS_CHECK_PAY_VALUE#
+		where CREDIT_ID = #credit_id#
+	</update>
+	
+	<statement id="deleteCreditSchemaCheck" parameterClass="map">
+		<![CDATA[	 
+			delete from  T_PRJT_CREDITSCHEME_CHECK  where CREDIT_ID = #credit_id#
+		]]>
+	</statement>
+	
+	<statement id="addCreditSchemaCheck" parameterClass="map">
+	<![CDATA[
+		INSERT INTO T_PRJT_CREDITSCHEME_CHECK
+           (CREDIT_ID
+           ,CREATE_DATE
+           ,CREATE_ID
+           ,MODIFY_ID
+           ,MODIFY_DATE
+           ,STATUS
+           ,CHECK_START
+           ,CHECK_END,
+           TYPE
+           )values(
+       	#credit_id#
+           ,GETDATE()
+           ,#s_employeeId#
+           ,#s_employeeId#
+           ,GETDATE()
+           ,0
+           ,#CHECK_PAY_START#
+           ,#CHECK_PAY_END#
+           ,#TYPE#
+           )
+           ]]>
+	</statement>	
+	
+	<select id="getCheckPaylines" parameterClass="map" resultClass="hashmap">
+		select * from T_PRJT_CREDITSCHEME_CHECK
+		where credit_id = #credit_id#
+		and STATUS = 0
+		and TYPE = '0'
+		ORDER BY CHECK_START
+	</select>
+	
+	<select id="getCheckPaylinesForSales" parameterClass="map" resultClass="hashmap">
+		select * from T_PRJT_CREDITSCHEME_CHECK
+		where credit_id = #credit_id#
+		and STATUS = 0
+		and TYPE = '1'
+		ORDER BY CHECK_START
+	</select>
+	
+	<select id="queryCheckManagePaylines" parameterClass="map" resultClass="hashmap">
+		select * from T_PRJT_CREDITSCHEME_CHECKMANAGE
+		where STATUS = 0 and credit_id = #credit_id# and type='0'
+		ORDER BY PERIOD_NUM
+	</select>
+	
+	<select id="queryCheckManagePaylinesForSales" parameterClass="map" resultClass="hashmap">
+		select * from T_PRJT_CREDITSCHEME_CHECKMANAGE
+		where STATUS = 0 and credit_id = #credit_id# and type='1' and (RECORDED_STATUS!=2 or RECORDED_STATUS is null )
+		ORDER BY PERIOD_NUM
+	</select>
+	
+	<select id="queryAllCheckManagePaylines" parameterClass="map" resultClass="hashmap">
+		select * from T_PRJT_CREDITSCHEME_CHECKMANAGE
+		where STATUS = 0 and credit_id = #credit_id# 
+		ORDER BY PERIOD_NUM
+	</select>
+
+	<select id="getGuiHuForAudit" parameterClass="map" resultClass="hashMap">
+		<![CDATA[
+		select TSCE.CUST_NAME
+		, TSCE.SUPL_NAME
+		, TSCE.UNIT_PRICE
+		, isnull(pcs.LEASE_TOPRIC, 0) - isnull(pcs.PLEDGE_ENTER_MCTOAG, 0) - isnull(pcs.PLEDGE_ENTER_AG, 0) as PAY_MONEY
+		, (
+			select SUM(loss_own_price) loss_ren_price from(
+			  select 
+			  	case when convert(decimal,isnull(recd.REDUCE_OWN_PRICE, 0)) >= convert(decimal,isnull(recd.REN_PRICE, 0))
+			    then isnull(recd.IRR_MONTH_PRICE, 0) - (isnull(recd.REDUCE_OWN_PRICE, 0)-isnull(recd.VALUE_ADDED_TAX, 0))
+			    else isnull(recd.IRR_MONTH_PRICE, 0) - isnull(recd.REN_PRICE, 0) end as loss_own_price
+			  from T_RENT_COLLECTIONDETAIL recd
+			  where recd.status = 0
+			  and recd.RECP_ID = TRCN.RECP_ID
+			  and (recd.REDUCE_OWN_PRICE is null or recd.REDUCE_OWN_PRICE < (recd.IRR_MONTH_PRICE+isnull(recd.VALUE_ADDED_TAX, 0)))
+			) t
+		) as REST_MONEY
+		, TSCE.REST_PERIOD
+		, TSCE.DUN_COUNT_BY_LEASE
+		, TDDY.FLAG SUPL_TRUE
+		, tddy1.FLAG as BUSINESS_STATUS
+		, TSCE.CREATE_ON
+		, prcd.CREDIT_RUNCODE
+    	, TRCN.RECP_CODE
+    	,CONVERT(varchar(100), TRCN.FIRST_PAYDATE, 23) FIRST_PAYDATE
+    	,TRCN.RECP_ID
+    	,TRCN.RECT_ID
+    	,isnull(prcd.VIP_FLAG,0) VIP_FLAG
+    	,TSCE.CREDIT_ID
+		from T_SUPPLER_CONTRIBUTE TSCE
+		left join T_PRJT_CREDIT prcd on TSCE.CREDIT_ID = prcd.ID
+		left join T_PRJT_CREDITSCHEME pcs on pcs.credit_id = prcd.id
+		LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TSCE.RECP_ID=TRCN.RECP_ID AND TRCN.STATUS=0
+		LEFT JOIN T_DATA_DICTIONARY TDDY ON TRCN.SUPL_TRUE=TDDY.CODE AND TDDY.TYPE='供应商保证' 
+		AND TDDY.STATUS=0 
+		left join T_DATA_DICTIONARY tddy1 on prcd.BUSINESS_STATUS = tddy1.CODE and tddy1.[TYPE] = '案件状态'
+		and tddy1.status= 0
+		WHERE TSCE.STATUS=0
+		and CONVERT(DATE,TSCE.CREATE_ON)=CONVERT(DATE,GETDATE()-1)
+		]]>
+		<isNotEmpty property="cust_name">
+		and TSCE.CUST_NAME like '%$cust_name$%'
+		</isNotEmpty>
+		<isNotEmpty property="supl_name">
+		and TSCE.SUPL_NAME like '%$supl_name$%'
+		</isNotEmpty>
+		<isNotEmpty property="business_status">
+		and prcd.BUSINESS_STATUS = #business_status#
+		</isNotEmpty>
+		<isNotEmpty property="supl_true">
+		and TRCN.SUPL_TRUE = #supl_true#
+		</isNotEmpty>
+	</select>
+
+	<select id="getGuiHuSumForAudit" parameterClass="map" resultClass="hashMap">
+		select 
+		isnull(sum(isnull(TSCE.UNIT_PRICE,0)),0) as UNIT_PRICE_SUM
+		, isnull(sum(isnull(TSCE.PAY_MONEY,0)),0) as PAY_MONEY_SUM
+		, isnull(sum(isnull(tt.loss_ren_price,0)),0) as REST_MONEY_SUM
+		from T_SUPPLER_CONTRIBUTE TSCE
+		left join T_PRJT_CREDIT prcd on TSCE.CREDIT_ID = prcd.ID
+		LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TSCE.RECP_ID=TRCN.RECP_ID AND TRCN.STATUS=0
+		left join (
+			select SUM(loss_own_price) as loss_ren_price, t.RECP_ID from(
+			  select 
+			  	case when convert(decimal,isnull(recd.REDUCE_OWN_PRICE, 0)) >= convert(decimal,isnull(recd.REN_PRICE, 0))
+			    then isnull(recd.IRR_MONTH_PRICE, 0) - (isnull(recd.REDUCE_OWN_PRICE, 0)-isnull(recd.VALUE_ADDED_TAX, 0))
+			    else isnull(recd.IRR_MONTH_PRICE, 0) - isnull(recd.REN_PRICE, 0) end as loss_own_price
+			    , recd.RECP_ID
+			  from T_RENT_COLLECTIONDETAIL recd
+			  where recd.status = 0
+			  <![CDATA[and (recd.REDUCE_OWN_PRICE is null or recd.REDUCE_OWN_PRICE < (recd.IRR_MONTH_PRICE+isnull(recd.VALUE_ADDED_TAX, 0)))]]>
+			) t
+			group by t.RECP_ID
+		)tt on tt.RECP_ID = TRCN.RECP_ID
+		LEFT JOIN T_DATA_DICTIONARY TDDY ON TRCN.SUPL_TRUE=TDDY.CODE AND TDDY.TYPE='供应商保证' 
+		AND TDDY.STATUS=0 
+		left join T_DATA_DICTIONARY tddy1 on prcd.BUSINESS_STATUS = tddy1.CODE and tddy1.[TYPE] = '案件状态'
+		and tddy1.status= 0
+		WHERE TSCE.STATUS=0
+		and CONVERT(DATE,TSCE.CREATE_ON)=CONVERT(DATE,GETDATE()-1)
+		<isNotEmpty property="cust_name">
+		and TSCE.CUST_NAME like '%$cust_name$%'
+		</isNotEmpty>
+		<isNotEmpty property="supl_name">
+		and TSCE.SUPL_NAME like '%$supl_name$%'
+		</isNotEmpty>
+		<isNotEmpty property="business_status">
+		and prcd.BUSINESS_STATUS = #business_status#
+		</isNotEmpty>
+		<isNotEmpty property="supl_true">
+		and TRCN.SUPL_TRUE = #supl_true#
+		</isNotEmpty>
+	</select>
+
+	<select id="isThisDept" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0)
+		from T_USER_USER2COMPANY uc
+		left join t_user_user u on uc.[USER_ID] = u.ID
+		where uc.DEPT_ID = #dept_id#
+		and u.ID = #user_id#
+	</select>
+	
+	<select id="getLeaseTypeById" parameterClass="map" resultClass="java.lang.String">
+		select 
+		(
+		  select top 1 SHORTNAME
+		  from T_DATA_DICTIONARY d
+		  where [TYPE] = '融资租赁合同类型'
+		  and d.CODE = pc.CONTRACT_TYPE
+		) as CONTRACT_TYPE
+		from T_PRJT_CREDIT pc
+		where ID = #credit_id#
+	</select>
+	
+	<select id="getProjectInfo" parameterClass="map" resultClass="hashMap">
+		select top 1 pc.CREDIT_RUNCODE,
+		cust.CUST_NAME,
+		ps.LEASE_RZE
+		from T_PRJT_CREDIT pc
+		left join T_CUST_CUSTOMER cust on pc.CUST_ID = cust.CUST_ID
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		where pc.ID = #creidt_id#
+	</select>
+	
+	<select id="getLeaseCodeFlag" parameterClass="map" resultClass="java.lang.Integer">
+		select top 1 FLAG from T_REJECT_FLAG
+		where LEASE_CODE = #leaseCode#
+		order by CREATE_TIME desc
+	</select>
+	
+	<select id="getPrjtMerge" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0) from T_PRJT_MERGE
+		where CREDIT_ID = #credit_id#
+		and STATUS = 0
+	</select>
+	
+	<!-- *********审查评分表********* -->
+	<select id="getRatingSubject" parameterClass="map" resultClass="com.brick.risk_audit.to.ScoreCardTO">
+		select rs.ID as subject_id
+			,rs.CREATE_DATE as subject_create_date
+			,u.name as subject_create_by
+			,rs.STATUS as subject_status
+			,rs.SUBJECT as subject
+			,rs.ORDER_BY as subject_order_by
+			,rs.MEMO as subject_memo
+			,rs.SUBJECT_LEVEL as subject_level
+			,rs.UP_ID as up_id
+			, isnull(ro.c, 0) as option_count
+  			, isnull(ro.s, 0) as option_score_sum
+		from T_PRJT_RISK_RATING_SUBJECT rs
+		left join t_user_user u on rs.CREATE_BY = u.id
+		left join (
+		  select SUBJECT_ID
+			, sum(t.c) as 'c'
+			, sum(t.s) as 's'
+			from (
+			select SUBJECT_ID, count(0) as 'c'
+			, case when OPTION_TYPE = 1 then max(isnull(OPTION_SCORE, 0))
+			when OPTION_TYPE = 2 then sum(isnull(OPTION_SCORE, 0))
+			else 0 end as 's'
+			from T_PRJT_RISK_RATING_OPTION
+			where STATUS = 0
+			group by SUBJECT_ID, OPTION_TYPE
+			) t
+			group by t.SUBJECT_ID
+		) ro on ro.SUBJECT_ID = rs.ID
+		where 1 = 1
+		<isNotEmpty property="search_status">
+			<isNotEqual property="search_status" compareValue="N">
+				and rs.STATUS = #search_status#
+			</isNotEqual>
+		</isNotEmpty>
+		<isNotEmpty property="subject_level">
+			and rs.SUBJECT_LEVEL = #subject_level#
+		</isNotEmpty>
+		<isNotEmpty property="search_context">
+			and (
+				rs.SUBJECT like '%$search_context$%'
+				or u.name like '%$search_context$%'
+			)
+		</isNotEmpty>
+	</select>
+	
+	<select id="getSubjectLevel1" resultClass="com.brick.base.to.SelectionTo">
+		select ID as option_value
+			,SUBJECT as display_name
+		from T_PRJT_RISK_RATING_SUBJECT
+		where STATUS = 0
+		and SUBJECT_LEVEL = 1
+	</select>
+	
+	<select id="getRatingOption" parameterClass="map" resultClass="com.brick.risk_audit.to.ScoreCardTO">
+		select ro.ID as option_id
+			, ro.SUBJECT_ID as subject_id
+			, ro.CREATE_DATE as option_create_date
+			, u.name as option_create_by
+			, ro.STATUS as option_status
+			, ro.OPTION_NAME as option_name
+			, ro.OPTION_SCORE as option_score
+			, ro.OPTION_TYPE as option_type
+			, ro.ORDER_BY as option_order_by
+			, ro.MEMO as option_memo
+		from T_PRJT_RISK_RATING_OPTION ro
+		left join t_user_user u on ro.CREATE_BY = u.id
+		where ro.SUBJECT_ID = #subject_id#
+		<isNotEmpty property="option_status">
+			and ro.STATUS = #search_status#
+		</isNotEmpty>
+	</select>
+	
+	<insert id="addRatingSubject" parameterClass="com.brick.risk_audit.to.ScoreCardTO">
+		insert into T_PRJT_RISK_RATING_SUBJECT (
+		   CREATE_DATE
+		  ,CREATE_BY
+		  ,STATUS
+		  ,SUBJECT
+		  ,ORDER_BY
+		  ,MEMO
+		  ,SUBJECT_LEVEL
+		  ,UP_ID
+		) VALUES (
+		   getdate()
+		  ,#subject_create_by#
+		  ,#subject_status#
+		  ,#subject#
+		  ,#subject_order_by#
+		  ,#subject_memo#
+		  ,#subject_level#
+		  ,#up_id#
+		  <selectKey resultClass="java.lang.Integer" keyProperty="subject_id">
+			<![CDATA[	select @@IDENTITY as id  ]]>
+		</selectKey>
+		)
+	</insert>
+	
+	<insert id="addRatingOption" parameterClass="com.brick.risk_audit.to.ScoreCardTO">
+		insert into T_PRJT_RISK_RATING_OPTION (
+		   SUBJECT_ID
+		  ,CREATE_DATE
+		  ,CREATE_BY
+		  ,STATUS
+		  ,OPTION_NAME
+		  ,OPTION_SCORE
+		  ,OPTION_TYPE
+		  ,ORDER_BY
+		  ,MEMO
+		) VALUES (
+		   #subject_id#
+		  ,getdate()
+		  ,#option_create_by#
+		  ,#option_status#
+		  ,#option_name#
+		  ,#option_score#
+		  ,#option_type#
+		  ,#option_order_by#
+		  ,#option_memo#
+		)
+	</insert>
+	
+	<update id="updateRatingSubjectStatus" parameterClass="com.brick.risk_audit.to.ScoreCardTO">
+		update T_PRJT_RISK_RATING_SUBJECT
+		set STATUS = #subject_status#
+		where ID = #subject_id#
+	</update>
+	
+	<update id="updateRatingOptionStatus" parameterClass="com.brick.risk_audit.to.ScoreCardTO">
+		update T_PRJT_RISK_RATING_OPTION
+		set STATUS = #option_status#
+		where ID = #option_id#
+	</update>
+	
+	<select id="getAllSubjectAndOptionByLevel" parameterClass="com.brick.risk_audit.to.ScoreCardTO" resultClass="com.brick.risk_audit.to.ScoreCardTO">
+		select 
+		s.ID as subject_id
+		,o.ID as option_id
+		,(
+		  select count(0)
+		  from T_PRJT_RISK_RATING_OPTION oc
+		  where oc.SUBJECT_ID = s.ID
+		  and oc.STATUS = 0
+		) as option_count
+		, (
+		  select count(0)
+		  from T_PRJT_RISK_RATING_SUBJECT sn
+		  left join T_PRJT_RISK_RATING_OPTION o on o.SUBJECT_ID = sn.ID
+		  where sn.STATUS = 0 and o.STATUS = 0
+		  and sn.SUBJECT_LEVEL = s.SUBJECT_LEVEL + 1
+		  and sn.UP_ID = s.ID
+		) as nextLevelCount
+		,s.SUBJECT as subject
+		,o.OPTION_NAME as option_name
+		,s.UP_ID as up_id
+		,o.OPTION_SCORE as option_score
+		,o.OPTION_TYPE as option_type
+		,s.MEMO as subject_memo
+		,o.MEMO as option_memo
+		from T_PRJT_RISK_RATING_SUBJECT s
+		left join T_PRJT_RISK_RATING_OPTION o on o.SUBJECT_ID = s.ID
+			and o.STATUS = 0
+		where s.STATUS = 0
+		and s.SUBJECT_LEVEL = #subject_level#
+		order by s.ORDER_BY, o.ORDER_BY
+	</select>
+	
+	<select id="getSubjectAndOptionForCurrent" parameterClass="com.brick.risk_audit.to.ScoreCardTO" resultClass="com.brick.risk_audit.to.ScoreCardTO">
+		select SUBJECT_ID, option_id, option_count
+		, nextLevelCount, subject, option_name, up_id
+		, option_score, option_type
+		, subject_memo ,option_memo
+		from (
+			select 
+			s.ID as subject_id
+			,o.ID as option_id
+			,(
+			  select count(0)
+			  from T_PRJT_RISK_RATING_OPTION oc
+			  where oc.SUBJECT_ID = s.ID
+			  and oc.ID in ($scoreCard$)
+			) as option_count
+			, (
+			  select count(0)
+			  from T_PRJT_RISK_RATING_SUBJECT sn
+			  left join T_PRJT_RISK_RATING_OPTION onn on onn.SUBJECT_ID = sn.ID
+			  where sn.SUBJECT_LEVEL = s.SUBJECT_LEVEL + 1
+			  and sn.UP_ID = s.ID
+			  and onn.ID in ($scoreCard$)
+			) as nextLevelCount
+			,s.SUBJECT as subject
+			,o.OPTION_NAME as option_name
+			,s.UP_ID as up_id
+			,o.OPTION_SCORE as option_score
+			,o.OPTION_TYPE as option_type
+			,s.MEMO as subject_memo
+			,o.MEMO as option_memo
+			,s.ORDER_BY as o1
+			,o.ORDER_BY as o2
+			from T_PRJT_RISK_RATING_SUBJECT s
+			left join T_PRJT_RISK_RATING_OPTION o on o.SUBJECT_ID = s.ID
+			and o.ID in ($scoreCard$)
+			where s.SUBJECT_LEVEL = #subject_level#
+		) t
+		where t.nextLevelCount > 0 or t.option_id is not null
+		order by t.o1, t.o2
+	</select>
+	
+	<update id="deleteScoreCardSetting" parameterClass="map">
+		update T_PRJT_RISK_SCORE_CARD
+		set STATUS = -1
+		WHERE CONTRACT_TYPE = #contractType#
+	</update>
+	
+	<insert id="saveScoreCardSetting" parameterClass="map">
+		INSERT INTO T_PRJT_RISK_SCORE_CARD(
+			CREATE_DATE
+			,CREATE_BY
+			,CONTRACT_TYPE
+			,STATUS
+			,SCORE_CARD
+		)VALUES(
+			getdate()
+			,#create_by#
+			,#contractType#
+			,0
+			,#scoreCard#
+		)
+	</insert>
+	
+	<update id="saveScoreCard" parameterClass="map">
+		update T_PRJT_RISK_CONTROL
+			set SCORE_CARD = #scoreCard#
+			, SCORE = #score#
+			, SCORE_CARD_ALL = #scoreCardCode#
+			, SCORE_DATE = getdate()
+		where PRC_ID = #prc_id#
+	</update>
+	
+	<select id="getScoreCardByRisk" parameterClass="map" resultClass="java.lang.String">
+		select SCORE_CARD
+		from T_PRJT_RISK_CONTROL
+		where PRC_ID = #prc_id#
+	</select>
+	
+	<select id="getScoreByRisk" parameterClass="map" resultClass="com.brick.risk_audit.to.RiskScoreCard">
+		select PRC_ID as riskId
+			, SCORE_CARD as selectedScoreCard
+			, SCORE_CARD_ALL as allScoreCard
+			, SCORE as score
+			, SCORE_DATE as scoreDate
+		from T_PRJT_RISK_CONTROL
+		where PRC_ID = #prc_id#
+	</select>
+	
+	<select id="getAllScoreCardByRisk" parameterClass="map" resultClass="java.lang.String">
+		select SCORE_CARD_ALL
+		from T_PRJT_RISK_CONTROL
+		where PRC_ID = #prc_id#
+	</select>
+	
+	
+	<select id="getGuarantorForCorp" parameterClass="map" resultClass="hashMap">
+		select CORP_NAME_CN as [NAME], BUSINESS_LICENCE_CODE AS [CODE]
+		from T_PRJT_VOUCHCUSTOMERCORP
+		where PJCCC_ID = #guarantor_id#
+	</select>
+	
+	<select id="getGuarantorForNatu" parameterClass="map" resultClass="hashMap">
+		select CUST_NAME as [NAME], NATU_IDCARD AS [CODE]
+		from T_PRJT_CREDITVOUCHNATU
+		where PRON_ID = #guarantor_id#
+	</select>
+	
+	<update id="updateGuarantorForCorp" parameterClass="map">
+		update T_PRJT_VOUCHCUSTOMERCORP
+		set BUSINESS_LICENCE_CODE = #guarantor_code#
+		where PJCCC_ID = #guarantor_id#
+	</update>
+	
+	<update id="updateGuarantorForNatu" parameterClass="map">
+		update T_PRJT_CREDITVOUCHNATU
+		set NATU_IDCARD = #guarantor_code#
+		where PRON_ID = #guarantor_id#
+	</update>
+	
+	<update id="updateEqmAddr" parameterClass="map">
+		update T_PRJT_CREDITSCHEME
+		set EQUPMENT_ADDRESS = #equpment_address#
+		where CREDIT_ID = #credit_id#
+	</update>
+	
+	<select id="getProjectMemo" parameterClass="map" resultClass="java.lang.String">
+		select PROJECT_CONTENT
+		from T_PRJT_CREDITPRIORPROJECTS
+		where PCPP_ID = #memo_id#
+	</select>
+	
+	<select id="getProjectMemoForManage" parameterClass="map" resultClass="java.lang.String">
+		select MEMO
+		from T_PRJT_CREDITMEMO
+		where PRCM_ID = #memo_id#
+	</select>
+	
+	<update id="updateProjectMemo" parameterClass="map">
+		update T_PRJT_CREDITPRIORPROJECTS
+		set PROJECT_CONTENT = #memo#
+		where PCPP_ID = #memo_id#
+	</update>
+	<update id="updateProjectMemoForManage" parameterClass="map">	
+		update T_PRJT_CREDITMEMO
+		set MEMO = #memo#
+		where PRCM_ID = #memo_id#
+	</update>
+	
+	<select id="getRiskHistory" parameterClass="map" resultClass="hashMap">
+		select PRC_ID, SCORE_CARD, SCORE_CARD_ALL 
+		from T_PRJT_RISK_CONTROL
+		where CREDIT_ID = #credit_id#
+		and PRC_ID != #this_prc_id#
+		order by COMMIT_TIME desc
+	</select>
+	
+	<insert id="saveVerifiedLog" parameterClass="com.brick.util.nciic.NciicEntity">
+		insert into T_IDCARD_VERIFY(
+		   [NAME]
+		  ,CODE
+		  ,RESULT
+		  ,IMG
+		  ,CREATE_TIME
+		  ,CREATE_BY
+		  ,STATUS
+		) VALUES (
+		   #xm#
+		  ,#gmsfhm#
+		  ,#result_msg#
+		  ,#xp_file#
+		  ,getdate()
+		  ,#create_by#
+		  ,0
+		)
+	</insert>
+	
+</sqlMap>

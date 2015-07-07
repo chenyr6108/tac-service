@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+ "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="actionLog">
+    <insert id="insertActionLog" parameterClass="com.brick.log.to.ActionLogTo">
+    	insert into T_SYS_ACTIONLOG (
+		   CREATE_DATE
+		  ,LOG_BY
+		  ,LOG_ACTION
+		  ,LOG_CONTENT
+		  ,LOG_IP
+		) VALUES (
+		   getdate()
+		  ,#logBy#
+		  ,#logAction#
+		  ,#logContent#
+		  ,#logIp#
+		)
+    </insert>
+    
+    <select id="getAllLog" parameterClass="map" resultClass="hashMap">
+    	select top 500 ID, CREATE_DATE, LOG_BY, LOG_ACTION, LOG_CONTENT, LOG_IP
+    	from T_SYS_ACTIONLOG
+    	where 1 = 1
+    	<isNotEmpty property="search_content">
+    		and (LOG_ACTION like '%$search_content$%' 
+    			or LOG_CONTENT like '%$search_content$%'
+    			or LOG_BY like '%$search_content$%')
+    	</isNotEmpty>
+    </select>
+    <select id="getAllLog_count" parameterClass="map" resultClass="java.lang.Integer">
+    	select count(0) from T_SYS_ACTIONLOG
+    	where 1 = 1
+    	<isNotEmpty property="search_content">
+    		and (LOG_ACTION like '%$search_content$%' 
+    			or LOG_CONTENT like '%$search_content$%'
+    			or LOG_BY like '%$search_content$%')
+    	</isNotEmpty>
+    </select>
+</sqlMap>

@@ -1,0 +1,706 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="common">
+
+	<select id="queryMailSettingPageCount" resultClass="java.lang.Integer">
+	  	      SELECT COUNT(1)
+		        FROM T_SEND_EMAIL TSEL
+		   LEFT JOIN T_USER_USER TUUR ON TSEL.CREATE_BY=TUUR.ID
+		   LEFT JOIN T_DATA_DICTIONARY TDDY ON TDDY.CODE=TSEL.SEND_FLAG AND TDDY.[TYPE]=#TYPE#
+		       WHERE TSEL.STATUS=0
+		     <isNotEmpty property="SEND_RESULT">
+		         AND TSEL.SEND_FLAG=#SEND_RESULT#
+		     </isNotEmpty>
+	         <isNotEmpty property="MAIL_TYPE">
+		         AND TSEL.EMAIL_TYPE=#MAIL_TYPE#
+	         </isNotEmpty>
+	         <isNotEmpty property="MAIL_ADDRESS">
+	             AND (TSEL.EMAIL_TO LIKE '%$MAIL_ADDRESS$%' OR TSEL.EMAIL_CC LIKE '%$MAIL_ADDRESS$%' OR TSEL.EMAIL_BCC LIKE '%$MAIL_ADDRESS$%')
+             </isNotEmpty>
+	         <isNotEmpty property="SEND_FROM_TIME">
+	             AND CONVERT(DATE,TSEL.SEND_TIME)>=CONVERT(DATE,#SEND_FROM_TIME#)
+             </isNotEmpty>
+             <isNotEmpty property="SEND_TO_TIME">
+             	 AND CONVERT(DATE,TSEL.SEND_TIME)&lt;=CONVERT(DATE,#SEND_TO_TIME#)
+             </isNotEmpty>
+             <isNotEmpty property="MAIL_SUBJECT">
+             	 AND TSEL.EMAIL_SUBJECT LIKE '%$MAIL_SUBJECT$%'
+             </isNotEmpty>
+             <isEqual property="MAIL_PATH" compareValue="1">
+             	 AND TSEL.EMAIL_ATTACH_PATH IS NOT NULL
+             </isEqual>
+             <isEqual property="MAIL_PATH" compareValue="2">
+                 AND TSEL.EMAIL_ATTACH_PATH IS NULL
+             </isEqual>
+	</select>
+
+	<select id="queryMailSettingPage" resultClass="com.brick.common.mail.to.MailSettingTo">
+			  SELECT TSEL.ID id,
+		  			 TSEL.EMAIL_FROM emailFrom,
+		             TSEL.EMAIL_TO emailTo,
+		             TSEL.EMAIL_CC emailCc,
+		             TSEL.EMAIL_BCC emailBcc,
+		             TSEL.EMAIL_SUBJECT emailSubject,
+		             TSEL.EMAIL_CONTENT emailContent,
+		             TSEL.EMAIL_ATTACH_PATH emailAttachPath,
+		             TSEL.SEND_TIME sendTime,
+		             TSEL.SEND_FLAG sendFlag,			  <!-- 此栏位是标识发送是否成功,0默认没发送,1发送成功,-1发送失败 -->
+		             TDDY.FLAG sendResult,
+		             TSEL.SEND_COUNT sendCount,
+		             TDDY1.FLAG emailTypeDescr,<!-- 此栏位是区分哪个功能使用此条数据 -->
+		             TUUR.[NAME] name,
+		             TSEL.STATUS status
+		        FROM T_SEND_EMAIL TSEL
+		   LEFT JOIN T_USER_USER TUUR ON TSEL.CREATE_BY=TUUR.ID
+		   LEFT JOIN T_DATA_DICTIONARY TDDY ON TDDY.CODE=TSEL.SEND_FLAG AND TDDY.[TYPE]=#TYPE# AND TDDY.STATUS=0
+		   LEFT JOIN T_DATA_DICTIONARY TDDY1 ON TDDY1.CODE=TSEL.EMAIL_TYPE AND TDDY1.[TYPE]=#TYPE1# AND TDDY1.STATUS=0
+		       WHERE TSEL.STATUS=0				  <!-- 是否启用 -->
+		     <isNotEmpty property="SEND_RESULT">
+		         AND TSEL.SEND_FLAG=#SEND_RESULT#
+		     </isNotEmpty>
+	         <isNotEmpty property="MAIL_TYPE">
+		         AND TSEL.EMAIL_TYPE=#MAIL_TYPE#
+	         </isNotEmpty>
+	         <isNotEmpty property="MAIL_ADDRESS">
+	             AND (TSEL.EMAIL_TO LIKE '%$MAIL_ADDRESS$%' OR TSEL.EMAIL_CC LIKE '%$MAIL_ADDRESS$%' OR TSEL.EMAIL_BCC LIKE '%$MAIL_ADDRESS$%')
+             </isNotEmpty>
+	         <isNotEmpty property="SEND_FROM_TIME">
+	             AND CONVERT(DATE,TSEL.SEND_TIME)>=CONVERT(DATE,#SEND_FROM_TIME#)
+             </isNotEmpty>
+             <isNotEmpty property="SEND_TO_TIME">
+             	 AND CONVERT(DATE,TSEL.SEND_TIME)&lt;=CONVERT(DATE,#SEND_TO_TIME#)
+             </isNotEmpty>
+             <isNotEmpty property="MAIL_SUBJECT">
+             	 AND TSEL.EMAIL_SUBJECT LIKE '%$MAIL_SUBJECT$%'
+             </isNotEmpty>
+             <isEqual property="MAIL_PATH" compareValue="1">
+             	 AND TSEL.EMAIL_ATTACH_PATH IS NOT NULL
+             </isEqual>
+             <isEqual property="MAIL_PATH" compareValue="2">
+                 AND TSEL.EMAIL_ATTACH_PATH IS NULL
+             </isEqual>
+	        ORDER BY TSEL.SEND_TIME DESC,TSEL.CREATE_TIME DESC
+	</select>
+	
+	<insert id="insertEmailSendRecord">
+			 INSERT INTO T_SEND_EMAIL
+			 (EMAIL_FROM,EMAIL_TO,EMAIL_CC,EMAIL_SUBJECT,EMAIL_CONTENT,
+			  EMAIL_ATTACH_PATH,SEND_FLAG,SEND_COUNT,EMAIL_TYPE,STATUS,
+			  CREATE_TIME,CREATE_BY,EMAIL_BCC)
+			 VALUES
+			 (#emailFrom#,#emailTo#,#emailCc#,#emailSubject#,#emailContent#,
+			  #emailAttachPath#,#sendFlag#,#sendCount#,#emailType#,0,
+			  GETDATE(),#createBy#,#emailBcc#)
+			 <selectKey resultClass="int" keyProperty="id" >
+				 SELECT @@IDENTITY AS id
+			 </selectKey> 
+	</insert>
+	
+	<update id="updateEmail">
+			UPDATE T_SET_EMAIL SET STATUS=#status# WHERE ID=#id#
+	</update>
+	
+	<select id="getSetMail" resultClass="com.brick.common.mail.to.MailSettingTo">
+			 SELECT TSEL.ID id,
+			 		TSEL.EMAIL_TYPE emailType,
+			 		TSEL.EMAIL_TYPE_GROUP emailTypeGroup,
+			 		TSEL.DEPT_ID deptId,
+		  			TSEL.EMAIL_FROM emailFrom,
+		            TSEL.EMAIL_TO emailTo,
+		            TSEL.EMAIL_CC emailCc,
+		            TSEL.EMAIL_BCC emailBcc,
+		            TSEL.EMAIL_SUBJECT emailSubject,
+		            TSEL.EMAIL_ATTACH_PATH emailAttachPath,
+		            TSEL.EMAIL_CONTENT emailContent
+		       FROM T_SET_EMAIL TSEL
+		      WHERE TSEL.ID=#id#  
+	</select>
+	
+	<select id="getEmailSetting" resultClass="com.brick.common.mail.to.MailSettingTo">
+			  SELECT TSEL.ID id,
+		  			 TSEL.EMAIL_FROM emailFrom,
+		             TSEL.EMAIL_TO emailTo,
+		             TSEL.EMAIL_CC emailCc,
+		             TSEL.EMAIL_BCC emailBcc,
+		             TSEL.EMAIL_SUBJECT emailSubject,
+		             TSEL.EMAIL_CONTENT emailContent,
+		             TSEL.EMAIL_ATTACH_PATH emailAttachPath,
+		             CONVERT(DATE,TSEL.SEND_TIME) emailSendDate,
+                 	 SUBSTRING(CONVERT(VARCHAR,CONVERT(TIME,TSEL.SEND_TIME)),0,9) emailSendTime,
+		             TSEL.SEND_FLAG sendFlag,			  
+		             TDDY.FLAG sendResult,
+		             TSEL.SEND_COUNT sendCount,
+		             TSEL.EMAIL_TYPE emailType,
+		             <!-- TSEL.EMAIL_TYPE_DESCR emailTypeDescr, -->
+		             TUUR.[NAME] name,
+		             TSEL.STATUS status
+		        FROM T_SEND_EMAIL TSEL
+		   LEFT JOIN T_USER_USER TUUR ON TSEL.CREATE_BY=TUUR.ID
+		   LEFT JOIN T_DATA_DICTIONARY TDDY ON TDDY.CODE=TSEL.SEND_FLAG AND TDDY.[TYPE]=#TYPE#
+		       WHERE TSEL.ID=#id#
+	</select>
+	
+	<select id="getSendResultList" resultClass="com.brick.common.mail.to.MailSettingTo">
+			SELECT CODE code,FLAG descr FROM T_DATA_DICTIONARY WHERE STATUS=0 AND TYPE=#TYPE#
+	</select>
+	
+	<select id="getMailTypeList" resultClass="com.brick.common.mail.to.MailSettingTo">
+			SELECT CODE code,FLAG descr FROM T_DATA_DICTIONARY WHERE STATUS=0 AND TYPE=#TYPE#
+	</select>
+
+	<select id="getMailSettingListPageCount" resultClass="java.lang.Integer">
+				    SELECT COUNT(1)
+				      FROM T_SET_EMAIL TSEL
+			     LEFT JOIN T_USER_USER TUUR ON TUUR.ID=TSEL.CREATE_BY
+			     LEFT JOIN T_DATA_DICTIONARY TDDY ON TDDY.CODE=TSEL.EMAIL_TYPE AND TDDY.TYPE=#TYPE# AND TDDY.STATUS=0 <!-- '邮件所属功能' -->
+       				 WHERE TSEL.STATUS=#STATUS#
+       			  <isNotEmpty property="QUERY_EMAIL_TYPE">
+         			   AND TSEL.EMAIL_TYPE=#QUERY_EMAIL_TYPE#
+         		  </isNotEmpty>
+         		  <isNotEmpty property="QUERY_EMAIL_TYPE_GROUP">
+         			   AND TSEL.EMAIL_TYPE_GROUP=#QUERY_EMAIL_TYPE_GROUP#
+         		  </isNotEmpty>
+	</select>
+		
+	<select id="getMailSettingListPage" resultClass="com.brick.common.mail.to.MailSettingTo">
+				    SELECT TSEL.ID id,
+				   		   TSEL.EMAIL_TYPE emailType,
+	          			   TDDY.FLAG emailTypeDescr,
+					   	   TSEL.EMAIL_FROM emailFrom,
+					       TSEL.EMAIL_TO emailTo,
+					       TSEL.EMAIL_CC emailCc,
+					       TSEL.EMAIL_BCC emailBcc,
+					       TSEL.EMAIL_SUBJECT emailSubject,
+					       TSEL.EMAIL_TYPE_GROUP emailTypeGroup,
+					       TDDY1.FLAG emailTypeGroupDescr,
+					       TSEL.DEPT_ID deptId,
+					       TSEL.DEPT_NAME deptName,
+					       TSEL.STATUS status,
+          				   TUUR.NAME name,
+				           TSEL.CREATE_ON createOn
+				      FROM T_SET_EMAIL TSEL
+			     LEFT JOIN T_USER_USER TUUR ON TUUR.ID=TSEL.CREATE_BY
+			     LEFT JOIN T_DATA_DICTIONARY TDDY ON TDDY.CODE=TSEL.EMAIL_TYPE AND TDDY.TYPE=#TYPE# AND TDDY.STATUS=0 <!-- '邮件所属功能' -->
+			     LEFT JOIN T_DATA_DICTIONARY TDDY1 ON TDDY.CODE=TSEL.EMAIL_TYPE_GROUP AND TDDY.TYPE='邮件所属功能分类' AND TDDY.STATUS=0
+       				 WHERE TSEL.STATUS=#STATUS#
+       			  <isNotEmpty property="QUERY_EMAIL_TYPE">
+         			   AND TSEL.EMAIL_TYPE=#QUERY_EMAIL_TYPE#
+         		  </isNotEmpty>
+         		  <isNotEmpty property="QUERY_EMAIL_TYPE_GROUP">
+         			   AND TSEL.EMAIL_TYPE_GROUP=#QUERY_EMAIL_TYPE_GROUP#
+         		  </isNotEmpty>
+	</select>
+	
+	
+	<select id="getMailSettingListByGroup" resultClass="com.brick.common.mail.to.MailSettingTo">
+				    SELECT TSEL.ID id,
+				   		   TSEL.EMAIL_TYPE emailType,
+	          			   TDDY.FLAG emailTypeDescr,
+					   	   TSEL.EMAIL_FROM emailFrom,
+					       TSEL.EMAIL_TO emailTo,
+					       TSEL.EMAIL_CC emailCc,
+					       TSEL.EMAIL_BCC emailBcc,
+					       TSEL.EMAIL_SUBJECT emailSubject,
+					       TSEL.EMAIL_TYPE_GROUP emailTypeGroup,
+					       TDDY1.FLAG emailTypeGroupDescr,
+					       TSEL.DEPT_ID deptId,
+					       TSEL.DEPT_NAME deptName,
+					       TSEL.STATUS status,
+          				   TUUR.NAME name,
+				           TSEL.CREATE_ON createOn
+				      FROM T_SET_EMAIL TSEL
+			     LEFT JOIN T_USER_USER TUUR ON TUUR.ID=TSEL.CREATE_BY
+			     LEFT JOIN T_DATA_DICTIONARY TDDY ON TDDY.CODE=TSEL.EMAIL_TYPE AND TDDY.TYPE='邮件所属功能' AND TDDY.STATUS=0
+			     LEFT JOIN T_DATA_DICTIONARY TDDY1 ON TDDY.CODE=TSEL.EMAIL_TYPE_GROUP AND TDDY.TYPE='邮件所属功能分类' AND TDDY.STATUS=0
+       			 WHERE TSEL.STATUS=0 AND TSEL.EMAIL_TYPE_GROUP=#emailTypeGroup#
+	</select>
+	
+	<insert id="saveEmailSetting">
+			INSERT INTO T_SET_EMAIL
+			(EMAIL_TYPE,EMAIL_FROM,EMAIL_TO,EMAIL_CC,EMAIL_SUBJECT,EMAIL_CONTENT,STATUS,CREATE_BY,CREATE_ON,EMAIL_ATTACH_PATH,EMAIL_BCC,EMAIL_TYPE_GROUP,DEPT_ID,DEPT_NAME)
+			VALUES
+			(#emailType#,#emailFrom#,#emailTo#,#emailCc#,#emailSubject#,#emailContent#,0,#createBy#,GETDATE(),#emailAttachPath#,#emailBcc#,#emailTypeGroup#,#deptId#,#deptName#)
+	</insert>
+	
+	<update id="updateEmailSetting">
+			UPDATE T_SET_EMAIL SET EMAIL_TYPE=#emailType#,EMAIL_FROM=#emailFrom#,
+				   EMAIL_TO=#emailTo#,EMAIL_CC=#emailCc#,EMAIL_SUBJECT=#emailSubject#,
+				   EMAIL_CONTENT=#emailContent#,EMAIL_ATTACH_PATH=#emailAttachPath#,EMAIL_BCC=#emailBcc#,
+				   EMAIL_TYPE_GROUP=#emailTypeGroup#,DEPT_ID=#deptId#,DEPT_NAME=#deptName#
+			 WHERE ID=#id#
+	</update>
+	
+	<select id="getEmailInfoByEmailType" resultClass="com.brick.common.mail.to.MailSettingTo">
+			SELECT TOP 1 TSEL.ID id,
+				   TSEL.EMAIL_FROM emailFrom,
+				   TSEL.EMAIL_TO emailTo,
+				   TSEL.EMAIL_CC emailCc,
+				   TSEL.EMAIL_BCC emailBcc,
+				   TSEL.EMAIL_SUBJECT emailSubject,
+				   TSEL.EMAIL_CONTENT emailContent,
+				   TSEL.EMAIL_ATTACH_PATH emailAttachPath,
+				   TDDY.FLAG emailTypeDescr,
+				   TSEL.CREATE_BY createBy
+			  FROM T_SET_EMAIL TSEL
+		 LEFT JOIN T_DATA_DICTIONARY TDDY ON TDDY.CODE=TSEL.EMAIL_TYPE AND TDDY.TYPE=#TYPE# AND TDDY.STATUS=0 <!-- '邮件所属功能' -->
+			 WHERE TSEL.STATUS=0
+			   AND TSEL.EMAIL_TYPE=#emailType#
+	</select>
+	
+	<select id="getSendMailRecord" resultClass="com.brick.common.mail.to.MailSettingTo">
+			SELECT TSEL.ID id,
+				   TSEL.EMAIL_FROM emailFrom,
+				   TSEL.EMAIL_TO emailTo,
+				   TSEL.EMAIL_CC emailCc,
+				   TSEL.EMAIL_BCC emailBcc,
+				   TSEL.EMAIL_SUBJECT emailSubject,
+				   TSEL.EMAIL_CONTENT emailContent,
+				   TSEL.EMAIL_ATTACH_PATH emailAttachPath,
+				   TSEL.SEND_COUNT sendCount           
+           	  FROM T_SEND_EMAIL TSEL
+		     WHERE TSEL.STATUS=0
+		       AND (TSEL.SEND_FLAG=0 OR (TSEL.SEND_FLAG=-1 AND TSEL.SEND_COUNT&lt;3))
+	</select>
+	
+	<select id="getSendMailRecordWithoutQQ" resultClass="com.brick.common.mail.to.MailSettingTo">
+			SELECT TSEL.ID id,
+				   TSEL.EMAIL_FROM emailFrom,
+				   TSEL.EMAIL_TO emailTo,
+				   TSEL.EMAIL_CC emailCc,
+				   TSEL.EMAIL_BCC emailBcc,
+				   TSEL.EMAIL_SUBJECT emailSubject,
+				   TSEL.EMAIL_CONTENT emailContent,
+				   TSEL.EMAIL_ATTACH_PATH emailAttachPath,
+				   TSEL.SEND_COUNT sendCount           
+           	  FROM T_SEND_EMAIL TSEL
+		     WHERE TSEL.STATUS=0
+		       AND (TSEL.SEND_FLAG=0 OR (TSEL.SEND_FLAG=-1 AND TSEL.SEND_COUNT&lt;3))
+		       and (EMAIL_TO not like '%@qq.com%' and EMAIL_CC not like '%@qq.com%')
+	</select>
+	
+	<select id="getSendMailRecordForQQ" resultClass="com.brick.common.mail.to.MailSettingTo">
+			SELECT top 1 TSEL.ID id,
+				   TSEL.EMAIL_FROM emailFrom,
+				   TSEL.EMAIL_TO emailTo,
+				   TSEL.EMAIL_CC emailCc,
+				   TSEL.EMAIL_BCC emailBcc,
+				   TSEL.EMAIL_SUBJECT emailSubject,
+				   TSEL.EMAIL_CONTENT emailContent,
+				   TSEL.EMAIL_ATTACH_PATH emailAttachPath,
+				   TSEL.SEND_COUNT sendCount           
+           	  FROM T_SEND_EMAIL TSEL
+		     WHERE TSEL.STATUS=0
+		       AND (TSEL.SEND_FLAG=0 OR (TSEL.SEND_FLAG=-1 AND TSEL.SEND_COUNT&lt;3))
+		       and (EMAIL_TO like '%@qq.com%' or EMAIL_CC like '%@qq.com%')
+		       order by CREATE_TIME
+	</select>
+	
+	
+	<update id="updateSendMailRecord">
+			UPDATE T_SEND_EMAIL SET SEND_FLAG=#sendFlag#,SEND_COUNT=#sendCount#,SEND_TIME=GETDATE(),LAST_UPDATED_BY=184,LAST_UPDATED_TIME=GETDATE() 
+			 WHERE ID=#id#
+	</update>
+	
+	<select id="getDBTableInfo" resultClass="com.brick.sys.TO.DataDictionaryTO">
+  		  SELECT SYS.NAME tableName,O.TABLE_CHINESE_NAME tableChineseName,SYS.crDate tableCreateTime,O1.LAST_UPDATE_ON lastUpdateOn,T.NAME name
+		    FROM SYSOBJECTS SYS 
+	   LEFT JOIN (SELECT TABLE_NAME,TABLE_CHINESE_NAME,LAST_UPDATE_BY 
+				    FROM T_TABLE_DATA_DICTIONARY 
+				   WHERE LAST_UPDATE_ON IN
+				       (SELECT MAX(LAST_UPDATE_ON) LAST_UPDATE_ON 
+					                FROM T_TABLE_DATA_DICTIONARY
+				              GROUP BY TABLE_NAME)) O ON O.TABLE_NAME=SYS.NAME
+	   LEFT JOIN (SELECT TABLE_NAME,MAX(LAST_UPDATE_ON) LAST_UPDATE_ON 
+	                FROM T_TABLE_DATA_DICTIONARY
+              	GROUP BY TABLE_NAME) O1 ON O1.TABLE_NAME=SYS.NAME
+   	   LEFT JOIN T_USER_USER T ON T.ID=O.LAST_UPDATE_BY AND T.STATUS=0
+		   WHERE SYS.XTYPE='U'
+		 <isNotEmpty property="START_DATE">
+		     AND CONVERT(DATE,O1.LAST_UPDATE_ON)>=CONVERT(DATE,#START_DATE#)
+		 </isNotEmpty>
+		 <isNotEmpty property="END_DATE">
+		 	 AND CONVERT(DATE,O1.LAST_UPDATE_ON)&lt;=CONVERT(DATE,#END_DATE#)
+		 </isNotEmpty>
+		 <isNotEmpty property="ID">
+		     AND T.ID=#ID#
+		 </isNotEmpty>  
+		 <isNotEmpty property="TABLE_NAME">
+		     AND (SYS.NAME LIKE '%$TABLE_NAME$%' OR O.TABLE_CHINESE_NAME LIKE '%$TABLE_NAME$%')
+		 </isNotEmpty>
+		 <isEqual property="IS_MAINTENANCE" compareValue="Y">
+			 AND EXISTS
+			     (SELECT 1 
+			        FROM T_TABLE_DATA_DICTIONARY T1
+			       WHERE T1.TABLE_NAME=SYS.NAME 
+			         AND NOT EXISTS (SELECT 1 FROM T_TABLE_DATA_DICTIONARY T2
+			                          WHERE T2.TABLE_NAME=T1.TABLE_NAME AND T2.DESCRIPTION=''
+			         )
+			      )
+		 </isEqual>
+		 <isEqual property="IS_MAINTENANCE" compareValue="N">
+		 	 AND NOT EXISTS
+			     (SELECT 1 
+			        FROM T_TABLE_DATA_DICTIONARY T1
+			       WHERE T1.TABLE_NAME=SYS.NAME 
+			         AND NOT EXISTS (SELECT 1 FROM T_TABLE_DATA_DICTIONARY T2
+			                          WHERE T2.TABLE_NAME=T1.TABLE_NAME AND T2.DESCRIPTION=''
+			         )
+			      )
+		 </isEqual>
+	</select>
+	
+	<select id="isMaintenanceTable" resultClass="com.brick.sys.TO.DataDictionaryTO">
+			<!-- SELECT TABLE_NAME tableName FROM T_TABLE_DATA_DICTIONARY
+			 WHERE TABLE_NAME NOT IN
+				 (
+				   SELECT DISTINCT TABLE_NAME FROM T_TABLE_DATA_DICTIONARY WHERE (DESCRIPTION='' OR TABLE_CHINESE_NAME='' OR REMARK='')
+				  )
+		  GROUP BY TABLE_NAME -->
+		  SELECT A.TABLE_NAME tableName FROM T_TABLE_DATA_DICTIONARY A
+			 WHERE NOT EXISTS
+				 (
+				   SELECT 1 FROM T_TABLE_DATA_DICTIONARY B WHERE (B.DESCRIPTION='' OR B.TABLE_CHINESE_NAME='' OR B.REMARK='')
+           AND A.TABLE_NAME=B.TABLE_NAME
+				  )
+		  GROUP BY A.TABLE_NAME
+	</select>
+	
+	<select id="getDBTableDetail1" resultClass="com.brick.sys.TO.DataDictionaryTO">
+		SELECT TABLE_NAME tableName,'' tableChineseName,0 version,0 id,COLUMN_NAME columnName,DATA_TYPE dataType,'' description,'' remark 
+		  FROM INFORMATION_SCHEMA.COLUMNS
+		 WHERE TABLE_NAME=#TABLE_NAME#
+	</select>
+	<select id="getDBTableDetail2" resultClass="com.brick.sys.TO.DataDictionaryTO">
+		SELECT TABLE_NAME tableName,TABLE_CHINESE_NAME tableChineseName,VERSION version,ID id,COLUMN_NAME columnName,DATA_TYPE dataType,DESCRIPTION description,REMARK remark 
+		  FROM T_TABLE_DATA_DICTIONARY
+		 WHERE TABLE_NAME=#TABLE_NAME#
+	  ORDER BY TABLE_NAME
+	</select>
+	
+	<select id="getDBTableConstraint" resultClass="com.brick.sys.TO.DataDictionaryTO">
+		SELECT CONSTRAINT_NAME constraintName,COLUMN_NAME columnName 
+		  FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+		 WHERE TABLE_NAME=#TABLE_NAME#
+	</select>
+	
+	<delete id="deleteTableInfo">
+		DELETE FROM T_TABLE_DATA_DICTIONARY WHERE TABLE_NAME=#tableName#
+	</delete>
+	
+	<insert id="insertTableInfo">
+		INSERT INTO T_TABLE_DATA_DICTIONARY
+		(TABLE_NAME,COLUMN_NAME,DATA_TYPE,DESCRIPTION,LAST_UPDATE_BY,LAST_UPDATE_ON,VERSION,REMARK,TABLE_CHINESE_NAME)
+		VALUES
+		(#tableName#,#columnName#,#dataType#,#description#,#s_employeeId#,GETDATE(),#version#,#remark#,#tableChineseName#)
+	</insert>
+	
+	<select id="getItUserList" resultClass="com.brick.sys.TO.DataDictionaryTO">
+		SELECT ID id,NAME name FROM T_USER_USER WHERE STATUS=0 AND NAME IN ('沈祺','胡天書','杨赟','黄韦凯')
+	</select>
+	
+	<delete id="deleteColumn">
+		DELETE FROM T_TABLE_DATA_DICTIONARY WHERE TABLE_NAME=#tableName# AND COLUMN_NAME=#columnName#
+	</delete>
+	
+	<select id="exportTableList" resultClass="com.brick.sys.TO.DataDictionaryTO">
+        SELECT DISTINCT TABLE_NAME tableName FROM T_TABLE_DATA_DICTIONARY
+	</select>
+	
+	<select id="exportTableDetailList" resultClass="com.brick.sys.TO.DataDictionaryTO">
+        SELECT TABLE_NAME tableName,TABLE_CHINESE_NAME tableChineseName,COLUMN_NAME columnName,DATA_TYPE dataType,DESCRIPTION description,REMARK remark
+       	  FROM T_TABLE_DATA_DICTIONARY
+	</select>
+	
+	<select id="getNewestCreditId" resultClass="java.lang.Integer">
+		SELECT TOP 1 O.ID FROM (SELECT TOP 2 ID FROM T_PRJT_CREDIT WHERE CUST_ID=#cust_id# AND STATUS=0 AND STATE!=-1 ORDER BY ID DESC) O ORDER BY O.ID ASC
+	</select>
+	
+	<select id="getCopyCreditList" resultClass="java.util.HashMap">
+		SELECT ID,CREDIT_RUNCODE FROM T_PRJT_CREDIT WHERE CUST_ID=#custId# ORDER BY ID DESC
+	</select>
+	
+	<select id="getPermissions" resultClass="java.lang.String">
+		    	SELECT DISTINCT FR.PERMISSION_CODE PERMISSION_CODE
+				  FROM FIL_PERMISSION_RESOURCE FR
+			 LEFT JOIN FIL_PERMISSION_RESOURCE FFR ON FR.PARENT_ID = FFR.ID
+					 WHERE FR.ID IN (
+			                			SELECT DISTINCT RESOURCE_ID FROM FIL_PERMISSION_RESOURCE2ROLE
+			                			 WHERE ROLE_ID IN (
+			                			      SELECT ROLE_ID FROM T_USER_USER2ROLE
+			                			       WHERE EMPLOYEE_ID = #s_employeeId#
+			                      			   AND STATUS = 0
+			                      			 ) 
+			                         AND STATUS = 0
+			              			) 
+			       AND FR.STATUS = 0 
+			       AND FR.PARENT_ID IS NOT NULL 
+			       AND FR.PARENT_ID != 0
+			       AND FR.LEVEL_NUM = -1
+			       AND (FR.PERMISSION_CODE IS NOT NULL OR FR.PERMISSION_CODE!='')
+	</select>
+	
+	<select id="getCompanyList" resultClass="com.brick.deptCmpy.to.DeptCmpyTO">
+		    SELECT DECP_ID companyId,DECP_NAME_CN companyName
+		      FROM T_DEPT_COMPANY
+		     WHERE STATUS=0
+		       AND LEGELR=2
+		       AND DECP_NAME_CN!='苏州总公司' AND DECP_NAME_CN!='苏州小车'
+		  ORDER BY [ORDER]
+	</select>
+	
+	<select id="getCompanyList1" resultClass="com.brick.deptCmpy.to.DeptCmpyTO">
+		    SELECT DECP_ID companyId,DECP_NAME_CN companyName
+		      FROM T_DEPT_COMPANY
+		     WHERE STATUS=0
+		       AND LEGELR=2
+		       AND DECP_NAME_CN!='苏州小车'
+		  ORDER BY [ORDER]
+	</select>
+	
+	<select id="getDeptList" resultClass="com.brick.deptCmpy.to.DeptCmpyTO">
+		SELECT ID deptId,DEPT_NAME deptName
+		  FROM T_DEPT_DEPARTMENT
+		 WHERE STATUS=0 AND DECP_ID=#COMPANY_ID#
+	</select>
+	
+	<select id="getDeptId_1" resultClass="com.brick.deptCmpy.to.DeptCmpyTO">
+		    SELECT DISTINCT ID deptId,UPPER_DEPT_ID upperDeptId
+		      FROM T_DEPT_DEPARTMENT
+		     WHERE STATUS=0 AND UPPER_DEPT_ID IS NOT NULL
+		     <isNotEmpty property="depts">
+		       AND UPPER_DEPT_ID IN ($depts$)
+		     </isNotEmpty>
+		  ORDER BY UPPER_DEPT_ID
+	</select>
+	
+	<select id="getDeptId_2" resultClass="com.brick.deptCmpy.to.DeptCmpyTO">
+			SELECT DISTINCT T1.ID deptId,T1.DEPT_NAME deptName,T2.DECP_NAME_CN companyName
+		      FROM T_DEPT_DEPARTMENT T1
+     	 LEFT JOIN T_DEPT_COMPANY T2 ON T1.DECP_ID=T2.DECP_ID
+		     WHERE T1.STATUS=0
+           	   AND T2.STATUS=0
+	</select>
+	
+	<!-- <resultMap class="com.brick.deptCmpy.to.TreeTO" id="rootDept" groupBy="upperDeptId">
+		<result property="upperDeptId" column="upperDeptId"/>
+		<result property="deptList" resultMap="common.leafDept" javaType="java.util.List"/>
+	</resultMap>
+	<resultMap class="com.brick.deptCmpy.to.TreeTO" id="leafDept">
+		<result property="deptId" column="deptId"/>
+	</resultMap>
+	<select id="getTreeList" resultMap="rootDept">
+		SELECT DISTINCT ID deptId,UPPER_DEPT_ID upperDeptId
+		      FROM T_DEPT_DEPARTMENT
+		     WHERE STATUS=0 AND UPPER_DEPT_ID IS NOT NULL
+		  ORDER BY UPPER_DEPT_ID
+	</select> -->
+	
+	<select id="getSendHRMailRecord" resultClass="com.brick.common.mail.to.MailSettingTo">
+			SELECT ID ,
+				   EMAIL_TO emailTo,
+				   CALL_CONTENT emailContent
+           	  FROM HR_CALL_EMAIL 
+		     WHERE STATUS=0 and SEND_FLAG=0
+	</select>	
+	
+	<update id="updateSendHRMailRecord">
+		UPDATE HR_CALL_EMAIL SET SEND_FLAG=#sendFlag#,SEND_TIME=GETDATE()
+		 WHERE ID=#id#
+	</update>
+	
+	<select id="getMailToById" parameterClass="map" resultClass="java.lang.String">
+		select EMAIL_TO
+		from T_SET_EMAIL
+		where ID = #id#
+	</select>
+	
+	<select id="getMailCcById" parameterClass="map" resultClass="java.lang.String">
+		select EMAIL_CC
+		from T_SET_EMAIL
+		where ID = #id#
+	</select>
+	
+	<update id="updateMailTo" parameterClass="map">
+		update T_SET_EMAIL
+		set EMAIL_TO = #newMail#
+		where ID = #id#
+	</update>
+	
+	<update id="updateMailCc" parameterClass="map">
+		update T_SET_EMAIL
+		set EMAIL_CC = #newMail#
+		where ID = #id#
+	</update>
+	
+		<select id="getMessageCountLastDay" resultClass="java.lang.Integer">
+		select COUNT(1) AS TAOTAL from SEND_TEST 
+		WHERE sendFlag = 1 AND YEAR(SENDTIME) = YEAR(GETDATE()-1) AND MONTH(SENDTIME) = MONTH(GETDATE()-1) AND DAY(SENDTIME) = DAY(GETDATE()-1)	
+	</select>
+	
+	<select id="getEmailCountLastDay" resultClass="java.lang.Integer">
+		select COUNT(1) AS TAOTAL from T_SEND_EMAIL 
+		WHERE SEND_FLAG = 1 AND YEAR(SEND_TIME) = YEAR(GETDATE()-1) AND MONTH(SEND_TIME) = MONTH(GETDATE()-1) AND DAY(SEND_TIME) = DAY(GETDATE()-1)
+	</select>
+	
+	<select id="getHrEmailCountLastDay" resultClass="java.lang.Integer">
+		select COUNT(1) AS TAOTAL from HR_CALL_EMAIL 
+		WHERE SEND_FLAG = 1 AND YEAR(SEND_TIME) = YEAR(GETDATE()-1) AND MONTH(SEND_TIME) = MONTH(GETDATE()-1) AND DAY(SEND_TIME) = DAY(GETDATE()-1)
+	</select>
+	
+	<insert id="saveEmailPlan" parameterClass="com.brick.common.mail.to.EmailPlanTO">
+			INSERT INTO T_EMAIL_PLAN(EMAIL_TO,EMAIL_CC,EMAIL_SUBJECT,EMAIL_CONTENT,EMAIL_ATTACH_PATH,STATUS,EMAIL_TYPE,CREATE_TIME,EMAIL_BCC,TYPE)
+			VALUES(#emailTo#,#emailCc#,#emailSubject#,#emailContent#,#emailAttachPath#,0,#emailType#,GETDATE(),#emailBcc#,#type#)
+	</insert>
+	
+	<select id="getEmailPlansByType" parameterClass="map" resultClass="com.brick.common.mail.to.EmailPlanTO">
+		select 
+			id as id,
+			EMAIL_TO as emailTo,
+			EMAIL_CC as emailCc,
+			EMAIL_SUBJECT as emailSubject,
+			EMAIL_CONTENT as emailContent,
+			EMAIL_ATTACH_PATH as emailAttachPath,
+			EMAIL_TYPE as emailType,
+			EMAIL_BCC as emailBcc
+		from T_EMAIL_PLAN
+		where STATUS = 0 AND TYPE = #type#
+	</select>
+	
+	<update id="updateEmailPlan" parameterClass="map">
+		update T_EMAIL_PLAN set status = #status# where id = #id#
+	</update>
+	
+	<select id="getMotorCarDeptList" resultClass="java.util.HashMap">
+		SELECT DECP_ID companyId,DECP_NAME_CN companyName
+		      FROM T_DEPT_COMPANY
+		     WHERE STATUS=0
+		       AND LEGELR=2
+		       AND DECP_NAME_CN LIKE '%乘用车%'
+		  ORDER BY [ORDER]
+	</select>
+	
+	<select id="getDeptCompanyList" resultClass="java.util.HashMap" >
+		 SELECT ID AS DEPT_ID,decp.DECP_NAME_CN + '-' + dept.DEPT_NAME AS DEPT_NAME FROM T_DEPT_DEPARTMENT dept
+		 LEFT JOIN T_DEPT_COMPANY decp ON dept.DECP_ID = decp.DECP_ID AND decp.STATUS = 0
+		 WHERE dept.STATUS = 0 AND decp.LEGELR=2
+		 <isNotEmpty property="DEPT_ID">
+		      AND dept.ID = #DEPT_ID#
+		 </isNotEmpty>
+		 ORDER BY decp.[ORDER]
+	</select>
+	
+	<select id="getDeptCompanyName" resultClass="java.lang.String" parameterClass="java.lang.Integer">
+		 SELECT TOP 1 decp.DECP_NAME_CN + '-' + dept.DEPT_NAME AS DEPT_NAME FROM T_DEPT_DEPARTMENT dept
+		 LEFT JOIN T_DEPT_COMPANY decp ON dept.DECP_ID = decp.DECP_ID AND decp.STATUS = 0
+		 WHERE dept.STATUS = 0 AND decp.LEGELR=2
+		 AND dept.ID = #DEPT_ID#
+	</select>
+	
+	<!-- 业务支撑更新合同租赁方案add by ShenQi --> 
+	<update id="updateLeaseTotalVal"><!-- 更新合同总金额 -->
+		UPDATE T_RENT_CONTRACT
+		   SET LEASE_TOPRIC=#leaseTotalVal#
+		 WHERE PRCD_ID=#creditId#
+		   AND STATUS=0
+	</update>
+	
+	<select id="getEquList" resultClass="java.util.HashMap">
+		SELECT THING_NAME,BRAND,MODEL_SPEC,UNIT_PRICE,shui_price SHUI_PRICE 
+		  FROM T_PRJT_CREDITEQUIPMENT
+		 WHERE CREDIT_ID=#creditId#
+	</select>
+	<update id="updateEquipmentDetail"><!-- 更新设备列表,只是更新单价和含税单价,如果需要更新其他内容,不可能修改支付表,而是应该重新录入新案,所以这里不考虑修改厂牌型号等信息 -->
+		UPDATE T_RENT_CONTRACTDETAIL
+		   SET UNIT_PRICE=#UNIT_PRICE#,SHUI_PRICE=#SHUI_PRICE#
+		 WHERE RECT_ID=(SELECT RECT_ID FROM T_RENT_CONTRACT WHERE STATUS=0 AND PRCD_ID=#creditId#)
+		   AND THING_NAME=#THING_NAME#
+		   AND BRAND=#BRAND#
+		   AND MODEL_SPEC=#MODEL_SPEC#
+	</update>
+	
+	<update id="updateMotorFee"><!-- 乘用车更新佣金,手续费等 -->
+		UPDATE T_PRJT_CREDITSCHEME 
+		   SET INCOME_PAY_TYPE=#incomePayType#,INCOME_PAY=#incomePay#,OUT_PAY=#outPay#,SALES_PAY=#payMoney#
+		 WHERE CREDIT_ID=#creditId#
+		   AND STATUS=0
+	</update>
+	<update id="updateCollectionPlan"><!-- 更新测算方案 -->
+		UPDATE T_RENT_COLLECTIONPLAN
+		   SET PLEDGE_PRICE=#deposit#,HEAD_HIRE=#firstIrrMonthPrice#,YEAR_INTEREST=#yearInterest#,
+		   	   PAY_WAY=#payWay#,LEASE_RZE=#leaseRZE#,TR_RATE=#cTR#,TR_IRR_RATE=#aTR#,LEASE_PERIOD=#leasePeriod#,
+		   	   PLEDGE_AVE_PRICE=#depositA#,PLEDGE_BACK_PRICE=#depositC#,PLEDGE_LAST_PRICE=#depositB#,
+		   	   PLEDGE_LAST_PERIOD=#depositBNum#,PLEDGE_ENTER_CMPRICE=#toCompany#,PLEDGE_ENTER_MCTOAG=#companyToSupplier#,
+		   	   PLEDGE_ENTER_AG=#toSupplier#,RATE_DIFF=#rateDiff#,TAX_PLAN_CODE=#taxPlanCode#,DEFER_PERIOD=#delayPay#
+		 WHERE RECT_ID=(SELECT RECT_ID FROM T_RENT_CONTRACT WHERE STATUS=0 AND PRCD_ID=#creditId#)
+		   AND STATUS=0
+	</update>
+	
+	<update id="updateFee1"><!-- 更新管理费与其他不影响TR之费用 -->
+		UPDATE T_RENT_CONTRACT_FEELIST
+		   SET FEE=#manageFee1#
+		 WHERE RECT_ID=(SELECT RECT_ID FROM T_RENT_CONTRACT WHERE STATUS=0 AND PRCD_ID=#creditId#)
+		   AND UPPER(CREATE_FILED_NAME)='MANAGE_FEE'
+	</update>
+	<update id="updateFee2">
+		UPDATE T_RENT_CONTRACT_FEELIST
+		   SET FEE=#manageFee2#
+		 WHERE RECT_ID=(SELECT RECT_ID FROM T_RENT_CONTRACT WHERE STATUS=0 AND PRCD_ID=#creditId#)
+		   AND UPPER(CREATE_FILED_NAME)='MANAGE_FEE2'
+	</update>
+	<update id="updateFee3">
+		UPDATE T_RENT_CONTRACT_FEELIST
+		   SET FEE=#homeFee#
+		 WHERE RECT_ID=(SELECT RECT_ID FROM T_RENT_CONTRACT WHERE STATUS=0 AND PRCD_ID=#creditId#)
+		   AND UPPER(CREATE_FILED_NAME)='HOME_FEE'
+	</update>
+	<update id="updateFee4">
+		UPDATE T_RENT_CONTRACT_FEELIST
+		   SET FEE=#setupFee#
+		 WHERE RECT_ID=(SELECT RECT_ID FROM T_RENT_CONTRACT WHERE STATUS=0 AND PRCD_ID=#creditId#)
+		   AND UPPER(CREATE_FILED_NAME)='SETUP_FEE'
+	</update>
+	<update id="updateFee5">
+		UPDATE T_RENT_CONTRACT_FEELIST
+		   SET FEE=#otherFee#
+		 WHERE RECT_ID=(SELECT RECT_ID FROM T_RENT_CONTRACT WHERE STATUS=0 AND PRCD_ID=#creditId#)
+		   AND UPPER(CREATE_FILED_NAME)='OTHER_FEE'
+	</update>
+	<update id="updateFee6">
+		UPDATE T_RENT_CONTRACT_FEELIST
+		   SET FEE=#insuranceDeputyFee#
+		 WHERE RECT_ID=(SELECT RECT_ID FROM T_RENT_CONTRACT WHERE STATUS=0 AND PRCD_ID=#creditId#)
+		   AND UPPER(CREATE_FILED_NAME)='INSURE_FEE'
+	</update>
+	
+	<update id="updateCollectionIRR"><!-- 作废租金方案 -->
+		UPDATE T_RENT_COLLECTIONPLANIRR SET STATUS=-1 
+		 WHERE RECP_ID=(SELECT RECP_ID 
+		  				  FROM T_RENT_COLLECTIONPLAN
+		  				 WHERE RECT_ID=(SELECT RECT_ID FROM T_RENT_CONTRACT WHERE PRCD_ID=#creditId# AND STATUS=0)
+		  				   AND STATUS=0)
+	</update>
+	
+	<insert id="insertCollectionIRR"><!-- 加入新的租金方案 -->
+		INSERT INTO T_RENT_COLLECTIONPLANIRR
+		(CREATE_ID,CREATE_DATE,STATUS,TYPE,REPI_STATUS,IRR_MONTH_PRICE,IRR_MONTH_PRICE_START,IRR_MONTH_PRICE_END,RECP_ID)
+		(SELECT 184,GETDATE(),0,0,0,#IRR_MONTH_PRICE#,#START_PERIOD#,#END_PERIOD#,(SELECT RECP_ID 
+																  				     FROM T_RENT_COLLECTIONPLAN
+																  				    WHERE RECT_ID=(SELECT RECT_ID FROM T_RENT_CONTRACT WHERE PRCD_ID=#creditId# AND STATUS=0)
+																  				      AND STATUS=0))
+	</insert>
+	
+	<update id="updateCollectionDetail"><!-- 更新支付表明细表 -->
+		UPDATE T_RENT_COLLECTIONDETAIL
+		   SET MONTH_PRICE=#MONTH_PRICE#,OWN_PRICE=#OWN_PRICE#,REN_PRICE=#REN_PRICE#,
+		   	   LAST_PRICE=#LAST_PRICE#,IRR_MONTH_PRICE=#IRR_MONTH_PRICE#,PV_PRICE=#PV_PRICE#,
+		   	   VALUE_ADDED_TAX=ISNULL(#VALUE_ADDED_TAX#,0),VALUE_ADDED_TAX_TRUE=ISNULL(#VALUE_ADDED_TAX_TRUE#,0)
+		 WHERE RECP_ID=(SELECT RECP_ID 
+	 				      FROM T_RENT_COLLECTIONPLAN
+	 				     WHERE RECT_ID=(SELECT RECT_ID FROM T_RENT_CONTRACT WHERE PRCD_ID=#creditId# AND STATUS=0)
+	 				       AND STATUS=0)
+	 	   AND PERIOD_NUM=#PERIOD_NUM#
+	 	   AND STATUS=0
+	</update>
+</sqlMap>

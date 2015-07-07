@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="assignmentPermission">
+	 
+	 <!-- 根据用户ID，获取该用户的所有一级菜单 
+	 <select id="getFirstMenuByUserId" parameterClass="map" resultClass="java.util.HashMap">
+	 	select fpr.id first_id,fpr.name first_name
+		  from fil_permission_resource fpr
+		  left join (select resource_id
+		               from fil_permission_resource2role fpr2r
+		               left join (select role_id
+		                           from t_user_user2role tuu2r
+		                          where tuu2r.status = 0
+		                            and tuu2r.employee_id = #employeeId#) tuu2r on tuu2r.role_id =
+		                                                                fpr2r.role_id
+		              where fpr2r.status = 0
+		                and tuu2r.role_id is not null
+		              group by resource_id) fpr2r on fpr.id = fpr2r.resource_id
+		 where fpr.status = 0
+		   and (fpr.parent_id is null or fpr.parent_id = 0)
+		   and fpr2r.resource_id is not null
+		 order by fpr.level_num
+	 </select>
+	 
+	 根据用户ID和菜单ID，获取该菜单下的所有功能资源 
+	 <select id="getSecondMenu" parameterClass="map" resultClass="java.util.HashMap">
+		 select fpr.id second_id,fpr.name second_name,fpr.layout layout
+		  from fil_permission_resource fpr
+		  left join (select resource_id
+		               from fil_permission_resource2role fpr2r
+		               left join (select role_id
+		                           from t_user_user2role tuu2r
+		                          where tuu2r.status = 0
+		                            and tuu2r.employee_id = #employeeId#) tuu2r on tuu2r.role_id =
+		                                                                fpr2r.role_id
+		              where fpr2r.status = 0
+		                and tuu2r.role_id is not null
+		              group by resource_id) fpr2r on fpr.id = fpr2r.resource_id
+		 where fpr.status = 0
+		   and fpr.parent_id=#id#
+		   and fpr2r.resource_id is not null
+		 order by fpr.level_num
+		</select> 
+		-->
+		<resultMap class="hashmap" id="firstMenu" groupBy="first_id">
+			<result property="first_id" column="first_id"/>
+			<result property="first_name" column="first_name"/>
+			<result property="secondList" resultMap="assignmentPermission.secondMenu" javaType="java.util.List"/>
+		</resultMap> 
+		<resultMap class="hashmap" id="secondMenu">
+			<result property="second_id" column="second_id"/>
+			<result property="second_name" column="second_name"/>
+			<!-- 2011/01/05 Yang Yun 在菜单不显示操作按钮的权限. -->
+			<result property="second_level_num" column="second_level_num"/>
+			<!-- 2011/01/05 Yang Yun 在菜单不显示操作按钮的权限. -->
+			<result property="layout" column="layout"/>
+		</resultMap>
+		
+		
+		<!-- 2013/11/15 Yang Liu 展示所有功能列表 -->
+		<resultMap class="hashmap" id="firstMenuView" groupBy="first_id">
+			<result property="first_id" column="first_id"/>
+			<result property="first_name" column="first_name"/>
+			<!-- 2013/11/15 Yang Liu 是否有该一级菜单资源的权限 -->
+			<result property="valid1" column="VALID_LEVEL1"/>
+			<result property="secondMenuView" resultMap="assignmentPermission.secondMenuView" javaType="java.util.List"/>
+		</resultMap> 
+		<resultMap class="hashmap" id="secondMenuView">
+			<result property="second_id" column="second_id"/>
+			<result property="second_name" column="second_name"/>
+			<result property="second_level_num" column="second_level_num"/>
+			<result property="layout" column="layout"/>
+			<!-- 2013/11/15 Yang Liu 是否有该二级菜单资源的权限 -->
+			<result property="valid2" column="VALID_LEVEL2"/>
+		</resultMap>
+		
+			
+		<select id="getMenuList" parameterClass="map" resultMap="firstMenu">
+			<!-- select t1.first_id FIRST_ID,t1.first_name FIRST_NAME,t2.second_id SECOND_ID,t2.second_name SECOND_NAME,t2.layout LAYOUT,
+			t2.second_level_num second_level_num
+			from 
+			(select fpr.id first_id,fpr.name first_name,fpr.level_num first_level_num
+					  from fil_permission_resource fpr
+					  left join (select resource_id
+					               from fil_permission_resource2role fpr2r
+					               left join (select role_id
+					                           from t_user_user2role tuu2r
+					                          where tuu2r.status = 0
+					                            and tuu2r.employee_id = #employeeId#) tuu2r on tuu2r.role_id =
+					                                                                fpr2r.role_id
+					              where fpr2r.status = 0
+					                and tuu2r.role_id is not null
+					              group by resource_id) fpr2r on fpr.id = fpr2r.resource_id
+					 where fpr.status = 0
+					   and (fpr.parent_id is null or fpr.parent_id = 0)
+					   and fpr2r.resource_id is not null
+					  ) t1
+			left join
+			(
+			 select fpr.id second_id,fpr.name second_name,fpr.layout layout,fpr.parent_id first_id,
+			  fpr.level_num second_level_num
+					  from fil_permission_resource fpr
+					  left join (select resource_id
+					               from fil_permission_resource2role fpr2r
+					               left join (select role_id
+					                           from t_user_user2role tuu2r
+					                          where tuu2r.status = 0
+					                            and tuu2r.employee_id = #employeeId#) tuu2r on tuu2r.role_id =
+					                                                                fpr2r.role_id
+					              where fpr2r.status = 0
+					                and tuu2r.role_id is not null
+					              group by resource_id) fpr2r on fpr.id = fpr2r.resource_id
+					 where fpr.status = 0 
+					   and fpr2r.resource_id is not null
+					 
+			) t2 on t1.first_id=t2.first_id    
+			order by first_level_num,second_level_num -->
+			select ffr.ID as FIRST_ID, 
+			ffr.[NAME] as FIRST_NAME,
+			fr.ID as SECOND_ID, 
+			fr.[NAME] as SECOND_NAME,
+			fr.LAYOUT as LAYOUT,
+			fr.LEVEL_NUM as second_level_num
+			from FIL_PERMISSION_RESOURCE fr
+			left join FIL_PERMISSION_RESOURCE ffr on fr.PARENT_ID = ffr.ID
+			where fr.ID in (
+			select distinct RESOURCE_ID from FIL_PERMISSION_RESOURCE2ROLE
+			where ROLE_ID in (
+			  select ROLE_ID from T_USER_USER2ROLE
+			  where EMPLOYEE_ID = #employeeId#
+			  and status = 0
+			) and STATUS = 0
+			) and fr.status = 0 and fr.PARENT_ID is not null and fr.PARENT_ID != 0
+			order by ffr.LEVEL_NUM, fr.LEVEL_NUM
+		</select>
+		
+		<!-- 根据用户权限查询所有功能，valid为1，该用户有该模块权限 -->
+		<select id="getMenuListAll" parameterClass="map" resultMap="firstMenuView">
+			SELECT 
+			  	FFR.ID AS FIRST_ID, 
+			  	FFR.[NAME] AS FIRST_NAME,
+				FR.ID AS SECOND_ID, 
+				FR.[NAME] AS SECOND_NAME,
+				FR.LAYOUT AS LAYOUT,
+				FR.LEVEL_NUM AS SECOND_LEVEL_NUM,
+			  	( CASE WHEN FR.ID IN (
+					SELECT DISTINCT RESOURCE_ID FROM FIL_PERMISSION_RESOURCE2ROLE
+			  		WHERE ROLE_ID IN (
+					  	SELECT ROLE_ID FROM T_USER_USER2ROLE
+			  		  	WHERE EMPLOYEE_ID = #employeeId#
+			  		  	AND STATUS = 0
+			  		) 
+			    AND STATUS = 0
+			  	) THEN 1 ELSE 0 END ) AS VALID_LEVEL2,
+		  	 	( CASE WHEN FFR.ID IN (
+					SELECT DISTINCT RESOURCE_ID FROM FIL_PERMISSION_RESOURCE2ROLE
+			  		WHERE ROLE_ID IN (
+					  	SELECT ROLE_ID FROM T_USER_USER2ROLE
+			  		  	WHERE EMPLOYEE_ID = #employeeId#
+			  		  	AND STATUS = 0
+			  		) 
+			    AND STATUS = 0
+			  	) THEN 1 ELSE 0 END ) AS VALID_LEVEL1
+			FROM FIL_PERMISSION_RESOURCE FR
+			LEFT JOIN FIL_PERMISSION_RESOURCE FFR ON FR.PARENT_ID = FFR.ID
+			WHERE FR.ID IN (
+				SELECT DISTINCT RESOURCE_ID FROM FIL_PERMISSION_RESOURCE2ROLE
+				WHERE STATUS = 0
+			) 
+		  		AND FR.STATUS = 0 AND FR.PARENT_ID IS NOT NULL AND FR.PARENT_ID != 0
+			ORDER BY FFR.LEVEL_NUM, FR.LEVEL_NUM
+		</select>
+</sqlMap>

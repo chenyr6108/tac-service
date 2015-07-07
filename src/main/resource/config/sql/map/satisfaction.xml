@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="satisfaction">
+	
+	<!-- 查询理赔 -->
+		<select id="querySatisfaction" parameterClass="map" resultClass="java.util.HashMap">
+		<!--2011/12/12 Yang Yun Add "MODIFY_ID" field and delete "and TII.STATUS=0" for show all settlement of claims-->
+		<!-- [CDATA[ 
+			SELECT INSF_ID
+			      ,TIS.INCU_ID
+			      ,TIS.EQMT_ID
+			      ,RECD.THING_NAME
+				  ,INCU_CODE
+				  ,INSU_NAME
+			      ,DANG_DATE
+			      ,INSF_DATE
+			      ,INSF_MONEY
+			      ,RECT.CUST_ID
+			      ,RECT.CUST_TYPE
+			      ,RECT.CUST_NAME
+			      ,RECT.LEASE_CODE
+			  FROM T_INSU_SATISFACTION TIS 
+			  LEFT JOIN T_INSU_INSURANCELIST TII ON TIS.INCU_ID=TII.INCU_ID
+			  LEFT JOIN T_RENT_CONTRACTDETAIL RECD ON RECD.EQMT_ID=TIS.EQMT_ID
+			  LEFT JOIN T_RENT_CONTRACT RECT ON RECT.RECT_ID=RECD.RECT_ID
+			  WHERE TIS.STATUS=0 and TII.STATUS=0
+			]]-->
+		<![CDATA[ 
+			SELECT INSF_ID
+				,TIS.INCU_ID
+				,TIS.EQMT_ID
+				,TIS.STATUS
+				,INCU_CODE
+				,DANG_DATE
+				,INSF_DATE
+				,INSF_MONEY
+				,CHARGE_DATE
+				,CHARGE_MONEY
+				,RECT.CUST_ID
+				,RECT.CUST_TYPE
+				,RECT.CUST_NAME
+				,RECT.LEASE_CODE
+				,INCP.INCP_NAME
+				,TIS.CREATE_DATE
+				,(select NAME from T_USER_USER
+			where id = TIS.MODIFY_ID) as MODIFY_ID
+			FROM T_INSU_SATISFACTION TIS 
+			LEFT JOIN T_INSU_INSURANCELIST TII ON TIS.INCU_ID=TII.INCU_ID
+			LEFT JOIN T_INSU_COMPANY INCP ON TII.INCP_ID = INCP.INCP_ID
+			LEFT JOIN T_RENT_CONTRACT RECT ON TII.RECT_ID = RECT.RECT_ID
+			left join T_USER_USER u on RECT.SENSOR_ID = u.ID
+			left join T_USER_USER uu on u.upper_user = uu.id
+			left join T_DEPT_DEPARTMENT dept on dept.id = u.DEPT_ID
+			left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID
+			AND RECT.STATUS = 0
+			WHERE TIS.STATUS>=0
+			]]>
+			 <isNotEmpty prepend="and" property="DANG_DATE">  
+              <![CDATA[ DANG_DATE=CONVERT(datetime,#DANG_DATE#)]]>
+            </isNotEmpty>
+			
+			<isNotEmpty prepend="and" property="INSF_DATE">  
+              <![CDATA[ INSF_DATE=CONVERT(datetime,#INSF_DATE#)]]>
+            </isNotEmpty>
+            
+            <isNotEmpty prepend="and" property="INSF_STATUS">  
+              <![CDATA[ INSF_STATUS = #INSF_STATUS#]]>
+            </isNotEmpty>
+			<isNotEmpty property="content">
+			<![CDATA[
+				 and ( 
+				 	RECT.CUST_NAME LIKE '%$content$%' 
+				 	or TIS.EQMT_ID LIKE '%$content$%' 
+				 	or RECT.LEASE_CODE LIKE '%$content$%' 
+				 	or INCP.INCP_NAME LIKE '%$content$%' 
+				 	or INCU_CODE like '%$content$%'
+				 )  
+			  ]]>
+			</isNotEmpty>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(u.ID = #s_employeeId#
+		  	 	or uu.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+	</select>
+	<select id="querySatisfaction_count"  parameterClass="map" resultClass="java.lang.Integer">
+		<!-- [CDATA[ 
+			select count(1) cnt
+			  FROM T_INSU_SATISFACTION TIS 
+			  LEFT JOIN T_INSU_INSURANCELIST TII ON TIS.INCU_ID=TII.INCU_ID
+			  LEFT JOIN T_RENT_CONTRACTDETAIL RECD ON RECD.EQMT_ID=TIS.EQMT_ID
+			  LEFT JOIN T_RENT_CONTRACT RECT ON RECT.RECT_ID=RECD.RECT_ID
+			  WHERE TIS.STATUS=0 and TII.STATUS=0
+		]]-->
+		<![CDATA[ 
+			select count(1) cnt
+			  FROM T_INSU_SATISFACTION TIS 
+			  LEFT JOIN T_INSU_INSURANCELIST TII ON TIS.INCU_ID=TII.INCU_ID
+			  LEFT JOIN T_RENT_CONTRACTDETAIL RECD ON RECD.EQMT_ID=TIS.EQMT_ID
+			  LEFT JOIN T_RENT_CONTRACT RECT ON RECT.RECT_ID=RECD.RECT_ID
+			  WHERE TIS.STATUS=0
+		]]>
+			<isNotEmpty prepend="and" property="DANG_DATE">  
+              <![CDATA[ DANG_DATE=convert(datetime,#DANG_DATE#)]]>
+            </isNotEmpty>
+			
+			<isNotEmpty prepend="and" property="INSF_DATE">  
+              <![CDATA[ INSF_DATE=convert(datetime,#INSF_DATE#)]]>
+            </isNotEmpty>
+            
+            <isNotEmpty prepend="and" property="INSF_STATUS">  
+              <![CDATA[ INSF_STATUS = #INSF_STATUS#]]>
+            </isNotEmpty>
+		<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				  and ( INSU_NAME LIKE '%$content$%' OR THING_NAME LIKE '%$content$%' OR CUST_NAME LIKE '%$content$%' OR LEASE_CODE LIKE '%$content$%' OR  INCU_CODE like '%$content$%' OR  INSF_MONEY like '%$content$%') 
+			  ]]>
+		</isNotEmpty>
+	</select>
+	
+	<!-- 查询保单 -->
+	<select id="queryInsuList" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+			SELECT *
+			 FROM T_INSU_INSURANCELIST TII  LEFT JOIN T_INSU_COMPANY TIC ON TII.INCP_ID=TIC.INCP_ID
+			 where TII.STATUS=0
+			]]>
+			<isNotEmpty prepend="and" property="AFFIRM_INSU_DATE">  
+              <![CDATA[ AFFIRM_INSU_DATE = convert(datetime,#AFFIRM_INSU_DATE#)]]>
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="PRINT_INSU_DATE">  
+              <![CDATA[ PRINT_INSU_DATE = convert(datetime,#PRINT_INSU_DATE#)]]>
+            </isNotEmpty>
+		<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and ( INCP_NAME LIKE '%$content$%' OR  INSU_NAME LIKE '%$content$%' OR INCU_CODE LIKE '%$content$%') 
+			  ]]>
+		</isNotEmpty>
+		 ORDER BY INCU_ID DESC
+	</select>
+	<select id="queryInsuList_count"  parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ 
+			select count(1) cnt
+ 			FROM T_INSU_INSURANCELIST TII  LEFT JOIN T_INSU_COMPANY TIC ON TII.INCP_ID=TIC.INCP_ID
+ 					 where TII.STATUS=0
+		]]>
+			<isNotEmpty prepend="and" property="AFFIRM_INSU_DATE">  
+              <![CDATA[ AFFIRM_INSU_DATE = convert(datetime,#AFFIRM_INSU_DATE#)]]>
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="PRINT_INSU_DATE">  
+              <![CDATA[ PRINT_INSU_DATE = convert(datetime,#PRINT_INSU_DATE#)]]>
+            </isNotEmpty>
+		<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				  and ( INCP_NAME LIKE '%$content$%' OR  INSU_NAME LIKE '%$content$%'  OR INCU_CODE LIKE '%$content$%') 
+			  ]]>
+		</isNotEmpty>
+	</select>	
+	
+	<!-- 根据保单ID查询对于的设备 -->
+	<select id="queryEqmtByIncuId" parameterClass="map" resultClass="java.util.HashMap">
+		select ei.eqmt_id EQMT_ID,eqmt.thing_name THING_NAME,eqmt.THING_NUMBER THING_NUMBER
+		from
+			T_INSU_EMPT2INSULIST ei
+			left join T_EQMT_EQUIPMENT eqmt on eqmt.eqmt_id=ei.eqmt_id
+			where ei.insu_id=#INCU_ID#
+	</select>
+	<!-- 添加一条理赔 -->		
+	<insert id="createSatisfaction" parameterClass="map" >
+	<!--2011/12/12 Yang Yun Add "MODIFY_ID" and "MODIFY_DATE" field-->
+	<![CDATA[
+		INSERT INTO T_INSU_SATISFACTION
+           (INCU_ID
+           ,EQMT_ID
+           ,DANG_DATE
+           ,INSF_DATE
+           ,INSF_MONEY
+           ,REMARK
+           ,STATUS
+           ,CREATE_ID
+           ,CREATE_DATE
+           ,MODIFY_ID
+           ,MODIFY_DATE
+           )
+     VALUES
+           (#INCU_ID#
+           ,#EQMT_ID#
+           ,CONVERT(Datetime,#DANG_DATE#)
+           ,CONVERT(Datetime,#INSF_DATE#)
+           ,#INSF_MONEY#
+           ,#REMARK#
+           ,0
+           ,#s_employeeId#
+           ,getdate()
+           ,#s_employeeId#
+           ,getdate()
+            )
+	]]>
+	</insert>	
+	
+	<insert id="createSatisfactionByIncu" parameterClass="map" >
+	<!--2011/12/12 Yang Yun Add "MODIFY_ID" and "MODIFY_DATE" field-->
+	<![CDATA[
+		INSERT INTO T_INSU_SATISFACTION
+           (INCU_ID
+           ,EQMT_ID
+           ,STATUS
+           ,CREATE_ID
+           ,CREATE_DATE
+           ,MODIFY_ID
+           ,MODIFY_DATE
+           )
+     VALUES
+           (#insu_id#
+           ,#eqmt_name#
+           ,0
+           ,#s_employeeId#
+           ,getdate()
+           ,#s_employeeId#
+           ,getdate()
+            )
+	]]>
+	</insert>	
+	
+		<!-- 通过ID获得一条信息 -->
+		<select id="readSatisfaction" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+			SELECT INSF_ID
+			      ,TIS.INCU_ID
+			      ,TIS.EQMT_ID
+			      ,DANG_DATE
+			      ,INSF_DATE
+			      ,INSF_MONEY
+			      ,CHARGE_DATE
+				  ,CHARGE_MONEY
+			      ,REMARK
+			  FROM T_INSU_SATISFACTION TIS 
+			  where INSF_ID=#INSF_ID#
+			]]>
+	</select>	
+	<!-- 更新一条信息 -->
+	<update id="updateSatisfaction" parameterClass="map">
+	<!--2011/12/12 Yang Yun Add "MODIFY_ID" and "MODIFY_DATE" field-->
+			UPDATE T_INSU_SATISFACTION
+		   SET MODIFY_ID=#s_employeeId#
+		      ,MODIFY_DATE=getdate()
+		      ,STATUS = #status#
+		   <isNotEmpty property="DANG_DATE">
+		   	  ,DANG_DATE =convert(datetime,#DANG_DATE#)
+		   </isNotEmpty>
+		   <isNotEmpty property="INSF_DATE">
+		      ,INSF_DATE= convert(datetime,#INSF_DATE#)
+		   </isNotEmpty>
+		   <isNotEmpty property="INSF_MONEY">
+		      ,INSF_MONEY = #INSF_MONEY#
+		   </isNotEmpty>
+		   <isNotEmpty property="CHARGE_DATE">
+		      ,CHARGE_DATE = convert(datetime,#CHARGE_DATE#)
+		   </isNotEmpty>
+		   <isNotEmpty property="CHARGE_MONEY">
+			  ,CHARGE_MONEY = #CHARGE_MONEY#
+		   </isNotEmpty>
+		   <isNotEmpty property="REMARK">
+		      ,REMARK = #REMARK#
+		   </isNotEmpty>
+		   <isEmpty property="DANG_DATE">
+		   	  ,DANG_DATE = null
+		   </isEmpty>
+		   <isEmpty property="INSF_DATE">
+		      ,INSF_DATE= null
+		   </isEmpty>
+		   <isEmpty property="INSF_MONEY">
+		      ,INSF_MONEY = null
+		   </isEmpty>
+		   <isEmpty property="CHARGE_DATE">
+		      ,CHARGE_DATE = null
+		   </isEmpty>
+		   <isEmpty property="CHARGE_MONEY">
+			  ,CHARGE_MONEY = null
+		   </isEmpty>
+		   <isEmpty property="REMARK">
+		      ,REMARK = null
+		   </isEmpty>
+		   <isNotEmpty property="eqmt_name">
+		      ,EQMT_ID = #eqmt_name#
+		   </isNotEmpty>
+		   <isEmpty property="eqmt_name">
+		   	  ,EQMT_ID = null
+		   </isEmpty>
+		   
+		 WHERE INSF_ID=#INSF_ID#
+	</update>
+	<!-- 删除一条信息 -->
+	<update id="updateInsuDel" parameterClass="map">
+	<!--2011/12/12 Yang Yun Add "MODIFY_ID" and "MODIFY_DATE" field-->
+	<![CDATA[
+		update  T_INSU_SATISFACTION
+		set 
+		status=-2,MODIFY_ID=#s_employeeId#,MODIFY_DATE=getdate()
+		 WHERE INSF_ID=#INSF_ID#
+	]]>
+	</update>
+	<!-- 通过ID获得TrackById信息 -->
+		<select id="queryTrackById" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+			SELECT INST_ID
+			      ,RECORD_NAME
+			      ,RECORD_DATE
+			      ,RECORD_REMARK
+			      ,IMG_NAME
+           		  ,IMG_PATH
+			      ,INSF_ID
+			  FROM T_INSU_SATISFACTIONTRACK
+			  where INSF_ID=#INSF_ID#
+			]]>
+	</select>
+	<!-- 添加一条跟踪信息 -->
+	<insert id="createTrack" parameterClass="map">
+	<!--2011/12/12 Yang Yun Add "MODIFY_ID" and "MODIFY_DATE" field-->
+	<![CDATA[
+	INSERT INTO T_INSU_SATISFACTIONTRACK
+           (
+           RECORD_NAME
+           ,RECORD_DATE
+           ,RECORD_REMARK
+           ,INSF_ID
+           ,IMG_NAME
+           ,IMG_PATH
+           ,status
+ 		   ,CREATE_ID
+           ,CREATE_DATE
+           ,MODIFY_ID
+           ,MODIFY_DATE
+            )
+     VALUES
+           (
+           #RECORD_NAME#
+           ,CONVERT(Datetime,#RECORD_DATE#)
+           ,#RECORD_REMARK#
+           ,#INSF_ID#
+           ,#IMG_NAME#
+           ,#IMG_PATH#
+           ,0
+           ,#s_employeeID#
+           ,getdate()
+           ,#s_employeeID#
+           ,getdate()
+            )
+	]]>
+	</insert>
+</sqlMap>

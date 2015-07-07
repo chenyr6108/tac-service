@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="insureType">
+	<!-- 插入一条险种的信息 -->
+	<insert id="create" parameterClass="map">
+		<![CDATA[	
+		insert into t_insu_insuretype
+			(
+			create_time,
+			create_user_id,
+			modify_time,
+			modify_user_id,
+			intp_type,
+			intp_name,
+			motor_flag,
+			remark,
+			prdc_id
+			)
+		values
+			(
+			getdate(),
+			#s_employeeId#,
+			getdate(),
+			#s_employeeId#,
+			#intp_type#,
+			#intp_name#,
+			#motor_flag#,
+			#remark#,
+			null
+			)
+		]]>
+	</insert>
+	<!-- 更新一条险种记录 -->
+	<update id="update" parameterClass="map">
+		<![CDATA[
+		update t_insu_insuretype  
+		set  modify_time = getdate(),
+			 modify_user_id = #s_employeeId#,
+			 intp_type = #intptype#,
+			 intp_name = #intpname#,
+			 motor_flag = #motorflag#,
+			 remark = #remark1#,
+			 prdc_id = null
+		where  intp_id=#intpid#
+		]]>
+	</update>
+ 	
+ 	<!-- 根据ID查询一条险种记录 -->
+	<select id="getInsureTypeById" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+		select  insure.intp_id       	intp_id,
+				insure.create_time 		create_time,
+				insure.create_user_id	create_user_id,
+				insure.modify_time		modify_time,
+				insure.modify_user_id	modify_user_id,
+				insure.intp_status		intp_status,
+				insure.intp_type		intp_type,
+				insure.intp_name		intp_name,
+				insure.motor_flag		motor_flag,
+				insure.remark			remark,
+				insure.prdc_id			prdc_id   
+		from t_insu_insuretype insure
+		where insure.intp_status = 0 and insure.intp_id = #intp_id#
+		]]>
+	</select>
+	
+	<!--根据保险公司的Id来查询 查找机动车与非机动车中的必保与选保险种 -->
+	<select id="getInsureTypeByCompanyId" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+		select 
+			t2.intp_id 				intp_id,
+			t2.intp_name			intp_name,
+			t2.intp_type			intp_type,
+			t2.motor_flag			motor_flag,
+			(case when t1.intp_id is null then 0 when  t1.intp_id ='' then 0 else 1 end) flag 
+		from (select 
+				t1.intp_id
+  			from t_insu_insuretype2company t1
+ 			where t1.inic_status = 0
+   			and t1.incp_id = #incp_id#) t1
+   		right join t_insu_insuretype t2 
+   		on t1.intp_id=t2.intp_id
+		where t2.intp_status=0
+			
+		]]>
+	</select>
+		<!--根据保险公司的Id来查询 查找机动车与非机动车中的必保与选保险种 -->
+		<!--分别查询  机动车  必保  t2.intp_type=0 and t2.motor_flag=0 -->
+	<select id="getInsureTypeByCompanyId1" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+		select 
+			t2.intp_id 				intp_id,
+			t2.intp_name			intp_name,
+			t2.intp_type			intp_type,
+			t2.motor_flag			motor_flag,
+			(case when t1.intp_id is null then 0 when  t1.intp_id ='' then 0 else 1 end) flag 
+		from (select 
+				t1.intp_id
+  			from t_insu_insuretype2company t1
+ 			where t1.inic_status = 0
+   			and t1.incp_id = #incp_id#) t1
+   		right join t_insu_insuretype t2 
+   		on t1.intp_id=t2.intp_id
+		where t2.intp_status=0 and t2.intp_type=0 and t2.motor_flag=0
+			
+		]]>
+	</select>
+	<!--分别查询 查询时区分 查找机动车与非机动车中的必保与选保险种 必保intp_type=0   非机动车 motor_flag=1  -->
+	<select id="getInsureTypeByCompanyId3" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+		select 
+			t2.intp_id 				intp_id,
+			t2.intp_name			intp_name,
+			t2.intp_type			intp_type,
+			t2.motor_flag			motor_flag,
+			(case when t1.intp_id is null then 0 when  t1.intp_id ='' then 0 else 1 end) flag 
+		from (select 
+				t1.intp_id
+  			from t_insu_insuretype2company t1
+ 			where t1.inic_status = 0
+   			and t1.incp_id = #incp_id#) t1
+   		right join t_insu_insuretype t2 
+   		on t1.intp_id=t2.intp_id
+		where t2.intp_status=0 and t2.intp_type=0 and t2.motor_flag=1
+			
+		]]>
+	</select>
+	<!--分别查询 查询时区分 查找机动车与非机动车中的必保与选保险种 选保intp_type=1   机动车 motor_flag=0  -->
+	<select id="getInsureTypeByCompanyId2" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+		select 
+			t2.intp_id 				intp_id,
+			t2.intp_name			intp_name,
+			t2.intp_type			intp_type,
+			t2.motor_flag			motor_flag,
+			(case when t1.intp_id is null then 0 when  t1.intp_id ='' then 0 else 1 end) flag 
+		from (select 
+				t1.intp_id
+  			from t_insu_insuretype2company t1
+ 			where t1.inic_status = 0
+   			and t1.incp_id = #incp_id#) t1
+   		right join t_insu_insuretype t2 
+   		on t1.intp_id=t2.intp_id
+		where t2.intp_status=0 and t2.intp_type=1 and t2.motor_flag=0
+			
+		]]>
+	</select>
+	<!--分别查询 查询时区分 查找机动车与非机动车中的必保与选保险种 选保intp_type=1   非机动车 motor_flag=1  -->
+	<select id="getInsureTypeByCompanyId4" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+		select 
+			t2.intp_id 				intp_id,
+			t2.intp_name			intp_name,
+			t2.intp_type			intp_type,
+			t2.motor_flag			motor_flag,
+			(case when t1.intp_id is null then 0 when  t1.intp_id ='' then 0 else 1 end) flag 
+		from (select 
+				t1.intp_id
+  			from t_insu_insuretype2company t1
+ 			where t1.inic_status = 0
+   			and t1.incp_id = #incp_id#) t1
+   		right join t_insu_insuretype t2 
+   		on t1.intp_id=t2.intp_id
+		where t2.intp_status=0 and t2.intp_type=1 and t2.motor_flag=1
+			
+		]]>
+	</select>
+	<!-- 删除一个险种的记录 -->
+	<update id="delete" parameterClass="map">
+		<![CDATA[
+		update t_insu_insuretype set intp_status=-2,modify_time=getdate() where intp_id=#intp_id#
+		]]>
+	</update>
+	
+
+	
+	<!-- wujw 查询所有的险种，用于下拉选 -->
+	<statement id="queryInsureTypeList" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T.INTP_ID,T.INTP_NAME FROM T_INSU_INSURETYPE T WHERE T.INTP_STATUS=0 ORDER BY T.INTP_NAME
+		]]>
+	</statement>
+	<!-- 查询所有险种的个数 -->
+ 	<select id="queryInsureTypeAllInfo_count" parameterClass="map" resultClass="int">
+ 		<![CDATA[
+ 		select count(1) from t_insu_insuretype insure where intp_status = 0
+ 		]]>
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				insure.intp_name like '%$content$%' 
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="intp_type">
+				<![CDATA[
+				insure.intp_type = #intp_type#
+				]]>
+			</isNotEmpty> 
+			<isNotEmpty prepend="and" property="motor_flag">
+				<![CDATA[
+				insure.motor_flag = #motor_flag#
+				]]>
+			</isNotEmpty>
+			 
+ 	</select>
+	
+	<!-- 查询所有险种 -->
+ 	<select id="queryInsureTypeAllInfo" parameterClass="map" resultClass="hashmap">
+ 		<![CDATA[
+ 		select  insure.intp_id			intp_id,
+ 				insure.intp_type		intp_type,
+ 				insure.intp_name		intp_name,
+ 				insure.motor_flag		motor_flag,
+ 				insure.remark	    	remark 
+ 		from t_insu_insuretype insure
+ 		where intp_status = 0 
+ 		]]>
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				insure.intp_name like '%$content$%' 
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="intp_type">
+				<![CDATA[
+				insure.intp_type = #intp_type#
+				]]>
+			</isNotEmpty> 
+			<isNotEmpty prepend="and" property="motor_flag">
+				<![CDATA[
+				insure.motor_flag = #motor_flag#
+				]]>
+			</isNotEmpty>		
+		<![CDATA[
+ 		order by motor_flag asc,intp_type asc
+ 		]]>
+ 	</select>
+	
+	<!-- 查询所有险种 必保intp_type=0   机动车 motor_flag=0 保险公司用 -->
+ 	<select id="queryInsureTypeInfo1" parameterClass="map" resultClass="hashmap">
+ 		<![CDATA[
+ 		select  insure.intp_id			intp_id,
+ 				insure.intp_type		intp_type,
+ 				insure.intp_name		intp_name,
+ 				insure.motor_flag		motor_flag,
+ 				insure.remark	    	remark 
+ 		from t_insu_insuretype insure
+ 		where intp_status = 0 and intp_type=0 and motor_flag=0
+ 		order by motor_flag asc,intp_type asc
+ 		]]>
+ 	</select>
+	<!-- 查询所有险种 必保intp_type=0   非机动车 motor_flag=1 -->
+ 	<select id="queryInsureTypeInfo3" parameterClass="map" resultClass="hashmap">
+ 		<![CDATA[
+ 		select  insure.intp_id			intp_id,
+ 				insure.intp_type		intp_type,
+ 				insure.intp_name		intp_name,
+ 				insure.motor_flag		motor_flag,
+ 				insure.remark	    	remark 
+ 		from t_insu_insuretype insure
+ 		where intp_status = 0 and intp_type=0 and motor_flag=1
+ 		order by motor_flag asc,intp_type asc
+ 		]]>
+ 	</select>
+	
+	
+	
+		<!-- 查询所有险种 选保intp_type=1   机动车 motor_flag=0 -->
+ 	<select id="queryInsureTypeInfo2" parameterClass="map" resultClass="hashmap">
+ 		<![CDATA[
+ 		select  insure.intp_id			intp_id,
+ 				insure.intp_type		intp_type,
+ 				insure.intp_name		intp_name,
+ 				insure.motor_flag		motor_flag,
+ 				insure.remark	    	remark 
+ 		from t_insu_insuretype insure
+ 		where intp_status = 0 and intp_type=1 and motor_flag=0
+ 		order by motor_flag asc,intp_type asc
+ 		]]>
+ 	</select>
+		
+	<!-- 查询所有险种 选保intp_type=1   非机动车 motor_flag=1 -->
+ 	<select id="queryInsureTypeInfo4" parameterClass="map" resultClass="hashmap">
+ 		<![CDATA[
+ 		select  insure.intp_id			intp_id,
+ 				insure.intp_type		intp_type,
+ 				insure.intp_name		intp_name,
+ 				insure.motor_flag		motor_flag,
+ 				insure.remark	    	remark 
+ 		from t_insu_insuretype insure
+ 		where intp_status = 0 and intp_type=1 and motor_flag=1
+ 		order by motor_flag asc,intp_type asc
+ 		]]>
+ 	</select>
+ 	
+	<!-- wuzd 根据保险公司查询险种，用于下拉选 -->
+	<statement id="queryInsureTypeListById" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[			
+			SELECT T.INTP_ID,T.INTP_NAME FROM T_INSU_INSURETYPE T 
+			left join t_insu_insuretype2company t1 on t.intp_id=t1.intp_id
+			WHERE T.INTP_STATUS=0 and t1.incp_id=#INCP_ID# and t.intp_status=0
+			ORDER BY T.INTP_NAME 			
+		]]>
+	</statement> 	
+</sqlMap>

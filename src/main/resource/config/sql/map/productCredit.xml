@@ -1,0 +1,825 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="productCredit">
+	<!-- 
+	查询全部客户授权
+	Modify BY Michael 2011 12/14 增加连保、回购、回购含灭失的额度
+	 -->
+	<select id="queryAllproductCredit" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+	 	        SELECT  TPP.PDGP_ID,
+			 	TPP.CREATE_DATE,
+			 	TPP.CREATE_ID,
+			 	TPP.MODITY_DATE,
+			 	u.name as MODIFY_NAME,
+				TPP.CUGP_STATUS,
+				TPP.CUGP_CODE,
+				TPP.GRANT_PRICE,
+				TPP.LAST_PRICE,
+				TPP.START_DATE,
+				TPP.END_DATE,
+				TPP.REMARK,
+				TPP.REPEAT_CREDIT,
+				TSS.CREATE_DATE AS ORDER_DATE,
+				TSS.ID,
+				TSS.NAME,
+				TSS.CODE,
+				TSS.COMPANY_CORPORATION,
+				TSS.LINKMAN_NAME,
+				TSS.LINKMAN_MOBILE,
+				TPP.LIEN_GRANT_PRICE,
+				TPP.REPURCH_GRANT_PRICE,
+				TPP.REPURCHLOSS_GRANT_PRICE,
+				TPP.LIEN_LAST_PRICE,
+				TPP.REPURCH_LAST_PRICE,
+				TPP.REPURCHLOSS_LAST_PRICE
+				,TPP.ADVANCEMACHINE_GRANT_PRICE
+				,TPP.ADVANCEMACHINE_LAST_PRICE
+				,TPP.VOICE_CREDIT
+				, tss.SUPP_LEVEL
+		 	FROM T_SUPL_SUPPLIER  TSS
+		 	LEFT JOIN T_PRODUCT_GRANTPLAN TPP ON TPP.PRODUCT_ID = TSS.ID
+		 	left join t_user_user u on TPP.MODIFY_ID = u.ID
+		 	WHERE TSS.STATUS = 0 AND (TPP.STATUS IS NULL OR TPP.STATUS=0)
+		 	]]>
+	 	<isNotEmpty prepend="and" property="PRODUCT_ID">
+	 		<![CDATA[TSS.ID = #PRODUCT_ID# ]]>
+	 	</isNotEmpty> 
+	 	<isNotEmpty prepend="and" property="QSEARCHVALUE">
+			<![CDATA[TSS.NAME LIKE '%$QSEARCHVALUE$%']]>
+		</isNotEmpty> 
+	 	<isNotEmpty prepend="and" property="QSTARTMONEY">
+	 		<![CDATA[TPP.GRANT_PRICE >= #QSTARTMONEY#]]>
+	 	</isNotEmpty>
+	 	<isNotEmpty prepend="and" property="QENDMONEY">
+	 		<![CDATA[#QENDMONEY# >= TPP.GRANT_PRICE]]>
+	 	</isNotEmpty> 
+	 	<isNotEqual prepend="" property="QCUGPDTATUS" compareValue="-1">
+	 		<isEqual prepend="and" property="QCUGPDTATUS" compareValue="0">
+		 		<![CDATA[TPP.CUGP_STATUS = #QCUGPDTATUS#]]>
+		 	</isEqual> 
+	 		<isEqual prepend="and" property="QCUGPDTATUS" compareValue="1">
+		 		<![CDATA[TPP.CUGP_STATUS = #QCUGPDTATUS#]]>
+		 	</isEqual> 
+	 		<isEqual prepend="and" property="QCUGPDTATUS" compareValue="2">
+		 		<![CDATA[ TPP.PDGP_ID IS NULL]]>
+		 	</isEqual> 
+	 	</isNotEqual> 
+	 </select>
+	<!-- 
+	查询全部客户授权个数
+	 -->
+	<select id="queryAllproductCredit_count" parameterClass="map" resultClass="java.lang.Integer">
+	 	<![CDATA[
+	 	SELECT  COUNT(1)
+		 	FROM T_SUPL_SUPPLIER  TSS
+		 	LEFT JOIN T_PRODUCT_GRANTPLAN TPP ON TPP.PRODUCT_ID = TSS.ID
+		 	WHERE TSS.STATUS = 0 AND (TPP.STATUS IS NULL OR TPP.STATUS=0)
+		 	]]>
+	 	<isNotEmpty prepend="and" property="PRODUCT_ID">
+	 		<![CDATA[TSS.ID = #PRODUCT_ID# ]]>
+	 	</isNotEmpty> 
+	 	<isNotEmpty prepend="and" property="QSEARCHVALUE">
+			<![CDATA[TSS.NAME LIKE '%$QSEARCHVALUE$%']]>
+		</isNotEmpty> 
+	 	<isNotEmpty prepend="and" property="QSTARTMONEY">
+	 		<![CDATA[TPP.GRANT_PRICE >= #QSTARTMONEY#]]>
+	 	</isNotEmpty>
+	 	<isNotEmpty prepend="and" property="QENDMONEY">
+	 		<![CDATA[#QENDMONEY# >= TPP.GRANT_PRICE]]>
+	 	</isNotEmpty> 
+	 	<isNotEqual prepend="" property="QCUGPDTATUS" compareValue="-1">
+	 		<isEqual prepend="and" property="QCUGPDTATUS" compareValue="0">
+		 		<![CDATA[TPP.CUGP_STATUS = #QCUGPDTATUS#]]>
+		 	</isEqual> 
+	 		<isEqual prepend="and" property="QCUGPDTATUS" compareValue="1">
+		 		<![CDATA[TPP.CUGP_STATUS = #QCUGPDTATUS#]]>
+		 	</isEqual> 
+	 		<isEqual prepend="and" property="QCUGPDTATUS" compareValue="2">
+		 		<![CDATA[ TPP.PDGP_ID IS NULL]]>
+		 	</isEqual> 
+	 	</isNotEqual> 
+	 </select>
+	<!-- 
+	通过客户id查询客户授权
+	Modify By Michael 2011 12/14 修正供应商授信 增加连保、回购、回购含灭失栏位的查询
+	 -->
+	<select id="queryAllGrantplanById" parameterClass="map" resultClass="java.util.HashMap">
+	 	SELECT PDGP_ID,
+	 	CREATE_DATE,
+	 	CREATE_ID,
+	 	MODITY_DATE,
+	 	MODIFY_ID,
+	 	TYPE,
+		STATUS,
+		CUGP_STATUS,
+		CUGP_CODE,
+		GRANT_PRICE,
+		LAST_PRICE,
+		convert(Date,START_DATE,23) START_DATE,
+		convert(Date,END_DATE,23) END_DATE,
+		PRODUCT_ID,
+		REMARK,
+		REPEAT_CREDIT,
+		LIEN_GRANT_PRICE,
+		REPURCH_GRANT_PRICE,
+		REPURCHLOSS_GRANT_PRICE,
+		LIEN_LAST_PRICE,
+		REPURCH_LAST_PRICE,
+		REPURCHLOSS_LAST_PRICE,ADVANCEMACHINE_LAST_PRICE,ADVANCEMACHINE_GRANT_PRICE,LIEN_REPEAT_CREDIT,REPURCH_REPEAT_CREDIT,ADVANCE_MACHINEREPEAT_CREDIT
+		,LIEN_START_DATE
+		,LIEN_END_DATE
+		,REPURCH_START_DATE
+		,REPURCH_END_DATE
+		,ADVANCE_START_DATE
+		,ADVANCE_END_DATE
+		,VOICE_CREDIT
+		,VOICE_START_DATE
+		,VOICE_END_DATE
+		,VOICE_CONTINUE
+		,VOICE_LAST_CREDIT
+		,LIEN_HAS
+		,REPURCH_HAS
+		,ADVANCEMACHINE_HAS
+		,VOICE_HAS
+	 	FROM T_PRODUCT_GRANTPLAN 
+	 	WHERE STATUS = 0 
+	 	AND
+	 	PRODUCT_ID = #PRODUCT_ID#
+	 </select>
+	<!-- 
+	通过授权id查询客户授权方案
+	 -->
+	<select id="queryAllGrantdetailById" parameterClass="map" resultClass="java.util.HashMap">
+	 	SELECT 
+	 	PDGD_ID,
+		CREATE_DATE,
+		CREATE_ID,
+		MODIFY_TIME,
+		MODIFY_ID,
+		TYPE,
+		STATUS,
+		CUGD_STATUS,
+		PDGP_ID,
+		LEASE_PERIOD,
+		LEASE_TERM,
+		PAY_WAY,
+		MANAGEMENT_FEE_RATE,
+		HEAD_HIRE_PERCENT,
+		PLEDGE_PRICE_RATE,
+		FLOAT_RATE,
+		REMARK
+	 	FROM T_PRODUCT_GRANTDETAIL
+	 	WHERE STATUS = 0 
+	 	AND
+	 	PDGP_ID = #PDGP_ID#
+	 </select>
+	 <!-- 
+	  查询所有授信个数 
+	  -->
+	 <select id="queryAllGrantplanById_count" parameterClass="map" resultClass="int">
+	 	SELECT COUNT(PDGP_ID) CNT FROM T_PRODUCT_GRANTPLAN WHERE STATUS = 0 
+	 </select>
+	 <!-- 
+	  查询所有授信方案个数 
+	  -->
+	 <select id="queryAllGrantdetailById_count" parameterClass="map" resultClass="int">
+	 	SELECT COUNT(PDGD_ID) CNT FROM T_PRODUCT_GRANTDETAIL WHERE STATUS = 0 
+	 </select>
+	 <!-- 
+	  id查询授信个数 
+	  -->
+	 <select id="queryAllGrantplan_count" parameterClass="map" resultClass="int">
+	 	SELECT COUNT(PDGP_ID) CNT FROM T_PRODUCT_GRANTPLAN WHERE STATUS = 0 
+	 </select>
+	 <!-- 
+	  创建客户授信 
+	  Modify by Michael 2011 12/14 增加供应商授信 连保、回购、回购含灭失额度
+	  -->
+	 <insert id="creatProductCreditPlan" parameterClass="map">
+	  	INSERT INTO T_PRODUCT_GRANTPLAN (
+		  	CREATE_DATE
+		  	,CREATE_ID
+		  	,MODITY_DATE
+		  	,MODIFY_ID
+		 	,TYPE
+			,STATUS
+			,CUGP_STATUS
+			,CUGP_CODE
+			,PRODUCT_ID
+			,REMARK
+			,REPEAT_CREDIT
+			,REPURCHLOSS_GRANT_PRICE
+			,REPURCHLOSS_LAST_PRICE
+			<isEqual property="LIEN_HAS" compareValue="Y">
+			 	,LIEN_HAS
+			 	,LIEN_GRANT_PRICE
+			 	,LIEN_REPEAT_CREDIT
+			 	,LIEN_START_DATE
+				,LIEN_END_DATE
+				,LIEN_LAST_PRICE
+			 </isEqual>
+			 <isEqual property="REPURCH_HAS" compareValue="Y">
+			 	,REPURCH_HAS
+			 	,REPURCH_GRANT_PRICE
+			 	,REPURCH_REPEAT_CREDIT
+			 	,REPURCH_START_DATE
+				,REPURCH_END_DATE
+			 	,REPURCH_LAST_PRICE
+			 </isEqual>
+			 <isEqual property="ADVANCEMACHINE_HAS" compareValue="Y">
+			 	,ADVANCEMACHINE_HAS
+			 	,ADVANCEMACHINE_GRANT_PRICE
+				,ADVANCE_MACHINEREPEAT_CREDIT
+				,ADVANCE_START_DATE
+				,ADVANCE_END_DATE
+				,ADVANCEMACHINE_LAST_PRICE
+			 </isEqual>
+			 <isEqual property="VOICE_HAS" compareValue="Y">
+			 	,VOICE_HAS
+			 	,VOICE_CREDIT
+				,VOICE_START_DATE
+				,VOICE_END_DATE
+				,VOICE_CONTINUE
+				,VOICE_LAST_CREDIT
+			 </isEqual>
+	  	)VALUES(
+		  	getdate()
+		 	,#CREATE_ID#
+		 	,getdate()
+		 	,#MODIFY_ID#
+		 	,#TYPE#
+			,0
+			,0
+			,#CUGP_CODE#
+			,#PRODUCT_ID#
+			,#REMARK#
+			,#REPEAT_CREDIT#
+			,#REPURCHLOSS_GRANT_PRICE#
+			,#REPURCHLOSS_LAST_PRICE#
+			<isEqual property="LIEN_HAS" compareValue="Y">
+			 	,#LIEN_HAS#
+			 	,#LIEN_GRANT_PRICE#
+			 	,#LIEN_REPEAT_CREDIT#
+			 	,convert(date, #LIEN_START_DATE#)
+				,convert(date, #LIEN_END_DATE#)
+				,#LIEN_LAST_PRICE#
+			 </isEqual>
+			 <isEqual property="REPURCH_HAS" compareValue="Y">
+			 	,#REPURCH_HAS#
+			 	,#REPURCH_GRANT_PRICE#
+			 	,#REPURCH_REPEAT_CREDIT#
+			 	,convert(date, #REPURCH_START_DATE#)
+				,convert(date, #REPURCH_END_DATE#)
+			 	,#REPURCH_LAST_PRICE#
+			 </isEqual>
+			 <isEqual property="ADVANCEMACHINE_HAS" compareValue="Y">
+			 	,#ADVANCEMACHINE_HAS#
+			 	,#ADVANCEMACHINE_GRANT_PRICE#
+				,#ADVANCE_MACHINEREPEAT_CREDIT#
+				,convert(date, #ADVANCE_START_DATE#)
+				,convert(date, #ADVANCE_END_DATE#)
+				,#ADVANCEMACHINE_LAST_PRICE#
+			 </isEqual>
+			 <isEqual property="VOICE_HAS" compareValue="Y">
+			 	,#VOICE_HAS#
+			 	,#VOICE_CREDIT#
+				,convert(date, #VOICE_START_DATE#)
+				,convert(date, #VOICE_END_DATE#)
+				,#VOICE_CONTINUE#
+				,#VOICE_LAST_CREDIT#
+			 </isEqual>
+	  	)
+	</insert>
+	
+	<select id="getGrantPlanLog" parameterClass="map" resultClass="hashMap">
+		select
+			 CREATE_DATE
+		  	,CREATE_BY
+		  	,SUPL_ID
+		 	,LIEN_GRANT_PRICE
+		 	,LIEN_REPEAT_CREDIT
+		 	,LIEN_START_DATE
+			,LIEN_END_DATE
+		 	,REPURCH_GRANT_PRICE
+		 	,REPURCH_REPEAT_CREDIT
+		 	,REPURCH_START_DATE
+			,REPURCH_END_DATE
+		 	,ADVANCEMACHINE_GRANT_PRICE
+			,ADVANCE_MACHINEREPEAT_CREDIT
+			,ADVANCE_START_DATE
+			,ADVANCE_END_DATE
+		 	,VOICE_CREDIT
+			,VOICE_START_DATE
+			,VOICE_END_DATE
+			,VOICE_CONTINUE
+		from T_PRODUCT_GRANTPLAN_LOG
+		where SUPL_ID = #PRODUCT_ID#
+	</select>
+	
+	<insert id="addGrantPlanLog" parameterClass="map">
+	  	INSERT INTO T_PRODUCT_GRANTPLAN_LOG (
+		  	CREATE_DATE
+		  	,CREATE_BY
+		  	,SUPL_ID
+		 	,LIEN_GRANT_PRICE
+		 	,LIEN_REPEAT_CREDIT
+		 	,LIEN_START_DATE
+			,LIEN_END_DATE
+		 	,REPURCH_GRANT_PRICE
+		 	,REPURCH_REPEAT_CREDIT
+		 	,REPURCH_START_DATE
+			,REPURCH_END_DATE
+		 	,ADVANCEMACHINE_GRANT_PRICE
+			,ADVANCE_MACHINEREPEAT_CREDIT
+			,ADVANCE_START_DATE
+			,ADVANCE_END_DATE
+		 	,VOICE_CREDIT
+			,VOICE_START_DATE
+			,VOICE_END_DATE
+			,VOICE_CONTINUE
+	  	)VALUES(
+		  	getdate()
+		 	,#s_employeeName#
+		 	,#PRODUCT_ID#
+		 	,#LIEN_GRANT_PRICE#
+		 	,#LIEN_REPEAT_CREDIT#
+		 	,convert(date, #LIEN_START_DATE#)
+			,convert(date, #LIEN_END_DATE#)
+		 	,#REPURCH_GRANT_PRICE#
+		 	,#REPURCH_REPEAT_CREDIT#
+		 	,convert(date, #REPURCH_START_DATE#)
+			,convert(date, #REPURCH_END_DATE#)
+		 	,#ADVANCEMACHINE_GRANT_PRICE#
+			,#ADVANCE_MACHINEREPEAT_CREDIT#
+			,convert(date, #ADVANCE_START_DATE#)
+			,convert(date, #ADVANCE_END_DATE#)
+		 	,#VOICE_CREDIT#
+			,convert(date, #VOICE_START_DATE#)
+			,convert(date, #VOICE_END_DATE#)
+			,#VOICE_CONTINUE#
+	  	)
+	</insert>
+	
+	<insert id="addGrantPlanLogPart" parameterClass="map">
+	  	INSERT INTO T_PRODUCT_GRANTPLAN_LOG (
+		  	CREATE_DATE
+		  	,CREATE_BY
+		  	,SUPL_ID
+		 	,LIEN_GRANT_PRICE
+		 	,LIEN_REPEAT_CREDIT
+		 	,LIEN_START_DATE
+			,LIEN_END_DATE
+		 	,REPURCH_GRANT_PRICE
+		 	,REPURCH_REPEAT_CREDIT
+		 	,REPURCH_START_DATE
+			,REPURCH_END_DATE
+		 	,ADVANCEMACHINE_GRANT_PRICE
+			,ADVANCE_MACHINEREPEAT_CREDIT
+			,ADVANCE_START_DATE
+			,ADVANCE_END_DATE
+		 	,VOICE_CREDIT
+			,VOICE_START_DATE
+			,VOICE_END_DATE
+			,VOICE_CONTINUE
+	  	)VALUES(
+		  	getdate()
+		 	,#s_employeeName#
+		 	,#PRODUCT_ID#
+		 	,#LIEN_GRANT_PRICE#
+		 	,#LIEN_REPEAT_CREDIT#
+		 	,#LIEN_START_DATE#
+			,#LIEN_END_DATE#
+		 	,#REPURCH_GRANT_PRICE#
+		 	,#REPURCH_REPEAT_CREDIT#
+		 	,#REPURCH_START_DATE#
+			,#REPURCH_END_DATE#
+		 	,#ADVANCEMACHINE_GRANT_PRICE#
+			,#ADVANCE_MACHINEREPEAT_CREDIT#
+			,#ADVANCE_START_DATE#
+			,#ADVANCE_END_DATE#
+		 	,#VOICE_CREDIT#
+			,#VOICE_START_DATE#
+			,#VOICE_END_DATE#
+			,#VOICE_CONTINUE#
+	  	)
+	</insert>
+	
+	<!-- 
+	  更新客户授信 
+	  Modify by Michael 2011 12/14 增加供应商授信 连保、回购、回购含灭失额度 
+	  -->
+	 <update id="updateProductCreditPlan" parameterClass="map">
+	  	UPDATE T_PRODUCT_GRANTPLAN SET
+	 	TYPE = #TYPE#
+	 	,MODITY_DATE = getdate()
+		,MODIFY_ID = #MODIFY_ID#
+		,CUGP_STATUS = #CUGP_STATUS#
+		,CUGP_CODE = #CUGP_CODE#
+		,PRODUCT_ID = #PRODUCT_ID#
+		,REMARK = #REMARK#
+		,REPEAT_CREDIT = #REPEAT_CREDIT#
+		,REPURCHLOSS_GRANT_PRICE=#REPURCHLOSS_GRANT_PRICE#
+		,REPURCHLOSS_LAST_PRICE=#REPURCHLOSS_LAST_PRICE#
+		<isEqual property="LIEN_HAS" compareValue="Y">
+		 	,LIEN_HAS = #LIEN_HAS#
+		 	,LIEN_GRANT_PRICE = #LIEN_GRANT_PRICE#
+		 	,LIEN_REPEAT_CREDIT = #LIEN_REPEAT_CREDIT#
+		 	,LIEN_START_DATE = convert(date, #LIEN_START_DATE#)
+			,LIEN_END_DATE = convert(date, #LIEN_END_DATE#)
+			,LIEN_LAST_PRICE = #LIEN_LAST_PRICE#
+		 </isEqual>
+		 <isEqual property="REPURCH_HAS" compareValue="Y">
+		 	,REPURCH_HAS = #REPURCH_HAS#
+		 	,REPURCH_GRANT_PRICE = #REPURCH_GRANT_PRICE#
+		 	,REPURCH_REPEAT_CREDIT = #REPURCH_REPEAT_CREDIT#
+		 	,REPURCH_START_DATE = convert(date, #REPURCH_START_DATE#)
+			,REPURCH_END_DATE = convert(date, #REPURCH_END_DATE#)
+		 	,REPURCH_LAST_PRICE = #REPURCH_LAST_PRICE#
+		 </isEqual>
+		 <isEqual property="ADVANCEMACHINE_HAS" compareValue="Y">
+		 	,ADVANCEMACHINE_HAS = #ADVANCEMACHINE_HAS#
+		 	,ADVANCEMACHINE_GRANT_PRICE = #ADVANCEMACHINE_GRANT_PRICE#
+			,ADVANCE_MACHINEREPEAT_CREDIT = #ADVANCE_MACHINEREPEAT_CREDIT#
+			,ADVANCE_START_DATE = convert(date, #ADVANCE_START_DATE#)
+			,ADVANCE_END_DATE = convert(date, #ADVANCE_END_DATE#)
+			,ADVANCEMACHINE_LAST_PRICE = #ADVANCEMACHINE_LAST_PRICE#
+		 </isEqual>
+		 <isEqual property="VOICE_HAS" compareValue="Y">
+		 	,VOICE_HAS = #VOICE_HAS#
+		 	,VOICE_CREDIT = #VOICE_CREDIT#
+			,VOICE_START_DATE = convert(date, #VOICE_START_DATE#)
+			,VOICE_END_DATE = convert(date, #VOICE_END_DATE#)
+			,VOICE_CONTINUE = #VOICE_CONTINUE#
+			,VOICE_LAST_CREDIT = #VOICE_LAST_CREDIT#
+		 </isEqual>
+		<isEqual property="LIEN_HAS" compareValue="N">
+		 	,LIEN_HAS = 'N'
+		 	,LIEN_GRANT_PRICE = null
+		 	,LIEN_REPEAT_CREDIT = null
+		 	,LIEN_START_DATE = null
+			,LIEN_END_DATE = null
+			,LIEN_LAST_PRICE = null
+		 </isEqual>
+		 <isEqual property="REPURCH_HAS" compareValue="N">
+		 	,REPURCH_HAS = 'N'
+		 	,REPURCH_GRANT_PRICE = null
+		 	,REPURCH_REPEAT_CREDIT = null
+		 	,REPURCH_START_DATE = null
+			,REPURCH_END_DATE = null
+		 	,REPURCH_LAST_PRICE = null
+		 </isEqual>
+		 <isEqual property="ADVANCEMACHINE_HAS" compareValue="N">
+		 	,ADVANCEMACHINE_HAS = 'N'
+		 	,ADVANCEMACHINE_GRANT_PRICE = null
+			,ADVANCE_MACHINEREPEAT_CREDIT = null
+			,ADVANCE_START_DATE = null
+			,ADVANCE_END_DATE = null
+			,ADVANCEMACHINE_LAST_PRICE = null
+		 </isEqual>
+		 <isEqual property="VOICE_HAS" compareValue="N">
+		 	,VOICE_HAS = 'N'
+		 	,VOICE_CREDIT = null
+			,VOICE_START_DATE = null
+			,VOICE_END_DATE = null
+			,VOICE_CONTINUE = null
+			,VOICE_LAST_CREDIT = null
+		 </isEqual>
+		
+		
+		WHERE PDGP_ID= #PDGP_ID#
+	</update>
+	 <!-- 
+	  创建客户授信方案 
+	  -->
+	 <insert id="createProductCreditDetail" parameterClass="map">
+	  <![CDATA[
+	  	INSERT INTO T_PRODUCT_GRANTDETAIL (
+		CREATE_DATE,
+		CREATE_ID,
+		MODIFY_ID,
+		TYPE,
+		STATUS,
+		CUGD_STATUS,
+		PDGP_ID,
+		LEASE_PERIOD,
+		LEASE_TERM,
+		PAY_WAY,
+		MANAGEMENT_FEE_RATE,
+		HEAD_HIRE_PERCENT,
+		PLEDGE_PRICE_RATE,
+		FLOAT_RATE,
+		REMARK
+	  	)VALUES(
+	  	getDate(),
+	 	#CREATE_ID#,
+	 	#MODIFY_ID#,
+	 	#TYPE#,
+		0,
+		#CUGD_STATUS#,
+		#PDGP_ID#,
+		#LEASE_PERIOD#,
+		#LEASE_TERM#,
+		#PAY_WAY#,
+		#MANAGEMENT_FEE_RATE#,
+		#HEAD_HIRE_PERCENT#,
+		#PLEDGE_PRICE_RATE#,
+		#FLOAT_RATE#,
+		#REMARK#
+	  	)
+	  ]]>
+	</insert>
+	<!-- 
+	  更新客户授信方案
+	  -->
+	 <update id="updateProductCreditDetail" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_PRODUCT_GRANTDETAIL SET
+	  	MODIFY_TIME = getdate(),
+		MODIFY_ID = #MODIFY_ID#,
+		TYPE = #TYPE#,
+		STATUS = 0,
+		CUGD_STATUS = #CUGD_STATUS#,
+		PDGP_ID = #PDGP_ID#,
+		LEASE_PERIOD = #LEASE_PERIOD#,
+		LEASE_TERM = #LEASE_TERM#,
+		PAY_WAY = #PAY_WAY#,
+		MANAGEMENT_FEE_RATE = #MANAGEMENT_FEE_RATE#,
+		HEAD_HIRE_PERCENT = #HEAD_HIRE_PERCENT#,
+		PLEDGE_PRICE_RATE = #PLEDGE_PRICE_RATE#,
+		FLOAT_RATE = #FLOAT_RATE#,
+		REMARK = #REMARK#
+		WHERE PDGD_ID = #PDGD_ID#
+	  ]]>
+	</update>
+	<!-- 
+	  删除客户授信方案
+	  -->
+	 <update id="delProductCreditDetail" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_PRODUCT_GRANTDETAIL SET
+		STATUS = -2
+		WHERE PDGD_ID = #PDGD_ID#
+	  ]]>
+	</update>
+	<!-- 
+	  取消客户授信
+	  -->
+	 <update id="delCreditPlan" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_PRODUCT_GRANTPLAN SET
+		CUGP_STATUS = 1
+		WHERE PRODUCT_ID = #PRODUCT_ID#
+	  ]]>
+	</update>
+	
+	<update id="delUnionCreditPlan01" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_PRODUCT_UNIONGRANTPLAN SET
+					STATUS = 1
+		WHERE PRODUCT_ID = #PRODUCT_ID#
+	  ]]>
+	</update>
+	<update id="delUnionCreditPlan02" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_PRODUCT_UNIONGRANTPLAN SET
+			       STATUS = 1
+		WHERE UNION_SUPPLIER_ID = #PRODUCT_ID#
+	  ]]>
+	</update>
+	<!-- 
+		检验承租人是否有符合条件的授信
+	 -->
+	<statement id="validate-credit-result" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[
+			SELECT COUNT(1) FROM T_PRODUCT_GRANTPLAN T 
+			WHERE T.PRODUCT_ID=#PRODUCT_ID# AND T.LAST_PRICE>=#LAST_PRICE#
+				AND GETDATE() BETWEEN  T.START_DATE AND T.END_DATE
+		]]>
+	</statement>
+	<statement id="plus-credit-lastprice" parameterClass="map">
+	<![CDATA[
+			UPDATE T_PRODUCT_GRANTPLAN SET 
+				LAST_PRICE=LAST_PRICE-#LAST_PRICE#,
+				MODITY_DATE=GETDATE(),
+				MODIFY_ID=#S_EMPLOYEEID# 
+			WHERE PRODUCT_ID=#PRODUCT_ID#
+	]]>
+	</statement>
+	<statement id="sub-credit-lastprice" parameterClass="map">
+	<![CDATA[
+		UPDATE T_PRODUCT_GRANTPLAN SET 
+				LAST_PRICE=LAST_PRICE+#LAST_PRICE#,
+				MODITY_DATE=GETDATE(),
+				MODIFY_ID=#S_EMPLOYEEID# 
+			WHERE PRODUCT_ID=#PRODUCT_ID#
+	]]>
+	</statement>
+	<statement id="create-customer-creditlog" parameterClass="map">
+	<![CDATA[
+	INSERT INTO T_CUST_GRANTLOG
+           (CREATE_ID
+           ,CREATE_DATE
+           ,MODIFY_ID
+           ,MODIFY_DATE
+           ,STATUS
+           ,TYPE
+           ,CUGL_STATUS
+           ,MEMO
+           ,PDGP_ID
+           ,GRANT_PRICE
+           ,LAST_PRICE
+           ,START_DATE
+           ,END_DATE)
+      SELECT #S_EMPLOYEEID#,GETDATE(),#S_EMPLOYEEID#,GETDATE(),0,0,#CUGL_STATUS#,#MEMO#,
+		      T.PDGP_ID,T.GRANT_PRICE,T.LAST_PRICE,T.START_DATE,T.END_DATE
+		  FROM T_PRODUCT_GRANTPLAN  T
+		  WHERE PRODUCT_ID=#PRODUCT_ID#
+	]]>
+	</statement>
+	<statement id="productcreditlog" parameterClass="map">
+	<![CDATA[
+	INSERT INTO T_PRODUCT_GRANTLOG
+           (CREATE_ID
+           ,CREATE_DATE
+           ,STATUS
+           ,TYPE
+           ,CUGL_STATUS
+           ,MEMO
+           ,PDGP_ID
+          )values(
+          #CREATE_ID#,GETDATE(),0,0,#CUGL_STATUS#,#MEMO#,#PDGP_ID#
+          )
+	]]>
+	</statement>
+	<!-- Modify by Michael 2011 12/14 修改查询Log Bug 增加操作user 带出正确供应商 -->
+	<select id="queryLog" parameterClass="map" resultClass="java.util.HashMap">
+	 	<!--  
+	 	SELECT TPG.CREATE_ID
+           ,TPG.CREATE_DATE
+           ,TPG.MODIFY_ID
+           ,TPG.MODIFY_DATE
+           ,TPG.STATUS
+           ,TPG.TYPE
+           ,TPG.CUGL_STATUS
+           ,TPG.MEMO
+           ,TPG.PDGP_ID
+           ,TPG.GRANT_PRICE
+           ,TPG.LAST_PRICE
+           ,TPG.START_DATE
+           ,TPG.END_DATE
+           ,TSS.NAME
+		  FROM T_PRODUCT_GRANTLOG TPG
+		  LEFT JOIN T_PRODUCT_GRANTPLAN TPGP ON TPGP.PDGP_ID = TPG.PDGP_ID
+		  LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.ID = TPGP.PDGP_ID
+		  WHERE TPGP.PRODUCT_ID=#PRODUCT_ID#
+		 -->
+ 	 	SELECT TPG.CREATE_ID
+ 	 		,CONVERT(varchar(100), TPG.CREATE_DATE, 120) CREATE_DATE
+           ,TPG.MODIFY_ID
+           ,convert(varchar(100),TPG.MODIFY_DATE,120) MODIFY_DATE
+           ,TPG.STATUS
+           ,TPG.TYPE
+           ,TPG.CUGL_STATUS
+           ,TPG.MEMO
+           ,TPG.PDGP_ID
+           ,TPG.GRANT_PRICE
+           ,TPG.LAST_PRICE
+       		,convert(Date,TPG.START_DATE,23) START_DATE
+			,convert(Date,TPG.END_DATE,23) END_DATE
+           ,TSS.NAME
+           ,TUU.NAME USERNAME
+		  FROM T_PRODUCT_GRANTLOG TPG
+		  LEFT JOIN T_PRODUCT_GRANTPLAN TPGP ON TPGP.PDGP_ID = TPG.PDGP_ID
+		  LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.ID = TPGP.PRODUCT_ID
+		  LEFT JOIN T_USER_USER TUU ON TUU.ID=TPG.CREATE_ID
+		  WHERE TPGP.PRODUCT_ID=#PRODUCT_ID#
+	 </select>
+	<select id="querySuppliers" parameterClass="map" resultClass="java.util.HashMap">
+	 	SELECT COUNT(1)
+		  FROM T_PRODUCT_GRANTLOG TPG
+		  LEFT JOIN T_PRODUCT_GRANTPLAN TPGP ON TPGP.PDGP_ID = TPG.PDGP_ID
+		  WHERE TPGP.PRODUCT_ID=#PRODUCT_ID#
+	 </select>
+	 
+	 
+	 <select id="queryLog_count" parameterClass="map" resultClass="int">
+	 	SELECT COUNT(1)
+		  FROM T_PRODUCT_GRANTLOG TPG
+		  LEFT JOIN T_PRODUCT_GRANTPLAN TPGP ON TPGP.PDGP_ID = TPG.PDGP_ID
+		  WHERE TPGP.PRODUCT_ID=#PRODUCT_ID#
+	 </select>
+	 
+	 
+	 <select id="querySuppliersWithNoThis" parameterClass="map" resultClass="java.util.HashMap">
+		select t1.id,t1.name
+		from T_SUPL_SUPPLIER t1
+		where t1.status = 0 and t1.id != #PRODUCT_ID# and t1.id not in(select t2.UNION_SUPPLIER_ID
+																	from T_PRODUCT_UNIONGRANTPLAN t2
+																	where t2.status = 0 and t2.PRODUCT_ID = #PRODUCT_ID#)
+	 </select>
+	 <insert id="insertUnion01" parameterClass="map">
+	  <![CDATA[
+	  	INSERT INTO T_PRODUCT_UNIONGRANTPLAN (
+		  	CREATE_DATE,
+		  	CREATE_ID,
+		  	MODITY_DATE,
+		  	MODIFY_ID,
+		 	TYPE,
+			STATUS,
+			UNION_GRANT_PRICE,
+			PRODUCT_ID,
+			UNION_SUPPLIER_ID
+		  	)
+		  	VALUES(
+		  	getdate(),
+		 	#CREATE_ID#,
+		 	getdate(),
+		 	#MODIFY_ID#,
+		 	#TYPE#,
+			0,
+			#UNION_GRANT_PRICE#,
+			#PRODUCT_ID#,
+			#UNION_SUPPLIER_ID#
+	  	)
+	  ]]>
+	</insert>
+	 <insert id="insertUnion02" parameterClass="map">
+	  <![CDATA[
+	  	INSERT INTO T_PRODUCT_UNIONGRANTPLAN (
+		  	CREATE_DATE,
+		  	CREATE_ID,
+		  	MODITY_DATE,
+		  	MODIFY_ID,
+		 	TYPE,
+			STATUS,
+			UNION_GRANT_PRICE,
+			PRODUCT_ID,
+			UNION_SUPPLIER_ID
+		  	)
+		  	VALUES(
+		  	getdate(),
+		 	#CREATE_ID#,
+		 	getdate(),
+		 	#MODIFY_ID#,
+		 	#TYPE#,
+			0,
+			#UNION_GRANT_PRICE#,
+			#UNION_SUPPLIER_ID#,
+			#PRODUCT_ID#
+	  	)
+	  ]]>
+	</insert>
+	
+	<select id="queryUnionGrantPlan" parameterClass="map" resultClass="java.util.HashMap">
+		select t1.UNION_GRANT_PRICE,
+		       t2.NAME,
+		       t1.purp_id
+		from T_PRODUCT_UNIONGRANTPLAN t1
+		left join T_SUPL_SUPPLIER t2 on t2.ID = t1.UNION_SUPPLIER_ID
+		where t1.STATUS = 0 and t1.PRODUCT_ID = #PRODUCT_ID# 
+	 </select>
+	 
+	 	<select id="getUnionByID" parameterClass="map" resultClass="java.util.HashMap">
+		select t1.UNION_GRANT_PRICE,
+		       t2.NAME,
+		       t1.purp_id,
+		       t1.UNION_SUPPLIER_ID,
+		       t1.PRODUCT_ID
+		from T_PRODUCT_UNIONGRANTPLAN t1
+		left join T_SUPL_SUPPLIER t2 on t2.ID = t1.UNION_SUPPLIER_ID
+		where t1.STATUS = 0 and t1.PURP_ID = #PURP_ID# 
+	 </select>
+		<update id="updateUnionPriceByID01" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_PRODUCT_UNIONGRANTPLAN SET
+					UNION_GRANT_PRICE = #UNION_PRICE#
+		WHERE PURP_ID = #UNION_ID#
+	  ]]>
+	</update>	
+	
+	<update id="updateUnionPriceByID02" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_PRODUCT_UNIONGRANTPLAN SET
+					UNION_GRANT_PRICE = #UNION_PRICE#
+		WHERE PRODUCT_ID = #UNION_SUPPLIER_ID# and UNION_SUPPLIER_ID = #PRODUCT_ID#
+	  ]]>
+	</update>
+	
+		<update id="delUnionPriceByID01" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_PRODUCT_UNIONGRANTPLAN SET
+					STATUS = 1
+		WHERE PURP_ID = #PURP_ID#
+	  ]]>
+	</update>
+	<update id="delUnionPriceByID02" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_PRODUCT_UNIONGRANTPLAN SET
+			       STATUS = 1
+		WHERE PRODUCT_ID = #UNION_SUPPLIER_ID# and UNION_SUPPLIER_ID = #PRODUCT_ID#
+	  ]]>
+	</update>
+</sqlMap>

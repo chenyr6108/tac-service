@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ <beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	     http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+	     http://www.springframework.org/schema/context
+	     http://www.springframework.org/schema/context/spring-context-3.2.xsd
+	     http://www.springframework.org/schema/tx
+	     http://www.springframework.org/schema/tx/spring-tx-3.2.xsd" default-lazy-init="false">
+	
+	<!-- <bean id="dataSource" class="org.springframework.jndi.JndiObjectFactoryBean" autowire="no">
+		<property name="jndiName">
+			<value>java:comp/env/jdbc/tacDataSource</value>
+		</property>
+	</bean> -->
+	
+	<context:component-scan base-package="com">
+	    <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+	</context:component-scan>
+	
+	
+	
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource">  
+        <property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />  
+        <property name="url" value="jdbc:sqlserver://10.2.1.193:1433;databaseName=ygfinanceDB" />
+        <property name="username" value="sa" />  
+        <property name="password" value="3Mm8Wmh46S" />
+        <!-- <property name="defaultAutoCommit" value="false"/> -->
+    </bean>
+	
+	<bean id="sqlMapClient" class="org.springframework.orm.ibatis.SqlMapClientFactoryBean"> 
+		<property name="configLocation" value="classpath:config/sql/sqlmap_cfg.xml"/> 
+		<property name="dataSource" ref="dataSource"/>
+	</bean> 
+	
+	<bean id="sqlMapClientTemplate" class="org.springframework.orm.ibatis.SqlMapClientTemplate">  
+        <property name="sqlMapClient">  
+            <ref bean="sqlMapClient" />  
+        </property>  
+    </bean>
+	
+	<!-- 事务管理器 --> 
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager"> 
+		<property name="dataSource" ref="dataSource"></property> 
+	</bean> 
+	
+	<!-- 多数据源 -->
+	<!-- 1个 -->
+	<bean id="dataSource_236" class="org.apache.commons.dbcp.BasicDataSource">  
+        <property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />  
+        <property name="url" value="jdbc:sqlserver://10.2.1.237:1433;databaseName=financelease" />
+        <property name="username" value="sa" />  
+        <property name="password" value="3Mm8Wmh46S" />  
+    </bean>
+    <bean id="sqlMapClient_236" class="org.springframework.orm.ibatis.SqlMapClientFactoryBean"> 
+		<property name="configLocation" value="classpath:config/sql/sqlmap_cfg.xml"/> 
+		<property name="dataSource" ref="dataSource_236"/> 
+	</bean>
+	<bean id="transactionManager_236" class="org.springframework.jdbc.datasource.DataSourceTransactionManager"> 
+		<property name="dataSource" ref="dataSource_236"></property> 
+	</bean>
+	<!-- 多数据源 -->
+	
+	
+	<!-- 注解事务方式 -->
+	<tx:annotation-driven transaction-manager="transactionManager" proxy-target-class="true"/>
+	
+	<bean id="baseDAO" class="com.brick.base.dao.BaseDAO">
+		<property name="sqlMapClientTemplate" ref="sqlMapClientTemplate"/>
+		<property name="sqlMapList">
+			<map>
+				<entry key="sqlMapClient_236">
+					<ref bean="sqlMapClient_236"/>
+				</entry>
+					
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="baseService" class="com.brick.base.service.BaseService">
+		<property name="baseDAO" ref="baseDAO"/>
+	</bean>
+	
+	<bean id="baseCommand" class="com.brick.base.command.BaseCommand">
+		<property name="baseService" ref="baseService"/>
+	</bean>
+	
+	<!-- <bean id="formBeanComposer" class="com.brick.base.FormBeanComposer" init-method="initFormBeans">
+		<property name="formBeanConfig" value="classpath:config/form-bean.xml"/>
+	</bean> -->
+	
+	<bean id="tacSqlMapClient" class="com.brick.base.common.TacSqlMapClientImpl" init-method="initSqlMapClient">
+		<property name="sqlMapClient" ref="sqlMapClient"/>
+	</bean>
+	
+	
+	<bean id="dataSource_c6" class="org.apache.commons.dbcp.BasicDataSource">  
+        <property name="driverClassName" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />  
+         <property name="url" value="jdbc:sqlserver://10.2.1.222:1433;databaseName=C6" />
+        <property name="username" value="sa" />  
+        <property name="password" value="3Mm8Wmh46S" />
+    </bean>
+    
+	<bean id="hrAttendanceEmailService" class="com.brick.hr.HrAttendanceEmailService" parent="baseService">
+		<property name="dataSource" ref="dataSource_c6" />
+		<property name="mailUtilService" ref="mailUtilService" />
+	</bean>
+	
+	<!-- 引入项目的Bean -->
+	<import resource="classpath*:config/spring/spring-*.xml"/>
+	<!-- 引入Quartz的配置 -->
+	<import resource="classpath*:config/quartz/spring-quartz.xml"/>
+	
+	<bean id="logTriggerLis" class="com.brick.job.listener.TriggerListenerForLog">
+		<property name="jobService" ref="jobService"/>
+	</bean>
+	
+	<bean id="myJobListener" class="com.brick.job.listener.MyJobListener">
+		<property name="jobService" ref="jobService"/>
+	</bean>
+	
+    <!-- 总管理类 如果将lazy-init='false'那么容器启动就会执行调度程序 -->
+    <bean id="startQuertz" lazy-init="false" autowire="no" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+				<ref bean="smsJobTrigger" />
+				<!-- <ref bean="sendMessageTrigger" /> -->
+				<ref bean="smsMoveTrigger"/>
+				
+				
+				<ref bean="caseReportJobCarTrigger" />
+				<ref bean="caseReportJobTrigger" />
+				
+				<ref bean="reportCancelJobTrigger" />
+				
+				
+				<ref bean="achievementCaseTrigger" />
+				
+				<ref bean="sendCommonMailJobTrigger" />
+				<ref bean="sendCommonMailForQQJobTrigger" />
+				
+				<!-- <ref bean="creditStatusJobTrigger" /> -->
+				
+				<!-- Add BY ZhangYizhou 2014-08-20 发送待补文件给各个办事处(乘用车专用) -->
+				<ref bean="sendAllUnCompletedFileListByDeptForCarJobTrigger" />
+				
+				<!-- 以下更改单催办事宜 20130204 AddZhang每晨0845-->
+				<ref bean="unEedOrderJobTrigger"/>
+				<!-- 以上更改单催办事宜 20130204 AddZhang每晨0845-->
+				
+				<!-- HR系统信息邮件发送，等系统移交后打开 -->
+				<!-- <ref bean="getHRMailJobTrigger"/> -->
+				
+				<!-- 逾期状况统计详细列表job -->
+				<ref bean="dunReportDetailJobTrigger"/>
+				<!-- 逾期状况统计详细列表job -->
+				<ref bean="dunDailyJobTrigger"/>
+				<ref bean="dunReportDailyJobTrigger"/>
+				
+				<ref bean="prcCreateDispatchUserByDayJobTrigger"/>
+				<ref bean="prcLatestPaydetailJobTrigger"/>
+				<ref bean="procActivitesStatisticsJobTrigger"/>
+				
+				<!-- 乘用车委贷税务备案资料 -->
+				<ref bean="carRentFileJobTrigger"/>
+				<!-- 档案借出逾期 -->
+				<ref bean="recordEmailJobTrigger"/>
+				
+				<ref bean="decomposeDailyReportJobTrigger"/>
+				<ref bean="decomposeDailyDynamicReportJobTrigger"/>
+				<ref bean="stopInvoiceForDun45DaysTrigger"/>
+				<ref bean="openInvoiceForDun45DaysTrigger"/>
+				<ref bean="emailReminderForDun45DaysCaseTrigger"/>
+				<ref bean="generateInvoiceForNewCaseTrigger"/>
+				<ref bean="generateInvoiceForOldCaseTrigger"/>
+				
+				<!-- 乘用车回租案件代开发票资料周报表 -->
+				<ref bean="sendEmailToPassengerVehicleSessorByWeekTrigger"/>
+				<ref bean="sendEmailToPassengerVehicleSessorByMonthTrigger"/>
+				
+				<!-- 逾期180以上案件 -->
+				<ref bean="delayCase_180Trigger"/>
+				<ref bean="getKingDeerTransferBasicDataJobTrigger"/>
+				<!-- 业绩一览表 -->
+				<ref bean="achievementCaseTrigger" />
+				<ref bean="kingDeerBaseDataJobTrigger"/>
+			</list>
+		</property>
+		<property name="globalTriggerListeners">
+			<list>
+				<ref bean="logTriggerLis" />
+			</list>
+		</property>
+		<property name="globalJobListeners">
+			<list>
+				<ref bean="myJobListener"/>
+			</list>
+		</property>
+	</bean>
+</beans>

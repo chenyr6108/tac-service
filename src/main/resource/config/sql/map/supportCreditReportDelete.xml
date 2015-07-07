@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="creditReportDelete">
+	<!-- 获取资信的个数 -->
+	<select id="getCreditReports_count" parameterClass="map" resultClass="int">
+		select count(tpc.id) cnt 
+		  from t_prjt_credit tpc
+		  left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		  left join t_area ta on ta.id = tpc.province_id
+		  left join t_user_user tuu on tuu.id = tpc.clerk_id
+		  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		  where tpc.status=0
+		  <dynamic>
+		  	<isNotEmpty prepend="and" property="content">
+		  		(tpc.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' OR tpc.CREDIT_RUNCODE LIKE '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 tpc.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic>
+	</select>
+	<!-- 获取资信的信息 -->
+	<select id="getCreditReports" parameterClass="map" resultClass="hashmap">
+		select tpc.id id,TPC.CREDIT_RUNCODE,
+	       tpc.type type,
+	       tpc.state state,
+	       tpc.cust_id cust_id,
+	       tcc.cust_name cust_name,
+	       tcc.cust_type cust_type,
+	       ta.name province,
+	       tpc.clerk_id clerk_id,
+	       tuu.name clerk_name,
+	       tpc.sensor_id sensor_id,
+	       tuu2.name sensor_name,
+	       tpc.wind_state wind_state,
+	       CONVERT(varchar,tpc.create_date,23) create_date,
+	       (SELECT DISTINCT 'Y' FROM T_RENT_COLLECTIONDETAIL TRCL WHERE TRCL.RECP_ID=TRCN.RECP_ID AND TRCL.STATUS=0) 'HAS_LEASE'
+		  from t_prjt_credit tpc
+		  left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		  left join t_area ta on ta.id = tpc.province_id
+		  left join t_user_user tuu on tuu.id = tpc.clerk_id
+		  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		  LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TPC.ID=TRC.PRCD_ID
+		  LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.STATUS=0 AND TRC.RECT_ID=TRCN.RECT_ID		  
+		  where tpc.status=0
+		  <dynamic>
+		  	<isNotEmpty prepend="and" property="content">
+		  		(tpc.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' OR tpc.CREDIT_RUNCODE LIKE '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 tpc.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic> 
+		  order by tpc.create_date desc
+	</select>
+
+	<!-- 调用存储过程 -->
+	<statement id="deleteCreditPro" parameterClass="map">
+		exec prc_del_credit #credit_id#
+	</statement>
+
+	<!-- 查看资信是否生成合同 -->
+	<select id="checkRent" parameterClass="map" resultClass="hashmap"> 
+		select count(t.rect_id) CNT   from t_rent_contract t where t.prcd_id=#credit_id# and t.status=0
+	</select>
+	<!-- 查看资信是否生成风控 -->
+	<select id="checkControlCount" parameterClass="map" resultClass="hashmap"> 
+		select  count(prc_id)  CNTT from t_prjt_risk_control  where credit_id=#credit_id# and status=0
+	</select>	
+	<!-- 查看资信生成风控的信息 -->
+	<select id="checkControl" parameterClass="map" resultClass="hashmap"> 
+		select SEC_SUGGESTION  , SYNTHESIZE_SUGGESTION  ,  GM_SUGGESTION , STATE,PRC_HAO
+  		from t_prjt_risk_control where credit_id=#credit_id# and status=0
+	</select>	
+	
+	<!-- 获取基本利率的个数 -->
+	<select id="getProp_count" parameterClass="map" resultClass="int">
+       select count(t.id) CNT from t_rate t
+	</select>
+	<!-- 获取基本利率的信息 -->
+	<select id="getProp" parameterClass="map" resultClass="hashmap">
+		select t.id,t.adjust_time,t.six_months,t.one_year,t.one_three_years,
+		       t.over_five_years,t.remark,t.three_five_years
+		 from t_rate t
+		 order by t.adjust_time desc
+	</select>	
+	<delete id="deleteProp" parameterClass="map">
+		 delete from t_rate where id=#id#
+	</delete>	
+	
+			<insert id="saveProp" parameterClass="map">
+			<![CDATA[	
+			INSERT INTO T_RATE
+				(
+				 ADJUST_TIME,
+				 SIX_MONTHS,
+				 ONE_YEAR,
+				 ONE_THREE_YEARS,
+				 THREE_FIVE_YEARS,
+				 OVER_FIVE_YEARS,
+				 REMARK
+				 )
+				values
+				(
+				#ADJUST_TIME#,
+				#SIX_MONTHS#,
+				#ONE_YEAR#,
+				#ONE_THREE_YEARS#,
+				#THREE_FIVE_YEARS#,
+				#OVER_FIVE_YEARS#,
+				#REMARK#
+				)
+				 ]]>
+	 </insert>
+	 
+	 	<update id="updateProp" parameterClass="map">	
+			<![CDATA[	
+				UPDATE  T_RATE
+				SET
+				  ADJUST_TIME =#ADJUST_TIME#,
+				  SIX_MONTHS =#SIX_MONTHS#,
+				  ONE_YEAR =#ONE_YEAR#,
+				  ONE_THREE_YEARS =#ONE_THREE_YEARS#,
+				  THREE_FIVE_YEARS =#THREE_FIVE_YEARS#,
+				  OVER_FIVE_YEARS =#OVER_FIVE_YEARS#,
+				  REMARK = #REMARK#
+				WHERE ID = #ID#	
+				 ]]>
+	 </update>		
+</sqlMap>

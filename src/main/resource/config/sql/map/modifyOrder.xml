@@ -1,0 +1,1142 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap namespace="modifyOrder">
+	<!-- 以下新增更改单 -->
+	<insert id="insertOrder" parameterClass="map">
+		INSERT INTO T_MODIFY_ORDER
+		(
+		APPLY_NAME,
+		APPLY_ID,
+		DEPT_ID,
+		CREATE_TIME,
+		LEASE_CODE,
+		CUST_NAME,
+		IS_PAY,
+		IS_LEASE_CODE,
+		INTRODUCTION,
+		APPLY_LEADER_ID,
+		ORDER_STATUS,
+		REMARK,
+		STATUS,
+		REMARK_CL,
+		REMARK_YZ,
+		ORDER_TYPE,
+		ALTER_USER_ID,
+		MODIFY_ORDER_CODE,
+		ORDER_CLASS
+		)
+		values
+		(
+		#APPLY_NAME#,
+		#s_employeeId#,
+		#DEPT_ID#,
+		getdate(),
+		#LEASE_CODE#,
+		#CUST_NAME#,
+		#IS_PAY#,
+		#IS_LEASE_CODE#,
+		#INTRODUCTION#,
+		#APPLY_LEADER_ID#,
+		0,
+		#REMARK#,
+		#STATUS#,
+		#REMARK_CL#,
+		#REMARK_YZ#,
+		0,
+		#ALTER_USER_ID#,
+		#MODIFY_ORDER_CODE#,
+		#ORDER_CLASS#
+		)
+		<selectKey resultClass="int" keyProperty="MODIFY_ID">
+			<![CDATA[	select @@IDENTITY as MODIFY_ID  ]]>
+		</selectKey>
+	</insert>
+	<!-- 以上新增更改单 -->
+	<!-- 以下查询登录者信息 -->
+	<select id="queryUserByUid" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT ID ,EMAIL,NAME ,DEPT_ID,UPPER_USER AS UPPERUSER FROM
+		T_USER_USER
+		WHERE
+		ID=#s_employeeId# AND STATUS='0'
+	</select>
+	<!-- 以上查询登录者信息 -->
+	<!-- 以下查询登录者主管信息 -->
+	<select id="queryUpperByUid" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT ID ,NAME ,upper_user as UPPERUSER from t_user_user
+		WHERE
+		ID=#UPPERUSER# and status='0'
+	</select>
+	<!-- 以上查询登录者主管信息 -->
+	<!-- 以下查询更改单列表 -->
+	<select id="queryModifyOrderList" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT TMO.MODIFY_ID
+		, TMO.APPLY_NAME
+		,TMO.APPLY_ID
+		,TMO.DEPT_ID
+		,TMO.CREATE_TIME
+		,TMO.LEASE_CODE
+		,TMO.CUST_NAME
+		,TMO.IS_PAY
+		,TMO.IS_LEASE_CODE
+		,TMO.INTRODUCTION
+		,TMO.APPLY_LEADER_ID
+		,TMO.ORDER_STATUS
+		,TMO.REMARK
+		,TMO.STATUS
+		,TMO.REMARK_CL
+		,TMO.REMARK_YZ
+		,TMO.ORDER_TYPE
+		,TMO.ALTER_USER_ID
+		,TMO.MODIFY_ORDER_CODE
+		,TUUALTER.NAME AS ALTER_NAME
+		,TUUALTER.EMAIL AS ALTEREMAIL
+		,TDC.DECP_NAME_CN AS DECP_NAME_CN
+		,TUUAPPLY.EMAIL AS APPLYEMAIL
+		,TUUAPPLY.NAME AS APPLYENAME
+		,TUULEADER.EMAIL AS LEADEREMAIL
+		FROM T_MODIFY_ORDER TMO
+		LEFT JOIN T_USER_USER TUUALTER ON TMO.ALTER_USER_ID =TUUALTER.ID
+		LEFT JOIN T_USER_USER TUUAPPLY ON TMO.APPLY_ID =TUUAPPLY.ID
+		LEFT JOIN T_USER_USER TUULEADER ON TMO.APPLY_LEADER_ID =TUULEADER.ID
+		LEFT JOIN T_DEPT_DEPARTMENT TDDP ON TMO.DEPT_ID=TDDP.ID
+		LEFT JOIN T_DEPT_COMPANY TDC ON TDDP.DECP_ID=TDC.DECP_ID
+		<dynamic prepend="where">
+
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				exists(select ID from T_USER_USER
+				where DEPT_ID in
+				(select uc.DEPT_ID
+				from dbo.T_USER_USER2COMPANY uc
+				where uc.USER_ID = #s_employeeId#)
+				and ID = tmo.APPLY_ID)
+
+			</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+				(tmo.APPLY_ID=#s_employeeId# or tmo.APPLY_LEADER_ID=#s_employeeId# )
+			</isEqual>
+			<isNotEmpty prepend="and" property="DECP_ID">
+				tmo.DEPT_ID in ( select
+				id from T_DEPT_DEPARTMENT where DECP_ID=#DECP_ID# )
+			</isNotEmpty>
+			<!-- <isEqual prepend="and" property="p_usernode" compareValue="0"> (APPLY_ID=#s_employeeId# 
+				or APPLY_LEADER_ID=#s_employeeId# or ALTER_USER_ID=#s_employeeId# or #s_employeeId# 
+				in (select tuper.upper_user as upper_user from T_MODIFY_ORDER tmo left join 
+				T_USER_USER tuper on tuper.ID = tmo.ALTER_USER_ID group by upper_user ) ) 
+				</isEqual> -->
+
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+			(tmo.CUST_NAME LIKE '%$QSEARCH_VALUE$%'  OR tmo.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' OR tmo.MODIFY_ORDER_CODE LIKE '%$QSEARCH_VALUE$%' or TUUAPPLY.NAME LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[	CONVERT(date,tmo.CREATE_TIME)  >=  CONVERT(date,#QSTART_DATE#) ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[	 CONVERT(date,tmo.CREATE_TIME)  <= CONVERT(date,#QEND_DATE# )]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="SELECT_ALTER">
+				tmo.ALTER_USER_ID=#SELECT_ALTER#
+			</isNotEmpty>
+			<isEmpty prepend="" property="unEnd">
+				<isNotEmpty prepend="and" property="ORDER_TYPE">
+					tmo.ORDER_TYPE=#ORDER_TYPE#
+				</isNotEmpty>
+				<isNotEmpty prepend="and" property="STATUS">
+					tmo.STATUS=#STATUS#
+				</isNotEmpty>
+				<isNotEmpty prepend="and" property="ORDER_STATUS">
+					ORDER_STATUS=#ORDER_STATUS#
+				</isNotEmpty>
+			</isEmpty>
+			<isNotEmpty prepend="and" property="unEnd">
+				<isEqual prepend="" property="unEnd" compareValue="1">
+					(tmo.ORDER_TYPE!=#ORDER_TYPE# or tmo.ORDER_STATUS!=#ORDER_STATUS#)
+				</isEqual>
+			</isNotEmpty>
+		</dynamic>
+
+	</select>
+	<!-- 以上查询更改单列表 -->
+	<!-- 以下查询某一更改单 -->
+	<select id="getOrderByMid" parameterClass="map" resultClass="java.util.HashMap">
+		select tmor.MODIFY_ID,tmor.APPLY_NAME,tmor.MODIFY_ORDER_CODE,
+		tmor.APPLY_ID,tmor.DEPT_ID,tmor.CREATE_TIME,tmor.LEASE_CODE,tmor.CUST_NAME,
+		tmor.IS_PAY,tmor.IS_LEASE_CODE,tmor.INTRODUCTION,tmor.APPLY_LEADER_ID,tmor.ORDER_STATUS,tmor.REMARK,
+		tmor.STATUS,tmor.REMARK_CL,tmor.REMARK_YZ,tmor.ORDER_TYPE,tmor.ALTER_USER_ID,tuu.EMAIL
+		as EMAIL,
+		talter.email as ALTER_EMAIL,talter.name as
+		OLDNAME,tdd.FLAG,tmor.ORDER_CLASS
+		from T_MODIFY_ORDER tmor
+		left join
+		t_user_user tuu on tuu.id=tmor.[APPLY_ID]
+		left join t_user_user talter
+		on talter.id=tmor.ALTER_USER_ID
+		left join t_data_dictionary tdd on
+		tdd.CODE= tmor.ORDER_CLASS and
+		tdd.type='更改单分类' 
+		where
+		MODIFY_ID=#MODIFY_ID#
+	</select>
+	<!-- 以上查询某一更改单 -->
+
+	<!-- 以下更新更改单的状态 -->
+	<update id="updateModifyOrder" parameterClass="map">
+		UPDATE T_MODIFY_ORDER SET
+		REMARK =#REMARK#
+		<isNotEmpty prepend="," property="APPLY_NAME">
+			APPLY_NAME =#APPLY_NAME#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="dept_id">
+			DEPT_ID =#dept_id#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="CREATE_TIME">
+			CREATE_TIME =#CREATE_TIME#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="LEASE_CODE">
+			LEASE_CODE =#LEASE_CODE#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="CUST_NAME">
+			CUST_NAME =#CUST_NAME#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="IS_PAY">
+			IS_PAY =#IS_PAY#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="IS_LEASE_CODE">
+			IS_LEASE_CODE
+			=#IS_LEASE_CODE#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="INTRODUCTION">
+			INTRODUCTION
+			=#INTRODUCTION#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="decp_user">
+			APPLY_LEADER_ID
+			=#decp_user#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="ORDER_STATUS">
+			ORDER_STATUS
+			=#ORDER_STATUS#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="STATUS">
+			STATUS =#STATUS#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="ORDER_TYPE">
+			ORDER_TYPE =#ORDER_TYPE#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="REMARK_CL">
+			REMARK_CL =#REMARK_CL#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="REMARK_YZ">
+			REMARK_YZ =#REMARK_YZ#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="ALTER_USER_ID">
+			ALTER_USER_ID
+			=#ALTER_USER_ID#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="ORDER_CLASS">
+			ORDER_CLASS =#ORDER_CLASS#
+		</isNotEmpty>
+
+		WHERE MODIFY_ID =#MODIFY_ID#
+	</update>
+
+	<!-- 以上更新更改单的状态 -->
+	<!-- 以下添加处理人员 -->
+	<insert id="insertAlterUser">
+		INSERT INTO T_MODIFY_ORDER_ALTER(
+		USER_ID,
+		USER_STATUS
+		)values(
+		#USER_ID#,
+		1
+		)
+	</insert>
+	<!-- 以上添加处理人员 -->
+	<!-- 以下查询所有处理人员 -->
+	<select id="queryAlterUserList" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT USER_ID,USER_STATUS ,tuu.[NAME],tmoa.[count]
+		from T_MODIFY_ORDER_ALTER tmoa
+		left join T_USER_USER tuu on tmoa.[USER_ID]=tuu.ID
+		<dynamic prepend="where">
+			<isNotEmpty prepend="and" property="USER_STATUS">
+				USER_STATUS=1
+			</isNotEmpty>
+		</dynamic>
+	</select>
+
+	<!-- 以上查询所有处理人员 -->
+	<!-- 查询所有人员 -->
+	<select id="queryUserList" parameterClass="map" resultClass="java.util.HashMap">
+		select ID,NAME from t_user_user where DEPT_ID='7' and STATUS=0
+	</select>
+	<!-- 查询所有人员 -->
+	<!-- 以下更新处理人员状态 -->
+	<update id="updateAlterUser" parameterClass="map">
+		UPDATE T_MODIFY_ORDER_ALTER SET
+		USER_ID=#USER_ID#
+
+		<isNotEmpty prepend="," property="USER_STATUS">
+			USER_STATUS =#USER_STATUS#
+		</isNotEmpty>
+		WHERE USER_ID=#USER_ID#
+	</update>
+	<!-- 以上更新处理人员状态 -->
+	<!-- 以下更新处理人的状态 -->
+	<update id="updateAlterUserSTATUS" parameterClass="map">
+		UPDATE
+		T_MODIFY_ORDER_ALTER SET USER_STATUS=0
+	</update>
+	<!-- 以上更新处理人的状态 -->
+	<update id="updateCount" parameterClass="map">
+		UPDATE
+		T_MODIFY_ORDER_ALTER SET [count]=#COUNT#
+		WHERE USER_ID=#USER_ID#
+	</update>
+	<!-- 以下处理人集合 -->
+	<select id="changeAlterUserList" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT ALTERT.COUNTORDER,ALTERT.[USER_ID],ALTERT.[count], TUU.EMAIL FROM
+
+		( SELECT COUNT(TMO.ALTER_USER_ID) AS COUNTORDER, TMOA.[USER_ID],TMOA.[count] FROM
+		  T_MODIFY_ORDER_ALTER TMOA
+	  	LEFT JOIN T_MODIFY_ORDER TMO ON TMOA.[USER_ID]=TMO.ALTER_USER_ID
+		  WHERE TMOA.USER_STATUS='1'
+		  GROUP BY 	TMOA.[USER_ID],TMOA.[count]  ) ALTERT
+    
+    
+		LEFT JOIN T_USER_USER TUU ON TUU.ID= ALTERT.[USER_ID]
+		ORDER BY ALTERT.COUNTORDER+ALTERT.[count]
+	</select>
+	<!-- 以上处理人集合 -->
+
+	<!-- 以下记录日志 -->
+	<insert id="insertOrderLog" parameterClass="map">
+		INSERT INTO
+		T_MODIFY_ORDER_LOG (
+		MODIFY_ID
+		,CUST_NAME
+		,CREATE_TIME
+		,REMARK_LOG
+		,ORDER_STATUS_LOG
+		,LOG_USER_ID
+		,ORDER_TYPE_LOG,
+		WORK_HOURS,
+		LOG_IP
+
+		) VALUES
+		(
+		#MODIFY_ID#
+		,#CUST_NAME#
+		,getdate()
+		,#REMARK_LOG#
+		,#ORDER_STATUS#
+		,#s_employeeId#
+		,#ORDER_TYPE#
+		,#WORK_HOURS#
+		,#LOG_IP#
+		)
+	</insert>
+	<!-- 以上记录日志 -->
+
+	<!-- 以下查询日志 -->
+	<select id="queryShowOrderLog" parameterClass="map"
+		resultClass="java.util.HashMap">
+		select tmol.MODIFY_ID,tmo.CUST_NAME as CUST_NAME
+		,tmol.CREATE_TIME,tmol.REMARK_LOG,tmol.ORDER_STATUS_LOG,tmol.LOG_USER_ID,tmol.ORDER_TYPE_LOG
+		,tuu.name as ALTER_NAME,tmol.WORK_HOURS as WORK_HOURS
+		from
+		T_MODIFY_ORDER_LOG tmol
+		Left join T_MODIFY_ORDER tmo on tmol.MODIFY_ID
+		= tmo.MODIFY_ID
+		left join T_USER_USER tuu on tuu.ID = tmol.LOG_USER_ID
+		Where
+		tmol.MODIFY_ID=#MODIFY_ID#
+	</select>
+	<!-- 以上查询日志 -->
+	<!-- 以下查询登录者的权限 -->
+	<select id="getResourceIdListByEmplId" parameterClass="map"
+		resultClass="java.lang.String">
+		SELECT PERMISSION_CODE FROM FIL_PERMISSION_RESOURCE WHERE
+		ID IN
+		(
+		SELECT re.RESOURCE_ID
+		FROM fil_permission_resource2role re
+		WHERE
+		EXISTS
+		(SELECT 1
+		FROM FIL_PERMISSION_ROLE roles
+		WHERE EXISTS
+		(SELECT 1
+		FROM t_user_user2role users
+		WHERE roles.ID=users.ROLE_ID
+		AND
+		roles.STATUS=users.STATUS
+		AND users.EMPLOYEE_ID=#s_employeeId#
+		AND
+		users.STATUS=0)
+		AND roles.ID=re.ROLE_ID
+		AND roles.STATUS=re.STATUS)
+		)
+		AND
+		PERMISSION_CODE IS NOT NULL AND PERMISSION_CODE!=''
+
+	</select>
+
+	<!-- 以上查询登录者的权限 -->
+	<!-- 查询某一人的邮箱 -->
+	<select id="getEmailById" parameterClass="map" resultClass="java.util.HashMap">
+		select email,NAME from t_user_user where id=#ALTER_USER_ID#
+	</select>
+	<!-- 查询某一人的邮箱 -->
+
+	<!-- 以下添加上传文件 -->
+	<insert id="insertOrderFile" parameterClass="map">
+		INSERT INTO
+		T_MODIFY_ORDER_FILE (
+		MODIFY_ID
+		,PATH
+		,TITLE
+		,IMAGE_NAME
+		,STATUS
+		,CREATE_ID
+		,CREATE_DATE
+		) VALUES (
+		#MODIFY_ID#,
+		#PATH#,
+		#TITLE#,
+		#IMAGE_NAME#,
+		0,
+		#s_employeeId#,
+		getdate()
+		)
+	</insert>
+	<!-- 以上添加上传文件 -->
+	<!-- 以下查看附件 -->
+	<select id="showOrderFileList" parameterClass="map"
+		resultClass="java.util.HashMap">
+		select MOIMG_ID, MODIFY_ID, PATH, TITLE, IMAGE_NAME,
+		STATUS, CREATE_ID, CREATE_DATE
+		FROM T_MODIFY_ORDER_FILE
+		where
+		MODIFY_ID=#MODIFY_ID# and STATUS='0'
+	</select>
+	<!-- 以上查看附件 -->
+	<!-- 以下查询日志forOrder -->
+	<select id="queryShowLogForOrder" parameterClass="map"
+		resultClass="java.util.HashMap">
+		select tmol.MODIFY_ID,tmo.CUST_NAME as CUST_NAME
+		,tmol.CREATE_TIME,tmol.REMARK_LOG,tmol.ORDER_STATUS_LOG,tmol.LOG_USER_ID,tmol.ORDER_TYPE_LOG
+		,tuu.name as ALTER_NAME,tmol.WORK_HOURS as WORK_HOURS
+		from
+		T_MODIFY_ORDER_LOG tmol
+		Left join T_MODIFY_ORDER tmo on tmol.MODIFY_ID
+		= tmo.MODIFY_ID
+		left join T_USER_USER tuu on tuu.ID = tmol.LOG_USER_ID
+		Where
+		tmol.MODIFY_ID=#MODIFY_ID#
+		order by tmol.CREATE_TIME
+	</select>
+	<!-- 以上查询日志forOrder -->
+	<update id="updateFile" parameterClass="map">
+		update
+		T_MODIFY_ORDER_FILE set STATUS=#STATUS# where MOIMG_ID=#fileId#
+	</update>
+
+	<select id="getDecpBymorder" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT TDC.DECP_NAME_CN ,TDC.DECP_ID FROM T_MODIFY_ORDER TMO
+		LEFT JOIN
+		T_DEPT_DEPARTMENT TDDP ON TMO.DEPT_ID=TDDP.ID
+		LEFT JOIN T_DEPT_COMPANY
+		TDC ON TDDP.DECP_ID=TDC.DECP_ID
+		GROUP BY TDC.DECP_NAME_CN,TDC.DECP_ID
+	</select>
+
+	<!-- 更改单分类 -->
+	<select id="getOrderClassList" parameterClass="map"
+		resultClass="java.util.HashMap">
+		select T.DATA_ID,T.CODE,T.FLAG,T.DEFAULT_VALUE,T.SHORTNAME
+		from t_data_dictionary t where t.type=#dataType# and t.status=0 order
+		by t.level_num,t.code
+	</select>
+
+	<!-- 以下更改单导出 -->
+
+	<select id="queryModifyOrderListForExcel" parameterClass="map"
+		resultClass="java.util.HashMap">
+		select tmo.APPLY_NAME, tmo.CREATE_TIME,tmo.LEASE_CODE,tmo.CUST_NAME,
+		tmo.ORDER_STATUS,
+		tmo.STATUS,tmo.ORDER_TYPE,tmo.MODIFY_ORDER_CODE,tdc.DECP_NAME_CN as
+		DECP_NAME_CN,tdd.FLAG
+
+		from T_MODIFY_ORDER tmo
+
+		left join
+		t_data_dictionary tdd on
+		tdd.CODE=tmo.ORDER_CLASS and
+		tdd.type='更改单分类'and tdd.status=0
+		left join
+		T_DEPT_DEPARTMENT tddp on
+		tmo.DEPT_ID=tddp.ID
+		left join T_DEPT_COMPANY
+		tdc on
+		tddp.DECP_ID=tdc.DECP_ID
+		<dynamic prepend="where">
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				exists(select ID from T_USER_USER
+				where DEPT_ID in
+				(select uc.DEPT_ID
+				from dbo.T_USER_USER2COMPANY uc
+				where uc.USER_ID = #s_employeeId#)
+				and ID = tmo.APPLY_ID)
+			</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+				(tmo.APPLY_ID=#s_employeeId# or tmo.APPLY_LEADER_ID=#s_employeeId# )
+			</isEqual>
+			<isNotEmpty prepend="and" property="DECP_ID">
+				tmo.DEPT_ID in ( select
+				id from T_DEPT_DEPARTMENT where DECP_ID=#DECP_ID# )
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+			(tmo.CUST_NAME LIKE '%$QSEARCH_VALUE$%'  OR tmo.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' OR tmo.MODIFY_ORDER_CODE LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[	 tmo.CREATE_TIME >=  CONVERT(date,#QSTART_DATE#) ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[	  tmo.CREATE_TIME <= CONVERT(date,#QEND_DATE# )]]>
+			</isNotEmpty>
+			<isEmpty prepend="" property="unEnd">
+				<isNotEmpty prepend="and" property="ORDER_TYPE">
+					tmo.ORDER_TYPE=#ORDER_TYPE#
+				</isNotEmpty>
+				<isNotEmpty prepend="and" property="STATUS">
+					tmo.STATUS=#STATUS#
+				</isNotEmpty>
+				<isNotEmpty prepend="and" property="ORDER_STATUS">
+					ORDER_STATUS=#ORDER_STATUS#
+				</isNotEmpty>
+			</isEmpty>
+			<isNotEmpty prepend="and" property="unEnd">
+				<isEqual prepend="" property="unEnd" compareValue="1">
+					(tmo.ORDER_TYPE!=#ORDER_TYPE# or tmo.ORDER_STATUS!=#ORDER_STATUS#)
+				</isEqual>
+			</isNotEmpty>
+		</dynamic>
+		order by tmo.CREATE_TIME DESC
+	</select>
+
+	<!-- 以上更改单导出 -->
+	<!-- 以下领导发送催收邮件 -->
+	<select id="getLeaderCountForJob" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT COUNT(TMO.MODIFY_ID ) COUNT,TUULEADER.EMAIL
+		FROM
+		T_MODIFY_ORDER TMO
+		LEFT JOIN T_USER_USER TUULEADER ON
+		TMO.APPLY_LEADER_ID =TUULEADER.ID
+		WHERE (TMO.ORDER_STATUS='0' and
+		TMO.ORDER_TYPE='0') or
+		(TMO.ORDER_STATUS='0' and TMO.ORDER_TYPE='2')
+		GROUP BY TUULEADER.EMAIL
+
+	</select>
+
+	<!-- 以上领导发送催收邮件 -->
+
+	<!-- 以下处理人领导发送催收邮件 -->
+	<select id="getAtlerLeaderCountListForJob" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT COUNT(TMO.MODIFY_ID ) COUNT,TUUALTER.EMAIL
+		FROM
+		T_MODIFY_ORDER TMO
+		LEFT JOIN T_USER_USER TUUALTERLEADER ON
+		TMO.ALTER_USER_ID
+		=TUUALTERLEADER.ID
+		LEFT JOIN T_USER_USER TUUALTER ON
+		TUUALTER.ID=TUUALTERLEADER.UPPER_USER
+		WHERE (TMO.ORDER_STATUS='0' AND
+		TMO.ORDER_TYPE='1')
+		GROUP BY TUUALTER.EMAIL
+
+	</select>
+
+	<!-- 以上处理人领导发送催收邮件 -->
+
+	<!-- 以下申请人发送催收邮件 -->
+	<select id="getApplyCountForJob" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT COUNT(TMO.MODIFY_ID ) COUNT,TUUAPPLY.EMAIL
+		FROM
+		T_MODIFY_ORDER TMO
+		LEFT JOIN T_USER_USER TUUAPPLY ON TMO.APPLY_ID
+		=TUUAPPLY.ID
+		WHERE (TMO.ORDER_TYPE='0' and TMO.ORDER_STATUS='2')
+		or
+		(TMO.ORDER_TYPE='1' and TMO.ORDER_STATUS='1')
+		GROUP BY TUUAPPLY.EMAIL
+	</select>
+	<!-- 以上申请人发送催收邮件 -->
+	<!-- 以下处理人发送催收邮件 -->
+	<select id="getAlterCountForJob" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT COUNT(TMO.MODIFY_ID ) COUNT,TUUALTER.EMAIL
+		FROM
+		T_MODIFY_ORDER TMO
+		LEFT JOIN T_USER_USER TUUALTER ON TMO.ALTER_USER_ID
+		=TUUALTER.ID
+		WHERE (TMO.ORDER_TYPE='0' and TMO.ORDER_STATUS='1')
+		GROUP
+		BY TUUALTER.EMAIL
+	</select>
+	<!-- 以上处理人发送催收邮件 -->
+
+	<!-- 以下查询发给领导邮箱的更改单集合 -->
+	<select id="getOrderListByLeaderEmail" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT TUULEADER.EMAIL,TMO.MODIFY_ORDER_CODE
+		FROM
+		T_MODIFY_ORDER TMO
+		LEFT JOIN
+		T_USER_USER TUULEADER ON
+		TMO.APPLY_LEADER_ID =TUULEADER.ID
+		WHERE ((TMO.ORDER_STATUS='0' and
+		TMO.ORDER_TYPE='0') or
+		(TMO.ORDER_STATUS='0' and TMO.ORDER_TYPE='2')
+		)and
+		TUULEADER.EMAIL=#LEADEREMAIL#
+
+	</select>
+	<!-- 以上查询发给领导邮箱的更改单集合 -->
+	<!-- 以下查询发给申请人邮箱的更改单集合 -->
+	<select id="getOrderListByApplyEmail" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT TUUAPPLY.EMAIL,TMO.MODIFY_ORDER_CODE
+		FROM
+		T_MODIFY_ORDER TMO
+		LEFT JOIN
+		T_USER_USER TUUAPPLY ON TMO.APPLY_ID
+		=TUUAPPLY.ID
+		WHERE
+		((TMO.ORDER_TYPE='0' and TMO.ORDER_STATUS='2')
+		       or (TMO.ORDER_TYPE='1' and TMO.ORDER_STATUS='1'))
+		and TUUAPPLY.EMAIL=#LEADEREMAIL#
+
+	</select>
+	<!-- 以上查询发给申请人邮箱的更改单集合 -->
+	<!-- 以下查询发给处理人邮箱的更改单集合 -->
+	<select id="getOrderListByAlterEmail" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT TUUALTER.EMAIL,TMO.MODIFY_ORDER_CODE
+		FROM
+		T_MODIFY_ORDER TMO
+		LEFT JOIN T_USER_USER TUUALTER ON TMO.ALTER_USER_ID
+		=TUUALTER.ID
+		WHERE (TMO.ORDER_TYPE='0' and TMO.ORDER_STATUS='1')and
+		TUUALTER.EMAIL=#LEADEREMAIL#
+
+	</select>
+	<!-- 以上查询发给处理人邮箱的更改单集合 -->
+
+	<!-- 以下查询发给处理人领导邮箱的更改单集合 -->
+	<select id="getOrderListByAtlerLeaderEmail" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT TUUALTER.EMAIL,TMO.MODIFY_ORDER_CODE
+		FROM
+		T_MODIFY_ORDER TMO
+		LEFT JOIN T_USER_USER TUUALTERLEADER ON
+		TMO.ALTER_USER_ID
+		=TUUALTERLEADER.ID
+		LEFT JOIN T_USER_USER TUUALTER ON
+		TUUALTER.ID=TUUALTERLEADER.UPPER_USER
+		WHERE (TMO.ORDER_STATUS='0' AND
+		TMO.ORDER_TYPE='1') and
+		TUUALTER.EMAIL=#LEADEREMAIL#
+
+	</select>
+	<!-- 以上查询发给处理人领导邮箱的更改单集合 -->
+
+	<!-- 以下查询处理平均值 -->
+	<select id="getAvgtimeForOrder" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT ROUND(convert(float,AVG(HOURS.HOURVALUEALTER))/60
+		,1) HOURVALUEALTER,
+
+		ROUND(convert(float,AVG(HOURS.HOURVALUEOVER) )/60
+		,1)
+		HOURVALUEOVER FROM
+		(
+		SELECT
+		STARTDATE.STIME,OVERDATE.OTIME
+		,ALTERDATE.ALTERTIME,STARTDATE.MODIFY_ID,PASSDATE.PASSTIME,
+		DATEDIFF (
+		MI
+		,STARTDATE.STIME,OVERDATE.OTIME ) AS HOURVALUEOVER,DATEDIFF (
+		MI
+		,PASSDATE.PASSTIME,ALTERDATE.ALTERTIME) AS HOURVALUEALTER
+		FROM
+		(SELECT
+		MIN(CREATE_TIME) AS STIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG
+		WHERE
+		month(CREATE_TIME)= month(#date#) and year(CREATE_TIME)=
+		year(#date#)
+		AND ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='0'
+		GROUP BY MODIFY_ID )
+		STARTDATE
+		LEFT JOIN
+		(SELECT
+		TMOLOGALTER.ALTERTIME,TMOLOGALTER.MODIFY_ID
+		FROM
+		(SELECT
+		MIN(CREATE_TIME) AS STIME, MODIFY_ID FROM
+		T_MODIFY_ORDER_LOG
+		WHERE
+		month(CREATE_TIME)= month(#date#) and
+		year(CREATE_TIME)= year(#date#) AND
+		ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='0'
+		GROUP BY MODIFY_ID ) MIDALTER
+		LEFT JOIN
+		(SELECT
+		MAX(TMOLOG.CREATE_TIME) AS ALTERTIME, TMOLOG.MODIFY_ID FROM
+		T_MODIFY_ORDER_LOG TMOLOG
+		WHERE ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='1' GROUP BY TMOLOG.MODIFY_ID)
+		TMOLOGALTER
+		ON
+		MIDALTER.MODIFY_ID =TMOLOGALTER.MODIFY_ID
+		GROUP BY
+		TMOLOGALTER.ALTERTIME,TMOLOGALTER.MODIFY_ID
+		) ALTERDATE
+		ON
+		STARTDATE.MODIFY_ID=ALTERDATE.MODIFY_ID
+		LEFT JOIN
+		(SELECT
+		TMOLOG1.OTIME,TMOLOG1.MODIFY_ID FROM
+		(SELECT MIN(CREATE_TIME) AS STIME,
+		MODIFY_ID FROM T_MODIFY_ORDER_LOG
+		WHERE month(CREATE_TIME)=
+		month(#date#) and year(CREATE_TIME)=
+		year(#date#) AND
+		ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='0'
+		GROUP BY MODIFY_ID ) MID
+		LEFT
+		JOIN
+		(SELECT TMOLOG.CREATE_TIME AS OTIME, TMOLOG.MODIFY_ID FROM
+		T_MODIFY_ORDER_LOG
+		TMOLOG
+		WHERE ( ORDER_STATUS_LOG='1' AND
+		ORDER_TYPE_LOG='2') OR ORDER_TYPE_LOG='5' )
+		TMOLOG1
+		ON MID.MODIFY_ID
+		=TMOLOG1.MODIFY_ID
+		GROUP BY TMOLOG1.OTIME,TMOLOG1.MODIFY_ID
+		) OVERDATE
+		ON
+		STARTDATE.MODIFY_ID=OVERDATE.MODIFY_ID
+		LEFT JOIN
+		(SELECT
+		TMOLOGPASS.PASSTIME,TMOLOGPASS.MODIFY_ID FROM
+		(SELECT
+		MIN(CREATE_TIME)
+		AS STIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG
+		WHERE
+		month(CREATE_TIME)=
+		month(#date#) and year(CREATE_TIME)= year(#date#) AND
+		ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='0'
+		GROUP BY MODIFY_ID ) MIDPAss
+		LEFT JOIN
+		(SELECT
+		MAX(TMOLOG.CREATE_TIME) AS PASSTIME, TMOLOG.MODIFY_ID
+		FROM
+		T_MODIFY_ORDER_LOG TMOLOG
+		WHERE ORDER_STATUS_LOG='1' AND
+		ORDER_TYPE_LOG='0' GROUP BY TMOLOG.MODIFY_ID)
+		TMOLOGPASS
+		ON
+		MIDPAss.MODIFY_ID =TMOLOGPASS.MODIFY_ID
+		GROUP BY
+		TMOLOGPASS.PASSTIME,TMOLOGPASS.MODIFY_ID
+		) PASSDATE
+		ON
+		STARTDATE.MODIFY_ID=PASSDATE.MODIFY_ID
+		GROUP BY STARTDATE.MODIFY_ID,
+		STARTDATE.STIME,OVERDATE.OTIME,ALTERDATE.ALTERTIME,PASSDATE.PASSTIME
+		)
+		HOURS
+	</select>
+	<!-- 以上查询处理平均值 -->
+
+	<!-- 以下得到一个时间集合 -->
+	<select id="getMonthList" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	declare @startDate datetime
+					declare @endDate datetime
+			SELECT @startDate = #startDate# ,@endDate = #endDate#
+			;WITH tb AS (
+			SELECT @startDate AS 'month1'
+			UNION ALL
+			SELECT DATEADD(month,1,month1) FROM tb WHERE month1< @endDate
+			)
+			SELECT tb.month1 from tb
+			]]>
+	</select>
+	<!-- 以上得到一个时间集合 -->
+
+	<!-- 以下查询每个月总件数 -->
+	<select id="getOrderCountByMonths" parameterClass="map"
+		resultClass="java.lang.Integer">
+		SELECT count(MODIFY_ID) FROM T_MODIFY_ORDER_LOG
+		WHERE
+		month(CREATE_TIME)= month(#date#) and year(CREATE_TIME)= year(#date#)
+		AND
+		ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='0'
+	</select>
+	<!-- 以上查询每个月总件数 -->
+
+	<!-- 以下查询总计 -->
+	<select id="getTotal" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT ROUND(convert(float,AVG(HOURS.HOURVALUEALTER))/60
+		,1) HOURVALUEALTER,
+
+		ROUND(convert(float,AVG(HOURS.HOURVALUEOVER) )/60 ,1)
+		HOURVALUEOVER FROM
+		(
+		SELECT
+		STARTDATE.STIME,OVERDATE.OTIME
+		,ALTERDATE.ALTERTIME,STARTDATE.MODIFY_ID,PASSDATE.PASSTIME,
+		DATEDIFF (
+		MI
+		,STARTDATE.STIME,OVERDATE.OTIME ) AS HOURVALUEOVER,DATEDIFF (
+		MI
+		,PASSDATE.PASSTIME,ALTERDATE.ALTERTIME) AS HOURVALUEALTER
+		FROM
+		(SELECT
+		MIN(CREATE_TIME) AS STIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG
+		WHERE  year(CREATE_TIME)=
+		year(#getYear#)
+		AND ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='0'
+		GROUP BY MODIFY_ID )
+		STARTDATE
+		LEFT JOIN
+		(SELECT
+		TMOLOGALTER.ALTERTIME,TMOLOGALTER.MODIFY_ID
+		FROM
+		(SELECT
+		MIN(CREATE_TIME) AS STIME, MODIFY_ID FROM
+		T_MODIFY_ORDER_LOG
+		WHERE
+		
+		year(CREATE_TIME)= year(#getYear#) AND
+		ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='0'
+		GROUP BY MODIFY_ID ) MIDALTER
+		LEFT JOIN
+		(SELECT
+		MAX(TMOLOG.CREATE_TIME) AS ALTERTIME, TMOLOG.MODIFY_ID FROM
+		T_MODIFY_ORDER_LOG TMOLOG
+		WHERE ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='1' GROUP BY TMOLOG.MODIFY_ID)
+		TMOLOGALTER
+		ON
+		MIDALTER.MODIFY_ID =TMOLOGALTER.MODIFY_ID
+		GROUP BY
+		TMOLOGALTER.ALTERTIME,TMOLOGALTER.MODIFY_ID
+		) ALTERDATE
+		ON
+		STARTDATE.MODIFY_ID=ALTERDATE.MODIFY_ID
+		LEFT JOIN
+		(SELECT
+		TMOLOG1.OTIME,TMOLOG1.MODIFY_ID FROM
+		(SELECT MIN(CREATE_TIME) AS STIME,
+		MODIFY_ID FROM T_MODIFY_ORDER_LOG
+		WHERE   year(CREATE_TIME)=
+		year(#getYear#) AND
+		ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='0'
+		GROUP BY MODIFY_ID ) MID
+		LEFT
+		JOIN
+		(SELECT TMOLOG.CREATE_TIME AS OTIME, TMOLOG.MODIFY_ID FROM
+		T_MODIFY_ORDER_LOG
+		TMOLOG
+		WHERE ( ORDER_STATUS_LOG='1' AND
+		ORDER_TYPE_LOG='2') OR ORDER_TYPE_LOG='5' )
+		TMOLOG1
+		ON MID.MODIFY_ID
+		=TMOLOG1.MODIFY_ID
+		GROUP BY TMOLOG1.OTIME,TMOLOG1.MODIFY_ID
+		) OVERDATE
+		ON
+		STARTDATE.MODIFY_ID=OVERDATE.MODIFY_ID
+		LEFT JOIN
+		(SELECT
+		TMOLOGPASS.PASSTIME,TMOLOGPASS.MODIFY_ID FROM
+		(SELECT
+		MIN(CREATE_TIME)
+		AS STIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG
+		WHERE  year(CREATE_TIME)= year(#getYear#) AND
+		ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='0'
+		GROUP BY MODIFY_ID ) MIDPAss
+		LEFT JOIN
+		(SELECT
+		MAX(TMOLOG.CREATE_TIME) AS PASSTIME, TMOLOG.MODIFY_ID
+		FROM
+		T_MODIFY_ORDER_LOG TMOLOG
+		WHERE ORDER_STATUS_LOG='1' AND
+		ORDER_TYPE_LOG='0' GROUP BY TMOLOG.MODIFY_ID)
+		TMOLOGPASS
+		ON
+		MIDPAss.MODIFY_ID =TMOLOGPASS.MODIFY_ID
+		GROUP BY
+		TMOLOGPASS.PASSTIME,TMOLOGPASS.MODIFY_ID
+		) PASSDATE
+		ON
+		STARTDATE.MODIFY_ID=PASSDATE.MODIFY_ID
+		GROUP BY STARTDATE.MODIFY_ID,
+		STARTDATE.STIME,OVERDATE.OTIME,ALTERDATE.ALTERTIME,PASSDATE.PASSTIME
+		)
+		HOURS
+			]]>
+	</select>
+
+	<!-- 以上查询总计 -->
+	<!-- 以下查看每月详情 -->
+	<select id="getDayList" parameterClass="map" resultClass="java.util.HashMap">
+
+
+		SELECT TMO.MODIFY_ORDER_CODE ,TMO.APPLY_NAME,TABTIME.STIME ,TABTIME.OTIME
+		,TABTIME.ALTERTIME
+		,TABTIME.MODIFY_ID,TABTIME.PASSTIME,TABTIME.HOURVALUEOVER,TABTIME.HOURVALUEALTER,TUU.[NAME]
+		AS ALTERNAME
+		FROM
+		(SELECT
+		STARTDATE.STIME,OVERDATE.OTIME
+		,ALTERDATE.ALTERTIME,STARTDATE.MODIFY_ID,PASSDATE.PASSTIME,
+		DATEDIFF (
+		MI
+		,STARTDATE.STIME,OVERDATE.OTIME ) AS HOURVALUEOVER,DATEDIFF (
+		MI
+		,PASSDATE.PASSTIME,ALTERDATE.ALTERTIME) AS HOURVALUEALTER
+		FROM
+		(SELECT
+		MIN(CREATE_TIME) AS STIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG
+		WHERE
+		MONTH(CREATE_TIME)=#mon# AND YEAR(CREATE_TIME)=
+		YEAR(#getYear#)
+		AND
+		ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='0'
+		GROUP BY MODIFY_ID )
+		STARTDATE
+		LEFT JOIN
+		(SELECT
+		TMOLOGALTER.ALTERTIME,TMOLOGALTER.MODIFY_ID
+		FROM
+		(SELECT
+		MIN(CREATE_TIME) AS STIME, MODIFY_ID FROM
+		T_MODIFY_ORDER_LOG
+		WHERE
+		MONTH(CREATE_TIME)=#mon# AND YEAR(CREATE_TIME)=
+		YEAR(#getYear#) AND
+		ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='0'
+		GROUP BY
+		MODIFY_ID ) MIDALTER
+		LEFT JOIN
+		(SELECT
+		MAX(TMOLOG.CREATE_TIME) AS
+		ALTERTIME, TMOLOG.MODIFY_ID FROM
+		T_MODIFY_ORDER_LOG TMOLOG
+		WHERE
+		ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='1' GROUP BY TMOLOG.MODIFY_ID)
+		TMOLOGALTER
+		ON
+		MIDALTER.MODIFY_ID =TMOLOGALTER.MODIFY_ID
+		GROUP BY
+		TMOLOGALTER.ALTERTIME,TMOLOGALTER.MODIFY_ID
+		) ALTERDATE
+		ON
+		STARTDATE.MODIFY_ID=ALTERDATE.MODIFY_ID
+		LEFT JOIN
+		(SELECT
+		TMOLOG1.OTIME,TMOLOG1.MODIFY_ID FROM
+		(SELECT MIN(CREATE_TIME) AS STIME,
+		MODIFY_ID FROM T_MODIFY_ORDER_LOG
+		WHERE MONTH(CREATE_TIME)=#mon# AND
+		YEAR(CREATE_TIME)=
+		YEAR(#getYear#) AND
+		ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='0'
+		GROUP BY MODIFY_ID ) MID
+		LEFT
+		JOIN
+		(SELECT
+		TMOLOG.CREATE_TIME AS OTIME, TMOLOG.MODIFY_ID FROM
+		T_MODIFY_ORDER_LOG
+		TMOLOG
+		WHERE ( ORDER_STATUS_LOG='1' AND
+		ORDER_TYPE_LOG='2') OR
+		ORDER_TYPE_LOG='5' )
+		TMOLOG1
+		ON MID.MODIFY_ID
+		=TMOLOG1.MODIFY_ID
+		GROUP BY
+		TMOLOG1.OTIME,TMOLOG1.MODIFY_ID
+		) OVERDATE
+		ON
+		STARTDATE.MODIFY_ID=OVERDATE.MODIFY_ID
+		LEFT JOIN
+		(SELECT
+		TMOLOGPASS.PASSTIME,TMOLOGPASS.MODIFY_ID FROM
+		(SELECT
+		MIN(CREATE_TIME)
+		AS STIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG
+		WHERE
+		MONTH(CREATE_TIME)=#mon# AND YEAR(CREATE_TIME)=
+		YEAR(#getYear#) AND
+		ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='0'
+		GROUP BY MODIFY_ID ) MIDPASS
+		LEFT JOIN
+		(SELECT
+		MAX(TMOLOG.CREATE_TIME) AS PASSTIME, TMOLOG.MODIFY_ID
+		FROM
+		T_MODIFY_ORDER_LOG TMOLOG
+		WHERE ORDER_STATUS_LOG='1' AND
+		ORDER_TYPE_LOG='0' GROUP BY TMOLOG.MODIFY_ID)
+		TMOLOGPASS
+		ON
+		MIDPASS.MODIFY_ID =TMOLOGPASS.MODIFY_ID
+		GROUP BY
+		TMOLOGPASS.PASSTIME,TMOLOGPASS.MODIFY_ID
+		) PASSDATE
+		ON
+		STARTDATE.MODIFY_ID=PASSDATE.MODIFY_ID
+		GROUP BY STARTDATE.MODIFY_ID,
+		STARTDATE.STIME,OVERDATE.OTIME,ALTERDATE.ALTERTIME,PASSDATE.PASSTIME)
+		TABTIME
+		LEFT JOIN T_MODIFY_ORDER TMO ON TMO.MODIFY_ID= TABTIME.MODIFY_ID
+		LEFT JOIN T_USER_USER TUU ON TUU.ID= TMO.ALTER_USER_ID
+	</select>
+	<!-- 以上查看每月详情 -->
+
+	<!-- 以下查询总件数 -->
+	<select id="getAllCountYear" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT count(MODIFY_ID) FROM T_MODIFY_ORDER_LOG
+		WHERE
+		year(CREATE_TIME)= year(#getYear#)
+		AND
+		ORDER_STATUS_LOG='0' AND
+		ORDER_TYPE_LOG='0'
+	</select>
+	<!-- 以上查询总件数 -->
+
+	<select id="getOrderForDept" parameterClass="map" resultClass="java.util.HashMap">
+		<!-- SELECT TDC.DECP_ID ,TDC.DECP_NAME_CN,TMO.ORDER_CLASS,COUNT(TMO.ORDER_CLASS) 
+			AS CLASSNUM FROM T_MODIFY_ORDER TMO LEFT JOIN T_DEPT_DEPARTMENT TDDP ON TMO.DEPT_ID=TDDP.ID 
+			LEFT JOIN T_DEPT_COMPANY TDC ON TDDP.DECP_ID=TDC.DECP_ID WHERE ISNULL(TMO.ORDER_CLASS,0)>0 
+			GROUP BY TMO.ORDER_CLASS,TDC.DECP_ID ,TDC.DECP_NAME_CN -->
+		SELECT ISNULL(TABLE1.CLASSNUM,0) AS CLASSNUM , TABLE0.DECP_ID
+		,TABLE0.DECP_NAME_CN,TABLE0.CODE as ORDER_CLASS  FROM (
+		SELECT DISTINCT TDD.CODE ,TDC.DECP_NAME_CN,TDC.DECP_ID
+		FROM T_DATA_DICTIONARY TDD, T_DEPT_COMPANY TDC
+		WHERE  TDD.[TYPE]='更改单分类' AND TDC.STATUS=0 AND
+		TDC.LEGELR='2') TABLE0
+		LEFT JOIN (
+		SELECT TDC.DECP_ID ,TDC.DECP_NAME_CN,TMO.ORDER_CLASS,COUNT(TMO.ORDER_CLASS)
+		AS CLASSNUM FROM T_MODIFY_ORDER TMO
+		LEFT JOIN T_DEPT_DEPARTMENT TDDP ON
+		TMO.DEPT_ID=TDDP.ID
+		LEFT JOIN T_DEPT_COMPANY TDC ON
+		TDDP.DECP_ID=TDC.DECP_ID
+		WHERE ISNULL(TMO.ORDER_CLASS,0)>0
+		<isNotEmpty prepend="and" property="START_DATE">
+			<![CDATA[	 CONVERT(date,tmo.CREATE_TIME)  >=  CONVERT(date,#START_DATE#) ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="END_DATE">
+			<![CDATA[	  CONVERT(date,tmo.CREATE_TIME)  <= CONVERT(date,#END_DATE# )]]>
+			</isNotEmpty>
+		GROUP BY
+		TMO.ORDER_CLASS,TDC.DECP_ID ,TDC.DECP_NAME_CN) TABLE1 ON
+		TABLE0.DECP_ID=TABLE1.DECP_ID AND TABLE0.CODE=TABLE1.ORDER_CLASS
+	</select>
+	<!-- 以下更改单分类合集 -->
+	<select id="showCountByClass" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT  TDD.CODE as ORDER_CLASS ,COUNT(TMO.ORDER_CLASS) AS CLASSNUM FROM T_DATA_DICTIONARY TDD
+         LEFT JOIN T_MODIFY_ORDER TMO ON TDD.CODE=TMO.ORDER_CLASS
+          <isNotEmpty prepend="and" property="START_DATE">
+			<![CDATA[	CONVERT(date,tmo.CREATE_TIME)  >=  CONVERT(date,#START_DATE#) ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="END_DATE">
+			<![CDATA[	 CONVERT(date,tmo.CREATE_TIME)  <= CONVERT(date,#END_DATE# )]]>
+			</isNotEmpty>
+  		 WHERE  TDD.[TYPE]='更改单分类'
+   			GROUP BY  TDD.CODE
+   		 ORDER BY CLASSNUM DESC 
+	</select>
+		<!-- 以上更改单分类合集 -->
+		<!-- 以下按部门的更改单合计 -->
+	<select id="showCountByDept" parameterClass="map" resultClass="java.util.HashMap">
+		  SELECT TDC.DECP_ID,COUNT(TMO.ORDER_CLASS) AS CLASSNUM  FROM  T_DEPT_COMPANY TDC
+   		 LEFT JOIN T_DEPT_DEPARTMENT TDDP ON TDDP.DECP_ID=TDC.DECP_ID
+			LEFT JOIN T_MODIFY_ORDER TMO ON  TMO.DEPT_ID=TDDP.ID and ISNULL(TMO.ORDER_CLASS,0)>0
+			<isNotEmpty prepend="and" property="START_DATE">
+			<![CDATA[	CONVERT(date,tmo.CREATE_TIME)  >=  CONVERT(date,#START_DATE#) ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="END_DATE">
+			<![CDATA[	 CONVERT(date,tmo.CREATE_TIME)  <= CONVERT(date,#END_DATE# )]]>
+			</isNotEmpty>
+   		 WHERE  TDC.STATUS=0 AND  TDC.LEGELR='2'
+   		 
+    	 GROUP BY   TDC.DECP_ID
+	</select>
+		<!-- 以上按部门的更改单合计 -->
+	<!-- 以下部门的合计 -->
+	<select id="getDeptList" resultClass="java.util.HashMap">
+		    SELECT TDC.DECP_NAME_CN,TDC.DECP_ID
+			FROM T_DEPT_COMPANY TDC
+		   WHERE TDC.STATUS=0 AND  TDC.LEGELR='2'
+        ORDER BY [ORDER]
+	</select>
+		<!-- 以上部门的合计 -->
+	<!-- 以下分类的合计 -->
+	<select id="getOrderClassListForCount" parameterClass="map"
+		resultClass="java.util.HashMap">
+		 SELECT T.DATA_ID,T.CODE,T.FLAG,T.DEFAULT_VALUE,T.SHORTNAME,T.STATUS
+		FROM T_DATA_DICTIONARY T WHERE T.TYPE=#dataType# 
+		 ORDER BY T.LEVEL_NUM,T.CODE
+	</select>
+	<!-- 以上分类的合计 -->
+	<!-- 以下所有的总计 -->
+	<select id="getCountAllOrderOfClass" parameterClass="com.brick.base.to.BaseTo" resultClass="java.lang.Integer">
+		SELECT count(TMO.MODIFY_ID )  FROM  T_MODIFY_ORDER TMO
+		WHERE ISNULL(TMO.ORDER_CLASS,0)>0
+		<isNotEmpty prepend="and" property="auth_date_str">
+			<![CDATA[	CONVERT(date,tmo.CREATE_TIME)  >=  CONVERT(date,#auth_date_str#) ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="create_date_str">
+			<![CDATA[	  CONVERT(date,tmo.CREATE_TIME)  <= CONVERT(date,#create_date_str# )]]>
+			</isNotEmpty>
+	</select>
+		<!-- 以上所有的总计 -->
+		
+	<!-- 检查当前登陆人未验收的更改单数 -->
+	<select id="getUncheckedCount" parameterClass="map" resultClass="int">
+		SELECT COUNT(1) FROM T_MODIFY_ORDER
+		WHERE ORDER_TYPE = 1 AND ORDER_STATUS = 1
+		AND APPLY_ID = #s_employeeId#
+	</select>
+</sqlMap>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="bpmDef">
+	
+	<select id="selectProcess" parameterClass="com.brick.bpm.filter.ProcessDefFilter" resultClass="com.brick.bpm.def.Process">
+		SELECT
+		PROCESS_DEF_ID processDefId,
+		PROCESS_TYPE processType,
+		PROCESS_NAME processName,
+		PROCESS_STATUS status,
+		START_EVENT startEvent
+		FROM T_BPM_DEF_PROCESS
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="processDefId">
+				<![CDATA[ PROCESS_DEF_ID = #processDefId# ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<select id="selectData" parameterClass="com.brick.bpm.filter.DataDefFilter" resultClass="com.brick.bpm.def.Data">
+		SELECT
+		PROCESS_DEF_ID processDefId,
+		DATA_DEF_ID dataDefId,
+		DATA_NAME dataName,
+		DATA_TYPE dataType,
+		DATA_SCOPE scope,
+		CONNECT_DEF_ID sequenceDefId,
+		SOURCE source,
+		TARGET target,
+		INIT_VALUE initValue
+		FROM T_BPM_DEF_DATA
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="processDefId">
+				<![CDATA[ PROCESS_DEF_ID = #processDefId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="dataDefId">
+				<![CDATA[ FLOW_DEF_ID = #dataDefId# ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<select id="selectFlow" parameterClass="com.brick.bpm.filter.FlowDefFilter" resultClass="com.brick.bpm.def.FlowObject">
+		SELECT
+		PROCESS_DEF_ID processDefId,
+		FLOW_DEF_ID flowDefId,
+		FLOW_DEF_CODE flowDefCode,
+		FLOW_NAME flowName,
+		FLOW_TYPE flowType,
+		FLOW_CODE flowClass,
+		MULTI_INSTANCE multiInstance,
+		GATEWAY_TYPE direction,
+		USER_LIST userList,
+		OPERATE_LIST operateList
+		FROM T_BPM_DEF_FLOW
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="processDefId">
+				<![CDATA[ PROCESS_DEF_ID = #processDefId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="flowDefId">
+				<![CDATA[ FLOW_DEF_ID = #flowDefId# ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	
+	<select id="selectSequenceFlow" parameterClass="com.brick.bpm.filter.SequenceDefFilter" resultClass="com.brick.bpm.def.SequenceFlow">
+		SELECT
+		PROCESS_DEF_ID processDefId,
+		CONNECT_DEF_ID sequenceDefId,
+		CONNECT_NAME sequenceName,
+		SOURCE source,
+		TARGET target,
+		CONDITION condition,
+		GATEWAY_DEFAULT isDefault
+		FROM T_BPM_DEF_CONNECT
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="processDefId">
+				<![CDATA[ PROCESS_DEF_ID = #processDefId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="sequenceDefId">
+				<![CDATA[ CONNECT_DEF_ID = #sequenceDefId# ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+</sqlMap>

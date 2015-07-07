@@ -1,0 +1,1872 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+ "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="job">
+    <insert id="insertJob" parameterClass="com.brick.job.to.JobTo">
+    	insert into QUARTZ_JOB 
+		(JOB_NAME, JOB_GROUP, START_TIME, NEXT_TIME, RUN_FLAG, STATUS, DESCRIPTION)
+		values(#jobName#, #jobGroup#, #startTime#, #nextTime#, #runFlag#, 0 , #descr#)
+    </insert>
+    
+    <delete id="deleteJobs">
+    	delete from QUARTZ_JOB
+    </delete>
+    
+    <select id="getJobRunFlag" parameterClass="com.brick.job.to.JobTo" resultClass="java.lang.Integer">
+    	select RUN_FLAG from QUARTZ_JOB where JOB_NAME = #jobName#
+    </select>
+    
+    <insert id="insertJobRunLog" parameterClass="com.brick.job.to.JobTo">
+    	insert into QUARTZ_JOB_LOG (
+    		JOB_ID
+    		,FIRE_TIME
+    		,FIRE_STATUS
+    		,RUN_TIME
+    		,ERROR_CODE
+    		,REMARK
+    	)values(
+			#jobName#
+			,#fireTime#
+			,#fireStatus#
+			,#runTime#
+			,#errorCode#
+			,#remark#
+		)	
+    </insert>
+    
+    <update id="updateJobRunStatus" parameterClass="com.brick.job.to.JobTo">
+    	update QUARTZ_JOB set 
+    		STATUS = #status#,
+    		THIS_TIME = #fireTime#,
+    		NEXT_TIME = #nextTime#
+    	where JOB_NAME = #jobName#
+    </update>
+    
+    <update id="updateJobRunFlag" parameterClass="com.brick.job.to.JobTo">
+    	update QUARTZ_JOB set 
+    		RUN_FLAG = #runFlag#
+    	where ID = #jobId#
+    	and STATUS = 0
+    </update>
+    
+    <select id="getAllJobs" resultClass="java.util.HashMap">
+    	SELECT *,CASE WHEN DATEDIFF(MINUTE,NEXT_TIME,GETDATE())>(-1*#min#) AND JOB_GROUP!='MINUTE_GROUP' THEN 'N' ELSE 'Y' END FLAG 
+    	  FROM QUARTZ_JOB
+		 WHERE STATUS = 0
+	   <isNotEmpty property="content">
+		   AND (JOB_NAME LIKE '%$content$%'
+		        OR JOB_GROUP LIKE '%$content$%'
+		        OR DESCRIPTION LIKE '%$content$%')
+	   </isNotEmpty>
+    </select>
+    
+    <select id="getAllJobs_count" resultClass="java.lang.Integer">
+    	select count(0) from QUARTZ_JOB
+		where status = 0
+    </select>
+    
+    <select id="getJobDetail" parameterClass="map" resultClass="com.brick.job.to.JobTo">
+    	select top 20 
+    		JOB_ID as jobName,
+    		FIRE_TIME as fireTime,
+    		FIRE_STATUS as fireStatus,
+    		ERROR_CODE as errorCode,
+    		REMARK as remark
+    	from QUARTZ_JOB_LOG
+		where JOB_ID = #jobName#
+		order by FIRE_TIME desc
+    </select>
+    
+    <select id="getAllJobDetail" parameterClass="map" resultClass="com.brick.job.to.JobTo">
+    	select JOB_ID as jobName,
+    		FIRE_TIME as fireTime,
+    		FIRE_STATUS as fireStatus,
+    		ERROR_CODE as errorCode,
+    		REMARK as remark
+    	from QUARTZ_JOB_LOG
+		where JOB_ID = #jobName#
+		order by FIRE_TIME desc
+    </select>
+    
+    <!-- 初始化全年的工作日和休息日 add by ShenQi -->
+    <insert id="dateInitializeConfig">
+    		INSERT INTO T_DAY_TYPE (YEAR,DATE,DAY_TYPE) VALUES 
+						(YEAR(GETDATE()),CONVERT(DATE,DATEADD(YY,DATEDIFF(YY,0,GETDATE()),#DAY#)) <!-- 0-364插入当年的所有日期 -->
+						,CASE WHEN DATENAME(WEEKDAY,DATEADD(YY,DATEDIFF(YY,0,GETDATE()),#DAY#))='星期日' THEN 'HD' <!-- HD意思是休息日 -->
+						      WHEN DATENAME(WEEKDAY,DATEADD(YY,DATEDIFF(YY,0,GETDATE()),#DAY#))='星期六' THEN 'HD'
+						      WHEN DATENAME(WEEKDAY,DATEADD(YY,DATEDIFF(YY,0,GETDATE()),#DAY#))='Sunday' THEN 'HD'
+						      WHEN DATENAME(WEEKDAY,DATEADD(YY,DATEDIFF(YY,0,GETDATE()),#DAY#))='Saturday' THEN 'HD'
+						      ELSE 'WD' <!-- WD意思是工作日 -->
+       						   END)
+    </insert>
+    <!-- 插入闰年 -->
+    <insert id="insertLeapYear">
+    		INSERT INTO T_DAY_TYPE (YEAR,DATE,DAY_TYPE) VALUES
+    		(#YEAR#,CONVERT(DATE,#DATE#,23),
+    		CASE WHEN DATENAME(WEEKDAY,#DATE#)='星期六' 
+                 THEN 'HD' 
+                 WHEN DATENAME(WEEKDAY,#DATE#)='星期日'
+                 THEN 'HD'
+                 WHEN DATENAME(WEEKDAY,#DATE#)='Saturday' 
+                 THEN 'HD'
+                 WHEN DATENAME(WEEKDAY,#DATE#)='Sunday' 
+                 THEN 'HD'
+                 ELSE 'WD' 
+                  END)
+    </insert>
+    
+    <select id="getBusinessStatusVersion" resultClass="java.lang.Integer">
+    	select max(isnull(BUSINESS_STATUS_VERSION,0)) as BUSINESS_STATUS_VERSION
+		from T_PRJT_CREDIT
+    </select>
+    
+    <update id="updateBusinessStatus" parameterClass="com.brick.credit.to.CreditTo">
+    	update T_PRJT_CREDIT set 
+    		BUSINESS_STATUS = #businessStatus#
+    		,BUSINESS_STATUS_VERSION = #businessStatusVersion#
+		where ID = #creditId#
+    </update>
+    
+    <select id="getStatusFor_600" resultClass="com.brick.credit.to.CreditTo">
+    	select pc.ID as creditId, pc.credit_runcode as creditRuncode,
+			pc.BUSINESS_STATUS as businessStatus,
+			pc.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT pc
+		left join T_RENT_CONTRACT rc on rc.PRCD_ID = pc.ID and rc.STATUS = 0
+		left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+		where FINANCECONTRACT_DATE is not null
+		and pc.STATUS = 0 and pc.STATE = 1 and cp.STATUS = 0
+		and cp.RECP_STATUS = 1
+    </select>
+    
+    <select id="getStatusFor_500" resultClass="com.brick.credit.to.CreditTo">
+    	select pc.ID as creditId, pc.credit_runcode as creditRuncode,
+			pc.BUSINESS_STATUS as businessStatus,
+			pc.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT pc
+		left join T_RENT_CONTRACT rc on rc.PRCD_ID = pc.ID and rc.STATUS = 0
+		left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+		where FINANCECONTRACT_DATE is not null
+		and pc.STATUS = 0 and pc.STATE = 1 and cp.STATUS = 0
+		and (cp.RECP_STATUS = 3 or cp.FUND_STATUS = 3)
+    </select>
+    
+    <select id="getStatusFor_400" resultClass="com.brick.credit.to.CreditTo">
+    	select pc.ID as creditId, pc.credit_runcode as creditRuncode,
+			pc.BUSINESS_STATUS as businessStatus,
+			pc.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT pc
+		left join T_RENT_CONTRACT rc on rc.PRCD_ID = pc.ID
+		where pc.STATUS = 0 and rc.STATUS = -1
+    </select>
+    
+    <select id="getStatusFor_300" resultClass="com.brick.credit.to.CreditTo">
+    	select prcd.ID as creditId, prcd.credit_runcode as creditRuncode,
+		prcd.BUSINESS_STATUS as businessStatus,
+		prcd.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT prcd
+		where STATE = -1 and STATUS = 0
+    </select>
+    
+    <select id="getStatusFor_200" resultClass="com.brick.credit.to.CreditTo">
+		select prcd.ID as creditId, prcd.credit_runcode as creditRuncode,
+		prcd.BUSINESS_STATUS as businessStatus,
+		prcd.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT prcd
+		left join T_PRJT_RISK_CONTROL prrc on prrc.CREDIT_ID = prcd.ID
+		where prcd.STATUS = 0 and
+		((prrc.STATE = 4 and prrc.STATUS = 0
+		and not exists(
+		  select PRC_ID from T_PRJT_RISK_CONTROL
+		  where CREDIT_ID = prcd.ID
+		  and STATE = 1
+		)) or prcd.WIND_STATE = 4)
+    </select>
+    
+    <select id="getStatusFor_100" resultClass="com.brick.credit.to.CreditTo">
+    	select prcd.ID as creditId, prcd.credit_runcode as creditRuncode,
+		prcd.BUSINESS_STATUS as businessStatus,
+		prcd.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT prcd
+		left join T_PRJT_RISK_CONTROL prrc on prrc.CREDIT_ID = prcd.ID
+		left join (
+		  select mm.PRC_ID, max(CREATE_TIME) approval_date
+		  from T_PRJT_RISK_CONTROLMEMO mm
+		  where STATUS = 0
+		  group by PRC_ID
+		) prmm on prmm.PRC_ID = prrc.PRC_ID
+		where prrc.STATE = 1
+		and prcd.STATUS = 0 and prrc.STATUS = 0
+		and datediff(day,prmm.approval_date,getdate()) > prcd.VALID_DAY
+		and prcd.FINANCECONTRACT_DATE is null
+    </select>
+    
+    <select id="getStatusFor100" resultClass="com.brick.credit.to.CreditTo">
+    	select prcd.ID as creditId, prcd.credit_runcode as creditRuncode,
+		prcd.BUSINESS_STATUS as businessStatus,
+		prcd.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT prcd
+		where STATUS = 0 and (STATE = 0 or STATE = 2)
+    </select>
+    
+    <select id="getStatusFor200" resultClass="com.brick.credit.to.CreditTo">
+    	select prcd.ID as creditId, prcd.credit_runcode as creditRuncode,
+		prcd.BUSINESS_STATUS as businessStatus,
+		prcd.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT prcd
+		where STATUS = 0 and STATE = 3
+    </select>
+    
+    <select id="getStatusFor300" resultClass="com.brick.credit.to.CreditTo">
+    	select prcd.ID as creditId, prcd.credit_runcode as creditRuncode,
+		prcd.BUSINESS_STATUS as businessStatus,
+		prcd.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT prcd
+		where STATUS = 0 and STATE = 5
+    </select>
+    
+    <select id="getStatusFor400" resultClass="com.brick.credit.to.CreditTo">
+    	select pc.ID as creditId, pc.credit_runcode as creditRuncode,
+		pc.BUSINESS_STATUS as businessStatus,
+		pc.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_RISK_CONTROL pr on pr.CREDIT_ID = pc.ID
+		where pc.STATUS = 0 and pr.STATE = 0
+		and pr.PRC_NODE is null
+		and pc.STATE = 1
+		and pc.WIND_STATE is null
+    </select>
+    
+    <select id="getStatusFor500" resultClass="com.brick.credit.to.CreditTo">
+    	select pc.ID as creditId, pc.credit_runcode as creditRuncode,
+		pc.BUSINESS_STATUS as businessStatus,
+		pc.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_RISK_CONTROL pr on pr.CREDIT_ID = pc.ID
+		where pc.STATUS = 0 and pr.STATE = 0
+		and pr.PRC_NODE = 0
+		and pc.STATE = 1
+		and pc.WIND_STATE is null
+    </select>
+    
+    <select id="getStatusFor600" resultClass="com.brick.credit.to.CreditTo">
+    	select pc.ID as creditId, pc.credit_runcode as creditRuncode,
+		pc.BUSINESS_STATUS as businessStatus,
+		pc.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_RISK_CONTROL pr on pr.CREDIT_ID = pc.ID
+		where pc.STATUS = 0 and pr.STATE = 0
+		and pr.PRC_NODE = 1
+		and pc.STATE = 1
+		and pc.WIND_STATE is null
+    </select>
+    
+    <select id="getStatusFor700" resultClass="com.brick.credit.to.CreditTo">
+    	select pc.ID as creditId, pc.credit_runcode as creditRuncode,
+		pc.BUSINESS_STATUS as businessStatus,
+		pc.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_RISK_CONTROL pr on pr.CREDIT_ID = pc.ID
+		where pc.STATUS = 0 and pr.STATE = 0
+		and pr.PRC_NODE = 2
+		and pc.STATE = 1
+		and pc.WIND_STATE is null
+    </select>
+    
+    <select id="getStatusFor800" resultClass="com.brick.credit.to.CreditTo">
+    	select pc.ID as creditId, pc.credit_runcode as creditRuncode,
+		pc.BUSINESS_STATUS as businessStatus,
+		pc.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_RISK_CONTROL pr on pr.CREDIT_ID = pc.ID
+		where pc.STATUS = 0 and pr.STATE = 0
+		and pr.PRC_NODE = 3
+		and pc.STATE = 1
+		and pc.WIND_STATE is null
+    </select>
+    
+    <select id="getStatusFor900" resultClass="com.brick.credit.to.CreditTo">
+    	select distinct pc.ID as creditId, pc.credit_runcode as creditRuncode,
+		pc.BUSINESS_STATUS as businessStatus,
+		pc.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_RISK_CONTROL pr on pr.CREDIT_ID = pc.ID 
+		and pr.STATUS = 0 
+		where pc.STATUS = 0 and pr.STATE = 1
+		and pc.FINANCECONTRACT_DATE is null 
+		and not exists (
+		  select re.RECT_ID from T_RENT_CONTRACT re
+		  where re.PRCD_ID = pc.ID and re.STATUS != -2
+		  and re.LEASE_CODE = pc.LEASE_CODE
+		)
+    </select>
+    
+    <select id="getStatusFor1000" resultClass="com.brick.credit.to.CreditTo">
+    	select distinct pc.ID as creditId, pc.credit_runcode as creditRuncode,
+		pc.BUSINESS_STATUS as businessStatus,
+		pc.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_RISK_CONTROL pr on pr.CREDIT_ID = pc.ID 
+		and pr.STATUS = 0 
+		left join T_RENT_CONTRACT rc on rc.PRCD_ID = pc.ID
+		and rc.STATUS != -2
+		left join T_SUPL_PLAYDETIL pd on pd.CREDIT_ID = pc.ID
+		and pd.STATUS = 0
+		where pc.STATUS = 0 and pr.STATE = 1
+		and pc.FINANCECONTRACT_DATE is null 
+		and (rc.RECT_STATUS = 0 or rc.RECT_STATUS = 1 or rc.RECT_STATUS = 2)
+		and pd.EXAMSTATUS = 0
+    </select>
+    
+    <select id="getStatusFor1100" resultClass="com.brick.credit.to.CreditTo">
+    	select distinct pc.ID as creditId, pc.credit_runcode as creditRuncode,
+		pc.BUSINESS_STATUS as businessStatus,
+		pc.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT pc
+		left join T_SUPL_PLAYDETIL pd on pd.CREDIT_ID = pc.ID
+		and pd.STATUS = 0
+		where pc.STATUS = 0
+		and pc.FINANCECONTRACT_DATE is null 
+		and pd.STATE = 0
+		and pd.DEPARTMENTSTATUS = 1
+		and pd.EXAMSTATUS = 1
+    </select>
+    
+    <select id="getStatusFor1200" resultClass="com.brick.credit.to.CreditTo">
+    	select distinct pc.ID as creditId, pc.credit_runcode as creditRuncode,
+		pc.BUSINESS_STATUS as businessStatus,
+		pc.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT pc
+		left join T_SUPL_PLAYDETIL pd on pd.CREDIT_ID = pc.ID
+		and pd.STATUS = 0
+		where pc.STATUS = 0
+		and pc.FINANCECONTRACT_DATE is null 
+		and pd.STATE = 1
+    </select>
+    
+    <select id="getStatusFor1300" resultClass="com.brick.credit.to.CreditTo">
+    	select pc.ID as creditId, pc.credit_runcode as creditRuncode,
+		pc.BUSINESS_STATUS as businessStatus,
+		pc.BUSINESS_STATUS_VERSION as businessStatusVersion
+		from T_PRJT_CREDIT pc
+		left join T_RENT_CONTRACT rc on rc.PRCD_ID = pc.ID and rc.STATUS = 0
+		left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+		where FINANCECONTRACT_DATE is not null
+		and pc.STATUS = 0 and pc.STATE = 1 and cp.STATUS = 0
+    </select>
+    
+    <!-- 绿色通道案件分析 -->
+    <delete id="deleteProjectInfoForVip" parameterClass="map">
+    	delete from T_PRJT_REPORT_VIP
+		where convert(date, CREATE_DATE) = convert(date, #paramDate#)
+    </delete>
+    <insert id="insertProjectInfoForVip" parameterClass="map">
+    	insert into T_PRJT_REPORT_VIP (
+		   CREATE_DATE
+		  ,CREATE_COUNT
+		  ,COMMIT_COUNT
+		  ,CANCEL_COUNT
+		  ,RISK_MONEY
+		  ,VISIT_COUNT
+		  ,VISIT_PERCENT
+		  ,APP_COUNT
+		  ,APP_PERCENT
+		  ,REJECT_COUNT
+		  ,REJECT_PERCENT
+		  ,APP_UNPAY_COUNT
+		  ,APP_UNPAY_MONEY
+		  ,PAY_COUNT
+		  ,PAY_MONEY
+		  ,DUN_COUNT
+		  ,DUN_COUNT_PERCENT
+		  ,DUN_MONEY
+		  ,DUN_MONEY_PERCENT
+		) 
+		select 
+		  convert(date, #paramDate#),
+		  t1.create_count, 
+		  t2.commit_count, 
+		  t3.cancel_count, 
+		  isnull(t4.risk_money,0), 
+		  t5.visit_count, 
+		  case when t1.create_count = 0 then 0 else
+		  convert(DECIMAL, t5.visit_count) / 
+		  convert(DECIMAL, t1.create_count) end as VISIT_PERCENT,
+		  t7.app_count, 
+		  case when t2.commit_count = 0 then 0 else
+		  convert(DECIMAL, t7.app_count) /
+		  convert(DECIMAL, t2.commit_count) end as APP_PERCENT,
+		  t6.reject_count, 
+		  case when t2.commit_count = 0 then 0 else
+		  convert(DECIMAL, t6.reject_count) /
+		  convert(DECIMAL, t2.commit_count) end as REJECT_PERCENT, 
+		  t8.app_unpay_count, 
+		  isnull(t9.app_unpay_money,0), 
+		  t10.pay_count, 
+		  isnull(t11.pay_money,0), 
+		  t12.dun_count,
+		  case when t13.total_count = 0 then 0 else
+		  convert(DECIMAL, t12.dun_count) / 
+		  convert(DECIMAL, t13.total_count) end as DUN_COUNT_PERCENT,  
+		  t12.dun_price,
+		  case when t14.total_price = 0 then 0 else
+		  convert(DECIMAL, t12.dun_price) / 
+		  convert(DECIMAL, t14.total_price) end as DUN_MONEY_PERCENT
+    	from (
+		<!-- 进件 -->
+		select count(0) as create_count
+		from T_PRJT_CREDIT prcd 
+		where prcd.VIP_FLAG = 1
+		and year(prcd.CREATE_DATE) = year(convert(date,#paramDate#))
+		and month(prcd.CREATE_DATE) = month(convert(date,#paramDate#))
+		<![CDATA[ and convert(date, prcd.CREATE_DATE) <= convert(date,#paramDate#) ]]>
+		)t1 ,
+		(
+		<!-- 送审  -->
+		select count(0) as commit_count from (
+		select CREDIT_ID, min(COMMIT_TIME) as COMMIT_TIME
+		from T_PRJT_RISK_CONTROL
+		where STATUS = 0
+		group by CREDIT_ID
+		)t
+		where year(t.COMMIT_TIME) = year(convert(date,#paramDate#))
+		and month(t.COMMIT_TIME) = month(convert(date,#paramDate#))
+		<![CDATA[ and convert(date, t.COMMIT_TIME) <= convert(date,#paramDate#) ]]>
+		and exists(
+		  select 0 from T_PRJT_CREDIT prcd 
+		  where prcd.VIP_FLAG = 1
+		  and prcd.ID = t.CREDIT_ID
+		)
+		)t2 ,
+		(
+		<!-- 撤销案件数 -->
+		select count(0) as cancel_count from (
+		  select CREDIT_ID
+		  from T_SYS_BUSINESSLOG
+		  where LOG_TYPE = '报告管理'
+		  and LOG_TITLE = '报告撤销'
+		  and year(CREATE_DATE) = year(convert(date,#paramDate#))
+		  and month(CREATE_DATE) = month(convert(date,#paramDate#))
+		  <![CDATA[ and convert(date, CREATE_DATE) <= convert(date,#paramDate#) ]]>
+		  and [USER_ID] != 184
+		  and exists(
+		    select 0 from T_PRJT_CREDIT prcd 
+		    where prcd.VIP_FLAG = 1
+		    and prcd.STATE = -1
+		    and prcd.ID = CREDIT_ID
+		  )
+		  group by CREDIT_ID
+		)t
+		)t3 ,
+		(
+		<!-- 核准总金额 -->
+		select sum(cs.LEASE_RZE) as risk_money
+		from T_PRJT_RISK_CONTROL risk
+		left join T_PRJT_CREDIT prcd on risk.CREDIT_ID = prcd.ID
+		left join T_PRJT_CREDITSCHEME cs on cs.CREDIT_ID = prcd.ID
+		where risk.STATE = 1
+		and year(risk.FINISH_TIME) = year(convert(date,#paramDate#))
+		and month(risk.FINISH_TIME) = month(convert(date,#paramDate#))
+		<![CDATA[ and convert(date, risk.FINISH_TIME) <= convert(date,#paramDate#) ]]>
+		and prcd.VIP_FLAG = 1
+		)t4,
+		(
+		<!-- 访厂件数 -->
+		select count(0) as visit_count
+		from T_PRJT_VISIT vi
+		left join T_PRJT_VISIT_REPORT vr on vr.VISIT_ID = vi.ID
+		where vi.VISIT_STATUS = 3
+		and vr.STATUS = 1
+		and year(vr.MODIFY_DATE) = year(convert(date,#paramDate#))
+		and month(vr.MODIFY_DATE) = month(convert(date,#paramDate#))
+		<![CDATA[ and convert(date, vr.MODIFY_DATE) <= convert(date,#paramDate#) ]]>
+		and exists(
+		  select 0 from T_PRJT_CREDIT prcd 
+		  where prcd.VIP_FLAG = 1
+		  and prcd.ID = vi.CREDIT_ID
+		)
+		)t5,
+		(
+		
+		
+		<!-- 婉拒件数 -->
+		select count(prcd.ID) as reject_count 
+		from T_PRJT_CREDIT prcd
+		where prcd.STATUS = 0
+		and prcd.VIP_FLAG = 1
+		and exists (
+		  select 0 from T_PRJT_RISK_CONTROL risk
+		  where risk.STATE = 4
+		  and year(risk.FINISH_TIME) = year(convert(date,#paramDate#))
+		  and month(risk.FINISH_TIME) = month(convert(date,#paramDate#))
+		  <![CDATA[ and convert(date, risk.FINISH_TIME) <= convert(date,#paramDate#) ]]>
+		  and risk.CREDIT_ID = prcd.ID
+		)
+		)t6,
+		(
+		<!-- 核准件数 -->
+		select count(0) as app_count 
+		from T_PRJT_CREDIT prcd
+		where prcd.STATUS = 0
+		and prcd.STATE = 1
+		and exists (
+		  select 0 from T_PRJT_RISK_CONTROL risk
+		  where risk.STATE = 1
+		  and year(risk.FINISH_TIME) = year(convert(date,#paramDate#))
+		  and month(risk.FINISH_TIME) = month(convert(date,#paramDate#))
+		  <![CDATA[ and convert(date, risk.FINISH_TIME) <= convert(date,#paramDate#) ]]>
+		  and risk.CREDIT_ID = prcd.ID
+		)
+		and prcd.VIP_FLAG = 1
+		)t7,
+		(
+		<!-- 已核准未拨款 -->
+		select count(0) as app_unpay_count
+		from T_PRJT_CREDIT prcd
+		where prcd.STATUS = 0
+		and prcd.STATE = 1
+		and exists (
+		  select 0 from T_PRJT_RISK_CONTROL risk
+		  where risk.STATE = 1
+		  and year(risk.FINISH_TIME) = year(convert(date,#paramDate#))
+		  and month(risk.FINISH_TIME) = month(convert(date,#paramDate#))
+		  <![CDATA[ and convert(date, risk.FINISH_TIME) <= convert(date,#paramDate#) ]]>
+		  and risk.CREDIT_ID = prcd.ID
+		  <![CDATA[ and datediff(day,risk.FINISH_TIME, convert(date, #paramDate#)) <= prcd.VALID_DAY ]]>
+		)
+		and prcd.VIP_FLAG = 1
+		and (FINANCECONTRACT_DATE is null
+		or FINANCECONTRACT_DATE > convert(date, #paramDate#))
+		)t8,
+		(
+		<!-- 已核准未拨款 金额 -->
+		select sum(cs.LEASE_TOPRIC-cs.PLEDGE_ENTER_MCTOAG-cs.PLEDGE_ENTER_AG) as app_unpay_money
+		from T_PRJT_CREDIT prcd
+		left join T_PRJT_CREDITSCHEME cs on cs.CREDIT_ID = prcd.ID
+		where prcd.STATUS = 0
+		and prcd.STATE = 1
+		and exists (
+		  select 0 from T_PRJT_RISK_CONTROL risk
+		  where risk.STATE = 1
+		  and year(risk.FINISH_TIME) = year(convert(date,#paramDate#))
+		  and month(risk.FINISH_TIME) = month(convert(date,#paramDate#))
+		  <![CDATA[ and convert(date, risk.FINISH_TIME) <= convert(date,#paramDate#) ]]>
+		  and risk.CREDIT_ID = prcd.ID
+		  <![CDATA[ and datediff(day,risk.FINISH_TIME, convert(date, #paramDate#)) <= prcd.VALID_DAY ]]>
+		)
+		and prcd.VIP_FLAG = 1
+		and (FINANCECONTRACT_DATE is null
+		or FINANCECONTRACT_DATE > convert(date, #paramDate#))
+		)t9,
+		(
+		
+		<!-- 拨款件数 -->
+		select count(0) as pay_count 
+		from T_PRJT_CREDIT prcd
+		where STATUS = 0
+		and VIP_FLAG = 1
+		and year(prcd.FINANCECONTRACT_DATE) = year(convert(date,#paramDate#))
+		and month(prcd.FINANCECONTRACT_DATE) = month(convert(date,#paramDate#))
+		<![CDATA[ and convert(date, prcd.FINANCECONTRACT_DATE) <= convert(date,#paramDate#) ]]>
+		)t10,
+		(
+		<!-- 拨款金额 -->
+		select sum(PAY_MONEY) as pay_money
+		from T_SUPL_PLAYDETIL p
+		where exists (
+		  select 0 from T_PRJT_CREDIT c
+		  where c.ID = p.credit_id
+		  and c.VIP_FLAG = 1
+		)
+		and year(p.PAY_DATE) = year(convert(date,#paramDate#))
+		and month(p.PAY_DATE) = month(convert(date,#paramDate#))
+		<![CDATA[ and convert(date, p.PAY_DATE) <= convert(date,#paramDate#) ]]>
+		)t11,
+		(
+		<!-- 逾期件数，金额 -->
+		select isnull(count(0),0) as dun_count, 
+		  isnull(sum(isnull(dun.NOCHARGE_TOTAL_RENPRICE,0)),0) as dun_price
+		from T_DUN_DAILY dun
+		left join T_RENT_CONTRACT rect on rect.RECT_ID = dun.RECT_ID
+		left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+		where convert(date, dun.CREATE_DATE) = convert(date, #paramDate#)
+		and prcd.VIP_FLAG = 1
+		)t12,
+		(
+		<!-- 总件数 -->
+		select count(0) as total_count 
+		from T_RENT_COLLECTIONPLAN recp
+		left join T_RENT_CONTRACT rect on recp.RECT_ID = rect.RECT_ID and rect.STATUS = 0
+		where recp.STATUS = 0 
+		and (recp.RECP_STATUS = 0 or recp.FUND_STATUS = 0)
+		and exists(
+		  select prcd.ID from T_PRJT_CREDIT prcd
+		  left join T_RENT_CONTRACT ct on ct.PRCD_ID = prcd.ID
+		  where ct.RECT_ID = rect.RECT_ID
+		  and prcd.FINANCECONTRACT_DATE is not null
+		  <![CDATA[ and FINANCECONTRACT_DATE <= convert(date, #paramDate#) ]]>
+		  and prcd.VIP_FLAG = 1
+		)
+		)t13,
+		(
+		<!-- 总金额 -->
+		select sum(pric.price) as total_price 
+		from T_RENT_COLLECTIONPLAN recp
+		left join (
+		  select (sum(recd.IRR_MONTH_PRICE+ISNULL(recd.VALUE_ADDED_TAX,0)) - sum(isnull(recd.REDUCE_OWN_PRICE,0))) as 'price',
+		  recd.RECP_ID
+		  from T_RENT_COLLECTIONDETAIL recd
+		  where recd.STATUS = 0
+		  group by recd.RECP_ID
+		)pric on pric.RECP_ID = recp.RECP_ID
+		left join T_RENT_CONTRACT rect on recp.RECT_ID = rect.RECT_ID and rect.STATUS = 0
+		where recp.STATUS = 0 
+		and (recp.RECP_STATUS = 0 or recp.FUND_STATUS = 0)
+		and exists(
+		  select prcd.ID from T_PRJT_CREDIT prcd
+		  left join T_RENT_CONTRACT ct on ct.PRCD_ID = prcd.ID
+		  where ct.RECT_ID = rect.RECT_ID
+		  and prcd.FINANCECONTRACT_DATE is not null
+		  <![CDATA[ and FINANCECONTRACT_DATE <= convert(date, #paramDate#) ]]>
+		  and prcd.VIP_FLAG = 1
+		)
+		)t14
+    </insert>
+    
+    <select id="getFirstWorkingDay" parameterClass="map" resultClass="java.sql.Date">
+    	SELECT TOP 1 convert(date, O.DATE) as DATE FROM 
+		( SELECT TOP 1 *
+		  FROM T_DAY_TYPE 
+		  WHERE [YEAR] = #year#
+		  AND MONTH([DATE]) = #month#
+		  AND DAY_TYPE='WD'
+		  ORDER BY [DATE] ASC
+		) o  
+    </select>
+    
+    <select id="getSecondWorkingDay" parameterClass="map" resultClass="java.sql.Date">
+    	SELECT TOP 1 convert(date, O.DATE) as DATE FROM 
+		( SELECT TOP 2 *
+		  FROM T_DAY_TYPE 
+		  WHERE [YEAR] = #year#
+		  AND MONTH([DATE]) = #month#
+		  AND DAY_TYPE='WD'
+		  ORDER BY [DATE] ASC
+		) o  
+		order by o.DATE desc
+    </select>
+    
+    <select id="getData4Of1" resultClass="hashMap">
+    	select cust.CUST_NAME as '客户名称',
+		dd.FLAG as '企业类型',
+		cust.CORP_SETUP_DATE as '成立日期',
+		cust.CORP_REGISTE_CAPITAL as '注册资本',
+		cust.CORP_PAICLUP_CAPITAL as '实收资本',
+		pr_ar.[NAME] + '_' + ct_ar.[NAME] + '_' + isnull(aa_ar.[NAME], '') as '地区',
+		u.[NAME] as '输入人',
+		decp.DECP_NAME_CN AS '办事处'
+		from T_CUST_CUSTOMER cust
+		left join T_DATA_DICTIONARY dd
+		on dd.CODE = cust.CORP_ENTERPRISES_PROPERTY 
+		and dd.type = '企业类型' and dd.STATUS = 0
+		left join T_AREA pr_ar on cust.PROVINCE_ID = pr_ar.ID
+		left join T_AREA ct_ar on cust.CITY_ID = ct_ar.ID
+		left join T_AREA aa_ar on cust.area_id = aa_ar.ID
+		left join T_USER_USER u on cust.CREATE_USER_ID = u.ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = u.DEPT_ID
+		left join T_DEPT_COMPANY decp on decp.DECP_ID = dept.DECP_ID
+		where cust.STATUS = 0
+		order by cust.CUST_ID
+    </select>
+    
+    <select id="getData4Of2" resultClass="hashMap">
+    	select distinct 
+		prcd.CREDIT_RUNCODE as '案件号',
+		prc.real_prc_hao as '批覆书号', 
+		prcc.TAX_REGISTRATION_NUMBER as '税务登记号', 
+		cu.CUST_NAME as '客户名称', 
+		pr_ar.[NAME] + '_' + ct_ar.[NAME] + '_' + aa_ar.[NAME] as '地区',
+		prc.RISK_LEVEL as '评审等级', 
+		decp.DECP_NAME_CN as '办事处', 
+		ou.[NAME] as '原始经办人', 
+		u.[NAME] as '当前经办人', 
+		case when prcd.CONTRACT_TYPE = 0 then '一般租赁'
+		when prcd.CONTRACT_TYPE = 1 then '委托购买'
+		when prcd.CONTRACT_TYPE = 2 then '回租'
+		when prcd.CONTRACT_TYPE = 3 then '机动车租赁'
+		when prcd.CONTRACT_TYPE = 4 then '机动车回租'
+		else '' end as '租赁方式', 
+		case when prc.STATE = 1 then 'Y'
+		else 'N' end as '是否核准',
+		vi.REAL_VISIT_DATE as '访厂时间',
+		convert(date,pcm.CREATE_TIME) as '送案时间',
+		convert(date,prcm.create_date) as '核准时间',
+		convert(date,(prcm.create_date + prcd.VALID_DAY)) as '核准动用有效迄日',
+		prcs.LEASE_RZE as '融资额',
+		p.PAY_MONEY as '拨款金额',
+		prcs.TR_IRR_RATE as 'TR',
+		prcs.LEASE_TERM as '期数'
+		,(
+		  select top 1 pvc.CORP_NAME_CN from T_PRJT_VOUCHCUSTOMERCORP pvc
+		  where pvc.PRCD_ID = prcd.ID
+		) as '其他法人保证'
+		,prcs.invoice_person as '发票人'
+		,prcd.CREATE_DATE as '输入时间'
+		,cuser.[NAME] as '输入人'
+		from T_PRJT_CREDIT prcd
+		left join T_CUST_CUSTOMER cu on prcd.CUST_ID = cu.CUST_ID
+		left join T_AREA pr_ar on prcd.PROVINCE_ID = pr_ar.ID
+		left join T_AREA ct_ar on prcd.CITY_ID = ct_ar.ID
+		left join T_AREA aa_ar on prcd.area_id = aa_ar.ID
+		left join T_PRJT_CREDITCUSTOMERCORP prcc on prcc.CREDIT_ID = prcd.ID
+		and prcc.STATUS = 0
+		left join T_PRJT_RISK_CONTROL prc on prc.CREDIT_ID = prcd.ID
+		and prc.STATUS = 0 and prc.STATE = 1
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_USER_USER cuser on prcd.CREATE_PERSION_ID = cuser.ID
+		left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID
+		left join T_USER_USER ou on prcd.ORG_SENSOR_ID = ou.ID
+		left join T_PRJT_VISIT vi on vi.CREDIT_ID = prcd.ID
+		left join T_PRJT_CREDITMEMO pcm on pcm.tprc_id = prc.PRC_ID
+		and prc.STATE = 1
+		left join (select PRC_ID, max(CREATE_TIME) as create_date
+		from T_PRJT_RISK_CONTROLMEMO
+		where STATUS = 0
+		group by PRC_ID) prcm on prcm.PRC_ID = prc.PRC_ID
+		and prc.STATE = 1
+		left join T_PRJT_CREDITSCHEME prcs on prcs.CREDIT_ID = prcd.ID
+		and prcs.STATUS = 0
+		left join (
+		  select CREDIT_ID, sum(isnull(PAY_MONEY,0)) as PAY_MONEY
+		  from T_SUPL_PLAYDETIL pd
+		  where STATUS = 0
+		  group by CREDIT_ID
+		) p on p.CREDIT_ID = prcd.ID
+		where prcd.STATUS = 0
+    </select>
+    
+    <select id="getData4Of3" resultClass="hashMap">
+    	select 
+		prcd.LEASE_CODE AS '合同号'
+		, cust.CUST_NAME AS '客户名称'
+		,max(decp.DECP_NAME_CN) as '办事处'
+		, ee.THING_NAME as '租赁物名称'
+		, ee.THING_KIND as '厂牌'
+		, ee.MODEL_SPEC as '规格型号'
+		, sum(ee.AMOUNT) as '数量'
+		, ee.UNIT_PRICE as '单价'
+		, pr_ar.[NAME] + '_' + ct_ar.[NAME] + '_' + aa_ar.[NAME] as '地区'
+		, ee.BRAND as '供应商'
+		, pt.MANUFACTURER as '制造商'
+		, case when recd.LOCK_CODE = 1 then '间接'
+		  when recd.LOCK_CODE = 2 then '异常'
+		  when recd.LOCK_CODE = 3 then '直接'
+		  else '无' end as '锁码方式'
+		, prcd.FINANCECONTRACT_DATE as '拨款日期'
+		, prcs.EQUPMENT_ADDRESS as '租赁物放置地'
+		from T_PRJT_CREDIT prcd
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = u.DEPT_ID
+		left join T_DEPT_COMPANY decp on decp.DECP_ID = dept.DECP_ID
+		left join T_PRJT_CREDITSCHEME prcs on prcs.CREDIT_ID = prcd.ID
+		left join T_RENT_CONTRACT rect on rect.PRCD_ID = prcd.ID and rect.STATUS = 0
+		left join T_CUST_CUSTOMER cust on prcd.CUST_ID = cust.CUST_ID and cust.STATUS = 0
+		left join T_RENT_CONTRACTDETAIL recd on recd.RECT_ID=rect.RECT_ID and recd.STATUS = 0
+		left join T_EQMT_EQUIPMENT ee on recd.EQMT_ID=ee.EQMT_ID and ee.STATUS = 0
+		left join T_SUPL_EQUIPMENT se on ee.SUEQ_ID = se.SUEQ_ID and se.status = 0
+		left join T_PRDC_PRODUCT pd on se.PRODUCT_ID = pd.ID and pd.STATUS = 0
+		left join T_PRDC_KIND pk on pd.KIND_ID = pk.ID and pk.PRDC_KIND_STATUS = 0
+		left join T_PRDC_TYPE pt on pk.type_id = pt.ID and pt.PRDC_TYPE_STATUS = 0
+		left join T_PRJT_CREDITAPPROPIATE ca_b on ca_b.CREDIT_ID = prcd.ID and ca_b.STATUS = 0 and ca_b.[TYPE] = 0
+		left join T_PRJT_CREDITAPPROPIATE ca_a on ca_a.CREDIT_ID = prcd.ID and ca_a.STATUS = 0 and ca_a.[TYPE] = 1
+		left join T_AREA pr_ar on prcd.PROVINCE_ID = pr_ar.ID
+		left join T_AREA ct_ar on prcd.CITY_ID = ct_ar.ID
+		left join T_AREA aa_ar on prcd.area_id = aa_ar.ID
+		where prcd.STATUS = 0 and prcd.STATE = 1 and prcd.WIND_STATE = 1
+		and prcd.FINANCECONTRACT_DATE is not null
+		group by prcd.LEASE_CODE, prcd.FINANCECONTRACT_DATE,
+		recd.LOCK_CODE, cust.CUST_NAME, pt.MANUFACTURER, ee.THING_NAME,
+		ee.BRAND, ee.UNIT_PRICE, ee.MODEL_SPEC, ee.THING_KIND, prcd.ID
+		, ca_b.PAYPERCENT
+		, ca_b.APPRORIATEMON
+		, ca_a.PAYPERCENT
+		, ca_a.APPRORIATEMON
+		, pr_ar.[NAME] 
+		, ct_ar.[NAME]
+		, aa_ar.[NAME]
+		, prcs.EQUPMENT_ADDRESS
+		order by prcd.LEASE_CODE
+    </select>
+    
+    <select id="getData4Of4" resultClass="hashMap">
+    	select
+		(select top 1 real_prc_hao from T_PRJT_RISK_CONTROL
+		  where STATE = 1 and STATUS = 0
+		  and CREDIT_ID = prcd.ID) as '批覆书号'
+		,rect.LEASE_CODE as '合同号'
+		,cust.CUST_NAME as '客户名称'
+		,ou.[NAME] as '原始经办人'
+		,u.[NAME] as '经办人'
+		,decp.DECP_NAME_CN as '单位'
+		,recp.LEASE_TOPRIC as '设备总价'
+		,recp.PLEDGE_PRICE as '保证金'
+		,recp.RATE_DIFF as '利差现值'
+		,recp.LEASE_RZE as '授信净额'
+		,p.PAY_MONEY as '拨款金额'
+		,prcd.FINANCECONTRACT_DATE as '拨款日期'
+		,convert(date,recp.FIRST_PAYDATE) as '起租日期'
+		, recp.END_DATE as '租賃迄日'
+		, t.total_price as '租金总额'
+		, convert(date,t.max_date) as '最末期租金缴付日'
+		, '月' as '缴付周期'
+		, t.[count] as '期数'
+		, t.avg_pay_money AS '平均期付款'
+		, t.pay_day as '交付日'
+		, recp.TR_IRR_RATE as 'TR'
+		, pr_ar.[NAME] + '_' + ct_ar.[NAME] + '_' + aa_ar.[NAME] as '地区'
+		, case when recp.RECP_STATUS = 0 then '正常'
+		when recp.RECP_STATUS = 1 then '正常结清'
+		when recp.RECP_STATUS = 2 then '提前结清'
+		when recp.RECP_STATUS = 3 then '回购'
+		else '' end as '案件状态'
+		from T_RENT_COLLECTIONPLAN recp
+		left join T_RENT_CONTRACT rect on recp.RECT_ID = rect.RECT_ID and rect.STATUS = 0
+		left join T_CUST_CUSTOMER cust on rect.CUST_ID = cust.CUST_ID and cust.STATUS = 0
+		left join T_USER_USER u on rect.org_SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = u.DEPT_ID
+		left join T_DEPT_COMPANY decp on decp.DECP_ID = dept.DECP_ID
+		left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID and prcd.STATUS = 0
+		left join T_USER_USER ou on prcd.ORG_SENSOR_ID = ou.ID
+		left join T_AREA pr_ar on prcd.PROVINCE_ID = pr_ar.ID
+		left join T_AREA ct_ar on prcd.CITY_ID = ct_ar.ID
+		left join T_AREA aa_ar on prcd.area_id = aa_ar.ID
+		left join (
+		  select RECP_ID, sum(IRR_MONTH_PRICE) as total_price
+		  ,max(PAY_DATE) as max_date
+		  , count(0) as [count], 
+		  day(max(PAY_DATE)) as pay_day,
+		  avg(IRR_MONTH_PRICE) as avg_pay_money
+		  from T_RENT_COLLECTIONDETAIL
+		  where STATUS = 0 and RECD_STATUS = 0
+		  group by RECP_ID
+		) t on t.RECP_ID = recp.RECP_ID
+		left join (
+		  select CREDIT_ID, sum(isnull(PAY_MONEY,0)) as PAY_MONEY
+		  from T_SUPL_PLAYDETIL pd
+		  where STATUS = 0 and pd.backstate = 0
+		  group by CREDIT_ID
+		) p on p.CREDIT_ID = prcd.ID
+		where recp.STATUS = 0
+		and prcd.FINANCECONTRACT_DATE is not null
+		order by prcd.LEASE_CODE
+    </select>
+    
+    <select id="getData2Of1" resultClass="hashMap">
+    	select 
+		(select top 1 real_prc_hao from T_PRJT_RISK_CONTROL
+		  where STATE = 1 and STATUS = 0
+		  and CREDIT_ID = prcd.ID) as '批覆书号'
+		,prcd.LEASE_CODE AS '合同号'
+		, cust.CUST_NAME AS '承租人'
+		,max(decp.DECP_NAME_CN) as '单位'
+		, ca_b.PAYPERCENT as '交机前拨款比例'
+		, ca_b.APPRORIATEMON as '交机前拨款金额'
+		, ca_a.PAYPERCENT as '交机后拨款比例'
+		, ca_a.APPRORIATEMON as '交机后拨款金额'
+		, prcd.FINANCECONTRACT_DATE as '拨款日期'
+		, ee.THING_NAME as '产品名称'
+		, max(tp1.TYPE_1) as '第一类'
+		, max(tp1.TYPE_2) as '第二类'
+		, ee.THING_KIND as '厂牌'
+		, ee.MODEL_SPEC as '规格型号'
+		, sum(ee.AMOUNT) as '数量'
+		, ee.UNIT_PRICE as '单价'
+		, ee.BRAND as '供应商'
+		, pt.MANUFACTURER as '制造商'
+		, case when recd.LOCK_CODE = 1 then '间接'
+		  when recd.LOCK_CODE = 2 then '异常'
+		  when recd.LOCK_CODE = 3 then '直接'
+		  else '无' end as '锁码方式'
+		, max(su.SUPP_LEVEL) as '供应商级别'
+		, (
+			select top 1 CREDIT_SPECIAL_NAME 
+			from T_PRJT_CREDIT_SPECIAL_GROUP
+			where CREDIT_SPECIAL_CODE in (
+			  select CREDIT_SPECIAL_CODE from T_PRJT_CREDIT
+			  where ID = prcd.ID
+			)
+			and STATUS = 0
+		) as '专案'
+		from T_PRJT_CREDIT prcd
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = u.DEPT_ID
+		left join T_DEPT_COMPANY decp on decp.DECP_ID = dept.DECP_ID
+		left join T_RENT_CONTRACT rect on rect.PRCD_ID = prcd.ID and rect.STATUS = 0
+		left join T_CUST_CUSTOMER cust on prcd.CUST_ID = cust.CUST_ID and cust.STATUS = 0
+		left join T_RENT_CONTRACTDETAIL recd on recd.RECT_ID=rect.RECT_ID and recd.STATUS = 0
+		left join T_EQMT_EQUIPMENT ee on recd.EQMT_ID=ee.EQMT_ID and ee.STATUS = 0
+		left join T_SUPL_EQUIPMENT se on ee.SUEQ_ID = se.SUEQ_ID and se.status = 0
+		left join T_SUPL_SUPPLIER su on se.SUPPLIER_ID = su.ID
+		left join T_PRDC_PRODUCT pd on se.PRODUCT_ID = pd.ID and pd.STATUS = 0
+		left join T_PRDC_KIND pk on pd.KIND_ID = pk.ID and pk.PRDC_KIND_STATUS = 0
+		left join T_PRODUCT_TYPE tp1 on pk.NAME=tp1.PRODUCT_NAME AND tp1.STATUS=0
+		left join T_PRDC_TYPE pt on pk.type_id = pt.ID and pt.PRDC_TYPE_STATUS = 0
+		left join T_PRJT_CREDITAPPROPIATE ca_b on ca_b.CREDIT_ID = prcd.ID and ca_b.STATUS = 0 and ca_b.[TYPE] = 0
+		left join T_PRJT_CREDITAPPROPIATE ca_a on ca_a.CREDIT_ID = prcd.ID and ca_a.STATUS = 0 and ca_a.[TYPE] = 1
+		where prcd.STATUS = 0 and prcd.STATE = 1 and prcd.WIND_STATE = 1
+		and prcd.FINANCECONTRACT_DATE is not null
+		group by prcd.LEASE_CODE, prcd.FINANCECONTRACT_DATE,
+		recd.LOCK_CODE, cust.CUST_NAME, pt.MANUFACTURER, ee.THING_NAME,
+		ee.BRAND, ee.UNIT_PRICE, ee.MODEL_SPEC, ee.THING_KIND, prcd.ID
+		, ca_b.PAYPERCENT
+		, ca_b.APPRORIATEMON
+		, ca_a.PAYPERCENT
+		, ca_a.APPRORIATEMON
+		order by prcd.LEASE_CODE;
+    </select>
+    
+    <select id="getData2Of2" resultClass="hashMap">
+    	select 
+		(select top 1 real_prc_hao from T_PRJT_RISK_CONTROL
+		  where STATE = 1 and STATUS = 0
+		  and CREDIT_ID = prcd.ID) as '批覆书号'
+		,rect.LEASE_CODE as '合同号'
+		,cust.CUST_NAME as '承租人'
+		,u.[NAME] as '经办人'
+		,decp.DECP_NAME_CN as '单位'
+		,recp.LEASE_TOPRIC as '设备总价'
+		,recp.PLEDGE_PRICE as '保证金'
+		,recp.TR_IRR_RATE as 'TR'
+		,recp.RATE_DIFF as '利差现值'
+		,recp.LEASE_RZE as '授信净额'
+		,prcd.FINANCECONTRACT_DATE as '拨款日期'
+		,convert(date,recp.FIRST_PAYDATE) as '起租日期'
+		, t.total_price as '租金总额'
+		, convert(date,t.max_date) as '最末期租金缴付日'
+		, '月' as '缴付周期'
+		, t.[count] as '期数'
+		, t.pay_day as '交付日'
+		, case when recp.RECP_STATUS = 0 then '正常'
+		when recp.RECP_STATUS = 1 then '正常结清'
+		when recp.RECP_STATUS = 2 then '提前结清'
+		when recp.RECP_STATUS = 3 then '提前结清'
+		else '' end as '案件状态'
+		, (
+			select sum(cd.IRR_MONTH_PRICE - isnull(cd.REDUCE_OWN_PRICE,0) - isnull(cd.REDUCE_ADDED_TAX_PRICE,0))
+			from T_RENT_CONTRACT rc
+			left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+			left join T_RENT_COLLECTIONDETAIL cd on cd.RECP_ID = cp.RECP_ID
+			where rc.STATUS = 0
+			and cp.STATUS = 0
+			and cd.STATUS = 0
+			and rc.PRCD_ID = prcd.ID
+		) as '租金余额'
+		, isnull(dun.DUN_DAY,0) as '逾期天数'
+		, (
+			select top 1 CREDIT_SPECIAL_NAME 
+			from T_PRJT_CREDIT_SPECIAL_GROUP
+			where CREDIT_SPECIAL_CODE in (
+			  select CREDIT_SPECIAL_CODE from T_PRJT_CREDIT
+			  where ID = prcd.ID
+			)
+			and STATUS = 0
+		) as '专案'
+		from T_RENT_COLLECTIONPLAN recp
+		left join T_RENT_CONTRACT rect on recp.RECT_ID = rect.RECT_ID and rect.STATUS = 0
+		left join T_CUST_CUSTOMER cust on rect.CUST_ID = cust.CUST_ID and cust.STATUS = 0
+		left join T_USER_USER u on rect.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = u.DEPT_ID
+		left join T_DEPT_COMPANY decp on decp.DECP_ID = dept.DECP_ID
+		left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID and prcd.STATUS = 0
+		left join (
+		  select RECP_ID, sum(IRR_MONTH_PRICE) as total_price
+		  ,max(PAY_DATE) as max_date
+		  , count(0) as [count], 
+		  day(max(PAY_DATE)) as pay_day
+		  from T_RENT_COLLECTIONDETAIL
+		  where STATUS = 0 and RECD_STATUS = 0
+		  group by RECP_ID
+		) t on t.RECP_ID = recp.RECP_ID
+		left join MONTH_LONGREALPRICE_REPORT mr on mr.LEASE_CODE = rect.LEASE_CODE
+		and year(mr.FINANCE_DATE) = year(convert(datetime,(convert(varchar,year(getdate()))+ '-' + convert(varchar,month(getdate())) + '-1')) - 1)
+		and month(mr.FINANCE_DATE) = month(convert(datetime,(convert(varchar,year(getdate()))+ '-' + convert(varchar,month(getdate())) + '-1')) - 1)
+		left join T_DUN_DAILY dun on dun.RECT_ID = rect.RECT_ID
+		and year(dun.CREATE_DATE) = year(convert(datetime,(convert(varchar,year(getdate()))+ '-' + convert(varchar,month(getdate())) + '-1')) - 1)
+		and month(dun.CREATE_DATE) = month(convert(datetime,(convert(varchar,year(getdate()))+ '-' + convert(varchar,month(getdate())) + '-1')) - 1)
+		and day(dun.CREATE_DATE) = day(convert(datetime,(convert(varchar,year(getdate()))+ '-' + convert(varchar,month(getdate())) + '-1')) - 1)
+		where recp.STATUS = 0
+		and prcd.FINANCECONTRACT_DATE is not null
+		order by prcd.LEASE_CODE
+    </select>
+    
+    <select id="getDataForCommitted" resultClass="hashMap" parameterClass="map">
+	    select pc.CREDIT_RUNCODE as '案件号',
+		cp.DECP_NAME_CN as '办事处',
+		u.name as '业务员',
+		ct.CUST_NAME as '承租人名称',
+		b.brand as '供应商名称',
+		b.THING_NAME as '租赁物名称',
+		p.shui_price as '合同总价',
+		ps.LEASE_RZE as '融资金额',
+		(
+		  select top 1 vu.[NAME] 
+		  from T_PRJT_VISIT v
+		  left join T_USER_USER vu on v.REAL_VISITOR = vu.ID
+		  where v.CREDIT_ID = pc.ID
+		) as '访厂人员',
+		c.COMMIT_TIME as '提案时间',
+		f.FINISH_TIME as '结案时间',
+		datediff(day, c.COMMIT_TIME, f.FINISH_TIME) + 1 as '审查过案天数',
+	   (select count(0) from T_PRJT_RISK_CONTROL
+	      where CREDIT_ID = pc.ID
+	      and STATUS = 0) as '提案次数',
+    	fmu.[NAME] as '初级评审人',
+		ru.[NAME] as '审批人',
+		case when f.STATE = 1 then '无条件通过'
+		when f.STATE = 3 then '不通过附条件'
+		when f.STATE = 4 then '婉拒' end as '案件状态',
+		(
+		  select top 1 flag from T_DATA_DICTIONARY
+		  where [TYPE] = '融资租赁合同类型'
+		  and STATUS = 0
+		  and code = pc.CONTRACT_TYPE
+		) as '租赁方式',
+		(
+		  select top 1 CREDIT_SPECIAL_NAME
+		  from T_PRJT_CREDIT_SPECIAL_GROUP
+		  where CREDIT_SPECIAL_CODE = pc.CREDIT_SPECIAL_CODE
+		) as '专案',
+	    case when pc.VIP_FLAG = 1 then '绿色通道'
+	    else '一般案件' end as '案件来源'
+	    , c.SCORE as '评分'
+		from T_PRJT_CREDIT pc
+		left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY cp on dp.DECP_ID = cp.DECP_ID
+		left join T_CUST_CUSTOMER ct on pc.CUST_ID = ct.CUST_ID
+		left join (
+		  select ce.credit_id, max(brand) as brand, max(ce.THING_NAME) AS THING_NAME
+		  from T_PRJT_CREDITEQUIPMENT ce
+		  group by ce.credit_id
+		) b on pc.ID = b.credit_id
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		left join (
+		  select ce.credit_id, sum(shui_price) as shui_price
+		  from T_PRJT_CREDITEQUIPMENT ce
+		  group by ce.credit_id
+		) p on pc.ID = p.credit_id
+		left join (
+		  select min(COMMIT_TIME) as COMMIT_TIME, CREDIT_ID, max(SCORE) as SCORE
+		  from T_PRJT_RISK_CONTROL
+		  group by CREDIT_ID
+		)c on c.CREDIT_ID = pc.ID
+		left join (
+		  select rc.* from T_PRJT_RISK_CONTROL rc
+		  where rc.FINISH_TIME = (
+		    select top 1 rcc.FINISH_TIME from T_PRJT_RISK_CONTROL rcc
+		    where rc.CREDIT_ID = rcc.CREDIT_ID
+		    order by rcc.FINISH_TIME desc
+		  )
+		  and rc.STATUS = 0
+		) f on f.CREDIT_ID = pc.ID
+		left join (
+		  select cm.* from T_PRJT_RISK_CONTROLMEMO cm
+		  where cm.CREATE_TIME = (
+		  select top 1 cmm.CREATE_TIME from T_PRJT_RISK_CONTROLMEMO cmm
+		  where cm.PRC_ID = cmm.PRC_ID
+		  order by cmm.CREATE_TIME desc
+		  )
+		  and cm.STATUS = 0
+		) m on f.PRC_ID = m.PRC_ID
+		left join T_USER_USER ru on m.CREATE_USER_ID = ru.ID
+	    left join (
+		  select cm.* from T_PRJT_RISK_CONTROLMEMO cm
+		  where cm.CREATE_TIME = (
+		  select top 1 cmm.CREATE_TIME from T_PRJT_RISK_CONTROLMEMO cmm
+		  where cm.PRC_ID = cmm.PRC_ID
+		  order by cmm.CREATE_TIME asc
+		  )
+		  and cm.STATUS = 0
+		) am on f.PRC_ID = am.PRC_ID
+	    left join T_USER_USER fmu on am.CREATE_USER_ID = fmu.ID
+		where pc.STATUS = 0
+		and pc.PRODUCTION_TYPE = #productionCode#
+		and convert(date, c.COMMIT_TIME) >= convert(date, #month_start_date#)
+		<![CDATA[ and convert(date, c.COMMIT_TIME) <= convert(date, #month_end_date#) ]]>
+		order by c.COMMIT_TIME
+    </select>
+    
+    <select id="getDataForFinish" resultClass="hashMap" parameterClass="map">
+	    select pc.CREDIT_RUNCODE as '案件号',
+		cp.DECP_NAME_CN as '办事处',
+		u.name as '业务员',
+		ct.CUST_NAME as '承租人名称',
+		b.brand as '供应商名称',
+		b.THING_NAME as '租赁物名称',
+		p.shui_price as '合同总价',
+		ps.LEASE_RZE as '融资金额',
+		(
+		  select top 1 vu.[NAME] 
+		  from T_PRJT_VISIT v
+		  left join T_USER_USER vu on v.REAL_VISITOR = vu.ID
+		  where v.CREDIT_ID = pc.ID
+		) as '访厂人员',
+		c.COMMIT_TIME as '提案时间',
+		f.FINISH_TIME as '结案时间',
+		datediff(day, c.COMMIT_TIME, f.FINISH_TIME) + 1 as '审查过案天数',
+	   (select count(0) from T_PRJT_RISK_CONTROL
+	      where CREDIT_ID = pc.ID
+	      and STATUS = 0) as '提案次数',
+    	fmu.[NAME] as '初级评审人',
+		ru.[NAME] as '审批人',
+		case when f.STATE = 1 then '无条件通过'
+		when f.STATE = 3 then '不通过附条件'
+		when f.STATE = 4 then '婉拒' end as '案件状态',
+		(
+		  select top 1 flag from T_DATA_DICTIONARY
+		  where [TYPE] = '融资租赁合同类型'
+		  and STATUS = 0
+		  and code = pc.CONTRACT_TYPE
+		) as '租赁方式',
+		(
+		  select top 1 CREDIT_SPECIAL_NAME
+		  from T_PRJT_CREDIT_SPECIAL_GROUP
+		  where CREDIT_SPECIAL_CODE = pc.CREDIT_SPECIAL_CODE
+		) as '专案',
+	    case when pc.VIP_FLAG = 1 then '绿色通道'
+	    else '一般案件' end as '案件来源'
+	    , c.SCORE as '评分'
+		from T_PRJT_CREDIT pc
+		left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY cp on dp.DECP_ID = cp.DECP_ID
+		left join T_CUST_CUSTOMER ct on pc.CUST_ID = ct.CUST_ID
+		left join (
+		  select ce.credit_id, max(brand) as brand, max(ce.THING_NAME) AS THING_NAME
+		  from T_PRJT_CREDITEQUIPMENT ce
+		  group by ce.credit_id
+		) b on pc.ID = b.credit_id
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		left join (
+		  select ce.credit_id, sum(shui_price) as shui_price
+		  from T_PRJT_CREDITEQUIPMENT ce
+		  group by ce.credit_id
+		) p on pc.ID = p.credit_id
+		left join (
+		  select min(COMMIT_TIME) as COMMIT_TIME, CREDIT_ID, max(SCORE) as SCORE
+		  from T_PRJT_RISK_CONTROL
+		  group by CREDIT_ID
+		)c on c.CREDIT_ID = pc.ID
+		left join (
+		  select rc.* from T_PRJT_RISK_CONTROL rc
+			  where rc.STATUS = 0
+			  and (rc.STATE = 1 or rc.STATE = 4)
+		) f on f.CREDIT_ID = pc.ID
+		left join (
+		  select cm.* from T_PRJT_RISK_CONTROLMEMO cm
+		  where cm.CREATE_TIME = (
+		  select top 1 cmm.CREATE_TIME from T_PRJT_RISK_CONTROLMEMO cmm
+		  where cm.PRC_ID = cmm.PRC_ID
+		  order by cmm.CREATE_TIME desc
+		  )
+		  and cm.STATUS = 0
+		) m on f.PRC_ID = m.PRC_ID
+		left join T_USER_USER ru on m.CREATE_USER_ID = ru.ID
+	    left join (
+		  select cm.* from T_PRJT_RISK_CONTROLMEMO cm
+		  where cm.CREATE_TIME = (
+		  select top 1 cmm.CREATE_TIME from T_PRJT_RISK_CONTROLMEMO cmm
+		  where cm.PRC_ID = cmm.PRC_ID
+		  order by cmm.CREATE_TIME asc
+		  )
+		  and cm.STATUS = 0
+		) am on f.PRC_ID = am.PRC_ID
+	    left join T_USER_USER fmu on am.CREATE_USER_ID = fmu.ID
+		where pc.STATUS = 0
+		and pc.PRODUCTION_TYPE = #productionCode#
+		and convert(date, f.FINISH_TIME) >= convert(date, #month_start_date#)
+		<![CDATA[ and convert(date, f.FINISH_TIME) <= convert(date, #month_end_date#) ]]>
+		order by f.FINISH_TIME
+    </select>
+    
+    <select id="getDataForVisit" resultClass="hashMap" parameterClass="map">
+    	select pc.CREDIT_RUNCODE as '案件号',
+		cp.DECP_NAME_CN as '办事处',
+		u.name as '业务员',
+		ct.CUST_NAME as '承租人名称',
+		b.brand as '供应商名称',
+		b.THING_NAME as '租赁物名称',
+		p.shui_price as '合同总价',
+		ps.LEASE_RZE as '融资金额',
+		vu.[NAME] as '访厂人员',
+		vi.REAL_VISIT_DATE as '访厂日',
+		(
+		  select top 1 case when VISIT_RESULT = 0 then '可申请(免补)'
+		  when VISIT_RESULT = 1 then '可(补)'
+		  when VISIT_RESULT = 2 then '婉拒' end as VISIT_RESULT
+		  from T_PRJT_VISIT_REPORT vr
+		  where vr.VISIT_ID = vi.ID
+		) as '案件状态',
+		(
+		  select top 1 flag from T_DATA_DICTIONARY
+		  where [TYPE] = '融资租赁合同类型'
+		  and STATUS = 0
+		  and code = pc.CONTRACT_TYPE
+		) as '租赁方式',
+		(
+		  select top 1 CREDIT_SPECIAL_NAME
+		  from T_PRJT_CREDIT_SPECIAL_GROUP
+		  where CREDIT_SPECIAL_CODE = pc.CREDIT_SPECIAL_CODE
+		) as '专案',
+	    case when pc.VIP_FLAG = 1 then '绿色通道'
+	    else '一般案件' end as '案件来源'
+		from T_PRJT_CREDIT pc
+		left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY cp on dp.DECP_ID = cp.DECP_ID
+		left join T_CUST_CUSTOMER ct on pc.CUST_ID = ct.CUST_ID
+		left join (
+		  select ce.credit_id, max(brand) as brand, max(ce.THING_NAME) AS THING_NAME
+		  from T_PRJT_CREDITEQUIPMENT ce
+		  group by ce.credit_id
+		) b on pc.ID = b.credit_id
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		left join (
+		  select ce.credit_id, sum(shui_price) as shui_price
+		  from T_PRJT_CREDITEQUIPMENT ce
+		  group by ce.credit_id
+		) p on pc.ID = p.credit_id
+		left join T_PRJT_VISIT vi on vi.CREDIT_ID = pc.ID
+		and vi.STATUS = 0 and vi.VISIT_STATUS = 3
+		left join T_USER_USER vu on vi.REAL_VISITOR = vu.ID
+		where pc.STATUS = 0
+		and pc.PRODUCTION_TYPE = #productionCode#
+		and not exists(
+			select 0 from T_PRJT_RISK_CONTROL rc
+			where rc.CREDIT_ID = pc.ID
+			and rc.STATUS = 0
+		)
+		and convert(date, vi.REAL_VISIT_DATE) >= convert(date, #month_start_date#)
+		<![CDATA[ and convert(date, vi.REAL_VISIT_DATE) <= convert(date, #month_end_date#) ]]>
+		order by vi.REAL_VISIT_DATE
+    </select>
+    
+    <select id="getPlanById" parameterClass="com.brick.base.to.CreditLineTO" resultClass="java.util.HashMap">
+	 	SELECT PDGP_ID,
+	 	CREATE_DATE,
+	 	CREATE_ID,
+	 	MODITY_DATE,
+	 	MODIFY_ID,
+	 	TYPE,
+		STATUS,
+		CUGP_STATUS,
+		CUGP_CODE,
+		GRANT_PRICE,
+		LAST_PRICE,
+		convert(Date,START_DATE,23) START_DATE,
+		convert(Date,END_DATE,23) END_DATE,
+		PRODUCT_ID,
+		REMARK,
+		REPEAT_CREDIT,
+		LIEN_GRANT_PRICE,
+		REPURCH_GRANT_PRICE,
+		REPURCHLOSS_GRANT_PRICE,
+		LIEN_LAST_PRICE,
+		REPURCH_LAST_PRICE,
+		REPURCHLOSS_LAST_PRICE,ADVANCEMACHINE_LAST_PRICE,ADVANCEMACHINE_GRANT_PRICE,LIEN_REPEAT_CREDIT,REPURCH_REPEAT_CREDIT,ADVANCE_MACHINEREPEAT_CREDIT
+		,LIEN_START_DATE
+		,LIEN_END_DATE
+		,REPURCH_START_DATE
+		,REPURCH_END_DATE
+		,ADVANCE_START_DATE
+		,ADVANCE_END_DATE
+		,VOICE_CREDIT
+		,VOICE_START_DATE
+		,VOICE_END_DATE
+		,VOICE_CONTINUE
+		,VOICE_LAST_CREDIT
+		,LIEN_HAS
+		,REPURCH_HAS
+		,ADVANCEMACHINE_HAS
+		,VOICE_HAS
+	 	FROM T_PRODUCT_GRANTPLAN 
+	 	WHERE STATUS = 0 
+	 	AND
+	 	PDGP_ID = #lineId#
+	 </select>
+    
+    <select id="getAllCredit" resultClass="com.brick.base.to.CreditLineTO">
+	    select PDGP_ID as lineId
+		from T_PRODUCT_GRANTPLAN
+		where CUGP_STATUS = 0
+		and STATUS = 0
+	</select>
+    
+    <select id="getLien" resultClass="com.brick.base.to.CreditLineTO">
+	    select PDGP_ID as lineId
+		from T_PRODUCT_GRANTPLAN
+		where CUGP_STATUS = 0
+		and STATUS = 0
+		and LIEN_GRANT_PRICE > 0 
+		and datediff(day, LIEN_END_DATE, getdate()) > 0
+	</select>
+	
+	<select id="getRepurch" resultClass="com.brick.base.to.CreditLineTO">
+		select PDGP_ID as lineId
+		from T_PRODUCT_GRANTPLAN
+		where CUGP_STATUS = 0
+		and STATUS = 0
+		and REPURCH_GRANT_PRICE > 0 
+		and datediff(day, REPURCH_END_DATE, getdate()) > 0
+	</select>
+	
+	<select id="getAdvance" resultClass="com.brick.base.to.CreditLineTO">
+		select PDGP_ID as lineId
+		from T_PRODUCT_GRANTPLAN
+		where CUGP_STATUS = 0
+		and STATUS = 0
+		and ADVANCEMACHINE_GRANT_PRICE > 0 
+		and datediff(day, ADVANCE_END_DATE, getdate()) > 0
+	</select>
+	
+	<select id="getVoice" resultClass="com.brick.base.to.CreditLineTO">
+		select PDGP_ID as lineId
+		from T_PRODUCT_GRANTPLAN
+		where CUGP_STATUS = 0
+		and STATUS = 0
+		and VOICE_CREDIT > 0 
+		and datediff(day, VOICE_END_DATE, getdate()) > 0
+    </select>
+    
+    <update id="cleanLien" parameterClass="com.brick.base.to.CreditLineTO">
+	    update T_PRODUCT_GRANTPLAN
+		set MODITY_DATE = getdate()
+		,MODIFY_ID = 184
+		,LIEN_HAS = 'N'
+		,LIEN_GRANT_PRICE = null
+		,LIEN_REPEAT_CREDIT = null
+		,LIEN_START_DATE = null
+		,LIEN_END_DATE = null
+		,LIEN_LAST_PRICE = null
+		where PDGP_ID = #lineId#
+	</update>
+	
+	<update id="cleanRepurch" parameterClass="com.brick.base.to.CreditLineTO">
+		update T_PRODUCT_GRANTPLAN
+		set MODITY_DATE = getdate()
+		,MODIFY_ID = 184
+		,REPURCH_HAS = 'N'
+		,REPURCH_GRANT_PRICE = null
+		,REPURCH_REPEAT_CREDIT = null
+		,REPURCH_START_DATE = null
+		,REPURCH_END_DATE = null
+		,REPURCH_LAST_PRICE = null
+		where PDGP_ID = #lineId#
+	</update>
+	
+	<update id="cleanLienAdvance" parameterClass="com.brick.base.to.CreditLineTO">	
+		update T_PRODUCT_GRANTPLAN
+		set MODITY_DATE = getdate()
+		,MODIFY_ID = 184
+		,ADVANCEMACHINE_HAS = 'N'
+		,ADVANCEMACHINE_GRANT_PRICE = null
+		,ADVANCE_MACHINEREPEAT_CREDIT = null
+		,ADVANCE_START_DATE = null
+		,ADVANCE_END_DATE = null
+		,ADVANCEMACHINE_LAST_PRICE = null
+		where PDGP_ID = #lineId#
+	</update>
+	
+	<update id="cleanVoice" parameterClass="com.brick.base.to.CreditLineTO">
+		update T_PRODUCT_GRANTPLAN
+		set MODITY_DATE = getdate()
+		,MODIFY_ID = 184
+		,VOICE_HAS = 'N'
+		,VOICE_CREDIT = null
+		,VOICE_START_DATE = null
+		,VOICE_END_DATE = null
+		,VOICE_CONTINUE = null
+		,VOICE_LAST_CREDIT = null
+		where PDGP_ID = #lineId#
+	</update>
+	
+	<select id="getTheFirstWorkingDayOfWeek" resultClass="java.sql.Date">
+		select top 1 date
+		from T_DAY_TYPE
+		where date >= (
+		  SELECT DATEADD(week, DATEDIFF(week,0, convert(date, getdate())),0)
+		)
+		and DAY_TYPE = 'WD'
+		order by DATE
+	</select>
+	
+	<update id="deleteDunDaily">
+		delete from  t_dun_daily 
+		where convert(date,CREATE_DATE) = convert(date,getdate());
+	</update>
+	
+	<insert id="insertDunDaily">
+	<![CDATA[	insert into t_dun_daily( 
+		CUST_ID,
+		RECP_ID,
+		RECT_ID,
+		SHOULD_PAYDATE,
+		REAL_PAYDATE ,
+		DUN_DAY,
+		DUN_MONTHPRICE,
+		DUN_OWNPRICE,
+		DUN_RENPRICE,
+		DUN_OTHERPRICE,
+		DUN_FINE,
+		DUN_FINEINTEREST,
+		STATUS,
+		RECP_STATE,
+		CREATE_DATE,
+		PERIOD_NUM,SHOULD_PAYPRICE,NOCHARGE_TOTAL_RENPRICE,LAST_PRICE
+		)
+		select cust_id,
+	       recp_id,
+	       rect_id, 
+	       min(pay_date) should_paydate, 
+	       max(opposing_date) real_paydate,
+	       max(dun_day) dun_day,
+	       sum(dun_price) dun_monthprice,  
+	       0,
+	       0,
+	       0, 
+	       sum(fine) dun_fine, 
+	       0,
+		   0 as status,
+	       recp_status, 
+		   getdate(), 
+	       min(period_num) period_num  ,
+	       min(month_price) should_payprice,MIN(TOTAL_RENT_PRICE)TOTAL_RENT_PRICE ,min(LAST_PRICE)LAST_PRICE
+	       from(      
+           	select  t1.cust_id, 
+				   t1.recp_id,
+                   t1.rect_id,
+                   t1.warn_status recp_status,
+                   t1.fine_type,
+                   t1.fine_rate,
+				   t1.last_date,
+				   t1.dun_day,
+				   t1.dun_price,
+				   t1.opposing_date,
+				   t1.pay_date,
+                   t1.period_num,
+				(case
+                 when fine_type = 2 then
+                  round(dun_price *
+                        power(1 + fine_rate / 100, dun_day) -
+                        dun_price,2)
+                 else
+                  round(dun_price * dun_day * fine_rate / 100,
+                        2)
+               end) fine,month_price,TOTAL_RENT_PRICE,LAST_PRICE
+                  from (
+                  select trcp.cust_id,
+                         trcp.recp_id,
+                         trcp.rect_id,
+                         trcp.warn_status,
+                         trcp.fine_type,
+                         trcp.fine_rate,
+                         trcp.pay_date,
+                         tfcd.opposing_date,
+                         (case
+                         when tfcd.opposing_date is null or
+                              tfcd.opposing_date <= trcp.pay_date then
+                          trcp.pay_date
+                         else
+                          tfcd.opposing_date
+                       end) last_date,
+                       datediff(d,trcp.pay_date,getdate())  dun_day,
+					   trcp.month_price-reduce_price as dun_price,
+                       trcp.period_num,month_price,TOTAL_RENT_PRICE,LAST_PRICE
+                                from (
+                               select trc.cust_id,
+                               trcp.recp_id,
+                               trcp.rect_id,
+                               trcp.warn_status,
+                               trcd.pay_date,
+                               trcd.period_num, 
+                               trcp.fine_type,
+                               trcp.fine_rate,
+                               isnull(trcd.IRR_MONTH_PRICE, 0)+ isnull(trcd.VALUE_ADDED_TAX, 0) month_price,  
+                               isnull(trcd.reduce_own_price, 0) reduce_price,TOTAL_RENT_PRICE,LAST_PRICE
+                          from t_rent_collectionplan trcp
+                          left join t_rent_contract trc on trcp.rect_id =
+                                                           trc.rect_id
+                          left join t_rent_collectiondetail trcd on trcp.recp_id =
+                                                                    trcd.recp_id
+                         left join t_prjt_credit tpc on trc.PRCD_ID=tpc.ID and tpc.STATUS=0
+                         left join (select sum(IRR_MONTH_PRICE+isnull(VALUE_ADDED_TAX,0))-sum(isnull(REDUCE_OWN_PRICE,0)) TOTAL_RENT_PRICE,RECP_ID from t_rent_collectiondetail where STATUS='0' group by RECP_ID) T_TOTAL_RENPRICE
+                         on T_TOTAL_RENPRICE.RECP_ID=trcp.RECP_ID
+                         where trcp.status = 0 and trc.status=0 and tpc.FINANCECONTRACT_DATE is not null
+                         and trcd.STATUS='0'
+                            and (trcp.fund_status=0)
+                           and  trcd.pay_date < = cast(getdate() as datetime)-1
+                         and isnull(trcd.IRR_MONTH_PRICE, 0)+ isnull(trcd.VALUE_ADDED_TAX, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+                          left join  (select tfcb.recp_id, max(tfi.opposing_date) opposing_date
+                            from t_fina_collectionbill tfcb
+                            left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+                           where tfi.opposing_date <= cast(getdate() as datetime)
+                           and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+                           and tfi.red_type is null
+                           group by tfcb.recp_id ) tfcd 
+                          on trcp.recp_id = tfcd.recp_id
+                      where (case when tfcd.opposing_date is null or
+                        tfcd.opposing_date <= trcp.pay_date then
+                       datediff(d,trcp.pay_date,getdate()) else
+                         datediff(d,tfcd.opposing_date,getdate()) end) > 0 ) t1 ) t2
+         group by cust_id,
+          rect_id,
+          recp_id,
+          recp_status    ]]>
+	</insert>
+	
+	<procedure id="dunReportPro">
+		{call proc_dun_report()} 
+	</procedure>
+	
+	<update id="insuTerminateDaily">
+		update T_INSU_INSURANCELIST
+		  set INSU_STATUS = 30
+		  where datediff(day,INSU_END_DATE ,getdate()) >= 0
+		  and STATUS = 0 and INSU_STATUS = 20
+	</update>
+	
+	<!-- 每天1点 -->
+	<procedure id="prc_CreateDispatchUserByDay">
+		{call prc_CreateDispatchUserByDay()} 
+	</procedure>
+	
+	<!-- 每2小时 -->
+	<procedure id="prc_latest_paydetail">
+		{call prc_latest_paydetail()} 
+	</procedure>
+	
+	<!-- 每10分钟 -->
+	<procedure id="proc_activites_statistics">
+		{call proc_activites_statistics()} 
+	</procedure>
+	
+	<!-- 每天8点 -->
+	<procedure id="proc_dun_report_equ">
+		{call proc_dun_report_equ()} 
+	</procedure>
+	
+	<!-- 每天8点 -->
+	<procedure id="proc_dun_report_motor">
+		{call proc_dun_report_motor()} 
+	</procedure>
+	
+	<!-- 每天0:5点 -->
+	<procedure id="prc_rent_settle">
+		{call prc_RENT_SETTLE()} 
+	</procedure>
+	
+	
+	<select id="getDunInfo" resultClass="java.util.HashMap" parameterClass="map">
+		select RECT_ID, DUN_DAY from T_DUN_DAILY d
+		where convert(date, d.CREATE_DATE) = convert(date, #search_date#)
+		and DUN_DAY in (31,61,91,181)
+	</select>
+	
+	<select id="getFieldForDun" resultClass="java.util.HashMap" parameterClass="map">
+		select top 1 RECT_ID
+		,FIRST_DUN_31 ,FIRST_DUN_61
+		,FIRST_DUN_91 ,FIRST_DUN_181
+		from T_RENT_CONTRACT
+		where RECT_ID = #rect_id#
+	</select>
+	
+	<update id="updateFirstDun" parameterClass="map">
+		update T_RENT_CONTRACT
+		set MODIFY_USER_ID = MODIFY_USER_ID
+		<isNotEmpty property="FIRST_DUN_31">
+			,FIRST_DUN_31 = #FIRST_DUN_31#
+		</isNotEmpty>
+		<isNotEmpty property="FIRST_DUN_61">
+			,FIRST_DUN_61 = #FIRST_DUN_61#
+		</isNotEmpty>
+		<isNotEmpty property="FIRST_DUN_91">
+			,FIRST_DUN_91 = #FIRST_DUN_91#
+		</isNotEmpty>
+		<isNotEmpty property="FIRST_DUN_181">
+			,FIRST_DUN_181 = #FIRST_DUN_181#
+		</isNotEmpty>
+		where RECT_ID = #RECT_ID#
+	</update>
+	
+	<select id="getDataForHr_lack" parameterClass="com.brick.base.to.ReportDateTo" resultClass="hashMap">
+		select tt.*, tt.发票 + tt.相片 as '待补'  from (
+		  select 
+		  cu.CUST_NAME as '客户名称'
+		  , pc.LEASE_CODE  as '合同号'
+		  , u.[NAME] as '经办人'
+		  , uu.[NAME] as '单位主管'
+		  , dc.DECP_NAME_CN as '办事处'
+		  , pay.PAY_MONEY as '拨款金额'
+		  , pc.FINANCECONTRACT_DATE as '拨款日期'
+		  , case when fd_f.IS_ALREADY = 1 then '齐'
+		    when fd_f.IS_ALREADY = 0 then '缺'
+		    else '无' end
+		   as '发票'
+		  , fd_f.confirm_date as '发票时间'
+		  , case when fd_z.IS_ALREADY = 1 then '齐'
+		    when fd_z.IS_ALREADY = 0 then '缺'
+		    else '无' end as '相片'
+		  , fd_z.confirm_date as '相片时间'
+		  ,(
+		      select top 1 RATE_DIFF
+		      from T_RENT_COLLECTIONPLAN pl
+		      where pl.RECT_ID in (
+		        select rc.RECT_ID from T_RENT_CONTRACT rc
+		        where rc.PRCD_ID = pc.ID
+		      ) and pl.STATUS = 0
+		    ) as '利差'
+		  , (
+			    select top 1 FLAG
+			    from T_DATA_DICTIONARY
+			    where [TYPE] = '融资租赁合同类型'
+			    and CODE = pc.CONTRACT_TYPE
+			  ) as '租赁方式'
+		  from T_PRJT_CREDIT pc
+		
+		  left join T_CUST_CUSTOMER cu on pc.CUST_ID = cu.CUST_ID
+		  left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		  left join T_USER_USER uu on u.upper_user = uu.ID
+		  left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		  left join T_DEPT_COMPANY dc on dp.DECP_ID = dc.DECP_ID
+		  left join (
+		    select sum(pa.PAY_MONEY) as PAY_MONEY, pa.CREDIT_ID
+		    from T_SUPL_PLAYDETIL pa
+		    where pa.BACKSTATE = 0
+		    and pa.STATE = 3
+		    group by pa.CREDIT_ID
+		  )pay on pay.CREDIT_ID = pc.ID
+		  left join (
+		    select fd.PRCD_ID,
+		  	  max(fd.IS_ALREADY) as IS_ALREADY
+		      , max(fd.confirm_date) as confirm_date
+		  	from T_RENT_FILEDETAIL fd
+		  	left join T_RENT_FILE f on f.refi_id = fd.refi_id
+		  	where fd.FILE_TYPE='3'
+		  	and fd.REFD_ID is not null
+		  	and fd.STATUS = 0
+		  	and f.[FILE_NAME] like '%发票%'
+		    group by fd.PRCD_ID
+		  ) fd_f on fd_f.PRCD_ID = pc.ID
+		  left join (
+		    select fd.PRCD_ID, 
+		      max(fd.IS_ALREADY) as IS_ALREADY
+		      , max(fd.confirm_date) as confirm_date
+		  	from T_RENT_FILEDETAIL fd
+		  	left join T_RENT_FILE f on f.refi_id = fd.refi_id
+		  	where fd.FILE_TYPE='3'
+		  	and fd.REFD_ID is not null
+		  	and fd.STATUS = 0
+		  	and (f.[FILE_NAME] like '%相片%' or f.[FILE_NAME] like '%照片%')
+		    group by fd.PRCD_ID
+		  ) fd_z on fd_z.PRCD_ID = pc.ID
+		  where pc.STATUS=0 
+		  and pc.LEASE_CODE is not null 
+		  and pc.FINANCECONTRACT_DATE is not null
+		  and pc.PRODUCTION_TYPE in (1,2)
+		)tt
+	</select>
+	
+	<select id="getDataForHr_dun" parameterClass="com.brick.base.to.ReportDateTo" resultClass="hashMap">
+		select cu.CUST_NAME as '客户名称'
+		, pc.LEASE_CODE  as '合同号'
+		, u.[NAME] as '经办人'
+		, uu.[NAME] as '单位主管'
+		, dc.DECP_NAME_CN as '办事处'
+		, ou.[NAME] as '原始主管'
+		, odc.DECP_NAME_CN as '原始办事处'
+		, (
+		  select sum(PAY_MONEY)
+		  from T_SUPL_PLAYDETIL
+		  where CREDIT_ID = pc.ID
+		  and BACKSTATE = 0
+		  and STATE = 3
+		) as '拨款金额'
+		, pc.FINANCECONTRACT_DATE as '拨款日期'
+		, rc.FIRST_DUN_91 as '首次逾期91天及以上日期'
+		, cp.RATE_DIFF as '利差'
+		, pr.total_price as '总租金'
+		, pr.DUN_PRICE as '剩余租金'
+		, (
+		    select top 1 FLAG
+		    from T_DATA_DICTIONARY
+		    where [TYPE] = '融资租赁合同类型'
+		    and CODE = pc.CONTRACT_TYPE
+		  ) as '租赁方式'
+		from T_RENT_CONTRACT rc 
+		left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+		left join T_PRJT_CREDIT pc on rc.PRCD_ID = pc.ID
+		left join T_CUST_CUSTOMER cu on pc.CUST_ID = cu.CUST_ID
+		left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		left join T_USER_USER uu on u.upper_user = uu.ID
+		left join T_USER_USER ou on pc.ORG_UP_USER = ou.ID
+		left join T_DEPT_COMPANY odc on pc.ORG_DECP_ID = odc.DECP_ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY dc on dp.DECP_ID = dc.DECP_ID
+		left join (
+		  select sum(isnull(detail.IRR_MONTH_PRICE,0))+sum(isnull(detail.VALUE_ADDED_TAX,0)) - 
+		    sum(isnull(detail.REDUCE_OWN_PRICE,0)) as DUN_PRICE
+		    , sum(isnull(detail.IRR_MONTH_PRICE,0))+sum(isnull(detail.VALUE_ADDED_TAX,0)) as total_price
+		    , detail.RECP_ID
+		  from T_RENT_COLLECTIONDETAIL detail
+		  where detail.STATUS = 0
+		  group by detail.RECP_ID
+		)pr on pr.RECP_ID = cp.RECP_ID
+		where rc.FIRST_DUN_91 >= convert(date, #beginTime#)
+		<![CDATA[ and rc.FIRST_DUN_91 <= convert(date, #endTime#) ]]>
+		and pc.PRODUCTION_TYPE in (1,2)
+	</select>
+	
+	
+	<update id="deleteDunDaily_new">
+		delete from  t_dun_daily
+		where convert(date,CREATE_DATE) = convert(date,getdate());
+	</update>
+	
+	<insert id="insertDunDaily_new">
+		<![CDATA[	insert into t_dun_daily( 
+		CUST_ID,
+		RECP_ID,
+		RECT_ID,
+		SHOULD_PAYDATE,
+		REAL_PAYDATE ,
+		DUN_DAY,
+		DUN_MONTHPRICE,
+		DUN_OWNPRICE,
+		DUN_RENPRICE,
+		DUN_OTHERPRICE,
+		DUN_FINE,
+		DUN_FINEINTEREST,
+		STATUS,
+		RECP_STATE,
+		CREATE_DATE,
+		PERIOD_NUM,SHOULD_PAYPRICE,NOCHARGE_TOTAL_RENPRICE,LAST_PRICE
+		)
+		select cust_id,
+	       recp_id,
+	       rect_id, 
+	       min(pay_date) should_paydate, 
+	       max(opposing_date) real_paydate,
+	       max(dun_day) dun_day,
+	       sum(dun_price) dun_monthprice,  
+	       0,
+	       0,
+	       0, 
+	       sum(fine) dun_fine, 
+	       0,
+		   0 as status,
+	       recp_status, 
+		   getdate(), 
+	       min(period_num) period_num  ,
+	       min(month_price) should_payprice,MIN(TOTAL_RENT_PRICE)TOTAL_RENT_PRICE ,min(LAST_PRICE)LAST_PRICE
+	       from(      
+           	select  t1.cust_id, 
+				   t1.recp_id,
+                   t1.rect_id,
+                   t1.warn_status recp_status,
+                   t1.fine_type,
+                   t1.fine_rate,
+				   t1.last_date,
+				   t1.dun_day,
+				   t1.dun_price,
+				   t1.opposing_date,
+				   t1.pay_date,
+                   t1.period_num,
+				(case
+                 when fine_type = 2 then
+                  round(dun_price *
+                        power(1 + fine_rate / 100, dun_day) -
+                        dun_price,2)
+                 else
+                  round(dun_price * dun_day * fine_rate / 100,
+                        2)
+               end) fine,month_price,TOTAL_RENT_PRICE,LAST_PRICE
+                  from (
+                  select trcp.cust_id,
+                         trcp.recp_id,
+                         trcp.rect_id,
+                         trcp.warn_status,
+                         trcp.fine_type,
+                         trcp.fine_rate,
+                         trcp.pay_date,
+                         tfcd.opposing_date,
+                         (case
+                         when tfcd.opposing_date is null or
+                              tfcd.opposing_date <= trcp.pay_date then
+                          trcp.pay_date
+                         else
+                          tfcd.opposing_date
+                       end) last_date,
+                       datediff(d,trcp.pay_date,getdate())  dun_day,
+					   trcp.month_price-reduce_price as dun_price,
+                       trcp.period_num,month_price,TOTAL_RENT_PRICE,LAST_PRICE
+                                from (
+                               select trc.cust_id,
+                               trcp.recp_id,
+                               trcp.rect_id,
+                               trcp.warn_status,
+                               trcd.pay_date,
+                               trcd.period_num, 
+                               trcp.fine_type,
+                               trcp.fine_rate,
+                               isnull(trcd.IRR_MONTH_PRICE, 0)+ isnull(trcd.VALUE_ADDED_TAX, 0) month_price,  
+                               isnull(trcd.reduce_own_price, 0) reduce_price,TOTAL_RENT_PRICE,LAST_PRICE
+                          from t_rent_collectionplan trcp
+                          left join t_rent_contract trc on trcp.rect_id = trc.rect_id
+                          left join t_rent_collectiondetail trcd on trcp.recp_id = trcd.recp_id
+                         left join t_prjt_credit tpc on trc.PRCD_ID=tpc.ID and tpc.STATUS=0
+                         left join (select sum(IRR_MONTH_PRICE+isnull(VALUE_ADDED_TAX,0))-sum(isnull(REDUCE_OWN_PRICE,0)) TOTAL_RENT_PRICE,RECP_ID from t_rent_collectiondetail where STATUS='0' group by RECP_ID) T_TOTAL_RENPRICE
+                         on T_TOTAL_RENPRICE.RECP_ID=trcp.RECP_ID
+                         where trcp.status = 0 and trc.status=0 and tpc.FINANCECONTRACT_DATE is not null
+                         and trcd.STATUS='0'
+                            and (trcp.recp_status=0)
+                           and  trcd.pay_date < = cast(getdate() as datetime)-1
+                         and isnull(trcd.IRR_MONTH_PRICE, 0)+ isnull(trcd.VALUE_ADDED_TAX, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+                          left join  (
+                          select TRDSE.RECP_ID,max(tri.INCOME_DATE )opposing_date
+                          from T_RENT_DECOMPOSE TRDSE
+                          left join T_RENT_INCOME tri on tri.INCOME_ID =TRDSE.INCOME_ID
+                          where tri.INCOME_DATE <= cast(getdate() as datetime)  and
+                          (TRDSE.DECOMPOSE_STATUS=2) AND TRDSE.HAS_RED_DECOMPOSE=0 AND TRDSE.DECOMPOSE_TYPE='0' 	
+                          AND (TRDSE.BILL_CODE ='VALUE_ADD_TAX' OR TRDSE.BILL_CODE='RENT') 
+                          group by TRDSE.recp_id
+                           ) tfcd 
+                          on trcp.recp_id = tfcd.recp_id
+                      where (case when tfcd.opposing_date is null or
+                        tfcd.opposing_date <= trcp.pay_date then
+                       datediff(d,trcp.pay_date,getdate()) else
+                         datediff(d,tfcd.opposing_date,getdate()) end) > 0 ) t1 ) t2
+         group by cust_id,
+          rect_id,
+          recp_id,
+          recp_status    ]]>
+	</insert>
+	
+	<select id="getDataForStartDateCollect" resultClass="java.util.HashMap" parameterClass="map">
+		select year(pl.FIRST_PAYDATE) as y, month(pl.FIRST_PAYDATE) as 'M'
+			, sum(isnull(ps.LEASE_TOPRIC, 0) - isnull(ps.PLEDGE_ENTER_MCTOAG, 0) - isnull(ps.PLEDGE_ENTER_AG, 0)) as 'PAY_MONEY'
+			, count(0) as 'C'
+		from T_PRJT_CREDIT pc
+		left join T_RENT_CONTRACT rc on rc.PRCD_ID = pc.ID
+		left join T_RENT_COLLECTIONPLAN pl on pl.RECT_ID = rc.RECT_ID
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		where pc.STATUS = 0 and rc.STATUS = 0 and pl.STATUS = 0
+		and pc.FINANCECONTRACT_DATE is not null
+		and year(pl.FIRST_PAYDATE) = #year#
+		group by year(pl.FIRST_PAYDATE), month(pl.FIRST_PAYDATE)
+		order by month(pl.FIRST_PAYDATE)
+	</select>
+	
+	
+</sqlMap>

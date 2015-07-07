@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="help">
+
+
+
+	<resultMap class="hashmap" id="firstMenuView" groupBy="first_id">
+		<result property="first_id" column="first_id"/>
+		<result property="first_name" column="first_name"/>
+		<result property="secondMenuView" resultMap="help.secondMenuView" javaType="java.util.List"/>
+	</resultMap> 
+	<resultMap class="hashmap" id="secondMenuView">
+		<result property="second_id" column="second_id"/>
+		<result property="second_name" column="second_name"/>
+		<result property="second_level_num" column="second_level_num"/>
+	</resultMap>
+		
+	<select id="getMenuList" resultMap="firstMenuView">
+			SELECT 
+			  	FFR.ID AS FIRST_ID, 
+			  	FFR.[NAME] AS FIRST_NAME,
+				FR.ID AS SECOND_ID, 
+				FR.[NAME] AS SECOND_NAME,
+				FR.LEVEL_NUM AS SECOND_LEVEL_NUM
+			FROM FIL_PERMISSION_RESOURCE FR
+			LEFT JOIN FIL_PERMISSION_RESOURCE FFR ON FR.PARENT_ID = FFR.ID
+			WHERE FR.ID IN (
+				SELECT DISTINCT RESOURCE_ID FROM FIL_PERMISSION_RESOURCE2ROLE
+				WHERE STATUS = 0
+			) 
+		  		AND FR.STATUS = 0 AND FR.PARENT_ID IS NOT NULL AND FR.PARENT_ID != 0
+			ORDER BY FFR.LEVEL_NUM, FR.LEVEL_NUM
+	</select>
+		
+	<insert id="insertHelp" parameterClass="map">	
+		insert into T_HELP(second_id,content,create_by,create_date)values(#second_id#,#content#,#userId#,getdate())
+	</insert>
+	
+	<update id="updateHelp" parameterClass="map">
+		update T_HELP set content = #content#,modify_by = #userId#,modify_date=getDate()
+		where second_id = #second_id#
+	</update>
+	
+	<select id="getHelpDocument" parameterClass="map" resultClass="java.lang.String">
+		select content from T_HELP where second_id = #second_id#
+	</select>
+	
+	<select id="getCountBySecondId" parameterClass="map" resultClass="int">
+		select count(1) from T_HELP where second_id = #second_id#
+	</select>
+	
+	<select id="getMenuNameById" parameterClass="map" resultClass="java.lang.String">
+		select Name from FIL_PERMISSION_RESOURCE where id = #id#
+	
+	</select>
+	
+	<insert id="insertHelpLog" parameterClass="map">
+	    insert into T_HELP_LOG(size,second_id,create_date,create_by)values(#size#,#second_id#,getdate(),#userId#)
+	</insert>
+</sqlMap>

@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="loan">
+	
+	<select id="query" resultClass="com.brick.activityLog.to.LoanTo">
+		    SELECT LOAN.LOAN_ID loanId, LOAN_CODE as loanCode, CUST.CUST_NAME custCodeDescr,LOAN.INTRODUCER introducer,ISNULL(SUPL.NAME,'') supName,LOAN.ACCRUAL accrual,LOAN_MODE loanMode,
+	    		   TDATA.FLAG loanModeDescr,ISNULL(LOAN.LOAN_MEMO,'') loanMemo,LOAN.COST_MONEY costMoney,LOAN.CAUTION_MONEY cautionMoney,
+	    		   TDATA1.FLAG caseStatusDescr,LOAN.CASE_STATUS_ID caseStatusId,CONVERT(VARCHAR,LOAN.USER_ID) userId,LOAN.DEPT_ID deptId,TUSER.NAME userName,
+				   LOAN.APPROVE_MONEY approveMoney,LOAN.PAY_MONEY payMoney,CONVERT(VARCHAR,LOAN.FIRST_ACCESS_DATE,23) firstAccessDescr,
+				   CONVERT(VARCHAR,LOAN.APPROVE_DATE,23) approveDateDescr,ISNULL(LOAN.REMARK,'') remark,
+				   CONVERT(VARCHAR,LOAN.EXPECTATION_DATE,23) expDateDescr,CONVERT(VARCHAR,LOAN.PAY_DATE,23) payDateDescr,CONVERT(DATE,LOAN.PAY_CLOSE_DATE) payCloseDate,
+				   CONVERT(VARCHAR,LOAN.START_LEASE_DATE,23) startDateDescr,LOAN.STATUS status,LOAN.CREATE_BY createBy,ISNULL(LOAN.PAY_CLOSE_STATUS,0) payCloseStatus,
+				   CONVERT(VARCHAR,LOAN.CREATE_ON,23) createOnDescr,LOAN.LAST_UPDATE_BY lastUpdateBy,CONVERT(VARCHAR,LOAN.LAST_UPDATE_ON,23) lastUpdateOnDescr
+		      FROM T_LOAN_CASE LOAN
+	     LEFT JOIN T_DATA_DICTIONARY TDATA ON LOAN.LOAN_MODE=TDATA.CODE AND TDATA.STATUS=0 AND TDATA.[TYPE]=#TYPE1#
+	     LEFT JOIN T_DATA_DICTIONARY TDATA1 ON LOAN.CASE_STATUS_ID=TDATA1.CODE AND TDATA1.STATUS=0 AND TDATA1.[TYPE]=#TYPE2#
+	     LEFT JOIN T_CUST_CUSTOMER CUST ON CUST.CUST_CODE=LOAN.CUST_CODE AND CUST.STATUS=0
+	     LEFT JOIN T_SUPL_SUPPLIER SUPL ON SUPL.CODE=LOAN.SUPPLIER_CODE AND SUPL.STATUS=0
+	     LEFT JOIN T_USER_USER TUSER ON TUSER.ID=LOAN.USER_ID
+	         WHERE LOAN.STATUS='0'
+           <isNotEmpty property="LOAN_ID">
+	           AND LOAN.LOAN_ID=#LOAN_ID#
+           </isNotEmpty>
+           <isNotEmpty property="CUST_NAME">
+           	   AND CUST.CUST_NAME LIKE '%$CUST_NAME$%'
+           </isNotEmpty>
+           <isNotEmpty property="PAY_DATE_BEGIN">
+               AND CONVERT(DATE,LOAN.PAY_DATE,23) >= CONVERT(DATE,#PAY_DATE_BEGIN#,23)
+           </isNotEmpty>
+           <isNotEmpty property="PAY_DATE_END">
+               AND CONVERT(DATE,LOAN.PAY_DATE,23) &lt;= CONVERT(DATE,#PAY_DATE_END#,23)
+           </isNotEmpty>
+           <isNotEmpty property="LEASE_WAY">
+           	   AND LOAN.LOAN_MODE=#LEASE_WAY#
+           </isNotEmpty>
+    </select>
+    
+    <update id="updateLoanByLoanId">
+    		UPDATE T_LOAN_CASE 
+    		   SET FIRST_ACCESS_DATE=CONVERT(DATE,#FIRST_DATE#,23),
+    		   	   EXPECTATION_DATE=CONVERT(DATE,#EXP_DATE#,23),
+    		   	   PAY_DATE=CONVERT(DATE,#PAY_DATE#,23),
+    		   	   START_LEASE_DATE=CONVERT(DATE,#START_DATE#,23),
+    		   	   LAST_UPDATE_BY=#NAME#,
+    		   	   LAST_UPDATE_ON=GETDATE(),
+    		   	   INTRODUCER=#INTRODUCER#,
+    		   	   PAY_MONEY=#PAY_MONEY#,
+    		   	   CASE_STATUS_ID=#LOAN_STATUS#,
+    		   	   LOAN_MODE=#LOAN_MODE#
+    		 WHERE LOAN_ID=#LOAN_ID#
+    </update>
+    
+    <select id="getCustomer" resultClass="com.brick.activityLog.to.LoanTo">
+    		SELECT CUST_CODE custCode,CUST_NAME custCodeDescr 
+		     FROM T_CUST_CUSTOMER 
+		    WHERE STATUS=0
+		 ORDER BY CUST_NAME
+    </select>
+    
+    <select id="getSupplier" resultClass="com.brick.activityLog.to.LoanTo">
+    		SELECT CODE supCode,NAME supName 
+		      FROM T_SUPL_SUPPLIER 
+		     WHERE STATUS=0 
+		  ORDER BY NAME
+    </select>
+    
+    <select id="getUser" resultClass="com.brick.activityLog.to.LoanTo">
+    		SELECT ID userId,NAME userName
+    		  FROM T_USER_USER 
+   		     WHERE STATUS=0 AND (JOB='1' OR JOB=#JOB#)
+   		  ORDER BY NAME DESC
+    </select>
+    
+    <insert id="addLoan" parameterClass="com.brick.activityLog.to.LoanTo">
+    		INSERT INTO T_LOAN_CASE
+    		(LOAN_ID,CUST_CODE,INTRODUCER,SUPPLIER_CODE,LOAN_MODE,COST_MONEY,CAUTION_MONEY,CASE_STATUS_ID,
+    		 USER_ID,DEPT_ID,APPROVE_MONEY,PAY_MONEY,APPROVE_DATE,EXPECTATION_DATE,PAY_DATE,STATUS,CREATE_BY,
+    		 CREATE_ON,LAST_UPDATE_BY,LAST_UPDATE_ON,FIRST_ACCESS_DATE,START_LEASE_DATE,ACCRUAL,LOAN_CODE) VALUES
+    		(#loanId#,#custCode#,#introducer#,#supCode#,#loanMode#,#costMoney#,#cautionMoney#,#caseStatusId#,
+    		 CONVERT(int,#userId#),CONVERT(int,#deptId#),#approveMoney#,#payMoney#,CONVERT(DATETIME,#approveDateDescr#),
+    		 CONVERT(DATETIME,#expDateDescr#),CONVERT(DATETIME,#payDateDescr#),'0',#createBy#,GETDATE(),#lastUpdateBy#,
+    		 GETDATE(),CONVERT(DATETIME,#firstAccessDescr#),CONVERT(DATETIME,#startDateDescr#),#accrual#, #loanCode#)
+    </insert>
+    
+    <select id="getLoanInfoGroupByDateDept" resultClass="com.brick.activityLog.to.LoanTo">
+		       SELECT SUM(PAY_MONEY)/1000 payMoney,MONTH(PAY_DATE) month,DEPT_ID deptId 
+			     FROM T_LOAN_CASE
+			    WHERE STATUS=0
+			      AND CASE_STATUS_ID=2 
+			    <isNotEmpty property="YEAR">
+			      AND YEAR(PAY_DATE)=#YEAR#
+		        </isNotEmpty>
+		        <isEmpty property="YEAR">
+		          AND YEAR(PAY_DATE)=YEAR(GETDATE())
+		        </isEmpty>
+		        <isNotEmpty property="MONTH">
+			      AND MONTH(PAY_DATE)=#MONTH#
+		        </isNotEmpty>
+			 GROUP BY MONTH(PAY_DATE),DEPT_ID
+    </select>
+    
+    <select id="getLoanInfoGroupByMonth" resultClass="com.brick.activityLog.to.LoanTo">
+    		   SELECT ISNULL(SUM(COST_MONEY-CAUTION_MONEY),0) originalMoney,
+			          ISNULL(SUM(ACCRUAL),0) accrual,ISNULL(SUM(PAY_MONEY),0) payMoney,MONTH(PAY_DATE) [month] 
+			     FROM T_LOAN_CASE
+			    WHERE STATUS=0 
+			    <isEmpty property="searchDate">
+			      AND YEAR(PAY_DATE)=YEAR(GETDATE())
+			    </isEmpty>
+			    <isNotEmpty property="searchDate">
+			      AND YEAR(PAY_DATE)=YEAR(CONVERT(DATE,#searchDate#))
+			    </isNotEmpty>
+			      AND LOAN_MODE=3
+			      AND CASE_STATUS_ID=2
+			 GROUP BY MONTH(PAY_DATE)
+    </select>
+    
+    <select id="getLoanInfoGroupByUser" resultClass="com.brick.activityLog.to.LoanTo">
+		     SELECT SUM(PAY_MONEY)/1000 payMoney,USER_ID userId,MONTH(PAY_DATE) [month]
+			     FROM T_LOAN_CASE
+			    WHERE STATUS=0 AND YEAR(PAY_DATE)=#YEAR#
+			 GROUP BY USER_ID,MONTH(PAY_DATE)  
+    </select>
+    
+    <select id="getLoanCount" resultClass="java.lang.Integer">
+    	   SELECT COUNT(1) AMOUNT
+		     FROM T_LOAN_CASE
+		    WHERE STATUS=0
+		      AND ISNULL(PAY_CLOSE_STATUS,0)!=2
+    </select>
+    
+    <select id="getLoanInfoByToday" resultClass="com.brick.activityLog.to.LoanTo">
+		       SELECT SUM(PAY_MONEY) payMoney 
+			     FROM T_LOAN_CASE
+			    WHERE STATUS=0 
+	              AND YEAR(PAY_DATE)=YEAR(GETDATE())
+	              AND CONVERT(DATE,PAY_DATE,23)=CONVERT(DATE,GETDATE(),23)
+	              AND LOAN_MODE=3
+	              AND CASE_STATUS_ID=2 
+			 GROUP BY CONVERT(DATE,PAY_DATE,23)
+    </select>
+    
+    <select id="getLoanInfo" resultClass="com.brick.activityLog.to.LoanTo">
+    		   SELECT ISNULL(SUM(COST_MONEY-CAUTION_MONEY),0) originalMoney,
+			          ISNULL(SUM(ACCRUAL),0) accrual,ISNULL(SUM(PAY_MONEY),0) payMoney 
+			     FROM T_LOAN_CASE
+			    WHERE STATUS=0
+			      AND ISNULL(PAY_CLOSE_STATUS,0)!=2
+    </select>
+    
+    <select id="getLoanInfoGroupByDate" resultClass="com.brick.activityLog.to.LoanTo">
+               SELECT ISNULL(SUM(PAY_MONEY),0)/1000 payMoney,CONVERT(VARCHAR,PAY_DATE,23) payDateDescr,CONVERT(VARCHAR,YEAR(PAY_DATE)) year
+			     FROM T_LOAN_CASE
+			    WHERE STATUS=0
+    		 GROUP BY CONVERT(VARCHAR,PAY_DATE,23),YEAR(PAY_DATE)
+    </select>
+    
+    <select id="getLoanCountGroupByDate" resultClass="com.brick.activityLog.to.LoanTo">
+   			   SELECT COUNT(1) count,CONVERT(VARCHAR,PAY_DATE,23) payDateDescr,CONVERT(VARCHAR,YEAR(PAY_DATE)) year
+			     FROM T_LOAN_CASE
+			    WHERE STATUS=0
+    		 GROUP BY CONVERT(VARCHAR,PAY_DATE,23),YEAR(PAY_DATE)
+    </select>
+    
+    <select id="getLoanCountGroupByUser" resultClass="com.brick.activityLog.to.LoanTo">
+		     SELECT COUNT(1) count,USER_ID userId,MONTH(PAY_DATE) [month]
+			     FROM T_LOAN_CASE
+			    WHERE STATUS=0 AND YEAR(PAY_DATE)=#YEAR#
+			 GROUP BY USER_ID,MONTH(PAY_DATE)  
+    </select>
+    
+    <select id="getLoanInfoByPeriod" resultClass="com.brick.activityLog.to.LoanTo">
+    		 SELECT ISNULL(SUM(PAY_MONEY),0)/1000 payMoney,DEPT_ID deptId
+		       FROM T_LOAN_CASE
+		      WHERE STATUS=0
+		      	AND CASE_STATUS_ID=2
+		      <isNotEmpty property="YEAR">
+	            AND YEAR(PAY_DATE)=#YEAR#
+	          </isNotEmpty>
+	          <isEmpty property="YEAR">
+	          	AND YEAR(PAY_DATE)=YEAR(GETDATE())
+	          </isEmpty>
+	            AND CONVERT(DATE,PAY_DATE) BETWEEN #BEGIN_DATE# AND #END_DATE#
+	       GROUP BY DEPT_ID
+    </select>
+    
+    <select id="getAvgLoanMoney" resultClass="com.brick.activityLog.to.LoanTo">
+    			SELECT ISNULL(COUNT(1),0) count,ISNULL(SUM(PAY_MONEY),0) payMoney
+			      FROM T_LOAN_CASE
+			     WHERE STATUS=0
+		           AND YEAR(GETDATE())=YEAR(PAY_DATE)
+		           AND LOAN_MODE=3 <!-- 3代表乘用车委贷 -->
+            	   AND CASE_STATUS_ID=2 <!-- 2代表已拨款 -->
+		         <isNotEmpty property="BY_MONTH">
+		           AND MONTH(GETDATE())=MONTH(PAY_DATE)
+		         </isNotEmpty>
+    </select>
+    
+    <select id="getAvgLoanMoneyGroupByDept" resultClass="com.brick.activityLog.to.LoanTo">
+    			SELECT ISNULL(COUNT(1),0) count,ISNULL(SUM(PAY_MONEY),0) payMoney,DEPT_ID deptId
+			      FROM T_LOAN_CASE
+			     WHERE STATUS=0
+		           AND YEAR(GETDATE())=YEAR(PAY_DATE)
+		           AND MONTH(GETDATE())=MONTH(PAY_DATE)
+               GROUP BY DEPT_ID
+    </select>
+    
+    <select id="getLoanReminder" resultClass="com.brick.activityLog.to.LoanTo">
+     		  SELECT LOAN.LOAN_ID loanId,CUST.CUST_NAME custCodeDescr,LOAN.INTRODUCER introducer,SUPL.NAME supName,LOAN.ACCRUAL accrual,LOAN_MODE loanMode,
+   		         	 TDATA.FLAG loanModeDescr,LOAN.LOAN_MEMO loanMemo,LOAN.COST_MONEY costMoney,LOAN.CAUTION_MONEY cautionMoney,LOAN.PAY_DATE,
+   		         	 TDATA1.FLAG caseStatusDescr,LOAN.CASE_STATUS_ID caseStatusId,CONVERT(VARCHAR,LOAN.USER_ID) userId,LOAN.DEPT_ID deptId,TUSER.NAME userName,
+		           	 LOAN.APPROVE_MONEY approveMoney,LOAN.PAY_MONEY payMoney,CONVERT(VARCHAR,LOAN.FIRST_ACCESS_DATE,23) firstAccessDescr,
+     				 CONVERT(VARCHAR,LOAN.GIVE_CASE_DATE,23) giveDateDescr,CONVERT(VARCHAR,LOAN.APPROVE_DATE,23) approveDateDescr,
+      				 CONVERT(VARCHAR,LOAN.EXPECTATION_DATE,23) expDateDescr,CONVERT(VARCHAR,LOAN.PAY_DATE,23) payDateDescr,
+      				 CONVERT(VARCHAR,LOAN.START_LEASE_DATE,23) startDateDescr,LOAN.STATUS status,LOAN.CREATE_BY createBy,
+      				 CONVERT(VARCHAR,LOAN.CREATE_ON,23) createOnDescr,LOAN.LAST_UPDATE_BY lastUpdateBy,CONVERT(VARCHAR,LOAN.LAST_UPDATE_ON,23) lastUpdateOnDescr
+          		FROM T_LOAN_CASE LOAN
+	       LEFT JOIN T_DATA_DICTIONARY TDATA ON LOAN.LOAN_MODE=TDATA.CODE AND TDATA.STATUS=0 AND TDATA.[TYPE]=#TYPE1# <!-- TYPE1,委贷类型 -->
+	       LEFT JOIN T_DATA_DICTIONARY TDATA1 ON LOAN.CASE_STATUS_ID=TDATA1.CODE AND TDATA1.STATUS=0 AND TDATA1.[TYPE]=#TYPE2# <!-- TYPE2,委贷案况 -->
+	       LEFT JOIN T_CUST_CUSTOMER CUST ON CUST.CUST_CODE=LOAN.CUST_CODE AND CUST.STATUS=0
+	       LEFT JOIN T_SUPL_SUPPLIER SUPL ON SUPL.CODE=LOAN.SUPPLIER_CODE AND SUPL.STATUS=0
+	       LEFT JOIN T_USER_USER TUSER ON TUSER.ID=LOAN.USER_ID AND TUSER.STATUS=0
+	           WHERE LOAN.STATUS=0
+                 AND LOAN.CASE_STATUS_ID=1
+                 AND CONVERT(DATE,LOAN.PAY_DATE)&lt;=CONVERT(DATE,GETDATE())  
+            ORDER BY LOAN.PAY_DATE DESC
+    </select>
+    
+    <update id="applyPayClose">
+    	UPDATE T_LOAN_CASE SET PAY_CLOSE_STATUS=1,PAY_CLOSE_DATE=#payCloseDateDescr#,REMARK=#remark# WHERE LOAN_ID=#loanId#
+    </update>
+    
+    <update id="approvePayClose">
+    	UPDATE T_LOAN_CASE SET PAY_CLOSE_STATUS=#payCloseStatus# WHERE LOAN_ID=#loanId#
+    </update>
+    
+    <select id="getLoanTarget" resultClass="com.brick.activityLog.to.LoanTo" parameterClass="map">
+	     SELECT T.[YEAR] year,T.TARGET target
+	     	,ISNULL(O.PAY_MONEY,0) payMoney
+	     	,ISNULL(O.count,0) count
+	     	,ISNULL(O.PAY_MONEY,0)/ISNULL(T.TARGET,1)*100 achievePer
+	     	,datediff(month, getdate(), convert(date, (convert(varchar,T.[YEAR]) + '-12-31'))) as limitMonth
+    	  FROM T_LOAN_TARGET T
+   	 LEFT JOIN (SELECT SUM(PAY_MONEY) PAY_MONEY,COUNT(LOAN_ID) count,YEAR(PAY_DATE) [YEAR]
+   			      FROM T_LOAN_CASE
+   			     WHERE STATUS=0
+   			   	   AND LOAN_MODE=1
+   			   	   AND CASE_STATUS_ID=2
+      GROUP BY YEAR(PAY_DATE)) O ON O.[YEAR]=T.[YEAR]
+    	 WHERE T.STATUS=0
+    	   AND T.YEAR IS NOT NULL
+    <isNotEmpty property="YEAR">
+    	   AND T.YEAR=#YEAR#
+    </isNotEmpty>
+      ORDER BY T.[YEAR]
+    </select>
+    
+    <insert id="saveTarget">
+    	INSERT INTO T_LOAN_TARGET
+    	(YEAR,TARGET,STATUS,CREATE_ON,CREATE_BY)
+    	VALUES
+    	(#YEAR#,#TARGET#,0,GETDATE(),#s_employeeId#)
+    </insert>
+    
+    <update id="updateTarget">
+    	UPDATE T_LOAN_TARGET SET TARGET=#UPDATE_TARGET#
+    	 WHERE YEAR=#UPDATE_YEAR# AND STATUS=0
+    </update>
+    
+    <select id="getDailyMoney" resultClass="java.util.HashMap">
+          SELECT YEAR(PAY_DATE) [YEAR],CONVERT(DATE,PAY_DATE) PAY_DATE,ISNULL(COUNT(1),0) [PAY_COUNT],ISNULL(SUM(PAY_MONEY),0)/1000 PAY_MONEY
+            FROM T_LOAN_CASE
+	       WHERE STATUS=0
+             AND YEAR(GETDATE())=YEAR(PAY_DATE)
+             AND LOAN_MODE=3
+       	     AND CASE_STATUS_ID=2
+             AND (MONTH(PAY_DATE)=MONTH(GETDATE()) OR MONTH(PAY_DATE)=MONTH(DATEADD(MM,-1,GETDATE())) OR MONTH(PAY_DATE)=MONTH(DATEADD(MM,-2,GETDATE())))
+        GROUP BY YEAR(PAY_DATE),CONVERT(DATE,PAY_DATE)
+        ORDER BY CONVERT(DATE,PAY_DATE) ASC
+    </select>
+    
+    <select id="getCarMoneyCount" resultClass="java.util.HashMap">
+		  SELECT ISNULL(COUNT(1),0) PAY_COUNT,ISNULL(SUM(TLE.PAY_MONEY),0)/1000 PAY_MONEY,TDC.DECP_ID DEPT_ID
+	      	FROM T_LOAN_CASE TLE
+       LEFT JOIN T_USER_USER TUU ON TLE.[USER_ID]=TUU.ID AND TUU.STATUS=0
+       LEFT JOIN T_DEPT_DEPARTMENT TDD ON TDD.ID=TUU.DEPT_ID AND TDD.STATUS=0
+       LEFT JOIN T_DEPT_COMPANY TDC ON TDD.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+	       WHERE TLE.STATUS=0
+             AND TLE.LOAN_MODE=3
+       	     AND TLE.CASE_STATUS_ID=2
+             AND TDC.DECP_ID IS NOT NULL
+        <isEqual property="flag" compareValue="DAY">
+        	 AND CONVERT(DATE,PAY_DATE)=CONVERT(DATE,GETDATE())	
+        </isEqual>     
+        <isEqual property="flag" compareValue="MONTH">
+        	 AND YEAR(PAY_DATE)=YEAR(GETDATE())	
+        	 AND MONTH(PAY_DATE)=MONTH(GETDATE())
+        </isEqual>  
+        <isEqual property="flag" compareValue="NEXT_DAY">
+        	 AND CONVERT(DATE,PAY_DATE)=CONVERT(DATE,#date#)	
+        </isEqual>  
+        GROUP BY TDC.DECP_ID
+    </select>
+    
+    <select id="getLoanMoneyForCar" parameterClass="map" resultClass="java.lang.Double">
+    	SELECT isnull(sum(PAY_MONEY) ,0)
+		FROM T_LOAN_CASE
+		WHERE STATUS=0 
+		AND LOAN_MODE=3
+		AND CASE_STATUS_ID=2
+		and convert(date, PAY_DATE) >= convert(date, #startDate#)
+		<![CDATA[and convert(date, PAY_DATE) <= convert(date, #endDate#)]]>
+    </select>
+    
+</sqlMap>

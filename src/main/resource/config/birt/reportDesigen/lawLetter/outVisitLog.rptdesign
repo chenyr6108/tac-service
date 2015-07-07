@@ -1,0 +1,1347 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<report xmlns="http://www.eclipse.org/birt/2005/design" version="3.2.23" id="1">
+    <property name="createdBy">Eclipse BIRT Designer Version 4.2.2.v201301221637 Build &lt;4.2.2.v20130206-1509></property>
+    <property name="units">in</property>
+    <property name="iconFile">/templates/blank_report.gif</property>
+    <property name="layoutPreference">fixed layout</property>
+    <property name="bidiLayoutOrientation">ltr</property>
+    <property name="imageDPI">96</property>
+    <parameters>
+        <scalar-parameter name="LOCK_CODE" id="652">
+            <property name="valueType">static</property>
+            <property name="isRequired">false</property>
+            <property name="dataType">string</property>
+            <property name="distinct">true</property>
+            <simple-property-list name="defaultValue">
+                <value type="constant"></value>
+            </simple-property-list>
+            <list-property name="selectionList"/>
+            <property name="paramType">simple</property>
+            <property name="controlType">text-box</property>
+            <structure name="format">
+                <property name="category">Unformatted</property>
+            </structure>
+        </scalar-parameter>
+    </parameters>
+    <data-sources>
+        <script-data-source name="Data Source" id="59"/>
+    </data-sources>
+    <data-sets>
+        <script-data-set name="Data Set" id="60">
+            <list-property name="resultSetHints">
+                <structure>
+                    <property name="position">1</property>
+                    <property name="name">leaseCode</property>
+                    <property name="dataType">string</property>
+                </structure>
+            </list-property>
+            <list-property name="columnHints">
+                <structure>
+                    <property name="columnName">leaseCode</property>
+                    <text-property name="displayName">leaseCode</text-property>
+                </structure>
+            </list-property>
+            <structure name="cachedMetaData">
+                <list-property name="resultSet">
+                    <structure>
+                        <property name="position">1</property>
+                        <property name="name">leaseCode</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                </list-property>
+            </structure>
+            <property name="dataSource">Data Source</property>
+            <method name="open"><![CDATA[importPackage(Packages.java.lang);
+importPackage(Packages.java.util);
+importPackage(Packages.com.brick.dun.command);
+
+
+
+var lawContent =DunTaskLawCommand.getOutVisitContentByRectId(params["RECTID"].value,params["dun_date"].value,params["out"].value);
+vars["auditDate"]=lawContent.get("nowDate");
+vars["lease_code"]=lawContent.get("LEASE_CODE");
+vars["dun_day"]=lawContent.get("DUN_DAY");
+vars["period_num"]=lawContent.get("PERIOD_NUM");
+vars["cust_name"] =lawContent.get("CUST_NAME");
+vars["dept_name"] =lawContent.get("DECP_NAME_CN");
+vars["user_name"] =lawContent.get("NAME");
+vars["dun_monthPrice"]=lawContent.get("DUN_MONTHPRICE");
+var equpmentAddress =DunTaskLawCommand.getEqupmentAddressByRectId(params["RECTID"].value);
+vars["equpment_address"] =equpmentAddress.get("EQUPMENT_ADDRESS");
+var custLink=DunTaskLawCommand.getCustLinkByRectId(params["RECTID"].value);
+vars["link_name"] =custLink.get("LINK_NAME");
+vars["link_mobile"] =custLink.get("LINK_MOBILE");
+vars["link_phone"] =custLink.get("LINK_PHONE");
+var fine =DunTaskLawCommand.getDunFineByRectId(params["RECTID"].value);
+vars["fine"]=fine.get("fine");
+var unPayPrice=DunTaskLawCommand.getUnPayPriceByRectId(params["RECTID"].value);
+vars["unPayPrice"]=unPayPrice.get("UNPAY_PRICE");
+vars["leasePeriod"]=unPayPrice.get("LEASE_PERIOD");
+//System.out.print("11111______________________________________________"+vars["leasePeriod"]+"-----"+vars["unPayPrice"]);
+
+
+]]></method>
+        </script-data-set>
+        <script-data-set name="Equipment" id="168">
+            <list-property name="resultSetHints">
+                <structure>
+                    <property name="position">1</property>
+                    <property name="name">thingName</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">2</property>
+                    <property name="name">thingKind</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">3</property>
+                    <property name="name">modelSpec</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">4</property>
+                    <property name="name">thingNumber</property>
+                    <property name="dataType">string</property>
+                </structure>
+            </list-property>
+            <list-property name="columnHints">
+                <structure>
+                    <property name="columnName">thingName</property>
+                    <text-property name="displayName">产品名</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">thingKind</property>
+                    <text-property name="displayName">厂牌</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">modelSpec</property>
+                    <text-property name="displayName">机型</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">thingNumber</property>
+                    <text-property name="displayName">机器号</text-property>
+                </structure>
+            </list-property>
+            <structure name="cachedMetaData">
+                <list-property name="resultSet">
+                    <structure>
+                        <property name="position">1</property>
+                        <property name="name">thingName</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">2</property>
+                        <property name="name">thingKind</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">3</property>
+                        <property name="name">modelSpec</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">4</property>
+                        <property name="name">thingNumber</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                </list-property>
+            </structure>
+            <property name="dataSource">Data Source</property>
+            <method name="open"><![CDATA[importPackage(Packages.java.lang);
+importPackage(Packages.java.util);
+importPackage(Packages.com.brick.dun.command);
+
+
+var resultList = DunTaskLawCommand.getOutVisitSueqListByRectId(params["RECTID"].value);
+
+iter=resultList.iterator();]]></method>
+            <method name="fetch"><![CDATA[if(iter.hasNext() == false){
+	return false;
+}
+var data = iter.next();
+row["thingName"] = data.get("THING_NAME");
+row["thingKind"] = data.get("THING_KIND");
+row["modelSpec"] = data.get("MODEL_SPEC");
+row["thingNumber"] = data.get("THING_NUMBER");
+//System.out.print("222______________________________________________-"+row["modelSpec"]+row["thingNumber"] );
+return true;]]></method>
+        </script-data-set>
+    </data-sets>
+    <styles>
+        <style name="report" id="4">
+            <property name="fontFamily">sans-serif</property>
+            <property name="fontSize">10pt</property>
+        </style>
+        <style name="crosstab-cell" id="5">
+            <property name="borderBottomColor">#CCCCCC</property>
+            <property name="borderBottomStyle">solid</property>
+            <property name="borderBottomWidth">1pt</property>
+            <property name="borderLeftColor">#CCCCCC</property>
+            <property name="borderLeftStyle">solid</property>
+            <property name="borderLeftWidth">1pt</property>
+            <property name="borderRightColor">#CCCCCC</property>
+            <property name="borderRightStyle">solid</property>
+            <property name="borderRightWidth">1pt</property>
+            <property name="borderTopColor">#CCCCCC</property>
+            <property name="borderTopStyle">solid</property>
+            <property name="borderTopWidth">1pt</property>
+        </style>
+        <style name="crosstab" id="6">
+            <property name="borderBottomColor">#CCCCCC</property>
+            <property name="borderBottomStyle">solid</property>
+            <property name="borderBottomWidth">1pt</property>
+            <property name="borderLeftColor">#CCCCCC</property>
+            <property name="borderLeftStyle">solid</property>
+            <property name="borderLeftWidth">1pt</property>
+            <property name="borderRightColor">#CCCCCC</property>
+            <property name="borderRightStyle">solid</property>
+            <property name="borderRightWidth">1pt</property>
+            <property name="borderTopColor">#CCCCCC</property>
+            <property name="borderTopStyle">solid</property>
+            <property name="borderTopWidth">1pt</property>
+        </style>
+    </styles>
+    <page-setup>
+        <simple-master-page name="Simple MasterPage" id="2">
+            <page-header>
+                <grid id="55">
+                    <property name="fontWeight">bold</property>
+                    <property name="height">0.8958333333333334in</property>
+                    <property name="width">7.927083333333333in</property>
+                    <column id="20">
+                        <property name="width">1.7708333333333333in</property>
+                        <property name="verticalAlign">bottom</property>
+                    </column>
+                    <column id="56">
+                        <property name="width">6.15625in</property>
+                        <property name="verticalAlign">bottom</property>
+                    </column>
+                    <row id="57">
+                        <property name="height">0.6458333333333334in</property>
+                        <cell id="23">
+                            <label id="58">
+                                <property name="fontWeight">bold</property>
+                                <text-property name="text">裕融租赁有限公司</text-property>
+                            </label>
+                        </cell>
+                        <cell id="24">
+                            <label id="21">
+                                <property name="fontSize">24pt</property>
+                                <property name="fontWeight">bold</property>
+                                <property name="textAlign">left</property>
+                                <text-property name="text">              委外回访记录表</text-property>
+                            </label>
+                        </cell>
+                    </row>
+                    <row id="31">
+                        <property name="height">0.23958333333333334in</property>
+                        <property name="verticalAlign">top</property>
+                        <cell id="32">
+                            <property name="colSpan">2</property>
+                            <property name="rowSpan">1</property>
+                            <label id="43">
+                                <property name="fontWeight">bold</property>
+                                <property name="textAlign">center</property>
+                                <text-property name="text">------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------</text-property>
+                            </label>
+                        </cell>
+                    </row>
+                </grid>
+            </page-header>
+            <page-footer>
+                <text id="3">
+                    <property name="textAlign">right</property>
+                    <property name="contentType">html</property>
+                    <text-property name="content"><![CDATA[制表时间<value-of>new Date()</value-of>]]></text-property>
+                </text>
+            </page-footer>
+        </simple-master-page>
+    </page-setup>
+    <body>
+        <data id="182">
+            <property name="dataSet">Data Set</property>
+            <list-property name="boundDataColumns">
+                <structure>
+                    <property name="name">leaseCode</property>
+                    <text-property name="displayName">leaseCode</text-property>
+                    <expression name="expression" type="javascript">dataSetRow["leaseCode"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+            </list-property>
+            <property name="resultSetColumn">leaseCode</property>
+        </data>
+        <table id="61">
+            <property name="borderBottomStyle">solid</property>
+            <property name="borderBottomWidth">thin</property>
+            <property name="borderLeftStyle">solid</property>
+            <property name="borderLeftWidth">thin</property>
+            <property name="borderRightStyle">solid</property>
+            <property name="borderRightWidth">thin</property>
+            <property name="borderTopStyle">solid</property>
+            <property name="borderTopWidth">thin</property>
+            <property name="width">7.947916666666667in</property>
+            <list-property name="boundDataColumns">
+                <structure>
+                    <property name="name">Column Binding</property>
+                    <text-property name="displayName">合同号</text-property>
+                    <expression name="expression" type="javascript">vars["lease_code"]</expression>
+                    <property name="dataType">string</property>
+                    <property name="allowExport">true</property>
+                </structure>
+                <structure>
+                    <property name="name">Column Binding_1</property>
+                    <expression name="expression" type="javascript">&lt;value-of>new Date()&lt;/value-of></expression>
+                    <property name="dataType">string</property>
+                    <property name="allowExport">true</property>
+                </structure>
+            </list-property>
+            <column id="160">
+                <property name="width">1.8541666666666667in</property>
+            </column>
+            <column id="161">
+                <property name="width">2.4479166666666665in</property>
+            </column>
+            <column id="162">
+                <property name="width">0.9270833333333334in</property>
+            </column>
+            <column id="163">
+                <property name="width">0.6354166666666666in</property>
+            </column>
+            <column id="164">
+                <property name="width">1in</property>
+            </column>
+            <column id="165">
+                <property name="width">1.0833333333333333in</property>
+            </column>
+            <header>
+                <row id="62">
+                    <property name="height">0.40625in</property>
+                    <property name="fontWeight">bold</property>
+                    <property name="verticalAlign">middle</property>
+                    <cell id="63">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="183">
+                            <text-property name="text">合同编号</text-property>
+                        </label>
+                    </cell>
+                    <cell id="64">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="184">
+                            <text-property name="text">承租人</text-property>
+                        </label>
+                    </cell>
+                    <cell id="65">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="185">
+                            <text-property name="text">办事处</text-property>
+                        </label>
+                    </cell>
+                    <cell id="66">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="186">
+                            <text-property name="text">业务员</text-property>
+                        </label>
+                    </cell>
+                    <cell id="67">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="187">
+                            <text-property name="text">委访时间</text-property>
+                        </label>
+                    </cell>
+                    <cell id="68">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="188">
+                            <text-property name="text">回访日期</text-property>
+                        </label>
+                    </cell>
+                </row>
+            </header>
+            <detail>
+                <row id="69">
+                    <property name="height">0.4479166666666667in</property>
+                    <property name="verticalAlign">middle</property>
+                    <cell id="70">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <data id="295">
+                            <property name="textAlign">center</property>
+                            <list-property name="boundDataColumns">
+                                <structure>
+                                    <property name="name">lease_code</property>
+                                    <text-property name="displayName">lease_code</text-property>
+                                    <expression name="expression" type="javascript">vars["lease_code"]</expression>
+                                    <property name="dataType">string</property>
+                                </structure>
+                            </list-property>
+                            <property name="resultSetColumn">lease_code</property>
+                        </data>
+                    </cell>
+                    <cell id="71">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <data id="616">
+                            <property name="textAlign">center</property>
+                            <list-property name="boundDataColumns">
+                                <structure>
+                                    <property name="name">cust_name</property>
+                                    <text-property name="displayName">cust_name</text-property>
+                                    <expression name="expression" type="javascript">vars["cust_name"]</expression>
+                                    <property name="dataType">string</property>
+                                </structure>
+                            </list-property>
+                            <property name="resultSetColumn">cust_name</property>
+                        </data>
+                    </cell>
+                    <cell id="72">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <data id="620">
+                            <property name="textAlign">center</property>
+                            <list-property name="boundDataColumns">
+                                <structure>
+                                    <property name="name">dept_name</property>
+                                    <text-property name="displayName">dept_name</text-property>
+                                    <expression name="expression" type="javascript">vars["dept_name"]</expression>
+                                    <property name="dataType">string</property>
+                                </structure>
+                            </list-property>
+                            <property name="resultSetColumn">dept_name</property>
+                        </data>
+                    </cell>
+                    <cell id="73">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <data id="621">
+                            <property name="textAlign">center</property>
+                            <list-property name="boundDataColumns">
+                                <structure>
+                                    <property name="name">user_name</property>
+                                    <text-property name="displayName">user_name</text-property>
+                                    <expression name="expression" type="javascript">vars["user_name"]</expression>
+                                    <property name="dataType">string</property>
+                                </structure>
+                            </list-property>
+                            <property name="resultSetColumn">user_name</property>
+                        </data>
+                    </cell>
+                    <cell id="74">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <data id="642">
+                            <property name="textAlign">center</property>
+                            <list-property name="boundDataColumns">
+                                <structure>
+                                    <property name="name">auditDate</property>
+                                    <text-property name="displayName">auditDate</text-property>
+                                    <expression name="expression" type="javascript">vars["auditDate"]</expression>
+                                    <property name="dataType">string</property>
+                                </structure>
+                            </list-property>
+                            <property name="resultSetColumn">auditDate</property>
+                        </data>
+                    </cell>
+                    <cell id="75">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                    </cell>
+                </row>
+                <row id="76">
+                    <property name="height">0.4895833333333333in</property>
+                    <property name="verticalAlign">middle</property>
+                    <cell id="77">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="189">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">bold</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">标的物存放地</text-property>
+                        </label>
+                    </cell>
+                    <cell id="78">
+                        <property name="colSpan">5</property>
+                        <property name="rowSpan">1</property>
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <data id="628">
+                            <list-property name="boundDataColumns">
+                                <structure>
+                                    <property name="name">equpment_address</property>
+                                    <text-property name="displayName">equpment_address</text-property>
+                                    <expression name="expression" type="javascript">vars["equpment_address"]</expression>
+                                    <property name="dataType">string</property>
+                                </structure>
+                            </list-property>
+                            <property name="resultSetColumn">equpment_address</property>
+                        </data>
+                    </cell>
+                </row>
+                <row id="83">
+                    <property name="height">0.5625in</property>
+                    <property name="verticalAlign">middle</property>
+                    <cell id="84">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="190">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">bold</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">租赁物品名</text-property>
+                        </label>
+                    </cell>
+                    <cell id="85">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="191">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">bold</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">厂牌</text-property>
+                        </label>
+                    </cell>
+                    <cell id="86">
+                        <property name="colSpan">2</property>
+                        <property name="rowSpan">1</property>
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="194">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">bold</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">机型</text-property>
+                        </label>
+                    </cell>
+                    <cell id="88">
+                        <property name="colSpan">2</property>
+                        <property name="rowSpan">1</property>
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="193">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">bold</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">机号</text-property>
+                        </label>
+                    </cell>
+                </row>
+            </detail>
+        </table>
+        <table id="296">
+            <property name="width">7.947916666666667in</property>
+            <property name="dataSet">Equipment</property>
+            <list-property name="boundDataColumns">
+                <structure>
+                    <property name="name">thingName</property>
+                    <text-property name="displayName">产品名</text-property>
+                    <expression name="expression" type="javascript">dataSetRow["thingName"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="name">thingKind</property>
+                    <text-property name="displayName">厂牌</text-property>
+                    <expression name="expression" type="javascript">dataSetRow["thingKind"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="name">modelSpec</property>
+                    <text-property name="displayName">机型</text-property>
+                    <expression name="expression" type="javascript">dataSetRow["modelSpec"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="name">thingNumber</property>
+                    <text-property name="displayName">机器号</text-property>
+                    <expression name="expression" type="javascript">dataSetRow["thingNumber"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+            </list-property>
+            <column id="312">
+                <property name="width">1.8541666666666667in</property>
+            </column>
+            <column id="313">
+                <property name="width">2.4479166666666665in</property>
+            </column>
+            <column id="314">
+                <property name="width">1.5520833333333333in</property>
+            </column>
+            <column id="315">
+                <property name="width">2.09375in</property>
+            </column>
+            <detail>
+                <row id="302">
+                    <property name="height">0.4895833333333333in</property>
+                    <property name="fontFamily">"微软雅黑"</property>
+                    <property name="textAlign">center</property>
+                    <property name="verticalAlign">middle</property>
+                    <cell id="303">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <data id="316">
+                            <property name="textAlign">center</property>
+                            <property name="resultSetColumn">thingName</property>
+                        </data>
+                    </cell>
+                    <cell id="304">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <data id="618">
+                            <property name="textAlign">center</property>
+                            <property name="resultSetColumn">thingKind</property>
+                        </data>
+                    </cell>
+                    <cell id="305">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <data id="619">
+                            <property name="textAlign">center</property>
+                            <property name="resultSetColumn">modelSpec</property>
+                        </data>
+                    </cell>
+                    <cell id="306">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <data id="629">
+                            <property name="resultSetColumn">thingNumber</property>
+                        </data>
+                    </cell>
+                </row>
+            </detail>
+        </table>
+        <table id="383">
+            <property name="width">7.947916666666667in</property>
+            <column id="402">
+                <property name="width">1.8541666666666667in</property>
+            </column>
+            <column id="403">
+                <property name="width">1.4270833333333333in</property>
+            </column>
+            <column id="404">
+                <property name="width">1.0104166666666667in</property>
+            </column>
+            <column id="405">
+                <property name="width">1.15625in</property>
+            </column>
+            <column id="635">
+                <property name="width">1.3020833333333333in</property>
+            </column>
+            <column id="406">
+                <property name="width">1.1979166666666667in</property>
+            </column>
+            <detail>
+                <row id="643">
+                    <cell id="644">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <label id="650">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">bold</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">锁码方式</text-property>
+                        </label>
+                    </cell>
+                    <cell id="645">
+                        <property name="colSpan">2</property>
+                        <property name="rowSpan">1</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <data id="654">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="textAlign">center</property>
+                            <list-property name="boundDataColumns">
+                                <structure>
+                                    <property name="name">LOCK_CODE</property>
+                                    <expression name="expression" type="javascript">params["LOCK_CODE"]</expression>
+                                    <property name="dataType">string</property>
+                                </structure>
+                            </list-property>
+                            <property name="resultSetColumn">LOCK_CODE</property>
+                        </data>
+                    </cell>
+                    <cell id="647">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <label id="651">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">bold</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">锁码日</text-property>
+                        </label>
+                    </cell>
+                    <cell id="648">
+                        <property name="colSpan">2</property>
+                        <property name="rowSpan">1</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="textAlign">center</property>
+                    </cell>
+                </row>
+                <row id="390">
+                    <cell id="391">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <label id="407">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">bold</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">未收总租金</text-property>
+                        </label>
+                        <data id="639">
+                            <property name="textAlign">center</property>
+                            <list-property name="boundDataColumns">
+                                <structure>
+                                    <property name="name">unPayPrice</property>
+                                    <text-property name="displayName">unPayPrice</text-property>
+                                    <expression name="expression" type="javascript">vars["unPayPrice"]</expression>
+                                    <property name="dataType">string</property>
+                                </structure>
+                            </list-property>
+                            <property name="resultSetColumn">unPayPrice</property>
+                        </data>
+                    </cell>
+                    <cell id="392">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <label id="408">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">bold</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">承办期数</text-property>
+                        </label>
+                        <data id="640">
+                            <property name="textAlign">center</property>
+                            <list-property name="boundDataColumns">
+                                <structure>
+                                    <property name="name">leasePeriod</property>
+                                    <text-property name="displayName">leasePeriod</text-property>
+                                    <expression name="expression" type="javascript">vars["leasePeriod"]</expression>
+                                    <property name="dataType">string</property>
+                                </structure>
+                            </list-property>
+                            <property name="resultSetColumn">leasePeriod</property>
+                        </data>
+                    </cell>
+                    <cell id="393">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <label id="409">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">bold</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">已缴期数</text-property>
+                        </label>
+                        <data id="615">
+                            <property name="textAlign">center</property>
+                            <list-property name="boundDataColumns">
+                                <structure>
+                                    <property name="name">period_num</property>
+                                    <text-property name="displayName">period_num</text-property>
+                                    <expression name="expression" type="javascript">vars["period_num"]-1</expression>
+                                    <property name="dataType">string</property>
+                                    <property name="allowExport">true</property>
+                                </structure>
+                            </list-property>
+                            <property name="resultSetColumn">period_num</property>
+                        </data>
+                    </cell>
+                    <cell id="394">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <label id="410">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">bold</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">逾期天数</text-property>
+                        </label>
+                        <data id="617">
+                            <property name="textAlign">center</property>
+                            <list-property name="boundDataColumns">
+                                <structure>
+                                    <property name="name">dun_day</property>
+                                    <text-property name="displayName">dun_day</text-property>
+                                    <expression name="expression" type="javascript">vars["dun_day"]-1</expression>
+                                    <property name="dataType">string</property>
+                                    <property name="allowExport">true</property>
+                                </structure>
+                            </list-property>
+                            <property name="resultSetColumn">dun_day</property>
+                        </data>
+                    </cell>
+                    <cell id="634">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <label id="411">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">bold</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">逾期金额</text-property>
+                        </label>
+                        <data id="637">
+                            <property name="textAlign">center</property>
+                            <list-property name="boundDataColumns">
+                                <structure>
+                                    <property name="name">dun_monthPrice</property>
+                                    <text-property name="displayName">dun_monthPrice</text-property>
+                                    <expression name="expression" type="javascript">vars["dun_monthPrice"]</expression>
+                                    <property name="dataType">string</property>
+                                </structure>
+                            </list-property>
+                            <property name="resultSetColumn">dun_monthPrice</property>
+                        </data>
+                    </cell>
+                    <cell id="395">
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <label id="412">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">bold</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">欠缴罚息</text-property>
+                        </label>
+                        <data id="638">
+                            <property name="textAlign">center</property>
+                            <list-property name="boundDataColumns">
+                                <structure>
+                                    <property name="name">fine</property>
+                                    <text-property name="displayName">fine</text-property>
+                                    <expression name="expression" type="javascript">vars["fine"]</expression>
+                                    <property name="dataType">string</property>
+                                </structure>
+                            </list-property>
+                            <property name="resultSetColumn">fine</property>
+                        </data>
+                    </cell>
+                </row>
+            </detail>
+        </table>
+        <table id="558">
+            <property name="width">7.947916666666667in</property>
+            <column id="599">
+                <property name="width">1.8541666666666667in</property>
+            </column>
+            <column id="600">
+                <property name="width">2.125in</property>
+            </column>
+            <column id="601">
+                <property name="width">1.9895833333333333in</property>
+            </column>
+            <column id="602">
+                <property name="width">1.9791666666666667in</property>
+            </column>
+            <detail>
+                <row id="564">
+                    <property name="height">0.4791666666666667in</property>
+                    <property name="verticalAlign">middle</property>
+                    <cell id="565">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <label id="604">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">bold</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">主要联系人</text-property>
+                        </label>
+                    </cell>
+                    <cell id="566">
+                        <property name="colSpan">3</property>
+                        <property name="rowSpan">1</property>
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <text id="630">
+                            <property name="contentType">html</property>
+                            <text-property name="content"><![CDATA[名称：<VALUE-OF>vars["link_name"]</VALUE-OF>&amp;nbsp;&amp;nbsp;电话：<VALUE-OF>vars["link_phone"]</VALUE-OF>  &amp;nbsp;&amp;nbsp;<VALUE-OF>vars["link_mobile"]</VALUE-OF>]]></text-property>
+                        </text>
+                    </cell>
+                </row>
+                <row id="569">
+                    <property name="height">0.5416666666666666in</property>
+                    <property name="verticalAlign">middle</property>
+                    <cell id="570">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="605">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">normal</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">接触对象</text-property>
+                        </label>
+                    </cell>
+                    <cell id="571">
+                        <property name="colSpan">3</property>
+                        <property name="rowSpan">1</property>
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <text id="622">
+                            <property name="textAlign">left</property>
+                            <property name="contentType">html</property>
+                            <text-property name="content"><![CDATA[囗  主要联系人      囗  负责人      囗  家人      囗  员工     囗   其他人员]]></text-property>
+                        </text>
+                    </cell>
+                </row>
+                <row id="574">
+                    <property name="height">0.5208333333333334in</property>
+                    <property name="verticalAlign">middle</property>
+                    <cell id="575">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="606">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">normal</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">标的物外观</text-property>
+                        </label>
+                    </cell>
+                    <cell id="576">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <property name="textAlign">left</property>
+                        <text id="623">
+                            <property name="contentType">html</property>
+                            <text-property name="content"><![CDATA[囗 正常  囗 破损]]></text-property>
+                        </text>
+                    </cell>
+                    <cell id="577">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="607">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">normal</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">是否见标的物</text-property>
+                        </label>
+                    </cell>
+                    <cell id="578">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <text id="624">
+                            <property name="contentType">html</property>
+                            <text-property name="content"><![CDATA[囗 是  囗 否]]></text-property>
+                        </text>
+                    </cell>
+                </row>
+                <row id="579">
+                    <property name="height">0.4375in</property>
+                    <property name="verticalAlign">middle</property>
+                    <cell id="580">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="608">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">normal</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">标的物是否运行</text-property>
+                        </label>
+                    </cell>
+                    <cell id="581">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <text id="625">
+                            <property name="contentType">html</property>
+                            <text-property name="content"><![CDATA[囗 是  囗 否]]></text-property>
+                        </text>
+                    </cell>
+                    <cell id="582">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="609">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">normal</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">回访结果</text-property>
+                        </label>
+                    </cell>
+                    <cell id="583">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <text id="626">
+                            <property name="contentType">html</property>
+                            <text-property name="content"><![CDATA[囗 正常  囗 异常<br>
+囗 已停业  囗 其他]]></text-property>
+                        </text>
+                    </cell>
+                </row>
+                <row id="584">
+                    <property name="height">0.4895833333333333in</property>
+                    <property name="verticalAlign">middle</property>
+                    <cell id="585">
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <label id="610">
+                            <property name="fontFamily">"微软雅黑"</property>
+                            <property name="fontWeight">normal</property>
+                            <property name="textAlign">center</property>
+                            <text-property name="text">机器运行率</text-property>
+                        </label>
+                    </cell>
+                    <cell id="586">
+                        <property name="colSpan">3</property>
+                        <property name="rowSpan">1</property>
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <text id="627">
+                            <property name="contentType">html</property>
+                            <text-property name="content"><![CDATA[囗 正常  囗 良好   囗 差]]></text-property>
+                        </text>
+                    </cell>
+                </row>
+                <row id="589">
+                    <property name="height">2.4479166666666665in</property>
+                    <cell id="590">
+                        <property name="colSpan">4</property>
+                        <property name="rowSpan">1</property>
+                        <property name="fontFamily">"微软雅黑"</property>
+                        <property name="borderBottomStyle">solid</property>
+                        <property name="borderBottomWidth">thin</property>
+                        <property name="borderLeftStyle">solid</property>
+                        <property name="borderLeftWidth">thin</property>
+                        <property name="borderRightStyle">solid</property>
+                        <property name="borderRightWidth">thin</property>
+                        <property name="borderTopStyle">solid</property>
+                        <property name="borderTopWidth">thin</property>
+                        <text id="614">
+                            <property name="contentType">html</property>
+                            <text-property name="content"><![CDATA[回访地点：<br>
+说明：<br>
+	1、迟缴原因:<br>
+	2、预计还款日：（只做记录，非同意其可延迟到预计还款日再缴款，罚息仍增生中）<br>
+	3、现场营运状况描述:<br>
+	4、其他状况：<br>
+	   
+<br>	   
+照片贴图（厂房外观门口（有门牌号的需照到），厂内营运状况，各标的物外观，各标的物机型、机号）<br>]]></text-property>
+                        </text>
+                    </cell>
+                </row>
+            </detail>
+        </table>
+    </body>
+    <property name="pageVariables">
+        <variable-element name="lease_code">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="period_num">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="cust_name">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="dun_day">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="user_name">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="dept_name">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="equpment_address">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="link_name">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="link_mobile">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="link_phone">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="dun_monthPrice">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="fine">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="unPayPrice">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="leasePeriod">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="auditDate">
+            <property name="type">report</property>
+        </variable-element>
+    </property>
+</report>

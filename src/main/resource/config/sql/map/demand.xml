@@ -1,0 +1,519 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="demand">
+	
+	<!-- 查询资讯需求单 -->
+	<select id="queryDemandOrders" resultClass="com.brick.modifyOrder.to.DemandTo" parameterClass="java.util.HashMap">
+		SELECT 
+			O.ID id, 
+			O.DEMAND_CODE demandCode, 
+			O.APPLY_USER_ID applyUserId, 
+			O.APPLY_DEPARTMENT_ID applyDepartmentId, 
+			O.CREATE_TIME createTime, 
+			O.CONTENT content, 
+			O.HOPE_COMPLETE_DATE hopeCompleteDate, 
+			O.ORDER_STATUS orderStatus, 
+			O.COUNTERSIGN_CODE_ORDER countersignCodeOrder, 
+			O.COMPLETE_CODE_ORDER completeCodeOrder, 
+			O.CURRENT_OPERATOR_ID currentOperatorId, 
+			O.HOURS hours, 
+			O.RESPONSIBLE_USER_ID responsibleUserId, 
+			O.LAST_OP_TIME lastOpTime, 
+			O.SUMMARY summary, 
+			O.PREDICT_DATE predictDate, 
+			O.COMPANY_ID companyId,
+			TDC.DECP_NAME_CN companyName,
+			U.NAME applyUserName,
+			UU.NAME responsibleUserName,
+			TDD.DEPT_NAME applyDepartmentName,
+			U2.NAME currentOperatorName,
+			L.COMPLETE_TIME completeDate,
+            DATEDIFF(DAY, GETDATE(), O.PREDICT_DATE) dunDays,
+            SENIOR_SIGN seniorSign, 
+            DEMAND_TYPE demandType
+		FROM T_DEMAND_ORDER O
+		LEFT JOIN T_USER_USER U ON U.ID = O.APPLY_USER_ID
+		LEFT JOIN T_USER_USER UU ON UU.ID = O.RESPONSIBLE_USER_ID
+		LEFT JOIN T_DEPT_DEPARTMENT TDD ON TDD.ID = O.APPLY_DEPARTMENT_ID
+		LEFT JOIN T_USER_USER U2 ON U2.ID = O.CURRENT_OPERATOR_ID
+		LEFT JOIN T_DEPT_COMPANY TDC ON TDC.DECP_ID = O.COMPANY_ID
+		LEFT JOIN 
+		(SELECT DEMAND_ORDER_ID,MAX(OPERATE_TIME_END) COMPLETE_TIME FROM T_DEMAND_LOG 
+		WHERE OPERATE_STATE = 9 GROUP BY DEMAND_ORDER_ID) L
+		ON L.DEMAND_ORDER_ID=O.ID
+		<dynamic prepend="where">
+		 	<isNotEmpty property="current_state" prepend="and">
+		 		<!-- 未完成 -->
+		 		<isEqual property="current_state" compareValue="-100">
+					O.ORDER_STATUS NOT IN (-1, -2, 990)
+		 		</isEqual>
+		 		<!-- 已完成 -->
+		 		<isEqual property="current_state" compareValue="-101">
+					O.ORDER_STATUS IN (-1, -2, 990)
+		 		</isEqual>
+		 		<isNotEqual property="current_state" compareValue="-101">
+		 			<isNotEqual property="current_state" compareValue="-100">
+						O.ORDER_STATUS = #current_state#
+		 			</isNotEqual>
+		 		</isNotEqual>
+	        </isNotEmpty> 
+		 	<isEqual property="isMy" prepend="and" compareValue="1">
+		 		O.CURRENT_OPERATOR_ID = #s_employeeId#
+		 	</isEqual>
+		 	<isEqual property="isMy" prepend="and" compareValue="2">
+		 		(O.CURRENT_OPERATOR_ID = #s_employeeId# OR O.ORDER_STATUS = 400)
+		 	</isEqual>
+		 	<isNotEqual property="demandType" prepend="and" compareValue="-1">
+		 		O.DEMAND_TYPE = #demandType#
+		 	</isNotEqual>
+		 	<isNotEmpty property="QSTART_DATE" prepend="and">
+				CONVERT(DATE, O.CREATE_TIME) >= CONVERT(DATE, #QSTART_DATE#)
+	        </isNotEmpty>
+		 	<isNotEmpty property="QEND_DATE" prepend="and">
+				CONVERT(DATE, O.CREATE_TIME) &lt;= CONVERT(DATE, #QEND_DATE#)
+	        </isNotEmpty> 
+		 	<isNotEmpty property="current_it" prepend="and">
+				O.RESPONSIBLE_USER_ID = #current_it#
+	        </isNotEmpty> 
+		 	<isNotEmpty property="QSEARCH_VALUE" prepend="and">
+				<![CDATA[
+				(O.DEMAND_CODE LIKE '%$QSEARCH_VALUE$%'
+				OR U.NAME LIKE '%$QSEARCH_VALUE$%'
+				OR U2.NAME LIKE '%$QSEARCH_VALUE$%'
+				OR TDC.DECP_NAME_CN LIKE '%$QSEARCH_VALUE$%'
+				OR UU.NAME LIKE '%$QSEARCH_VALUE$%'
+				OR O.SUMMARY LIKE '%$QSEARCH_VALUE$%'
+				OR O.CONTENT LIKE '%$QSEARCH_VALUE$%')
+				]]>
+				<!-- OR TDD.DEPT_NAME LIKE '%$QSEARCH_VALUE$%' -->
+	        </isNotEmpty>
+		  	<!-- 部分 -->
+		  	<isEqual prepend="and" property="CURR_NODE" compareValue="1">
+		  		(O.APPLY_USER_ID = #s_employeeId# 
+		  		OR O.CURRENT_OPERATOR_ID = #s_employeeId#
+		  		OR O.RESPONSIBLE_USER_ID = #s_employeeId#)
+		  	</isEqual>
+		  	<!-- 区域 -->
+		  	<isEqual prepend="and" property="CURR_NODE" compareValue="2">
+		  	 	(EXISTS(SELECT ID FROM T_USER_USER
+						WHERE DEPT_ID IN 
+							(SELECT UC.DEPT_ID FROM DBO.T_USER_USER2COMPANY UC
+							WHERE UC.USER_ID = #s_employeeId#)
+						AND ID = O.APPLY_USER_ID)
+				OR O.APPLY_USER_ID = #s_employeeId# 
+		  		OR O.CURRENT_OPERATOR_ID = #s_employeeId#
+		  		OR O.RESPONSIBLE_USER_ID = #s_employeeId#)
+		  	</isEqual>
+		</dynamic>
+	</select>
+	
+	<!-- 根据用户ID查询用户信息 -->
+	<select id="queryUserByUid" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT 	U.*,
+				TDC.DECP_ID,
+				TDC.DECP_NAME_CN,
+				(CASE WHEN U.UPPER_USER=238 THEN U.ID ELSE U.UPPER_USER END) AS HANDLE_UP_USER_ID,
+				TDD.DEPT_NAME,
+				UP.EMAIL UP_EMAIL,
+				(CASE WHEN U.UPPER_USER=238 THEN U.EMAIL ELSE UP.EMAIL END) AS HANDLE_UP_USER_EMAIL
+		FROM T_USER_USER U
+		LEFT JOIN T_DEPT_DEPARTMENT TDD ON U.DEPT_ID = TDD.ID
+		LEFT JOIN T_USER_USER UP ON UP.ID = U.UPPER_USER
+		LEFT JOIN T_DEPT_COMPANY TDC ON TDD.DECP_ID = TDC.DECP_ID
+		WHERE U.ID=#U_ID# AND U.STATUS='0'
+	</select>
+	
+	<!-- 添加资讯需求单 -->
+	<insert id="insertDemandOrders" parameterClass="java.util.HashMap">
+		INSERT INTO 
+		T_DEMAND_ORDER(	DEMAND_CODE, APPLY_USER_ID, APPLY_DEPARTMENT_ID, CREATE_TIME,CONTENT, DEMAND_TYPE,SENIOR_SIGN,
+						HOPE_COMPLETE_DATE, ORDER_STATUS, CURRENT_OPERATOR_ID,LAST_OP_TIME,SUMMARY,COMPANY_ID,
+						COUNTERSIGN_CODE_ORDER, COMPLETE_CODE_ORDER)
+		VALUES(	#demandCode#, #s_employeeId#, #APPLY_DEPARTMENT_ID#, #CREATE_TIME#, #content#,#demandType#,#seniorSign#,
+				#hopeDate#, #ORDER_STATUS#, #CURRENT_OPERATOR_ID#, #LAST_OP_TIME#, #SUMMARY#,#COMPANY_ID#,
+				#chooseCodes#, '')
+		<selectKey resultClass="int" keyProperty="MODIFY_ID">
+			<![CDATA[	select @@IDENTITY as MODIFY_ID  ]]>
+		</selectKey>
+	</insert>
+	
+	<!-- 获取当前最大资讯需求单编号 -->
+	<select id="getMaxDemandCode" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT TOP 1 DEMAND_CODE FROM T_DEMAND_ORDER ORDER BY ID DESC
+	</select>
+	
+	<!-- 按照CODE获取资讯需求单状态，即流程顺序 -->
+	<select id="getDemandStatesList" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT * FROM T_DATA_DICTIONARY
+		WHERE TYPE='资讯需求单状态' ORDER BY CAST(CODE AS INT),LEVEL_NUM
+	</select>
+	
+	<!-- 根据id获取资讯需求单信息 -->
+	<select id="getDemandById" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT 
+		    D.*,
+			TDC.DECP_ID,
+			TDC.DECP_NAME_CN,
+		    (CASE WHEN U.UPPER_USER=238 THEN U.ID ELSE U.UPPER_USER END) AS UP_USER_ID,
+		    U.NAME APPLY_USER_NAME,
+		    U.EMAIL APPLY_USER_EMAIL,
+		    (CASE WHEN U.UPPER_USER=238 THEN U.ID ELSE (CASE WHEN UP.UPPER_USER=238 THEN UP.ID ELSE UP.UPPER_USER END) END) AS UPP_USER_ID,
+		    OP.NAME CURRENT_USER_NAME,
+		    DEPT.DEPT_NAME,
+		    RE.NAME RESPONSIBLE_USER_NAME,
+		    RE.EMAIL RESPONSIBLE_USER_EMAIL,
+		    REUP.EMAIL UP_RESPONSIBLE_USER_EMAIL
+		FROM T_DEMAND_ORDER D
+		LEFT JOIN T_USER_USER U ON D.APPLY_USER_ID = U.ID
+		LEFT JOIN T_USER_USER UP ON U.UPPER_USER = UP.ID
+		LEFT JOIN T_USER_USER OP ON OP.ID = D.CURRENT_OPERATOR_ID
+		LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = D.APPLY_DEPARTMENT_ID
+		LEFT JOIN T_USER_USER RE ON RE.ID = D.RESPONSIBLE_USER_ID
+		LEFT JOIN T_USER_USER REUP ON REUP.ID = RE.UPPER_USER
+		LEFT JOIN T_DEPT_COMPANY TDC ON TDC.DECP_ID = D.COMPANY_ID
+		WHERE D.ID = #demandId#
+	</select>
+	
+	<!-- 根据id更新资讯需求单信息 -->
+	<update id="updateDemandById" parameterClass="java.util.HashMap">
+		UPDATE T_DEMAND_ORDER SET
+		<isNotNull property="HOURS">
+			HOURS = #HOURS#
+		</isNotNull> 
+		<isNull property="HOURS">
+			HOURS = null
+		</isNull> 
+	 	<isNotEmpty property="ORDER_STATUS">
+			,ORDER_STATUS = #ORDER_STATUS#
+        </isNotEmpty> 
+	 	<isNotEmpty property="CURRENT_OPERATOR_ID">
+			,CURRENT_OPERATOR_ID = #CURRENT_OPERATOR_ID#
+        </isNotEmpty> 
+	 	<isNotEmpty property="COMPLETE_CODE_ORDER">
+	 		<isEqual property="COMPLETE_CODE_ORDER" compareValue="null">
+				,COMPLETE_CODE_ORDER = ''
+	 		</isEqual>
+	 		<isNotEqual property="COMPLETE_CODE_ORDER" compareValue="null">
+				,COMPLETE_CODE_ORDER = #COMPLETE_CODE_ORDER#
+	 		</isNotEqual>
+        </isNotEmpty> 
+	 	<isNotEmpty property="COUNTERSIGN_CODE_ORDER">
+			,COUNTERSIGN_CODE_ORDER = #COUNTERSIGN_CODE_ORDER#
+        </isNotEmpty> 
+	 	<isNotEmpty property="CONTENT">
+			,CONTENT = #CONTENT#
+        </isNotEmpty> 
+	 	<isNotEmpty property="HOPE_COMPLETE_DATE">
+			,HOPE_COMPLETE_DATE = #HOPE_COMPLETE_DATE#
+        </isNotEmpty>
+	 	<isNotEmpty property="RESPONSIBLE_USER_ID">
+			,RESPONSIBLE_USER_ID = #RESPONSIBLE_USER_ID#
+        </isNotEmpty>
+	 	<isNotEmpty property="LAST_OP_TIME">
+			,LAST_OP_TIME = #LAST_OP_TIME#
+        </isNotEmpty> 
+	 	<isNotEmpty property="SUMMARY">
+			,SUMMARY = #SUMMARY#
+        </isNotEmpty> 
+	 	<isNotEmpty property="seniorSign">
+			,SENIOR_SIGN = #seniorSign#
+        </isNotEmpty>  
+	 	<isNotEmpty property="PREDICT_DATE">
+	 		<isEqual property="PREDICT_DATE" compareValue="null">
+				,PREDICT_DATE = ''
+	 		</isEqual>
+	 		<isNotEqual property="PREDICT_DATE" compareValue="null">
+				,PREDICT_DATE = #PREDICT_DATE#
+	 		</isNotEqual>
+        </isNotEmpty>
+        <isNotEmpty prepend="," property="ALTER_TYPE">
+			ALTER_TYPE =#ALTER_TYPE#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="RELEASE_TIME">
+			RELEASE_TIME = CAST(#RELEASE_TIME# AS DATE)
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="SYS_LEVEL">
+			SYS_LEVEL =#SYS_LEVEL#
+		</isNotEmpty>
+		WHERE ID = #demandId#
+	</update>
+	
+	<!-- 插入资讯需求单操作日志 -->
+	<insert id="insertDemandLog" parameterClass="java.util.HashMap">
+		INSERT INTO T_DEMAND_LOG(
+			DEMAND_ORDER_ID
+			,ORDER_STATUS
+			,OPERATE_TIME_BEGIN
+			,OPERATE_TIME_END
+			,OPERATOR_ID
+			,OPERATE_STATE
+			,OPERATE_SUGGEST
+		) VALUES (
+	 		#demandId#,
+			#ORDER_STATUS#,
+			#OPERATE_TIME_BEGIN#,
+			#OPERATE_TIME_END#,
+			#s_employeeId#,
+			#OPERATE_STATE#,
+			#content#
+		)
+	</insert>
+	
+	<!-- 获取所有资讯IT人员 -->
+	<select id="getITList" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT * FROM T_USER_USER WHERE DEPT_ID = 7 AND UPPER_USER = 100 
+		AND ID NOT IN(111,407)
+		and STATUS = 0
+	</select>
+	
+	<!-- 根据DemandOrderId从资讯需求单log信息中获取资讯单审核信息 -->
+	<select id="getDemandLogForDemandByDemandOrderId" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT  T1.*,T2.*,T3.*,T4.*,T5.*,T6.*
+		FROM
+		<!-- 基础资讯单ID -->
+		(SELECT ID,SENIOR_SIGN,ORDER_STATUS FROM T_DEMAND_ORDER WHERE ID = #demandId#) M
+		<!-- 需求部门单位主管 -->
+		LEFT JOIN
+		    (SELECT TOP 1
+		        L.DEMAND_ORDER_ID,
+		        L.OPERATE_TIME_END UP_PASS_TIME,
+		        L.OPERATOR_ID UP_PASS_ID,
+		        U.NAME UP_PASS_NAME,
+		        L.OPERATE_SUGGEST UP_PASS_CONTENT
+		    FROM T_DEMAND_LOG L
+		    LEFT JOIN T_USER_USER U ON U.ID = L.OPERATOR_ID
+		    WHERE DEMAND_ORDER_ID = #demandId# 
+		        AND OPERATE_STATE = 3
+		        AND ORDER_STATUS = 100
+		    ORDER BY L.OPERATE_TIME_END DESC) T1
+		    ON T1.DEMAND_ORDER_ID = M.ID
+		LEFT JOIN 
+		<!-- 需求部门处级主管 -->
+		    (SELECT TOP 1
+		        L.DEMAND_ORDER_ID,
+		        L.OPERATE_TIME_END UP_UP_PASS_TIME,
+		        L.OPERATOR_ID UP_UP_PASS_ID,
+		        U.NAME UP_UP_PASS_NAME,
+		        L.OPERATE_SUGGEST UP_UP_PASS_CONTENT
+		    FROM T_DEMAND_LOG L
+		    LEFT JOIN T_USER_USER U ON U.ID = L.OPERATOR_ID
+		    WHERE DEMAND_ORDER_ID = #demandId# 
+		        AND OPERATE_STATE = 3
+		        AND ORDER_STATUS = 200
+		    ORDER BY L.OPERATE_TIME_END DESC) T2
+		    ON T2.DEMAND_ORDER_ID = M.ID
+		    AND (T2.UP_UP_PASS_TIME > T1.UP_PASS_TIME OR T1.UP_PASS_TIME IS NULL)
+		LEFT JOIN 
+		<!-- 资讯部门负责人 -->
+		    (SELECT TOP 1
+		        L.DEMAND_ORDER_ID,
+		        L.OPERATE_TIME_BEGIN IT_START_TIME,
+		        L.OPERATE_TIME_END IT_PASS_TIME,
+		        L.OPERATOR_ID IT_PASS_ID,
+		        U.NAME IT_PASS_NAME,
+		        L.OPERATE_SUGGEST IT_PASS_CONTENT
+		    FROM T_DEMAND_LOG L
+		    LEFT JOIN T_USER_USER U ON U.ID = L.OPERATOR_ID
+		    WHERE DEMAND_ORDER_ID = #demandId# 
+		        AND OPERATE_STATE = 9
+		    ORDER BY L.OPERATE_TIME_END DESC) T3
+		    ON T3.DEMAND_ORDER_ID = M.ID
+		    AND (T3.IT_PASS_TIME > T2.UP_UP_PASS_TIME OR T2.UP_UP_PASS_TIME IS NULL)
+		LEFT JOIN 
+		<!-- 高阶签核 -->
+		(SELECT TOP 1
+		        L.DEMAND_ORDER_ID,
+		        L.OPERATE_TIME_END SENIOR_PASS_TIME,
+		        L.OPERATOR_ID SENIOR_PASS_ID,
+		        U.NAME SENIOR_PASS_NAME,
+		        L.OPERATE_SUGGEST SENIOR_PASS_CONTENT
+		    FROM T_DEMAND_LOG L
+		    LEFT JOIN T_USER_USER U ON U.ID = L.OPERATOR_ID
+		    WHERE DEMAND_ORDER_ID = #demandId# 
+		        AND OPERATE_STATE = 6
+		        AND ORDER_STATUS = 360
+		    ORDER BY L.OPERATE_TIME_END DESC) T7
+		    ON T7.DEMAND_ORDER_ID = M.ID 
+		    	AND M.SENIOR_SIGN = 1 
+		    	AND M.ORDER_STATUS >= 360
+		LEFT JOIN
+		<!-- 资讯部门主管 -->
+		    (SELECT TOP 1
+		        L.DEMAND_ORDER_ID,
+		        L.OPERATE_TIME_END IT_UP_PASS_TIME,
+		        L.OPERATOR_ID IT_UP_PASS_ID,
+		        U.NAME IT_UP_PASS_NAME,
+		        L.OPERATE_SUGGEST IT_UP_PASS_CONTENT
+		    FROM T_DEMAND_LOG L
+		    LEFT JOIN T_USER_USER U ON U.ID = L.OPERATOR_ID
+		    WHERE DEMAND_ORDER_ID = #demandId# 
+		        AND OPERATE_STATE = 3
+		        AND ORDER_STATUS = 600
+		    ORDER BY L.OPERATE_TIME_END DESC) T4
+		    ON T4.DEMAND_ORDER_ID = M.ID
+		    AND (T4.IT_UP_PASS_TIME > T3.IT_PASS_TIME OR T3.IT_PASS_TIME IS NULL)
+		LEFT JOIN
+		<!-- 验收人 -->
+		    (SELECT TOP 1
+		        L.DEMAND_ORDER_ID,
+		        L.OPERATE_TIME_END CHECK_PASS_TIME,
+		        L.OPERATOR_ID CHECK_PASS_ID,
+		        U.NAME CHECK_PASS_NAME,
+		        L.OPERATE_SUGGEST CHECK_PASS_CONTENT
+		    FROM T_DEMAND_LOG L
+		    LEFT JOIN T_USER_USER U ON U.ID = L.OPERATOR_ID
+		    WHERE DEMAND_ORDER_ID = #demandId# 
+		        AND OPERATE_STATE = 10
+		        AND ORDER_STATUS = 900
+		    ORDER BY L.OPERATE_TIME_END DESC) T5
+		    ON T5.DEMAND_ORDER_ID = M.ID
+		    AND (T5.CHECK_PASS_TIME > T4.IT_UP_PASS_TIME OR T4.IT_UP_PASS_TIME IS NULL)
+		LEFT JOIN
+		<!-- 验收人主管 -->
+		    (SELECT TOP 1
+		        L.DEMAND_ORDER_ID,
+		        L.OPERATE_TIME_END CHECK_UP_PASS_TIME,
+		        L.OPERATOR_ID CHECK_UP_PASS_ID,
+		        U.NAME CHECK_UP_PASS_NAME,
+		        L.OPERATE_SUGGEST CHECK_UP_PASS_CONTENT
+		    FROM T_DEMAND_LOG L
+		    LEFT JOIN T_USER_USER U ON U.ID = L.OPERATOR_ID
+		    WHERE DEMAND_ORDER_ID = #demandId# 
+		        AND OPERATE_STATE = 10
+		        AND ORDER_STATUS = 910
+		    ORDER BY L.OPERATE_TIME_END DESC) T6
+		    ON T6.DEMAND_ORDER_ID = M.ID
+		    AND (T6.CHECK_UP_PASS_TIME > T5.CHECK_PASS_TIME OR T5.CHECK_PASS_TIME IS NULL)
+	</select>
+	
+	<!-- 根据DemandOrderId获取部门会签log信息 -->
+	<select id="getCountersignLogByDemandOrderId" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT L.*,U.NAME,D.FLAG,D1.FLAG FLAG_S FROM T_DEMAND_LOG L
+		LEFT JOIN T_USER_USER U ON L.OPERATOR_ID = U.ID
+		LEFT JOIN T_DATA_DICTIONARY D ON D.CODE = L.OPERATE_STATE AND D.[TYPE] = '资讯需求单操作类型'
+		LEFT JOIN T_DATA_DICTIONARY D1 ON D1.CODE = L.ORDER_STATUS AND D1.[TYPE] = '资讯需求单状态'
+		WHERE L.ID IN
+		(
+			SELECT MAX(ID) FROM T_DEMAND_LOG L
+			WHERE  L.DEMAND_ORDER_ID = #demandId#
+		    AND L.ORDER_STATUS > 300 
+		    AND L.ORDER_STATUS &lt; 350
+		    AND L.OPERATE_STATE IN (6,16,17)
+		    AND L.OPERATE_TIME_END > (SELECT MAX(OPERATE_TIME_END) FROM T_DEMAND_LOG WHERE ORDER_STATUS &lt;= 300 AND DEMAND_ORDER_ID = #demandId#)
+            GROUP BY L.ORDER_STATUS
+		)
+		ORDER BY ID
+	</select>
+	
+	<!-- 根据资讯需求单id获取日志 -->
+	<select id="getDemandLogsByDemandId" parameterClass="java.util.HashMap" resultClass="com.brick.modifyOrder.to.DemandLogTo">
+		SELECT 
+			L.ID id, 
+			L.DEMAND_ORDER_ID demandOrderId, 
+			L.ORDER_STATUS orderStatus, 
+			L.OPERATE_TIME_BEGIN operateTimeBegin, 
+			L.OPERATE_TIME_END operateTimeEnd, 
+			L.OPERATOR_ID operatorId, 
+			L.OPERATE_STATE operateState, 
+			L.OPERATE_SUGGEST operateSuggest,
+			U.NAME operatorName 
+		FROM T_DEMAND_LOG L
+		LEFT JOIN T_USER_USER U ON U.ID = L.OPERATOR_ID
+		WHERE L.DEMAND_ORDER_ID = #demandId#
+		ORDER BY ID DESC
+	</select>
+	
+	<!-- 上传文件 -->
+	<insert id="insertDemandFile" parameterClass="map">
+		INSERT INTO 
+		T_FILE(FILE_TYPE, PATH, CREATE_USER_ID, ORG_FILE_NAME, STATUS, CREATE_DATE, TITLE)
+		VALUES(#fileType#, #path#, #userId#, #fileName#, 1, #date#, #title#)
+		<selectKey resultClass="int" keyProperty="MODIFY_ID">
+			<![CDATA[	select @@IDENTITY as MODIFY_ID  ]]>
+		</selectKey>
+	</insert>
+	
+	<!-- 根据id更新资讯需求单信息 -->
+	<update id="updateDemandFiles" parameterClass="java.util.HashMap">
+		UPDATE T_FILE SET FILE_RELATION_TABLE_ID = #demandIdForFile#
+		WHERE FILE_TYPE = #fileType#
+		<![CDATA[ AND ID IN ($files$)  ]]>
+	</update>
+	
+	<!-- 根据demandId获取附件信息 -->
+	<select id="getFilesByDemandId" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT * FROM T_FILE WHERE FILE_TYPE = #fileType# AND FILE_RELATION_TABLE_ID = #demandId# AND STATUS = 1
+	</select>
+	
+	<!-- 根据文件ID删除文件 -->
+	<update id="delDemandFiles" parameterClass="java.util.HashMap">
+		UPDATE T_FILE SET STATUS=0 WHERE <![CDATA[ ID IN ($delFiles$)  ]]>
+	</update>
+	
+	<!-- 获取所有用户 -->
+	<select id="getAllUsers" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT * FROM T_USER_USER WHERE STATUS = 0
+	</select>
+	
+	<!-- 更新高阶签核 -->
+	<update id="updateDemandSeniorSignById" parameterClass="java.util.HashMap">
+		UPDATE T_DEMAND_ORDER SET SENIOR_SIGN = #seniorSign#
+		WHERE ID = #id#
+	</update>
+	
+	<!-- 获取高阶签核信息 -->
+	<select id="getSeniorMsg" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT TOP 1 L.*,U.NAME FROM T_DEMAND_LOG L
+		LEFT JOIN T_USER_USER U ON U.ID = L.OPERATOR_ID
+		WHERE L.OPERATE_STATE IN (6,-18)
+		AND L.ORDER_STATUS = 360
+		AND L.DEMAND_ORDER_ID = #demandId#
+		AND L.OPERATE_TIME_END > (SELECT MAX(OPERATE_TIME_END) FROM T_DEMAND_LOG 
+								WHERE ORDER_STATUS &lt; 360 
+								AND DEMAND_ORDER_ID = #demandId#)
+	</select>
+	
+	<!-- 查询所有待处理人的需求单数 -->
+	<select id="getDemandTodoCountForJob" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT T.CURRENT_OPERATOR_ID,COUNT(1) COUNT,U.EMAIL FROM T_DEMAND_ORDER T
+		LEFT JOIN T_USER_USER U ON U.ID = T.CURRENT_OPERATOR_ID
+		WHERE T.ORDER_STATUS >= 0 AND T.ORDER_STATUS &lt; 990
+		GROUP BY T.CURRENT_OPERATOR_ID,U.EMAIL
+	</select>
+	
+	<!-- 查询每个处理人的所有待处理需求单信息 -->
+	<select id="getDemandListByAlterEmail" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT T.*,D.FLAG FROM T_DEMAND_ORDER T
+		LEFT JOIN T_DATA_DICTIONARY D ON T.ORDER_STATUS = D.CODE AND D.TYPE='资讯需求单状态'
+		WHERE T.ORDER_STATUS >= 0 AND T.ORDER_STATUS &lt; 990
+		AND T.CURRENT_OPERATOR_ID = #currentUserId#
+	</select>
+	
+	<!-- 根据申请人id和状态码，查询该申请人在该状态的资讯需求单数 -->
+	<select id="getDemandCountByStateAndUserId" resultClass="int">
+		SELECT COUNT(1) FROM T_DEMAND_ORDER WHERE ORDER_STATUS = #stateCode# AND APPLY_USER_ID = #userId#
+	</select>
+	
+	<!-- 根据资讯单ID更新资讯单状态和处理人 -->
+	<update id="updateDemandStateById" parameterClass="java.util.HashMap">
+		UPDATE T_DEMAND_ORDER SET 
+		<isNotEmpty property="COMPLETE_CODE_ORDER">
+			<isNotEqual property="COMPLETE_CODE_ORDER" compareValue="null">
+				COMPLETE_CODE_ORDER = #COMPLETE_CODE_ORDER#,
+			</isNotEqual>
+			<isEqual property="COMPLETE_CODE_ORDER" compareValue="null">
+				COMPLETE_CODE_ORDER = '',
+			</isEqual>
+		</isNotEmpty>
+		ORDER_STATUS = #newState#,
+		CURRENT_OPERATOR_ID = #newOpUser#,
+		SENIOR_SIGN = #newSenior#
+		WHERE ID = #demandId#
+		SELECT @@ROWCOUNT
+	</update>
+</sqlMap>
+
+
+

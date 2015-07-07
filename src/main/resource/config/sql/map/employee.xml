@@ -1,0 +1,699 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="employee">
+	
+	<!-- 添加一条员工记录 -->
+	<insert id="create" parameterClass="map">
+	<![CDATA[
+		insert into t_user_user
+				(
+				name,
+				code,
+				password,
+				sex,
+				age,
+				id_card,
+				status,
+				id_card_address,
+				zip,
+				mobile,
+				telephone,
+				address,
+				email,
+				job,
+				dept_id,
+				head,
+				mate_name,
+				mate_id_card,
+				rmate_id_card_addr,
+				mate_telphone,
+				mate_work_unit,
+				mate_work_unit_address,
+				memo, 
+				create_date,
+				modify_date,
+				in_date,
+				out_date,
+				node
+				]]>
+				<isNotEmpty prepend="," property="upper_user">
+					<![CDATA[ upper_user ]]>
+				</isNotEmpty>
+				<![CDATA[
+				)
+				values
+				(
+				#name#,
+				#code#,
+				#password#,
+				#sex#,
+				#age#,
+				#id_card#,
+				0,
+				#id_card_address#,
+				#zip#,
+				#mobile#,
+				#telephone#,
+				#address#,
+				#email#,
+				#job#,
+				#dept_id#,
+				#head#,
+				#mate_name#,
+				#mate_id_card#,
+				#mate_id_card_addr#,
+				#mate_telphone#,
+				#mate_work_unit#,
+				#mate_work_unit_address#,
+				#memo#,
+				getdate(),
+				getdate(),
+				]]>
+				<isEmpty property="IN_DATE" >
+					<![CDATA[ null, ]]>
+				</isEmpty>
+				<isNotEmpty property ="IN_DATE">
+					<![CDATA[ #IN_DATE#, ]]>	 
+					</isNotEmpty >
+				<isEmpty property="OUT_DATE" >
+					<![CDATA[ null, ]]>
+				</isEmpty>
+				<isNotEmpty  property ="OUT_DATE">
+					<![CDATA[ #OUT_DATE#, ]]>
+					</isNotEmpty>
+				<![CDATA[	
+				#NODE#
+				]]>
+				<isNotEmpty prepend="," property="upper_user">
+					<![CDATA[ #upper_user# ]]>
+				</isNotEmpty>
+				<![CDATA[
+				)
+				]]>
+				<selectKey resultClass="java.lang.Long" keyProperty="Id">
+			<![CDATA[	select @@IDENTITY as Id  ]]>
+		</selectKey> 
+	</insert>
+	
+	<!-- 根据条件查询员工个数 -->
+ 	<select id="getEmployees_count" parameterClass="map" resultClass="int">
+ 		select count(tuu.id) cnt
+		  from t_user_user tuu
+			 inner join t_dept_department tdd
+			 on tuu.dept_id = tdd.id
+			 where tuu.status=0
+			 	<isNotEmpty prepend="and" property="content">
+			 		tuu.name like '%$content$%' 
+			 		or tuu.code like '%$content$%' 
+			 		or tuu.job like '%$content$%' 
+			 		or  tdd.dept_name like '%$content$%' 
+			 	</isNotEmpty>  
+			  
+			 
+ 	</select>
+	
+	<!-- 根据条件查询员工信息 -->
+ 	<select id="getEmployees" parameterClass="map" resultClass="hashmap">
+ 		select TUU.ID         ID,
+		       TUU.CODE       CODE,
+		       TUU.NAME       NAME,
+		       TUU.SEX        SEX,
+		       TUU.JOB        JOB,
+		       (select top 1 (select DEPT_NAME from T_DEPT_DEPARTMENT
+				where ID = dept_id and status = 0) from T_USER_USER2COMPANY
+				where USER_ID = tuu.ID and status = 0) as DEPT_NAME,
+			   TUU.STATUS,
+		       TUU.LAST_LOGIN LAST_LOGIN
+		  from t_user_user tuu
+			 inner join t_dept_department tdd
+			 on tuu.dept_id = tdd.id
+			 where tuu.status=0
+		 	<isNotEmpty prepend="and" property="content">
+		 		tuu.name like '%$content$%' 
+		 		or tuu.code like '%$content$%' 
+		 		or tuu.job like '%$content$%' 
+		 		or  tdd.dept_name like '%$content$%' 
+		 	</isNotEmpty>  
+			 order by tuu.id desc
+ 	</select>
+	
+	<!-- 作废一个员工的记录 -->
+	<update id="invalid" parameterClass="map">
+	<!-- 	update t_user_user set status=1,modify_date=sysdate where id=#id#   -->
+		update t_user_user set status=-2,modify_date=getdate() where id=#id#
+	</update> 
+	
+	<delete id="deleteUser2RolForUser" parameterClass="map">
+		delete from T_USER_USER2ROLE
+		where EMPLOYEE_ID = #id#
+	</delete>
+
+	<!-- 根据ID查询一条员工记录 -->
+	<select id="getEmployeeById" parameterClass="map" resultClass="hashmap">
+		select tuu.id id,	
+			   tuu.name, tuu.code ,
+			    tuu.password,	
+			    tuu.sex, tuu.age,
+			     tuu.id_card, tuu.id_card_address,tuu.zip,
+		        tuu.mobile, tuu.telephone, tuu.address, tuu.email,tuu.job,
+		        tuu.dept_id DEPT_ID, 
+		        tuu.node NODE,
+		        tuu.in_date IN_DATE,
+		        tuu.out_date OUT_DATE,
+		        tuu.head, tuu.mate_name, tuu.mate_id_card,
+		       tuu2.name as upper_user,tuu2.id upper_id,
+		 tuu.rmate_id_card_addr, tuu.mate_telphone, tuu.mate_work_unit, tuu.mate_work_unit_address,
+		tuu.memo memo,tdd.dept_name dept_name from t_user_user tuu left join
+		t_dept_department tdd on tuu.dept_id=tdd.id
+		left join t_user_user tuu2 on tuu2.id=tuu.upper_user
+		 where tuu.id=#id#
+	</select>
+	
+	<!-- 2012/1/9 Yang Yun 查询所在的所有部门. -->
+	<select id="getAllDepts" parameterClass="map" resultClass="hashmap">
+		select dp.ID as DEPT_ID, cp.DECP_ID from T_USER_USER2COMPANY uc
+		left join T_DEPT_DEPARTMENT dp on uc.DEPT_ID = dp.ID and dp.STATUS = 0
+		left join T_DEPT_COMPANY cp on dp.DECP_ID = cp.DECP_ID and cp.STATUS = 0
+		where uc.USER_ID = #id#
+	</select>
+	
+	<!-- 2012/01/10 Yang Yun 更新所在部门. 1.删除所有部门. -->
+	<delete id="deleteuser2dept" parameterClass="map">
+		DELETE T_USER_USER2COMPANY
+		where USER_ID = #id#
+	</delete>
+	<!-- 2012/01/10 Yang Yun 更新所在部门. 2.新增所选的部门. -->
+	<insert id="insertuser2dept" parameterClass="map">
+		insert into T_USER_USER2COMPANY(USER_ID, DEPT_ID, CREATE_BY, CREATE_DT, STATUS ) 
+		values (#id#, #dept_id#, #s_employeeId#, GETDATE(), 0)
+	</insert>
+	
+	<!-- 更新一条员工记录 -->
+	<update id="update" parameterClass="map">
+		update t_user_user 
+		set name=#name#,
+		 code=#code#,
+		 password=#password#,
+		 sex=#sex#,
+		 age=#age#,
+		 id_card=#id_card#,
+		 id_card_address=#id_card_address#,
+		 zip=#zip#,
+		 mobile=#mobile#,
+		 telephone=#telephone#,
+		 address=#address#,
+		 email=#email#,
+		 job=#job#,
+		 dept_id=#dept_id#,
+		 mate_name=#mate_name#,
+		 mate_id_card=#mate_id_card#,
+		 mate_telphone=#mate_telphone#,
+		 mate_work_unit=#mate_work_unit#,
+		 memo=#memo#,
+		 rmate_id_card_addr=#mate_id_card_addr#,
+		 modify_date=getdate(),
+		 node=#NODE#,
+		 mate_work_unit_address=#mate_work_unit_address#
+		 <isNotEmpty prepend="," property="IN_DATE">
+		 	in_date=#IN_DATE#
+		 </isNotEmpty>
+		 <isNotEmpty prepend="," property="OUT_DATE">
+		 	out_date=#OUT_DATE#
+		 </isNotEmpty>
+		 <isNotEmpty prepend="," property="upper_user">
+			 upper_user=#upper_user#
+		 </isNotEmpty>
+		  <isEmpty prepend="," property="upper_user">
+			 upper_user=NULL
+		 </isEmpty>
+		where  id=#id#
+	</update>
+	
+	<!-- 根据员工职位或许员工信息 -->
+	<select id="getEmployeesByJob"  parameterClass="map" resultClass="hashmap">
+		select id,name,mobile from t_user_user where status=0
+		<dynamic prepend="and">
+			<isNotEmpty prepend="and" property="jobName">
+				job='2'
+			</isNotEmpty>
+		</dynamic>
+		order by name
+	</select>
+	
+	<!-- 根据公司类型查询所有公司-->
+	<select id="getCompany" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select tdcpy.decp_id DECP_ID,
+			    	tdcpy.decp_name_cn DECP_NAME_CN
+			from t_dept_company tdcpy
+			where tdcpy.status = 0 and tdcpy.legelr=#decp_id#
+			AND tdcpy.decp_id!=1
+			ORDER BY [ORDER]
+		]]>
+	</select>
+	<select id="getCompany1" parameterClass="map" resultClass="java.util.HashMap">
+			select tdcpy.decp_id DECP_ID,
+			    	tdcpy.decp_name_cn DECP_NAME_CN
+			from t_dept_company tdcpy
+			where tdcpy.status = 0 and tdcpy.legelr=#decp_id#
+			ORDER BY [ORDER]
+	</select>
+	
+	<!-- 根据公司ID查询公司下的部门 -->
+	<select id="getDept" parameterClass="map" resultClass="hashmap">
+		select t.id	ID,t.dept_name DEPT_NAME
+		from t_dept_department t
+		where t.decp_id=#decp_id2# and t.status=0 
+	</select>
+	
+	<!-- 重置密码 -->
+	<update id="resetPass" parameterClass="map">
+		update t_user_user set PASSWORD='0C1902163D705C85158437C87C54B467',modify_date=getdate() where id=#id#
+	</update>
+	<!-- 根据部门ID查询该部门所属公司类型 -->
+	<select id="getComType" parameterClass="map" resultClass="hashmap">
+	    select t.dept_id,t1.decp_id DECP_ID,t2.legelr LEGELR
+	     from t_user_user  t
+	    left join t_dept_department t1 on t.dept_id=t1.id
+	    left join t_dept_company t2 on t1.decp_id=t2.decp_id
+	    where t.id=#id# 
+	</select>
+	<select id="getEmpInforById" parameterClass="map" resultClass="hashmap">
+		select *
+		  from t_user_user  t
+		  where t.id=#id# and t.status=0
+	</select>
+	<select id="getEmpInforByUpperUser" parameterClass="map" resultClass="java.lang.Integer">
+		select id
+		from t_user_user  t
+		where t.upper_user=#id# and t.status=0
+	</select>
+	
+	<!-- 登录时间 -->
+	<update id="loginEndTime" parameterClass="map">
+	<!-- 	update t_user_user set status=1,modify_date=sysdate where id=#id#   -->
+		update t_user_user set last_login=getdate() where id=#id#
+	</update> 
+	
+	<select id="getZhuguan" parameterClass="map" resultClass="hashmap">
+		select id,name from t_user_user where job='2' and STATUS = 0
+	</select>	
+	
+	<select id="getAllEmployee" parameterClass="map" resultClass="hashmap">
+		select id,name from t_user_user where STATUS = 0
+	</select>
+	
+	<!-- 根据员工职位得到员工信息 -->
+	<select id="getEmpForJob"  parameterClass="map" resultClass="hashmap">
+		select id,name,mobile from t_user_user where status=0 and JOB in(
+			select T.CODE from t_data_dictionary t
+			 where t.type=#jobType# and t.status=0 and t.FLAG=#jobName#	 or t.FLAG=#jobName2#	
+		)
+	</select>	
+	
+	
+	 <!-- 添加一条员工的银行账号信息 -->
+	 <insert id="createUserBankAccount" parameterClass="map">
+	 	insert into T_USER_USER_BANKACCOUNT
+			(
+			BANK_NAME,	
+			BANK_ACCOUNT,
+			STATE,
+			STATUS,
+			CREATE_DATE,
+			MODIFY_DATE,
+			USER_ID,
+			USER_NAME
+			)
+			values
+			(
+			#BANK_NAME#,
+			#BANK_ACCOUNT#,
+			#STATE#,
+			0,
+			getdate(),
+			getdate(),
+			#USER_ID#,
+			#USER_NAME#
+			)
+	 </insert>	
+	 
+	  <!-- 根据用户id查询该ID下的所有银行账户 -->
+	 <select id="getUserBankAccountByCreditId" parameterClass="map" resultClass="hashmap">
+	 	select * from T_USER_USER_BANKACCOUNT where status=0 and USER_ID=#id#
+	 </select>			
+	 
+	 <!-- 根据供应商id 删除银行账户的信息 -->
+	 <update id="deleteUserBankAccountById" parameterClass="map">
+	 	update T_USER_USER_BANKACCOUNT
+	 	set status=-2
+	 	where USER_ID=#id#
+	 </update>
+	 <select id="findByCode_count" parameterClass="map" resultClass="java.lang.Integer">
+	 	SELECT 
+	 		COUNT(*)
+	 	FROM
+	 		T_USER_USER
+	 	WHERE
+	 		CODE = #code#
+	 		AND STATUS = 0
+	 </select>
+	 
+	 <!-- 记录员工的登录,登出时间 -->
+	 <insert id="insertLoginInfo">
+	 		INSERT INTO T_USER_TRACE (USER_ID,USER_NAME,TIME,IP,ACTION) 
+	 		VALUES (#USER_ID#,#USER_NAME#,GETDATE(),#IP#,#ACTION#)
+	 		
+	 		SELECT @@IDENTITY AS Id
+	 </insert>
+	 
+	 	<!-- 根据条件查询业管文审人员信息 -->
+ 	<select id="getAllAuditorEmployees" parameterClass="map" resultClass="hashmap">
+		select trdu.*,tuu.NAME from T_RENT_DISPATCH_USER  trdu
+		left join t_user_user tuu on trdu.USER_ID=tuu.ID 
+ 	</select>
+ 	
+ 	<!-- 更新系统文审人员的请假、设备、重车案件状态 -->
+	<update id="updateDispatchStatus" parameterClass="map">
+		UPDATE T_RENT_DISPATCH_USER SET TYPE=0,RENT_TYPE=0,AUTO_TYPE=0,CAR_TYPE=0
+	</update>
+	
+		<!-- 更新文审人员的状态-请假 -->
+	<update id="updateDispatchUserType" parameterClass="map">
+		 UPDATE T_RENT_DISPATCH_USER SET
+			TYPE='1'
+		WHERE USER_ID in( $TYPE_USER_IDS$ ) 
+	</update>
+			<!-- 更新文审人员的状态-设备 -->
+	<update id="updateDispatchUserRentType" parameterClass="map">
+		 UPDATE T_RENT_DISPATCH_USER SET
+			RENT_TYPE='1'
+		WHERE USER_ID in( $RENT_TYPE_USER_IDS$ ) 
+	</update>
+		<!-- 更新文审人员的状态-乘用车 -->
+	<update id="updateDispatchUserCarType" parameterClass="map">
+		 UPDATE T_RENT_DISPATCH_USER SET
+			CAR_TYPE='1'
+		WHERE USER_ID in( $CAR_TYPE_USER_IDS$ ) 
+	</update>
+		<!-- 更新文审人员的状态-重车 -->
+	<update id="updateDispatchUserAutoType" parameterClass="map">
+		 UPDATE T_RENT_DISPATCH_USER SET
+			AUTO_TYPE='1'
+		WHERE USER_ID in( $AUTO_TYPE_USER_IDS$ ) 
+	</update>
+		<!-- 更新文审人员的状态-比重 -->
+	<update id="updateDispatchUserProportion" parameterClass="map">
+		 UPDATE T_RENT_DISPATCH_USER SET
+			PROPORTION=#PROPORTION#,PROPORTION_AUTO=#PROPORTION_AUTO#,PROPORTION_CAR=#PROPORTION_CAR#
+		WHERE USER_ID = #USER_ID#
+	</update>
+
+	  <!-- 根据用户id查询该ID下的所有银行账户 -->
+	 <select id="getAllDispatchUserList" parameterClass="map" resultClass="hashmap">
+	 	select * from T_USER_USER
+		where STATUS = 0
+		and ID in (
+		  select EMPLOYEE_ID from T_USER_USER2ROLE
+		    where ROLE_ID in (
+		    select ID from FIL_PERMISSION_ROLE
+		    where [NAME] = '业管科专员'
+		  )
+		)
+	 </select>
+	 
+ 	 <insert id="insertDispatchUser">
+	 		INSERT INTO T_RENT_DISPATCH_USER (USER_ID,TYPE) 
+	 		VALUES (#USER_ID#,0)
+	 </insert>
+	 
+	 <select id="queryEmployee" resultClass="com.brick.employee.to.EmployeeTO">
+	  SELECT TUU.ID id,TUU.[NAME] [name],TUU.SEX sex,TUU.CODE code,TUU.STATUS status,
+             CONVERT(VARCHAR,O.[time],20) loginTimeDescr,O.IP ip,ISNULL(TUU.EMAIL,'') email,
+             ISNULL(TUU1.[NAME],'') upName,TUU.CREATE_DATE createDate,T.FLAG jobDescr,
+             TUU.MOBILE mobile,TDC.TELEPHONE+'-'+TUU.TELEPHONE telephone,dept.name as newDeptName,u.name as deptLeaderName
+        FROM T_USER_USER TUU
+   LEFT JOIN (SELECT TUT.[USER_ID],TUT.IP,O.TIME 
+                FROM T_USER_TRACE TUT
+           LEFT JOIN (SELECT USER_ID,MAX([TIME]) [time] FROM T_USER_TRACE WHERE ACTION='LOGIN' GROUP BY USER_ID) O
+                  ON TUT.[USER_ID]=O.[USER_ID] AND O.TIME=TUT.TIME
+               WHERE O.TIME IS NOT NULL AND TUT.ACTION='LOGIN') O ON O.[USER_ID]=TUU.ID
+   LEFT JOIN T_USER_USER TUU1 ON TUU1.STATUS=0 AND TUU1.ID=TUU.UPPER_USER
+   LEFT JOIN T_DATA_DICTIONARY T ON T.[TYPE]=#DATA_TYPE# AND TUU.JOB=T.CODE AND T.STATUS=0
+   LEFT JOIN T_DEPT_DEPARTMENT TDD ON TDD.STATUS=0 AND TDD.ID=TUU.DEPT_ID
+   LEFT JOIN T_DEPT_COMPANY TDC ON TDC.DECP_ID=TDD.DECP_ID AND TDC.STATUS=0
+   LEFT JOIN T_DEPT dept on dept.id = TUU.DEPARTMENT
+   LEFT JOIN T_USER_USER u on u.id = dept.dept_leader
+       WHERE 1=1
+       <isNotEmpty property="STATUS">  
+         AND TUU.STATUS=#STATUS#
+       </isNotEmpty>
+       <isNotEmpty property="CONTENT">
+         AND (TUU.[NAME] LIKE '%$CONTENT$%' OR TUU1.[NAME] LIKE '%$CONTENT$%' OR TUU.CODE LIKE '%$CONTENT$%')
+       </isNotEmpty>
+       <isNotEmpty property="JOB_ID">
+       	 AND TUU.JOB=#JOB_ID# 
+       </isNotEmpty>
+       <isNotEmpty property="DEPT_ID">
+       	 AND EXISTS (SELECT 1 FROM T_USER_USER2COMPANY TUU2C 
+                      	 LEFT JOIN T_DEPT_DEPARTMENT TDD ON TUU2C.DEPT_ID=TDD.ID AND TDD.STATUS=0
+         					 WHERE TUU2C.USER_ID=TUU.ID AND TDD.DECP_ID=#DEPT_ID# AND TUU2C.STATUS=0)
+       </isNotEmpty>
+	 </select>
+	 
+	 <select id="queryDeptName" resultClass="com.brick.employee.to.EmployeeTO">
+	 	SELECT TUU.ID id,TUU.[NAME] [name],CMPY.DECP_NAME_CN+'-'+DEPT.DEPT_NAME deptName
+	      FROM T_USER_USER TUU 
+	 LEFT JOIN T_USER_USER2COMPANY TUU2 ON TUU2.[USER_ID]=TUU.ID AND TUU2.STATUS=0
+	 LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU2.DEPT_ID AND DEPT.STATUS=0
+	 LEFT JOIN T_DEPT_COMPANY CMPY ON CMPY.DECP_ID=DEPT.DECP_ID AND CMPY.STATUS=0
+	     WHERE TUU.STATUS=0
+	 </select>
+	 
+	 <update id="updateEmployeeStatus">
+	 	UPDATE T_USER_USER SET STATUS=#employeeStatus#,MODIFY_DATE=GETDATE() WHERE ID=#employeeId#
+	 </update>
+	 
+	 <select id="getDeptList" resultClass="java.util.HashMap">
+	 	SELECT ID DEPT_ID,DEPT_NAME
+		  FROM T_DEPT_DEPARTMENT
+		 WHERE STATUS=0 AND DECP_ID=#COMPANY_ID#
+	 </select>
+	 
+	 <insert id="addEmployee">
+	 	INSERT INTO T_USER_USER
+		(NAME,CODE,PASSWORD,SEX,STATUS,MOBILE,EMAIL,JOB,DEPT_ID,NODE,UPPER_USER,CREATE_DATE,TELEPHONE,FIRST_LOGIN,MODIFY_DATE,DEPARTMENT)
+		VALUES
+		(#NAME#,#code#,#password#,#SEX#,0,#CELLPHONE#,#EMAIL_ADDRESS#,#USER_JOB#,#DEPT#,#NODE#,#upper_user#,GETDATE(),#telephone#,'Y',GETDATE(),#newDeptId#)
+		<selectKey resultClass="java.lang.Long" keyProperty="ID">
+			SELECT @@IDENTITY AS ID
+		</selectKey>
+	 </insert>
+	 
+	 <insert id="addDept">
+	 	INSERT INTO T_USER_USER2COMPANY
+	 	(USER_ID,DEPT_ID,CREATE_BY,CREATE_DT,STATUS)
+	 	VALUES
+	 	(#USER_ID#,#DEPT_ID#,#s_employeeId#,GETDATE(),0)
+	 </insert>
+	 
+	 <select id="queryEmployeeDetail" resultClass="com.brick.employee.to.EmployeeTO">
+      SELECT TUU.[NAME] [name],
+               TUU.SEX sex,
+               TUU.MOBILE mobile,
+               TUU.TELEPHONE telephone,
+               TUU.EMAIL email,
+               TUU.CODE code,
+               TUU.PASSWORD password,
+               TUU1.[NAME] upName,
+               TUU.UPPER_USER upperId,
+               TUU.JOB jobCode,               
+               ISNULL(TUU.NODE,'1') node,
+               DEPT.ID deptId,
+               CMPY.DECP_ID companyId,
+               DEPT.DEPT_NAME deptName,
+               CMPY.DECP_NAME_CN companyName,
+               TUU.DEPARTMENT department,
+               U.NAME AS deptLeaderName,
+               DEPT2.COMPANY_ID as newCompanyId,
+               DEPT2.DEPT_LEADER as deptLeader,
+               DEPT2.NAME AS newDeptName
+          FROM T_USER_USER TUU
+     LEFT JOIN T_USER_USER TUU1 ON TUU1.ID=TUU.UPPER_USER AND TUU1.STATUS=0
+     LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+     LEFT JOIN T_DEPT_COMPANY CMPY ON CMPY.DECP_ID=DEPT.DECP_ID AND CMPY.STATUS=0
+     LEFT JOIN T_DEPT DEPT2 on DEPT2.ID = TUU.DEPARTMENT
+     LEFT JOIN T_USER_USER U ON U.ID =DEPT2.DEPT_LEADER
+         WHERE TUU.STATUS=0
+           AND TUU.ID=#id#
+	 </select>
+	 <!-- 取出部门List,剔除T_USER_USER表中的DEPT部门   -->
+	 <select id="queryEmployeeDeptCmpy" resultClass="com.brick.employee.to.EmployeeTO">
+	 	SELECT DP.ID deptId,
+	           CP.DECP_ID companyId 
+	      FROM T_USER_USER2COMPANY UC
+	 LEFT JOIN T_DEPT_DEPARTMENT DP ON UC.DEPT_ID=DP.ID AND DP.STATUS=0
+	 LEFT JOIN T_DEPT_COMPANY CP ON DP.DECP_ID=CP.DECP_ID AND CP.STATUS=0
+			 WHERE UC.USER_ID=#id#
+	       AND NOT EXISTS (SELECT 1 FROM T_USER_USER TU WHERE UC.[USER_ID]=TU.ID AND TU.STATUS=0 AND TU.DEPT_ID=UC.DEPT_ID)
+	 </select>
+	 
+	 <update id="updateEmployee">
+	 	UPDATE T_USER_USER
+	 	   SET NAME=#NAME#,
+	 	  <!-- CODE=#code#,
+	 	   	   PASSWORD=#password#, -->
+	 	   	   SEX=#SEX#,
+	 	   	   MOBILE=#CELLPHONE#,
+	 	   	   TELEPHONE=#telephone#,
+	 	   	   EMAIL=#EMAIL_ADDRESS#,
+	 	   	   JOB=#USER_JOB#,
+	 	   	   NODE=#NODE#,
+	 	   	   UPPER_USER=#upper_user#,
+	 	   	   DEPT_ID=#DEPT#,
+	 	   	   DEPARTMENT = #newDeptId#
+	 	 WHERE ID=#employeeId#
+	 	   AND STATUS=0
+	 </update>
+	 
+	 <delete id="deleteDeptIds">
+	 	DELETE FROM T_USER_USER2COMPANY WHERE USER_ID=#employeeId# AND STATUS=0
+	 </delete>
+	 
+	 <select id="batchQueryEmployee" resultClass="com.brick.employee.to.EmployeeTO">
+        SELECT TUU.ID id,TUU.[NAME] [name],TUU.JOB jobCode,
+               TUU.DEPT_ID deptId,TUU.UPPER_USER upperId,
+               T.[NAME] upName,TD.FLAG jobDescr
+          FROM T_USER_USER TUU
+     LEFT JOIN T_USER_USER T ON TUU.UPPER_USER=T.ID AND T.STATUS=0
+     LEFT JOIN T_DATA_DICTIONARY TD ON TUU.JOB=TD.CODE AND TD.TYPE=#DATA_TYPE# AND TD.STATUS=0
+         WHERE TUU.STATUS=0
+       <isNotEmpty property="DEPT_ID">
+       	   AND EXISTS (SELECT 1 FROM T_USER_USER2COMPANY TUU2C 
+                      	   LEFT JOIN T_DEPT_DEPARTMENT TDD ON TUU2C.DEPT_ID=TDD.ID AND TDD.STATUS=0
+         					   WHERE TUU2C.USER_ID=TUU.ID AND TDD.ID=#DEPT_ID# AND TUU2C.STATUS=0)
+       </isNotEmpty> 
+       <isNotEmpty property="COMPANY_ID">
+       	   AND EXISTS (SELECT 1 FROM T_USER_USER2COMPANY TUU2C 
+                      	   LEFT JOIN T_DEPT_DEPARTMENT TDD ON TUU2C.DEPT_ID=TDD.ID AND TDD.STATUS=0
+                           LEFT JOIN T_DEPT_COMPANY CMPY ON CMPY.STATUS=0 AND TDD.DECP_ID=CMPY.DECP_ID
+   					           WHERE TUU2C.USER_ID=TUU.ID
+                                 AND TUU2C.STATUS=0
+                                 AND CMPY.DECP_ID=#COMPANY_ID#) 
+       </isNotEmpty>
+       <isNotEmpty property="JOB_ID">
+          AND TUU.JOB=#JOB_ID#
+       </isNotEmpty>
+       <isNotEmpty property="UPPER_ID">
+          AND TUU.UPPER_USER=#UPPER_ID#
+       </isNotEmpty>
+       ORDER BY TUU.ID
+	 </select>
+	 
+	 <select id="getDeptCmpyList" resultClass="com.brick.employee.to.EmployeeTO">
+	 	SELECT TUU.ID id,CMPY.DECP_ID companyId,DEPT.ID deptId,
+	 		   CMPY.DECP_NAME_CN companyName,DEPT.DEPT_NAME deptName
+	      FROM T_USER_USER TUU 
+	 LEFT JOIN T_USER_USER2COMPANY TUU2 ON TUU2.[USER_ID]=TUU.ID AND TUU2.STATUS=0
+	 LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU2.DEPT_ID AND DEPT.STATUS=0
+	 LEFT JOIN T_DEPT_COMPANY CMPY ON CMPY.DECP_ID=DEPT.DECP_ID AND CMPY.STATUS=0
+	     WHERE TUU.STATUS=0
+   	  ORDER BY TUU.ID
+	 </select>
+	 
+	 <select id="getUpperEmployee" resultClass="com.brick.employee.to.EmployeeTO">
+	 	SELECT ID id,NAME name FROM T_USER_USER WHERE STATUS=0 AND CODE IS NOT NULL ORDER BY ID
+	 </select>
+	 
+	 <update id="batchUpdateEmployeeInfo">
+		 <isEqual property="flag" compareValue="1">
+		 	UPDATE T_USER_USER
+		 	   SET JOB=#jobCode#
+		 	 WHERE ID IN ($ids$) 
+		 	   AND STATUS=0
+		 </isEqual>
+		 <isEqual property="flag" compareValue="2">
+		    UPDATE T_USER_USER
+		 	   SET UPPER_USER=#upperId#
+		 	 WHERE ID IN ($ids$)  
+		 	   AND STATUS=0
+		 </isEqual>
+		 <isEqual property="flag" compareValue="3">
+		 	UPDATE T_USER_USER
+		 	   SET JOB=#jobCode#,
+		 	   	   UPPER_USER=#upperId#
+		 	 WHERE ID IN ($ids$) 
+		 	   AND STATUS=0
+		 </isEqual>    
+	 </update>
+	 
+	 <delete id="batchDelDeptIds">
+	 	DELETE FROM T_USER_USER2COMPANY WHERE USER_ID IN ($ids$) AND STATUS=0
+	 </delete>
+	 
+	 <update id="batchUpdateDeptCode">
+	 	UPDATE T_USER_USER SET DEPT_ID=#deptId# WHERE ID IN ($ids$) AND STATUS=0
+	 </update>
+	 
+	 <update id="resetPassword">
+	 	UPDATE T_USER_USER SET PASSWORD=#MD5password# WHERE ID=#id#
+	 </update>
+	 
+	 <select id="getEmployeeForVistNew" parameterClass="map" resultClass="hashmap">
+		select id,name from t_user_user where (STATUS = 0 or Status=-2)
+	 </select>
+	 
+	 <select id="checkUserId" resultClass="java.util.HashMap">
+	 	SELECT ID FROM T_USER_USER WHERE CODE=#userId# AND STATUS=0
+	 </select>
+	 
+	 <select id="getEmpByMail" parameterClass="map" resultClass="com.brick.employee.to.EmployeeTO">
+	 	select top 1 [NAME] as 'name'
+		, EMAIL as 'email'
+		, STATUS as 'status'
+		from T_USER_USER
+		where EMAIL = #mailStr#
+	 </select>
+	 
+	 <select id="getAllEmp" resultClass="com.brick.base.to.SelectionTo">
+	 	select [NAME] as 'display_name'
+		, EMAIL as 'option_value'
+		from T_USER_USER
+		where STATUS = 0
+		and EMAIL is not null
+		and EMAIL != ''
+		order by [NAME]
+	 </select>
+	 
+	 <select id="getAllEmpWithoutStatus" resultClass="com.brick.base.to.SelectionTo">
+	 	select [NAME] as 'display_name'
+		, EMAIL as 'option_value'
+		from T_USER_USER
+		order by [NAME]
+	 </select>
+	 
+	 <select id="getAllEmpInfo" resultClass="com.brick.base.to.SelectionTo">
+	 	select [NAME]+'('+EMAIL+')' as 'display_name'
+		, id as 'option_value'
+		from T_USER_USER
+		where STATUS = 0
+		<isNotEmpty property="job">
+			and job = #job#
+		</isNotEmpty>
+		order by [NAME]
+	 </select>
+	 
+	 <select id="getAllEmpInfoWithoutStatus" resultClass="com.brick.base.to.SelectionTo">
+	 	select [NAME] as 'display_name'
+		, id as 'option_value'
+		from T_USER_USER
+		order by [NAME]
+	 </select>
+	 
+	 <update id="updateUserDept" parameterClass="map">
+	     
+	     UPDATE T_USER_USER SET DEPARTMENT = #department# where id = #userId#
+	 </update>
+</sqlMap>

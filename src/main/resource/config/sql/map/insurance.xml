@@ -1,0 +1,2587 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="insurance">
+
+	<select id="insuranceManage" parameterClass="map" resultClass="java.util.HashMap">
+			<![CDATA[ 
+				select t1.RECD_ID
+				,t.LEASE_CODE
+				,incp.INCP_NAME
+				,cucu.CUST_ID,cucu.CUST_TYPE,cucu.CUST_NAME,
+				t.RECT_ID,
+				t1.UNIT,
+				t1.UNIT_PRICE,
+				t1.AMOUNT,
+				t6.EQUPMENT_ADDRESS,
+			    isnull(t1.insure_status,0) insure_status,
+			    t1.output_status,
+			    t3.THING_KIND,t3.THING_NAME,t3.MODEL_SPEC,t3.THING_NUMBER					
+				,t3.ENGINE_CODE,t3.FRAME_CODE,t3.REGISTRATION_CODE,t3.THING_CODE,t3.LICENSE_NO
+				,case when prcd.FINANCECONTRACT_DATE is not null
+				then 'Y' else 'N' end as PAY_STATE
+				]]>
+				<!--2011/12/23 Yang Yun 新增拨款日期字段。Start  -->
+				<![CDATA[
+				,
+				prcd.FINANCECONTRACT_DATE as PAY_DATE
+				]]>
+				<!--2011/12/23 Yang Yun 新增拨款日期字段。End  -->
+				<![CDATA[
+					from T_RENT_CONTRACT t 
+					left join T_RENT_CONTRACTDETAIL t1 on t1.RECT_ID=t.RECT_ID
+					left join T_EQMT_EQUIPMENT t3 on t1.EQMT_ID=t3.EQMT_ID
+					left join T_CUST_CUSTOMER cucu on cucu.CUST_ID=t.CUST_ID
+					left join T_RENT_CONTRACTSCHEMA t6 on t6.RECT_ID=t.RECT_ID
+					left join T_INSU_COMPANY incp on incp.INCP_ID = t6.INSURANCE_COMPANY_ID
+					left join t_prjt_credit prcd on t.prcd_id = prcd.id
+				where t1.RECP_ID is not null and t.STATUS=0 and (t1.insure_status=0 or t1.insure_status is null )
+
+			]]>
+		<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and (cucu.CUST_NAME LIKE '%$content$%' 
+				 	OR t.LEASE_CODE LIKE '%$content$%' 
+				 	OR t3.THING_NAME LIKE '%$content$%' 
+				 	OR t3.MODEL_SPEC LIKE '%$content$%' 
+				 	OR t6.EQUPMENT_ADDRESS LIKE '%$content$%'
+				 	OR T3.THING_NUMBER LIKE '%$content$%')
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty property="insu_company">
+			and t6.INSURANCE_COMPANY_ID = #insu_company#
+		</isNotEmpty>
+		<isNotEmpty property="output_status">
+			and t1.output_status = #output_status#
+		</isNotEmpty>
+		<isEqual prepend="and" property="pay_state" compareValue="Y">
+		<![CDATA[
+			prcd.FINANCECONTRACT_DATE is not null
+		]]>	
+		</isEqual>
+		<isEqual prepend="and" property="pay_state" compareValue="N">
+		<![CDATA[
+			prcd.FINANCECONTRACT_DATE is null
+		]]>	
+		</isEqual>
+	</select>
+	
+	<select id="insuranceManage_count"  parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ 
+							select count(1)
+							from T_RENT_CONTRACT t 
+								left join T_RENT_CONTRACTDETAIL t1 on t1.RECT_ID=t.RECT_ID
+								left join T_EQMT_EQUIPMENT t3 on t1.EQMT_ID=t3.EQMT_ID
+								left join T_CUST_CUSTOMER cucu on cucu.CUST_ID=t.CUST_ID
+								left join T_RENT_CONTRACTSCHEMA t6 on t6.RECT_ID=t.RECT_ID
+									where t1.RECP_ID is not null and t.STATUS=0 and (t1.insure_status=0 or t1.insure_status is null )
+		]]>
+		<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and (cucu.CUST_NAME LIKE '%$content$%' 
+				 	OR t.LEASE_CODE LIKE '%$content$%' 
+				 	OR t3.THING_NAME LIKE '%$content$%' 
+				 	OR t3.MODEL_SPEC LIKE '%$content$%' 
+				 	OR t6.EQUPMENT_ADDRESS LIKE '%$content$%'
+				 	OR T3.THING_NUMBER LIKE '%$content$%')
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty property="insu_company">
+			and t6.INSURANCE_COMPANY_ID = #insu_company#
+		</isNotEmpty>
+		<isEqual prepend="and" property="pay_state" compareValue="Y">
+		<![CDATA[
+			exists (select py.ID from T_SUPL_PLAYDETIL py where py.CREDIT_ID = t.PRCD_ID and py.state = 3 and py.status = 0)
+		]]>	
+		</isEqual>
+		<isEqual prepend="and" property="pay_state" compareValue="N">
+		<![CDATA[
+			not exists (select py.ID from T_SUPL_PLAYDETIL py where py.CREDIT_ID = t.PRCD_ID and py.state = 3 and py.status = 0)
+		]]>	
+		</isEqual>
+	</select>
+	
+	<!-- 保单分页 -->
+	<select id="insuListManage" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[ 
+	SELECT  t1.INCU_ID
+		 ,t2.INCP_NAME
+		    ,t1.INCU_CODE
+		    ,t1.INCP_ID
+		    ,t1.INSU_NAME
+		    ,t1.INSU_ADDRESS
+		    ,t1.MORTGAGE
+		    ,t1.INSU_CERTIFICATE
+		    ,t1.TO_INSU_NAME
+		    ,t1.TO_INSU_ADDRESS
+		    ,t1.INSU_PRICE_TOTAL
+		    ,t1.INSU_PRICE
+		    ,t1.INSU_START_DATE
+		    ,t1.INSU_END_DATE
+		    ,t1.INSU_RATE
+		    ,t1.COEFFICIENT
+		    ,t1.REMARK
+		    ,t1.CHARGE_CODE
+		    ,t1.AFFIRM_SEIZE_DATE
+		    ,t1.AFFIRM_INSU_DATE
+		    ,t1.PRINT_INSU_DATE
+		    ,t1.RENEWAL_INSU_CODE
+		    ,t1.ENTER_NAME
+		    ,t1.MONEY_KIND
+		    ,t1.EMS_CODE
+		    ,t1.OUTPUT_STATUS
+		    ,t1.OUTPUT_DATE
+		    ,t1.TO_INSU_CERTIFICATE
+		    ,t1.RECT_CODE
+		    ,t1.REMARK_TYPE
+		    ,t1.STATUS,
+		    (select NAME from T_USER_USER
+		    where id = t1.MODIFY_ID) as MODIFY_ID,
+		    (case when exists(select il.INCU_ID
+		from T_INSU_INSURANCELIST il
+		left join T_RENT_CONTRACT rc on il.RECT_CODE = rc.LEASE_CODE
+		left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+		where il.STATUS = 0 and rc.STATUS = 0 and cp.STATUS = 0
+		and (cp.RECP_STATUS = 3 or
+		(cp.RECP_STATUS = 1 and
+		datediff(day,(select max(cdt.PAY_DATE) from T_RENT_COLLECTIONDETAIL cdt 
+		where cdt.RECP_ID = cp.RECP_ID),il.INSU_END_DATE) >= 30)) and il.INCU_ID = t1.INCU_ID )
+		then 1
+		else 0 end) as SETTLED_STT,
+		    tt.CUST_NAME,
+		    (select INCU_CODE from T_INSU_INSURANCELIST
+		where INCU_ID = t1.PARENT_INSU_ID)as PARENT_INCU_CODE,
+			  (select top 1 CREDIT_RUNCODE from T_PRJT_CREDIT pc
+		where ID in (
+		  select prcd_id from T_RENT_CONTRACT
+		  where lease_code = t1.RECT_CODE
+		)) as CREDIT_RUNCODE
+		FROM T_INSU_INSURANCELIST t1 
+		left join T_INSU_COMPANY t2 on t1.INCP_ID=t2.INCP_ID
+		left join (
+		   select  t1.INCU_ID,max(t3.CUST_NAME) CUST_NAME from  T_INSU_INSURANCELIST t1
+		    left join T_INSU_EMPT2INSULIST t66 on t66.INSU_ID=t1.INCU_ID And t66.STATUS=0
+		 left join T_RENT_CONTRACTDETAIL t99 on t99.EQMT_ID=t66.EQMT_ID And t99.STATUS=0
+		 left join T_RENT_CONTRACT t3 on t3.RECT_ID=t99.RECT_ID And t3.STATUS=0
+		 where   t1.STATUS!=1 
+		 group by t1.INCU_ID
+		) tt on tt.INCU_ID=t1.INCU_ID
+		where t1.STATUS!=1 
+		]]>
+		<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and (t2.INCP_NAME LIKE '%$content$%' 
+				 	OR t1.INCU_CODE LIKE '%$content$%' 
+				 	OR t1.INSU_PRICE LIKE '%$content$%' 
+				 	OR t1.CHARGE_CODE LIKE '%$content$%' 
+				 	OR t1.TO_INSU_NAME LIKE '%$content$%' 
+				 	OR t1.INSU_NAME LIKE '%$content$%'
+				 	OR t1.RECT_CODE LIKE '%$content$%'
+				 	OR tt.CUST_NAME LIKE '%$content$%'
+				 	or (select INCU_CODE from T_INSU_INSURANCELIST
+					where INCU_ID = t1.PARENT_INSU_ID) like '%$content$%'
+				 	)
+			  ]]>
+		</isNotEmpty>
+		<isEqual prepend="and" property="isRenewal" compareValue="true">
+			<![CDATA[
+				(t1.PARENT_INSU_ID is not null
+				and t1.PARENT_INSU_ID != 0)
+		  	]]>
+		</isEqual>
+		<isNotEmpty prepend="and" property="remark_type">
+			<![CDATA[
+				 t1.REMARK_TYPE = #remark_type#
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="" property="INCP">
+			<![CDATA[
+				 and (t2.INCP_ID LIKE '%$INCP$%' )
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="incustatus">
+			<isEqual property="incustatus" compareValue="-1">
+			<![CDATA[
+				  t1.STATUS = #incustatus#
+			  ]]>
+			</isEqual>
+			<!-- 2011/12/27 Yang Yun 新增终止状态. -->
+			<isEqual property="incustatus" compareValue="2">
+			<![CDATA[
+				  t1.STATUS = #incustatus#
+			  ]]>
+			</isEqual>
+			<isEqual property="incustatus" compareValue="3">
+			<![CDATA[
+			  exists (select il.INCU_ID
+				from T_INSU_INSURANCELIST il
+				left join T_RENT_CONTRACT rc on il.RECT_CODE = rc.LEASE_CODE
+				left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+				where il.STATUS = 0 and rc.STATUS = 0 and cp.STATUS = 0
+				and (cp.RECP_STATUS = 3 or
+				(cp.RECP_STATUS = 1 and
+				datediff(day,(select max(cdt.PAY_DATE) from T_RENT_COLLECTIONDETAIL cdt 
+				where cdt.RECP_ID = cp.RECP_ID),il.INSU_END_DATE) >= 30)) and il.INCU_ID = t1.INCU_ID )
+			  and t1.STATUS = 0
+		    ]]>
+		    </isEqual>
+		    <isEqual property="incustatus" compareValue="0">
+			<![CDATA[
+			  not exists (select il.INCU_ID
+				from T_INSU_INSURANCELIST il
+				left join T_RENT_CONTRACT rc on il.RECT_CODE = rc.LEASE_CODE
+				left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+				where il.STATUS = 0 and rc.STATUS = 0 and cp.STATUS = 0
+				and (cp.RECP_STATUS = 3 or
+				(cp.RECP_STATUS = 1 and
+				datediff(day,(select max(cdt.PAY_DATE) from T_RENT_COLLECTIONDETAIL cdt 
+				where cdt.RECP_ID = cp.RECP_ID),il.INSU_END_DATE) >= 30)) and il.INCU_ID = t1.INCU_ID )
+			  and t1.STATUS = 0
+		    ]]>
+		    </isEqual>
+		</isNotEmpty>
+	</select>
+	<select id="insuListManage_count"  parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ 
+		select count(1)
+		  FROM T_INSU_INSURANCELIST t1 
+			  left join T_INSU_COMPANY t2 on t1.INCP_ID=t2.INCP_ID
+			  left join (
+			     select  t1.INCU_ID,max(t3.CUST_NAME) CUST_NAME from  T_INSU_INSURANCELIST t1
+			      left join T_INSU_EMPT2INSULIST t66 on t66.INSU_ID=t1.INCU_ID And t66.STATUS=0
+				  left join T_RENT_CONTRACTDETAIL t99 on t99.EQMT_ID=t66.EQMT_ID And t99.STATUS=0
+				  left join T_RENT_CONTRACT t3 on t3.RECT_ID=t99.RECT_ID And t3.STATUS=0
+				  where   t1.STATUS!=1 
+				  group by t1.INCU_ID
+			  ) tt on tt.INCU_ID=t1.INCU_ID
+		  where t1.STATUS!=1
+		]]>
+		<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and (t2.INCP_NAME LIKE '%$content$%' 
+				 	OR t1.INCU_CODE LIKE '%$content$%' 
+				 	OR t1.INSU_PRICE LIKE '%$content$%' 
+				 	OR t1.CHARGE_CODE LIKE '%$content$%' 
+				 	OR t1.TO_INSU_NAME LIKE '%$content$%' 
+				 	OR t1.INSU_NAME LIKE '%$content$%' 
+				 	OR t1.RECT_CODE LIKE '%$content$%'
+				 	OR tt.CUST_NAME LIKE '%$content$%' 
+				 	or (select INCU_CODE from T_INSU_INSURANCELIST
+					where INCU_ID = t1.PARENT_INSU_ID) like '%$content$%'
+				 	)
+			  ]]>
+		</isNotEmpty>
+		<isEqual prepend="and" property="isRenewal" compareValue="true">
+			<![CDATA[
+				(t1.PARENT_INSU_ID is not null
+				and t1.PARENT_INSU_ID != 0)
+		  	]]>
+		</isEqual>
+		<isNotEmpty prepend="and" property="remark_type">
+			<![CDATA[
+				 t1.REMARK_TYPE = #remark_type#
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="" property="INCP">
+			<![CDATA[
+				 and (t2.INCP_ID LIKE '%$INCP$%' )
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="incustatus">
+			<isEqual property="incustatus" compareValue="-1">
+			<![CDATA[
+				  t1.STATUS = #incustatus#
+			  ]]>
+			</isEqual>
+			<!-- 2011/12/27 Yang Yun 新增终止状态. -->
+			<isEqual property="incustatus" compareValue="2">
+			<![CDATA[
+				  t1.STATUS = #incustatus#
+			  ]]>
+			</isEqual>
+			<isEqual property="incustatus" compareValue="3">
+			<![CDATA[
+			  exists (select il.INCU_ID
+				from T_INSU_INSURANCELIST il
+				left join T_RENT_CONTRACT rc on il.RECT_CODE = rc.LEASE_CODE
+				left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+				where il.STATUS = 0 and rc.STATUS = 0 and cp.STATUS = 0
+				and (cp.RECP_STATUS = 3 or
+				(cp.RECP_STATUS = 1 and
+				datediff(day,(select max(cdt.PAY_DATE) from T_RENT_COLLECTIONDETAIL cdt 
+				where cdt.RECP_ID = cp.RECP_ID),il.INSU_END_DATE) >= 30)) and il.INCU_ID = t1.INCU_ID )
+			  and t1.STATUS = 0
+		    ]]>
+		    </isEqual>
+		    <isEqual property="incustatus" compareValue="0">
+			<![CDATA[
+			not exists (select il.INCU_ID
+				from T_INSU_INSURANCELIST il
+				left join T_RENT_CONTRACT rc on il.RECT_CODE = rc.LEASE_CODE
+				left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+				where il.STATUS = 0 and rc.STATUS = 0 and cp.STATUS = 0
+				and (cp.RECP_STATUS = 3 or
+				(cp.RECP_STATUS = 1 and
+				datediff(day,(select max(cdt.PAY_DATE) from T_RENT_COLLECTIONDETAIL cdt 
+				where cdt.RECP_ID = cp.RECP_ID),il.INSU_END_DATE) >= 30)) and il.INCU_ID = t1.INCU_ID )
+			  and t1.STATUS = 0
+		    ]]>
+		    </isEqual>
+		</isNotEmpty>
+	</select>
+	<!-- 续保分页 -->
+	<select id="renewalManage" parameterClass="map" resultClass="java.util.HashMap">
+		<!-- <![CDATA[ 
+		select 
+				RECD.RECD_ID
+				,RECT.LEASE_CODE
+				,CUCU.CUST_ID,CUCU.CUST_TYPE,CUCU.CUST_NAME
+				,RECT.RECT_ID
+				,RECD.UNIT,RECD.UNIT_PRICE,RECD.AMOUNT
+				,RECS.EQUPMENT_ADDRESS
+				,isnull(RECD.insure_status,0) insure_status, RECD.output_status
+				,RECD.THING_NAME,RECD.MODEL_SPEC
+				,INSU.INSU_END_DATE
+				,INCP.INCP_NAME
+				,INCP.INCP_ID	
+				,MAX(t2.PAY_DATE) PAY_DATE
+		from
+			T_INSU_INSURANCELIST INSU 
+			LEFT JOIN T_INSU_EMPT2INSULIST EMPT ON EMPT.INSU_ID=INSU.INCU_ID
+			LEFT JOIN T_RENT_CONTRACTDETAIL RECD ON EMPT.EQMT_ID=RECD.EQMT_ID
+			LEFT JOIN T_RENT_CONTRACT RECT ON RECT.RECT_ID=RECD.RECT_ID
+			LEFT JOIN T_CUST_CUSTOMER CUCU ON CUCU.CUST_ID =RECT.CUST_ID
+			LEFT JOIN T_RENT_CONTRACTSCHEMA RECS ON RECS.RECT_ID=RECT.RECT_ID
+			LEFT JOIN T_INSU_COMPANY INCP ON INCP.INCP_ID=INSU.INCP_ID
+			left join T_RENT_COLLECTIONPLAN t1 on RECT.RECT_ID=t1.RECT_ID
+			left join T_RENT_COLLECTIONDETAIL t2 on t1.RECP_ID=t2.RECP_ID
+		where INSU.status=0 and DATEDIFF(day,GETDATE(),INSU_END_DATE)>0 and DATEDIFF(day,GETDATE(),INSU_END_DATE)<30
+			]]>
+		2011/12/22 Yang Yun 增加续保提醒过滤条件，合同到期日期 - 保单到期日期 >= 30天才显示. Start
+			<![CDATA[
+			and datediff(day,INSU.INSU_END_DATE,(select MAX(PAY_DATE) from T_RENT_COLLECTIONDETAIL where t1.RECP_ID=RECP_ID)) >= 30
+			]]>
+		2011/12/22 Yang Yun. End
+		<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and (CUCU.CUST_NAME LIKE '%$content$%' 
+				 	OR RECT.LEASE_CODE LIKE '%$content$%' 
+				 	OR RECD.THING_NAME LIKE '%$content$%' 
+				 	OR RECD.MODEL_SPEC LIKE '%$content$%' 
+				 	OR RECD.output_status LIKE '%$content$%'
+				 	OR RECS.EQUPMENT_ADDRESS LIKE '%$content$%'
+				 	)
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="INSU_START_DATE">  
+              <![CDATA[ INSU.INSU_END_DATE >= CONVERT(datetime,#INSU_START_DATE#)]]>
+        </isNotEmpty>
+		<isNotEmpty prepend="and" property="INSU_END_DATE">  
+              <![CDATA[ INSU.INSU_END_DATE <= CONVERT(datetime,#INSU_END_DATE#)]]>
+        </isNotEmpty>
+        <isGreaterThan prepend="AND" property="INCP_ID" compareValue="0">  
+        	   <![CDATA[ INCP.INCP_ID=#INCP_ID#]]>
+        </isGreaterThan>
+		group by RECD.RECD_ID,RECT.LEASE_CODE
+				,CUCU.CUST_ID,CUCU.CUST_TYPE,CUCU.CUST_NAME
+				,RECT.RECT_ID
+				,RECD.UNIT,RECD.UNIT_PRICE,RECD.AMOUNT
+				,RECS.EQUPMENT_ADDRESS
+				,insure_status, RECD.output_status
+				,RECD.THING_NAME,RECD.MODEL_SPEC
+				,INSU.INSU_END_DATE
+				,INCP.INCP_NAME	
+				,INCP.INCP_ID	
+			 -->
+		<![CDATA[
+			select il.INCU_ID, il.INCU_CODE, il.INSU_END_DATE, CUCU.CUST_NAME, rc.LEASE_CODE,
+			INCP.INCP_NAME,rc.RECT_ID,CUCU.CUST_ID,CUCU.CUST_TYPE,
+			(select MAX(PAY_DATE) from T_RENT_COLLECTIONDETAIL where cp.RECP_ID=RECP_ID) as PAY_DATE,
+			case when (select count(0) from T_RENT_CONTRACTDETAIL where RECT_ID = rc.RECT_ID 
+			  and (OUTPUT_STATUS != #output# or OUTPUT_STATUS is null)) > 0 then '' else '$output$' end
+			as OUTPUT_STATUS
+			from T_INSU_INSURANCELIST il
+			left join T_RENT_CONTRACT rc on il.RECT_CODE = rc.LEASE_CODE and rc.STATUS = 0
+			left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID and cp.STATUS = 0
+			LEFT JOIN T_INSU_COMPANY INCP ON INCP.INCP_ID=il.INCP_ID 
+			LEFT JOIN T_CUST_CUSTOMER CUCU ON CUCU.CUST_ID =rc.CUST_ID and CUCU.STATUS = 0
+			where 
+			(il.STATUS = 0 or il.status = 2)
+			]]>
+			<!-- (cp.RECP_STATUS = 0 or cp.FUND_STATUS = 0) and -->
+			<!-- and datediff(day, getdate(), (select MAX(PAY_DATE) from T_RENT_COLLECTIONDETAIL where cp.RECP_ID=RECP_ID)) > 0 -->
+			<!-- 2012/05/09 YangYun 批量重新投保临时注释 
+			<![CDATA[
+			and datediff(day, getdate(), (select MAX(PAY_DATE) from T_RENT_COLLECTIONDETAIL where cp.RECP_ID=RECP_ID)) > 0
+			and DATEDIFF(day,GETDATE(), il.INSU_END_DATE)>-30 
+			]]>
+			<![CDATA[
+			and DATEDIFF(day,GETDATE(), il.INSU_END_DATE)<30
+			and datediff(day,il.INSU_END_DATE,(select MAX(PAY_DATE) from T_RENT_COLLECTIONDETAIL where cp.RECP_ID=RECP_ID)) >= 30
+			]]>
+			 -->
+			<!-- il.STATUS = 0 and  -->
+			<![CDATA[
+			and not exists (select INCU_ID from T_INSU_INSURANCELIST where PARENT_INSU_ID = il.INCU_ID and STATUS = 0)
+		]]>
+		<isNotEmpty prepend="and" property="INSU_START_DATE">  
+           	<![CDATA[ il.INSU_END_DATE >= CONVERT(datetime,#INSU_START_DATE#)]]>
+        </isNotEmpty>
+		<isNotEmpty prepend="and" property="INSU_END_DATE">  
+        	<![CDATA[ il.INSU_END_DATE <= CONVERT(datetime,#INSU_END_DATE#)]]>
+        </isNotEmpty>
+        <isGreaterThan prepend="and" property="INCP_ID" compareValue="0">  
+        	<![CDATA[ INCP.INCP_ID=#INCP_ID#]]>
+        </isGreaterThan>
+        <isNotEmpty prepend="" property="content">
+			<![CDATA[
+				and (il.INCU_CODE like '%$content$%'
+				    or rc.LEASE_CODE like '%$content$%'
+				    or CUCU.CUST_NAME like '%$content$%')
+			]]>
+		</isNotEmpty>
+		<![CDATA[ 
+			order by rc.LEASE_CODE
+		]]>
+	</select>
+	<select id="renewalManage_count"  parameterClass="map" resultClass="java.lang.Integer">
+		<!-- <![CDATA[ 
+		select count(1)
+		from
+			T_INSU_INSURANCELIST INSU 
+			LEFT JOIN T_INSU_EMPT2INSULIST EMPT ON EMPT.INSU_ID=INSU.INCU_ID
+			LEFT JOIN T_RENT_CONTRACTDETAIL RECD ON EMPT.EQMT_ID=RECD.EQMT_ID
+			LEFT JOIN T_RENT_CONTRACT RECT ON RECT.RECT_ID=RECD.RECT_ID
+			LEFT JOIN T_CUST_CUSTOMER CUCU ON CUCU.CUST_ID =RECT.CUST_ID
+			LEFT JOIN T_RENT_CONTRACTSCHEMA RECS ON RECS.RECT_ID=RECT.RECT_ID
+			LEFT JOIN T_INSU_COMPANY INCP ON INCP.INCP_ID=INSU.INCP_ID
+			left join T_RENT_COLLECTIONPLAN t1 on RECT.RECT_ID=t1.RECT_ID
+		where INSU.status=0 and DATEDIFF(day,GETDATE(),INSU_END_DATE)>0 and DATEDIFF(day,GETDATE(),INSU_END_DATE)<30
+			]]>
+		2011/12/22 Yang Yun 增加续保提醒过滤条件，合同到期日期 - 保单到期日期 >= 30天才显示. Start
+			<![CDATA[
+			and datediff(day,INSU.INSU_END_DATE,(select MAX(PAY_DATE) from T_RENT_COLLECTIONDETAIL where t1.RECP_ID=RECP_ID)) >= 30
+			]]>
+		2011/12/22 Yang Yun. End
+		<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and (CUCU.CUST_NAME LIKE '%$content$%' 
+				 	OR RECT.LEASE_CODE LIKE '%$content$%' 
+				 	OR RECD.THING_NAME LIKE '%$content$%' 
+				 	OR RECD.MODEL_SPEC LIKE '%$content$%' 
+				 	OR RECD.output_status LIKE '%$content$%'
+				 	OR RECS.EQUPMENT_ADDRESS LIKE '%$content$%'
+				 	)
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="INSU_START_DATE">  
+              <![CDATA[ INSU.INSU_END_DATE >= CONVERT(datetime,#INSU_START_DATE#)]]>
+        </isNotEmpty>
+		<isNotEmpty prepend="and" property="INSU_END_DATE">  
+              <![CDATA[ INSU.INSU_END_DATE <= CONVERT(datetime,#INSU_END_DATE#)]]>
+        </isNotEmpty>
+        <isGreaterThan prepend="AND" property="INCP_ID" compareValue="0">  
+        	   <![CDATA[ INCP.INCP_ID=#INCP_ID#]]>
+        </isGreaterThan> -->
+        <![CDATA[
+			select count(0)
+			from T_INSU_INSURANCELIST il
+			left join T_RENT_CONTRACT rc on il.RECT_CODE = rc.LEASE_CODE and rc.STATUS = 0
+			left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID and cp.STATUS = 0
+			LEFT JOIN T_INSU_COMPANY INCP ON INCP.INCP_ID=il.INCP_ID 
+			LEFT JOIN T_CUST_CUSTOMER CUCU ON CUCU.CUST_ID =rc.CUST_ID and CUCU.STATUS = 0
+			where 
+			(cp.RECP_STATUS = 0 or cp.FUND_STATUS = 0) and (il.STATUS = 0 or il.status = 2)
+			and datediff(day, getdate(), (select MAX(PAY_DATE) from T_RENT_COLLECTIONDETAIL where cp.RECP_ID=RECP_ID)) > 0
+			]]>
+			<!-- il.STATUS = 0 and and  -->
+			<!-- 2012/05/09 YangYun 批量重新投保临时注释 
+			<![CDATA[
+			and DATEDIFF(day,GETDATE(), il.INSU_END_DATE) > -30 and DATEDIFF(day,GETDATE(), il.INSU_END_DATE)<30
+			and datediff(day,il.INSU_END_DATE,(select MAX(PAY_DATE) from T_RENT_COLLECTIONDETAIL where cp.RECP_ID=RECP_ID)) >= 30
+			]]>
+			-->
+			<![CDATA[
+			and not exists (select INCU_ID from T_INSU_INSURANCELIST where PARENT_INSU_ID = il.INCU_ID and STATUS = 0)
+		]]>
+		<isNotEmpty prepend="and" property="INSU_START_DATE">  
+           	<![CDATA[ il.INSU_END_DATE >= CONVERT(datetime,#INSU_START_DATE#)]]>
+        </isNotEmpty>
+		<isNotEmpty prepend="and" property="INSU_END_DATE">  
+        	<![CDATA[ il.INSU_END_DATE <= CONVERT(datetime,#INSU_END_DATE#)]]>
+        </isNotEmpty>
+        <isGreaterThan prepend="and" property="INCP_ID" compareValue="0">  
+        	<![CDATA[ INCP.INCP_ID=#INCP_ID#]]>
+        </isGreaterThan>
+        <isNotEmpty prepend="" property="content">
+			<![CDATA[
+				and (il.INCU_CODE like '%$content$%'
+				    or rc.LEASE_CODE like '%$content$%'
+				    or CUCU.CUST_NAME like '%$content$%')
+			]]>
+		</isNotEmpty>
+	</select>
+	
+		<!-- 
+		<select id="renewalManage" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+
+		select t1.RECD_ID	
+			   ,t.LEASE_CODE
+				,cucu.CUST_ID,cucu.CUST_TYPE,cucu.CUST_NAME,
+				t.RECT_ID,
+				t1.UNIT,
+				t1.UNIT_PRICE,
+				t1.AMOUNT,
+				t6.EQUPMENT_ADDRESS,
+			    isnull(t1.insure_status,0) insure_status,
+			      t1.output_status,
+			    t3.THING_KIND,t3.THING_NAME,t3.MODEL_SPEC
+			    ,INCU.INSU_END_DATE,incp.INCP_NAME				
+			,t3.ENGINE_CODE,t3.FRAME_CODE,t3.REGISTRATION_CODE,t3.THING_CODE,t3.LICENSE_NO
+											from T_RENT_CONTRACT t 
+											left join T_RENT_CONTRACTDETAIL t1 on t1.RECT_ID=t.RECT_ID
+											left join T_EQMT_EQUIPMENT t3 on t1.EQMT_ID=t3.EQMT_ID
+											left join T_CUST_CUSTOMER cucu on cucu.CUST_ID=t.CUST_ID
+											left join T_RENT_CONTRACTSCHEMA t6 on t6.RECT_ID=t.RECT_ID
+											left join T_INSU_EMPT2INSULIST t7 on t7.EQMT_ID=t1.EQMT_ID
+											left join T_INSU_INSURANCELIST INCU ON INCU.INCU_ID=t7.INSU_ID
+											left join T_INSU_COMPANY incp on incp.INCP_ID=INCU.INCP_ID
+												where t1.RECP_ID is not null and t.STATUS=0 and (t1.insure_status=0 or t1.insure_status is null )
+                                                 and t1.RECD_ID in (
+                                                 select t1.EQMT_ID
+												from T_INSU_EMPT2INSULIST t1
+												where t1.INSU_ID in(
+												select INCU_ID from T_INSU_INSURANCELIST
+												where STATUS=0 and DATEDIFF(day,GETDATE(),INSU_END_DATE)>0 and DATEDIFF(day,GETDATE(),INSU_END_DATE)<30)
+                                                 )
+			]]>
+		<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and (cucu.cust_name LIKE '%$content$%' 
+				 	OR t.LEASE_CODE LIKE '%$content$%' 
+				 	OR t3.thing_name LIKE '%$content$%' 
+				 	OR t3.MODEL_SPEC LIKE '%$content$%' 
+				 	OR cucu.CUST_NAME LIKE '%$content$%' 
+				 	OR t1.output_status LIKE '%$content$%'
+				 	)
+			  ]]>
+		</isNotEmpty>
+	
+	</select>
+	<select id="renewalManage_count"  parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ 
+		select count(1)
+	from T_RENT_CONTRACT t 
+		left join T_RENT_CONTRACTDETAIL t1 on t1.RECT_ID=t.RECT_ID
+		left join T_EQMT_EQUIPMENT t3 on t1.EQMT_ID=t3.EQMT_ID
+		left join T_CUST_CUSTOMER cucu on cucu.CUST_ID=t.CUST_ID
+		left join T_RENT_CONTRACTSCHEMA t6 on t6.RECT_ID=t.RECT_ID
+		left join T_INSU_EMPT2INSULIST t7 on t7.EQMT_ID=t1.EQMT_ID
+		left join T_INSU_INSURANCELIST INCU ON INCU.INCU_ID=t7.INSU_ID
+			where t1.RECP_ID is not null and t.STATUS=0 and (t1.insure_status=0 or t1.insure_status is null )
+                                        and t1.RECD_ID in (
+                                        select t1.EQMT_ID
+			from T_INSU_EMPT2INSULIST t1
+			where t1.INSU_ID in(
+			select INCU_ID from T_INSU_INSURANCELIST
+			where STATUS=0 and DATEDIFF(day,GETDATE(),INSU_END_DATE)>0 and DATEDIFF(day,GETDATE(),INSU_END_DATE)<30)
+                                        )
+		]]>
+		<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and (cucu.cust_name LIKE '%$content$%' 
+				 	OR t.LEASE_CODE LIKE '%$content$%' 
+				 	OR t3.thing_name LIKE '%$content$%' 
+				 	OR t3.MODEL_SPEC LIKE '%$content$%' 
+				 	OR cucu.CUST_NAME LIKE '%$content$%'
+				 		OR t1.output_status LIKE '%$content$%' )
+			  ]]>
+		</isNotEmpty>
+	</select>
+	 -->
+	<!-- 
+		查询保险险种
+	 -->
+	<select id="getInsureType" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+				SELECT DATA_ID
+				      ,CREATE_USER_ID
+				      ,MODIFY_USER_ID
+				      ,STATUS
+				      ,TYPE
+				      ,FLAG
+				      ,REMARK
+				      ,CODE
+				      ,DEFAULT_VALUE
+				      ,SHORTNAME
+				      ,LEVEL_NUM
+				  FROM T_DATA_DICTIONARY
+				  where TYPE=#TYPE# and STATUS=0
+			]]>
+	</select>
+	<!-- 查合同号 -->
+		<select id="getContractCode" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+		select t1.LEASE_CODE
+		from T_RENT_CONTRACTDETAIL t left join T_RENT_CONTRACT t1 
+			on t.RECT_ID = t1.RECT_ID
+			where t.RECD_ID=#RECD_ID#
+			]]>
+	</select>
+	<!-- 查询设备 -->
+		<select id="getEqmtById" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+					SELECT t1.RECD_ID
+			    
+			      
+			      ,t1.EQMT_ID
+			      ,t1.RECS_ID
+			      ,t1.THING_NAME
+			      ,t1.BRAND
+			      ,t1.MODEL_SPEC
+			      ,t1.UNIT_PRICE
+			      ,t1.THING_KIND
+			      ,t1.AMOUNT
+			      ,t1.UNIT
+			      ,t1.MEMO
+			      ,t1.RECP_ID
+			      ,t1.REDN_ID
+			      ,t1.STAYBUY_PRICE
+			      ,t1.LOCK_CODE
+			      ,t1.shui_price
+			      ,t1.RENTER_NAME
+			      ,t1.RENTER_EMAIL
+			      ,t1.INSURE_STATUS
+			      ,t1.OUTPUT_STATUS
+				,t2.EQUPMENT_ADDRESS
+				,t1.THING_NUMBER
+			  FROM T_RENT_CONTRACTDETAIL t1 
+			  left join T_RENT_CONTRACTSCHEMA  t2 on t2.RECT_ID=t1.RECT_ID
+			  where EQMT_ID=#EQMT_ID#
+			]]>
+	</select>
+	<!-- 查询设备 -->
+		<select id="getEqmtByRecdId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+					SELECT t1.RECD_ID
+			    
+			      
+			      ,t1.EQMT_ID
+			      ,t1.RECS_ID
+			      ,t1.THING_NAME
+			      ,t1.BRAND
+			      ,t1.MODEL_SPEC
+			      ,t1.UNIT_PRICE
+			      ,t1.THING_KIND
+			      ,t1.AMOUNT
+			      ,t1.UNIT
+			      ,t1.MEMO
+			      ,t1.RECP_ID
+			      ,t1.REDN_ID
+			      ,t1.STAYBUY_PRICE
+			      ,t1.LOCK_CODE
+			      ,t1.shui_price
+			      ,t1.RENTER_NAME
+			      ,t1.RENTER_EMAIL
+			      ,t1.INSURE_STATUS
+			      ,t1.OUTPUT_STATUS
+				,t2.EQUPMENT_ADDRESS
+				,t1.THING_NUMBER
+			  FROM T_RENT_CONTRACTDETAIL t1 
+			  left join T_RENT_CONTRACTSCHEMA  t2 on t2.RECT_ID=t1.RECT_ID
+			  where RECD_ID=#RECD_ID#
+			]]>
+	</select>
+	
+	<!-- 2011/1/5 Yang Yun 根据保单号查询设备. -->
+	<select id="getEqmtByInsuId" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select cd.RECD_ID, ct.LEASE_CODE from T_INSU_EMPT2INSULIST ei
+			left join T_RENT_CONTRACTDETAIL cd on cd.EQMT_ID = ei.EQMT_ID and cd.STATUS = 0
+			left join T_RENT_CONTRACT ct on ct.RECT_ID = cd.RECT_ID and ct.STATUS = 0
+			where ei.INSU_ID = #incu_id#
+			and ei.status = 0
+		]]>
+	</select>
+	
+	<!-- 2011/1/5 Yang Yun 根据保单号查询设备 For 导出设备. -->
+	<select id="getEqmtByInsuIdForExp" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select cd.RECD_ID, 
+			(SELECT il.INCU_CODE FROM T_INSU_INSURANCELIST il
+				where il.INCU_ID = ei.INSU_ID) as INSU_CODE
+			from T_INSU_EMPT2INSULIST ei
+			left join T_RENT_CONTRACTDETAIL cd on cd.EQMT_ID = ei.EQMT_ID and cd.STATUS = 0
+			left join T_RENT_CONTRACT ct on ct.RECT_ID = cd.RECT_ID and ct.STATUS = 0
+			where ei.INSU_ID in $insu_idsForSql$
+			and ei.status = 0
+		]]>
+	</select>
+
+
+	<!-- 
+		创建投保单编码
+	 -->
+	 <select id="getinsuranceCode" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			SELECT 'TBQD'+RIGHT ('0000000'+CAST(ISNULL(MAX(INCL_ID),0)+1 AS VARCHAR),8) INSURANCECODE
+			FROM T_INSU_COVERLIST
+	   ]]>
+	</select>
+	
+	
+	
+
+		
+
+	 <!-- 
+ 		查询保险公司
+ 	 -->
+	<select id="getCompany" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+					SELECT INCP_ID
+			      ,CREATE_TIME
+			      ,CREATE_USER_ID
+			      ,MODIFY_TIME
+			      ,MODIFY_USER_ID
+			      ,INCP_STATUS
+			      ,INCP_TYPE
+			      ,INCP_CODE
+			      ,INCP_NAME
+			      ,INCP_LINKMAN
+			      ,INCP_LINKTEL
+			      ,INCP_FAX
+			      ,INCP_EMAIL
+			      ,INCP_ADDRESS
+			      ,INCP_ZIP
+			      ,REMARK
+			      ,SHORT_NAME
+			      ,PRICE_PERCENT
+			  FROM T_INSU_COMPANY
+			  where INCP_STATUS=0
+	   ]]>
+	</select>
+	
+	<select id="getIncpNameById" parameterClass="map" resultClass="java.lang.String">
+		select isnull(SHORT_NAME, INCP_NAME)
+		from T_INSU_COMPANY
+		where INCP_ID = #incp_id#
+	</select>
+	
+	<!-- 
+		根据保险公司的ID查询保险种类
+	 -->
+	<select id="selectInsuranceType" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			 SELECT INIC.INTP_ID,
+					INIC.INTP_NAME,
+					INCP.INCP_LINKMAN,
+					INCP.INCP_LINKTEL,
+					INCP.INCP_FAX,
+					INTP.INTP_TYPE 
+			 FROM T_INSU_INSURETYPE2COMPANY INIC
+			LEFT JOIN T_INSU_COMPANY INCP ON INIC.INCP_ID=INCP.INCP_ID
+			LEFT JOIN T_INSU_INSURETYPE INTP ON INIC.INTP_ID=INTP.INTP_ID
+			 WHERE INIC.INIC_STATUS=0 AND INIC.INCP_ID=#INCP_ID# AND INTP.MOTOR_FLAG=#producttype#
+	   ]]>
+	</select>
+		<!-- 创建保单 -->
+		<insert id="createInsuList" parameterClass="map">
+		<!--2011/12/12 Yang Yun Add "MODIFY_ID" and "MODIFY_DATE" field-->
+		INSERT INTO T_INSU_INSURANCELIST
+           (CREATE_ID
+           ,CREATE_DATE
+           ,MODIFY_ID
+           ,MODIFY_DATE
+           ,INCU_CODE
+           ,INCP_ID
+           ,INSU_NAME
+           ,INSU_ADDRESS
+           ,MORTGAGE
+           ,INSU_CERTIFICATE
+           ,TO_INSU_NAME
+           ,TO_INSU_ADDRESS
+           ,INSU_PRICE_TOTAL
+           ,INSU_PRICE
+           ,INSU_START_DATE
+           ,INSU_END_DATE
+           ,INSU_RATE
+           ,COEFFICIENT
+           ,REMARK
+           ,RESOLVE_STYLE
+           ,CHARGE_CODE
+           ,AFFIRM_SEIZE_DATE
+           ,AFFIRM_INSU_DATE
+           ,PRINT_INSU_DATE
+           ,RENEWAL_INSU_CODE
+           ,ENTER_NAME
+           ,MONEY_KIND
+           ,EMS_CODE
+           ,OUTPUT_STATUS
+         
+           ,TO_INSU_CERTIFICATE
+           ,RECT_CODE
+           ,STATUS
+           ,PARENT_INSU_ID
+           ,REMARK_TYPE
+           )
+     VALUES
+           (#s_employeeId#
+           ,getdate()
+           ,#s_employeeId#
+           ,getdate()
+           ,#INCU_CODE# 
+           ,#INCP_ID#
+           ,#INSU_NAME#
+           ,#INSU_ADDRESS#
+           ,#MORTGAGE#
+           ,#INSU_CERTIFICATE#
+           ,#TO_INSU_NAME# 
+           ,#TO_INSU_ADDRESS# 
+           ,#INSU_PRICE_TOTAL#
+           ,#INSU_PRICE#
+           ,CONVERT(date,#INSU_START_DATE#)
+           ,CONVERT(date,#INSU_END_DATE#)
+           ,#INSU_RATE# 
+           ,#COEFFICIENT#
+           ,#REMARK# 
+           ,#RESOLVE_STYLE# 
+           ,#CHARGE_CODE# 
+           ,CONVERT(date, #AFFIRM_SEIZE_DATE# )
+           ,CONVERT(date,#AFFIRM_INSU_DATE# )
+           ,CONVERT(date,#PRINT_INSU_DATE#)
+           ,#RENEWAL_INSU_CODE#
+           ,#ENTER_NAME# 
+           ,#MONEY_KIND# 
+           ,#EMS_CODE#
+           ,#OUTPUT_STATUS#
+           ,#TO_INSU_CERTIFICATE#
+           ,#RECT_CODE#
+           ,0
+           ,#incu_id_old#
+           ,#remark_type#
+           )
+           <selectKey resultClass="java.lang.Long" keyProperty="INCU_ID">
+			<![CDATA[	select @@IDENTITY as INCU_ID  ]]>
+		   </selectKey>  	
+		</insert>
+		<!-- 插入险种加入中间表 -->
+		<insert id="createInsutype2InsuList" parameterClass="map">
+		INSERT INTO T_INSU_INSUTYPE2INSULIST
+           (CREATE_ID
+           ,MODIFY_ID
+    
+           ,STATUS
+       
+           ,INSU_ID
+           ,INTP_ID)
+     VALUES
+           (#s_employeeId#
+           ,#s_employeeId#      
+           ,0
+           ,#insu_id#
+           ,#intp_id# )
+		</insert>
+				<!-- 插入设备加入中间表 -->
+		<insert id="createEqmt2InsuList" parameterClass="map">
+		INSERT INTO T_INSU_EMPT2INSULIST
+           (CREATE_ID
+           ,MODIFY_ID
+           ,STATUS      
+           ,INSU_ID
+           ,EQMT_ID)
+     VALUES
+           (#s_employeeId#
+           ,#s_employeeId#      
+           ,0
+           ,#insu_id#
+           ,#eqmt_id# )
+		</insert>
+		<!-- 更新设备状态 -->
+	<update id="updateEqmt" parameterClass="map">
+		<![CDATA[
+			UPDATE T_RENT_CONTRACTDETAIL
+			   SET INSURE_STATUS = #insure_status#		   
+			 WHERE EQMT_ID = #eqmt_id#
+		]]>
+	</update> 
+	<!-- 查出保单 -->
+	<select id="getInsuListById"  parameterClass="map" resultClass="java.util.HashMap">
+			SELECT INCU_ID
+		      ,INCU_CODE
+		      ,INCP_ID
+		      ,INSU_NAME
+		      ,INSU_ADDRESS
+		      ,MORTGAGE
+		      ,INSU_CERTIFICATE
+		      ,TO_INSU_NAME
+		      ,TO_INSU_ADDRESS
+		      ,INSU_PRICE_TOTAL
+		      ,INSU_PRICE
+		      ,case INSU_START_DATE when '1900-01-01' then null else INSU_START_DATE end INSU_START_DATE
+		      ,case INSU_END_DATE when '1900-01-01' then null else INSU_END_DATE end INSU_END_DATE
+		      ,INSU_RATE
+		      ,COEFFICIENT
+		      ,REMARK
+		      ,REMARK_TYPE
+		      ,RESOLVE_STYLE
+		      ,CHARGE_CODE
+		      ,case AFFIRM_SEIZE_DATE when '1900-01-01' then null else AFFIRM_SEIZE_DATE end AFFIRM_SEIZE_DATE
+		      ,case AFFIRM_INSU_DATE when '1900-01-01' then null else AFFIRM_INSU_DATE end AFFIRM_INSU_DATE
+		      ,case PRINT_INSU_DATE when '1900-01-01' then null else PRINT_INSU_DATE end PRINT_INSU_DATE
+		      ,RENEWAL_INSU_CODE
+		      ,ENTER_NAME
+		      ,MONEY_KIND
+		      ,EMS_CODE
+		      ,OUTPUT_STATUS
+		      ,OUTPUT_DATE
+		      ,TO_INSU_CERTIFICATE
+		  FROM T_INSU_INSURANCELIST
+		  where incu_id=#INCU_ID#
+	</select>
+	<!-- 根据id查出保险公司信息 -->
+	<select id="getInsuCompanyById"  parameterClass="map" resultClass="java.util.HashMap">
+			SELECT INCP_ID
+		      ,CREATE_TIME
+		      ,CREATE_USER_ID
+		      ,MODIFY_TIME
+		      ,MODIFY_USER_ID
+		      ,INCP_STATUS
+		      ,INCP_TYPE
+		      ,INCP_CODE
+		      ,INCP_NAME
+		      ,INCP_LINKMAN
+		      ,INCP_LINKTEL
+		      ,INCP_FAX
+		      ,INCP_EMAIL
+		      ,INCP_ADDRESS
+		      ,INCP_ZIP
+		      ,REMARK
+		  FROM T_INSU_COMPANY
+		  where INCP_ID=#INCP_ID#
+	</select>
+	<!-- 根据保单的id查出中间表投保的险种 -->
+	<select id="getInsureTypeById"  parameterClass="map" resultClass="java.util.HashMap">
+			SELECT t1.ID
+		      ,t1.INSU_ID
+		      ,t2.DATA_ID
+		      ,t2.FLAG
+		  FROM T_INSU_INSUTYPE2INSULIST t1 right join T_DATA_DICTIONARY t2 
+		  on t2.DATA_ID=t1.intp_id
+		  where t1.INSU_ID=#INSU_ID# and t1.STATUS=0
+	</select>
+	<!-- 根据保单id在中间表查出投保的设备 -->
+		<select id="getEqmtByIncuId"  parameterClass="map" resultClass="java.util.HashMap">
+			SELECT ID
+			      ,EQMT_ID
+			      ,INSU_ID
+			  FROM T_INSU_EMPT2INSULIST
+		  where INSU_ID=#INSU_ID# and STATUS=0
+	</select>
+<!-- 修改需要 -->
+	<select id="getInsureTypeByIdforUpdate"  parameterClass="map" resultClass="java.util.HashMap">
+				SELECT isnull(t1.ID,0) id
+		      ,t1.INSU_ID
+		      ,t2.DATA_ID
+		      ,t2.FLAG
+		  FROM (select * from T_INSU_INSUTYPE2INSULIST where INSU_ID=#INSU_ID# and STATUS=0) t1 right join 
+		  (select DATA_ID,FLAG from T_DATA_DICTIONARY  where TYPE=#TYPE# and status=0) t2
+		  on t1.intp_id=t2.DATA_ID
+	</select>
+	<!-- 修改保单 -->
+	<update id="updateInsuList" parameterClass="map">
+	<!--2011/12/12 Yang Yun Add "MODIFY_ID" and "MODIFY_DATE" field-->
+	<!-- UPDATE T_INSU_INSURANCELIST
+		   SET
+		      INCU_CODE =#INCU_CODE# 
+		      ,INCP_ID = #INCP_ID#
+		      ,INSU_NAME = #INSU_NAME# 
+		      ,INSU_ADDRESS = #INSU_ADDRESS# 
+		      ,MORTGAGE = #MORTGAGE# 
+		      ,INSU_CERTIFICATE = #INSU_CERTIFICATE# 
+		      ,TO_INSU_NAME = #TO_INSU_NAME#
+		      ,TO_INSU_ADDRESS = #TO_INSU_ADDRESS# 
+		      ,INSU_PRICE_TOTAL = #INSU_PRICE_TOTAL# 
+		      ,INSU_PRICE = #INSU_PRICE# 
+		      ,INSU_START_DATE =CONVERT(date, #INSU_START_DATE#)
+		      ,INSU_END_DATE = CONVERT(date,#INSU_END_DATE#)
+		      ,INSU_RATE = #INSU_RATE# 
+		      ,COEFFICIENT = #COEFFICIENT# 
+		      ,REMARK = #REMARK# 
+		      ,RESOLVE_STYLE = #RESOLVE_STYLE#
+		      ,CHARGE_CODE = #CHARGE_CODE# 
+		      ,AFFIRM_SEIZE_DATE = CONVERT(date,#AFFIRM_SEIZE_DATE#)
+		      ,AFFIRM_INSU_DATE =CONVERT(date, #AFFIRM_INSU_DATE#)
+		      ,PRINT_INSU_DATE = CONVERT(date,#PRINT_INSU_DATE#)
+		      ,RENEWAL_INSU_CODE = #RENEWAL_INSU_CODE# 
+		      ,ENTER_NAME = #ENTER_NAME#
+		      ,MONEY_KIND = #MONEY_KIND# 
+		      ,EMS_CODE = #EMS_CODE# 
+		      ,TO_INSU_CERTIFICATE = #TO_INSU_CERTIFICATE#
+		 WHERE INCU_ID =#INCU_ID#
+		  -->
+		<![CDATA[
+		UPDATE T_INSU_INSURANCELIST
+		   SET
+		      INCU_CODE =#INCU_CODE# 
+		      ,MODIFY_ID=#s_employeeId#
+		      ,MODIFY_DATE=getdate()
+		      ,INCP_ID = #INCP_ID#
+		      ,INSU_NAME = #INSU_NAME# 
+		      ,INSU_ADDRESS = #INSU_ADDRESS# 
+		      ,MORTGAGE = #MORTGAGE# 
+		      ,INSU_CERTIFICATE = #INSU_CERTIFICATE# 
+		      ,TO_INSU_NAME = #TO_INSU_NAME#
+		      ,TO_INSU_ADDRESS = #TO_INSU_ADDRESS# 
+		      ,INSU_PRICE_TOTAL = #INSU_PRICE_TOTAL# 
+		      ,INSU_PRICE = #INSU_PRICE# 
+		      ,INSU_START_DATE =CONVERT(date, #INSU_START_DATE#)
+		      ,INSU_END_DATE = CONVERT(date,#INSU_END_DATE#)
+		      ,INSU_RATE = #INSU_RATE# 
+		      ,COEFFICIENT = #COEFFICIENT# 
+		      ,REMARK = #REMARK#
+		      ,REMARK_TYPE = #remark_type#
+		      ,RESOLVE_STYLE = #RESOLVE_STYLE#
+		      ,CHARGE_CODE = #CHARGE_CODE# 
+		      ,AFFIRM_SEIZE_DATE = CONVERT(date,#AFFIRM_SEIZE_DATE#)
+		      ,AFFIRM_INSU_DATE =CONVERT(date, #AFFIRM_INSU_DATE#)
+		      ,PRINT_INSU_DATE = CONVERT(date,#PRINT_INSU_DATE#)
+		      ,RENEWAL_INSU_CODE = #RENEWAL_INSU_CODE# 
+		      ,ENTER_NAME = #ENTER_NAME#
+		      ,MONEY_KIND = #MONEY_KIND# 
+		      ,EMS_CODE = #EMS_CODE# 
+		      ,TO_INSU_CERTIFICATE = #TO_INSU_CERTIFICATE#
+		 WHERE INCU_ID =#INCU_ID#
+		]]>
+	</update>
+	<!-- 删除险种中间表 -->
+	<delete id="delInsuType2InsuList" parameterClass="map">
+	delete from T_INSU_INSUTYPE2INSULIST where insu_id=#insu_id#
+	</delete>
+	<!-- 连中间表修改投保状态 -->
+	<update id="updateEqmtStatus"  parameterClass="map">
+		update T_RENT_CONTRACTDETAIL
+				set INSURE_STATUS=0
+				where EQMT_ID in (
+				select t.EQMT_ID from T_INSU_EMPT2INSULIST t
+					where INSU_ID=#insu_id#
+				)
+	</update>
+	<!-- 删除中间表 -->
+	<delete id="delEqmt2InsuList" parameterClass="map">
+	delete from T_INSU_EMPT2INSULIST where insu_id=#insu_id#
+	</delete>
+	<!-- 作废保单 -->
+	<update id="delInsuList"  parameterClass="map">
+	<!--2011/12/12 Yang Yun Add "MODIFY_ID" and "MODIFY_DATE" field-->
+	<![CDATA[
+		update T_INSU_INSURANCELIST
+		set status=1 
+			,MODIFY_ID=#s_employeeId#
+			,MODIFY_DATE=getdate()
+		where incu_id=#INCU_ID#
+	]]>
+	</update>
+
+	<update id="delInsuList1"  parameterClass="map">
+	<!--2011/12/12 Yang Yun Add "MODIFY_ID" and "MODIFY_DATE" field-->
+	<![CDATA[
+		update T_INSU_INSURANCELIST
+		set INSU_STATUS = 40 
+			,MODIFY_ID=#s_employeeId#
+			,MODIFY_DATE=getdate()
+		where incu_id=#INCU_ID#
+		]]>
+	</update>	
+	
+<!-- 查询保单付款 -->
+<!-- Modify by Michael 2011 11/28 add t.INSU_START_DATE desc For 客服需求按照保单开始时间排序 -->
+	<select id="getInsurePayMoney"  parameterClass="map" resultClass="java.util.HashMap">
+select 0 incuPayState,* from T_INSU_INSURANCELIST t
+	left join  T_INSU_COMPANY t3 on t.INCP_ID=t3.INCP_ID
+	where t.STATUS!=1 and t.INCP_ID=#incpId# and t.INCU_ID not in (select t1.INCID from T_PAY_INC_JOIN t1 where t1.PAYMONEYID in (select ID from T_SUPL_PLAYDETIL t2 where t2.STATUS=0 ))
+		<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and (t3.INCP_NAME LIKE '%$content$%' 
+				 	OR t.INCU_CODE LIKE '%$content$%'  
+				 	OR t.CHARGE_CODE LIKE '%$content$%' 
+				 	OR t.TO_INSU_NAME LIKE '%$content$%' 
+				 	OR t.INSU_NAME LIKE '%$content$%' 
+				 	or t.GROUP_CODE like '%$content$%' 
+				 	)
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="group_code">
+			<![CDATA[
+				t.GROUP_CODE like '%$group_code$%' 
+			]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="companyCode">
+			<![CDATA[
+				exists(
+					select 0 from T_RENT_CONTRACT rc
+					left join T_PRJT_CREDIT pc on rc.PRCD_ID = pc.ID
+					where pc.COMPANY_CODE = #companyCode#
+					and rc.RECT_ID = t.RECT_ID
+				)
+			]]>
+		</isNotEmpty>
+	order by t.INSU_START_DATE desc,  t.INCU_ID desc, t.incu_code desc
+	</select>	
+	
+	<!-- 查询保单付款条数 -->
+	<select id="getInsurePayMoney_count"  parameterClass="map" resultClass="java.lang.Integer">
+				select count(*) from T_INSU_INSURANCELIST t
+left join  T_INSU_COMPANY t3 on t.INCP_ID=t3.INCP_ID
+where t.STATUS=0 and t.INCP_ID=#incpId# and t.INCU_ID not in (select t1.INCID from T_PAY_INC_JOIN t1 where t1.PAYMONEYID in (select ID from T_SUPL_PLAYDETIL t2 where t2.STATUS=0 ))
+	<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and (t3.INCP_NAME LIKE '%$content$%' 
+				 	OR t.INCU_CODE LIKE '%$content$%'  
+				 	OR t.CHARGE_CODE LIKE '%$content$%' 
+				 	OR t.TO_INSU_NAME LIKE '%$content$%' 
+				 	OR t.INSU_NAME LIKE '%$content$%' 
+				 	)
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="companyCode">
+			<![CDATA[
+				exists(
+					select 0 from T_RENT_CONTRACT rc
+					left join T_PRJT_CREDIT pc on rc.PRCD_ID = pc.ID
+					where pc.COMPANY_CODE = #companyCode#
+					and rc.RECT_ID = t.RECT_ID
+				)
+			]]>
+		</isNotEmpty>
+	</select>
+	
+
+	<!-- 查询一张请款单下的所有保单付款 -->
+	<select id="getInsurePayMoneyJoin"  parameterClass="map" resultClass="java.util.HashMap">
+				SELECT t1.INCU_ID
+					,t2.INCP_NAME
+			      ,t1.INCU_CODE
+			      ,t1.INCP_ID
+			      ,t1.INSU_NAME
+			      ,t1.INSU_ADDRESS
+			      ,t1.MORTGAGE
+			      ,t1.INSU_CERTIFICATE
+			      ,t1.TO_INSU_NAME
+			      ,t1.TO_INSU_ADDRESS
+			      ,t1.INSU_PRICE_TOTAL
+			      ,t1.INSU_PRICE
+			      ,t1.INSU_START_DATE
+			      ,t1.INSU_END_DATE
+			      ,t1.INSU_RATE
+			      ,t1.COEFFICIENT
+			      ,t1.REMARK
+			      ,t1.CHARGE_CODE
+			      ,t1.AFFIRM_SEIZE_DATE
+			      ,t1.AFFIRM_INSU_DATE
+			      ,t1.PRINT_INSU_DATE
+			      ,t1.RENEWAL_INSU_CODE
+			      ,t1.ENTER_NAME
+			      ,t1.MONEY_KIND
+			      ,t1.EMS_CODE
+			      ,t1.OUTPUT_STATUS
+			      ,t1.OUTPUT_DATE
+			      ,t1.TO_INSU_CERTIFICATE
+			  FROM T_PAY_INC_JOIN t
+			  left join T_INSU_INSURANCELIST t1 on t.INCID=t1.INCU_ID and t1.STATUS=0
+			  left join T_INSU_COMPANY t2 on t1.INCP_ID=t2.INCP_ID
+			  where t.PAYMONEYID=#Id#
+	</select>
+	
+	<!-- 查询一张请款单下的所有保单付款 -->
+	<select id="getBonusPayMoneyJoin"  parameterClass="map" resultClass="java.util.HashMap">
+			select  CONTRACT_CODE,BONUS_NAME,TYPE_NUMBER,money_value = stuff((select ',' + [UPMONEY]+'-'+TYPE_NAME from T_BONUS_DETAIL t 
+  where STATUS=0 and state=0 and t.TYPE_NUMBER = T_BONUS_DETAIL.TYPE_NUMBER for xml path('')) , 1 , 1 , '')
+ from T_BONUS_DETAIL where status=0 and state=0 and TYPE_NUMBER in(select t.BONUSID from T_PAY_BONUS_JOIN t where t.PAYMONEYID=#Id# group by t.BONUSID) 
+ group by TYPE_NUMBER,CONTRACT_CODE,BONUS_NAME
+	</select>
+	
+	<!-- 查询保险费正在拨款中的 -->
+	<select id="queryPayMoneyByFirstInsusranceing_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ select COUNT(1) from (
+					select  	t1.*
+							FROM T_SUPL_PLAYDETIL T1
+							where  T1.BACKSTATE = 3 and T1.STATUS=0 and T1.STATE in (0,1)
+			]]>
+			<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and T1.BACKCOMP LIKE '%$content$%' 
+			  ]]>
+		</isNotEmpty>
+		<![CDATA[
+		) t
+			 ]]>
+	</select>
+	
+	
+	<!-- where  STATE  in (0,1)  -->
+	<select id="queryPayMoneyByFirstInsusranceing" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ select  	t1.*
+							FROM T_SUPL_PLAYDETIL T1
+							where  T1.BACKSTATE = 3 and T1.STATUS=0 and T1.STATE in (0,1)
+			]]>
+		<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and T1.BACKCOMP LIKE '%$content$%' 
+			  ]]>
+		</isNotEmpty>
+		<isEqual property="companyCode" compareValue="1">
+			and (T1.COMPANY_CODE is null or T1.COMPANY_CODE = #companyCode#)
+		</isEqual>
+		<isEqual property="companyCode" compareValue="2">
+			and T1.COMPANY_CODE = #companyCode#
+		</isEqual>
+				 
+		  	<![CDATA[ 
+							order by T1.ID desc
+		]]>
+	</select>
+	
+	<!-- 查询保险费正在拨款中的 -->
+	<select id="queryPayMoneyByFirstBonusing_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ select COUNT(1) from (
+					select  	t1.*
+							FROM T_SUPL_PLAYDETIL T1
+							where  T1.BACKSTATE = 2 and T1.STATUS=0 and T1.STATE in (0,1)
+			]]>
+			<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and T1.BACKCOMP LIKE '%$content$%' 
+			  ]]>
+		</isNotEmpty>
+		<![CDATA[
+		) t
+			 ]]>
+	</select>
+	
+	
+	<!-- where  STATE  in (0,1)  -->
+	<select id="queryPayMoneyByFirstBonusing" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ select  	t1.*
+							FROM T_SUPL_PLAYDETIL T1
+							where  T1.BACKSTATE = 2 and T1.STATUS=0 and T1.STATE in (0,1)
+			]]>
+			<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and T1.BACKCOMP LIKE '%$content$%' 
+			  ]]>
+		</isNotEmpty>
+			
+		  	<![CDATA[ 
+							order by T1.ID desc
+		]]>
+	</select>
+	
+	<!-- 查询保险费拨款成功的 -->
+	<select id="queryPayMoneyByFirstInsusrancesuccess_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ select COUNT(1) from (
+					select  	t1.*
+							FROM T_SUPL_PLAYDETIL T1
+							where  T1.BACKSTATE = 3 and T1.STATUS=0 and T1.STATE=3
+			]]>
+			<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and T1.BACKCOMP LIKE '%$content$%' 
+			  ]]>
+		</isNotEmpty>
+		<![CDATA[
+		) t
+			 ]]>
+	</select>
+	
+	
+	<!-- where  STATE  in (3)  -->
+	<select id="queryPayMoneyByFirstInsusrancesuccess" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ select  	t1.*
+							FROM T_SUPL_PLAYDETIL T1
+							where  T1.BACKSTATE =3 and T1.STATUS=0 and T1.STATE=3
+			]]>
+			<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and T1.BACKCOMP LIKE '%$content$%' 
+			  ]]>
+		</isNotEmpty>
+		  	<![CDATA[ 
+							order by T1.ID desc
+		]]>
+	</select>
+	
+	<!-- 查询奖金拨款成功的 -->
+	<select id="queryPayMoneyByFirstBonussuccess_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ select COUNT(1) from (
+					select  	t1.*
+							FROM T_SUPL_PLAYDETIL T1
+							where  T1.BACKSTATE = 2 and T1.STATUS=0 and T1.STATE=3
+			]]>
+			<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and T1.BACKCOMP LIKE '%$content$%' 
+			  ]]>
+		</isNotEmpty>
+		<![CDATA[
+		) t
+			 ]]>
+	</select>
+	
+	
+	<!-- where  STATE  in (2)  -->
+	<select id="queryPayMoneyByFirstBonussuccess" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ select  	t1.*
+							FROM T_SUPL_PLAYDETIL T1
+							where  T1.BACKSTATE =2 and T1.STATUS=0 and T1.STATE=3
+			]]>
+			<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and T1.BACKCOMP LIKE '%$content$%' 
+			  ]]>
+		</isNotEmpty>
+		  	<![CDATA[ 
+							order by T1.ID desc
+		]]>
+	</select>
+	
+	<!-- 查询保险费拨款失败的 -->
+	<select id="queryPayMoneyByFirstInsusranceback_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ select COUNT(1) from (
+					select  	t1.*
+							FROM T_SUPL_PLAYDETIL T1
+							where  T1.BACKSTATE = 3  and T1.STATUS in(1,-2)
+			]]>
+			<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and T1.BACKCOMP LIKE '%$content$%' 
+			  ]]>
+		</isNotEmpty>
+		<![CDATA[
+		) t
+			 ]]>
+	</select>
+	
+	
+	<!-- where  STATE  in (3)  -->
+	<select id="queryPayMoneyByFirstInsusranceback" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ select  	t1.*
+							FROM T_SUPL_PLAYDETIL T1
+							where  T1.BACKSTATE =3  and T1.STATUS in(1,-2)
+			]]>
+			<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and T1.BACKCOMP LIKE '%$content$%' 
+			  ]]>
+		</isNotEmpty>
+		  	<![CDATA[ 
+							order by T1.ID desc
+		]]>
+	</select>
+	
+	<!-- 查询奖金拨款失败的 -->
+	<select id="queryPayMoneyByFirstBonusback_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ select COUNT(1) from (
+					select  	t1.*
+							FROM T_SUPL_PLAYDETIL T1
+							where  T1.BACKSTATE = 2  and T1.STATUS in(1,-2)
+			]]>
+			<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and T1.BACKCOMP LIKE '%$content$%' 
+			  ]]>
+		</isNotEmpty>
+		<![CDATA[
+		) t
+			 ]]>
+	</select>
+	
+	
+	<!-- where  STATE  in (2)  -->
+	<select id="queryPayMoneyByFirstBonusback" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ select  	t1.*
+							FROM T_SUPL_PLAYDETIL T1
+							where  T1.BACKSTATE =2  and T1.STATUS in(1,-2)
+			]]>
+			<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and T1.BACKCOMP LIKE '%$content$%' 
+			  ]]>
+		</isNotEmpty>
+		  	<![CDATA[ 
+							order by T1.ID desc
+		]]>
+	</select>
+	
+	<!-- 查询该保险公司的银行账号 -->
+	<select id="queryComplayBankByIncp_id" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		select INCPBA_ID,BANK_NAME,BANK_ACCOUNT from T_INSU_COMPANYBANKACCOUNT where status=0 and INCP_ID=#incp_id# 
+			]]>
+		  	
+	</select>
+	
+	<select id="queryUserBankByUser_name" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		select BANK_NAME,BANK_ACCOUNT from T_USER_USER_BANKACCOUNT where status=0 and USER_NAME=#user_name#
+			]]>
+		  	
+	</select>
+	
+	<!-- 查询所有保险公司 -->
+	<select id="getInsureComplay" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		select INCP_ID,INCP_NAME from T_INSU_COMPANY t where t.INCP_STATUS=0 order by INCP_ID
+			]]>
+		  	
+	</select>
+	
+	<!-- 查询第一个保险公司Id -->
+	<select id="getInsureComplayByTopOne" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		select top 1 INCP_ID from T_INSU_COMPANY t where t.INCP_STATUS=0 order by INCP_ID
+			]]>
+		  	
+	</select>
+	
+	<!-- (1702,1701,1700,1699,1697,1698,1696,1694,1695,1693,1689,1690,1691,1692,1688) -->
+	<select id="getInsuInfoForExport" parameterClass="map" resultClass="java.util.HashMap">
+		select recd.rect_id, t.total, (getdate() + 1)as insu_start_date,(
+		  select max(PAY_DATE) from T_RENT_COLLECTIONDETAIL
+		  where RECP_ID in (
+		    select recp_id from T_RENT_COLLECTIONPLAN
+		    where RECT_ID = recd.rect_id
+		  )
+		) as end_date,
+		cust.cust_name,THING_NAME, MODEL_SPEC as thing_type,
+		recd.THING_KIND as thing_brand,THING_NUMBER, 
+		t_insu.thing_addrs,
+		UNIT_PRICE as insu_amount, recd.shui_price,
+		t.UNIT_PRICE_TOTAL,
+		t_insu.incp_id, incp.INCP_NAME
+		from T_RENT_CONTRACTDETAIL recd
+		left join (select count(0) as total, rect_id as rect_id_t,
+		sum(UNIT_PRICE) as UNIT_PRICE_total
+		from T_RENT_CONTRACTDETAIL
+		where RECD_ID in ($recd_id$)
+		group by rect_id) t on recd.RECT_ID = t.rect_id_t
+		left join (select RECT_ID, max(INSURANCE_COMPANY_ID)as incp_id,
+		max(EQUPMENT_ADDRESS) as thing_addrs
+		from T_RENT_CONTRACTSCHEMA
+		where STATUS = 0
+		group by RECT_ID) t_insu on recd.RECT_ID = t_insu.RECT_ID
+		left join T_INSU_COMPANY incp on t_insu.incp_id = incp.INCP_ID
+		left join T_RENT_CONTRACT rect on rect.RECT_ID = recd.RECT_ID
+		left join T_CUST_CUSTOMER cust on cust.CUST_ID = rect.CUST_ID
+		where 
+		RECD_ID in ($recd_id$)
+		order by RECT_ID desc
+	</select>
+	
+	<select id="getInsuInfoForExportByInsu" parameterClass="map" resultClass="java.util.HashMap">
+		select rect.rect_id, t.total, (
+		  select max(PAY_DATE) from T_RENT_COLLECTIONDETAIL
+		  where RECP_ID in (
+		    select recp_id from T_RENT_COLLECTIONPLAN
+		    where RECT_ID = recd.rect_id
+		  )
+		) as end_date,
+		convert(date,(convert(datetime,insu.INSU_END_DATE) + 1))as insu_start_date,
+		cust.cust_name, recd.THING_NAME, recd.MODEL_SPEC as thing_type,
+		recd.THING_KIND as thing_brand,recd.THING_NUMBER, recs.EQUPMENT_ADDRESS as thing_addrs,
+		recd.UNIT_PRICE as insu_amount, recd.shui_price,
+		t.UNIT_PRICE_total,
+		recs.INSURANCE_COMPANY_ID as incp_id, incp.INCP_NAME
+		from T_INSU_INSURANCELIST insu
+		left join T_RENT_CONTRACT rect on rect.LEASE_CODE = insu.RECT_CODE
+		and rect.STATUS = 0
+		left join T_RENT_CONTRACTDETAIL recd on recd.RECT_ID = rect.RECT_ID
+		and recd.STATUS = 0
+		left join T_CUST_CUSTOMER cust on cust.CUST_ID = rect.CUST_ID
+		left join T_RENT_CONTRACTSCHEMA recs on recs.RECT_ID = rect.RECT_ID
+		and recs.STATUS = 0
+		left join T_INSU_COMPANY incp on recs.INSURANCE_COMPANY_ID = incp.INCP_ID
+		left join (select count(0) as total, cd.rect_id as rect_id_t,
+		  sum(UNIT_PRICE) as UNIT_PRICE_total
+		  from T_RENT_CONTRACTDETAIL cd
+		  left join T_RENT_CONTRACT ct on ct.RECT_ID = cd.RECT_ID
+		  left join T_INSU_INSURANCELIST su on su.RECT_CODE = ct.LEASE_CODE
+		  and su.STATUS = 0  and cd.STATUS = 0
+		  where su.INCU_ID in ($insu_id$)
+		  group by cd.rect_id) t on t.rect_id_t = rect.RECT_ID
+		where INCU_ID in ($insu_id$)
+	</select>
+
+<!-- 
+*********************************************************
+2012-10-25 Yang Yun
+保险管理全部翻新
+*********************************************************
+ -->
+	
+	<!-- 检查是否已投保 -->
+	<select id="checkInsurance" parameterClass="com.brick.insurance.to.InsuranceTo" resultClass="java.lang.Integer">
+		select count(0) as c
+		from T_INSU_INSURANCELIST
+		where RECT_ID = #rectId#
+	</select>
+	
+	<select id="checkIsExistsFirstPay" resultClass="java.lang.String">
+		SELECT DISTINCT 'Y' FLAG
+	      FROM T_SUPL_PLAYDETIL 
+	     WHERE CREDIT_ID IN (SELECT DISTINCT PRCD_ID FROM T_RENT_CONTRACT WHERE RECT_ID=#rectId# AND STATUS=0)
+	       AND PAY_ORDER=1
+	       AND STATUS=0
+	       AND BACKSTATE=0
+	       AND PAY_MONEY IS NOT NULL
+	</select>
+
+	<!-- 新建保单（保险管理入口） -->
+	<insert id="startInsurance" parameterClass="com.brick.insurance.to.InsuranceTo">
+		insert into T_INSU_INSURANCELIST
+		(
+		  CREATE_ID,
+		  CREATE_DATE,
+		  RECT_ID,
+		  STATUS,
+		  INSU_STATUS
+		) values (
+		  #create_by#,
+		  getdate(),
+		  #rectId#,
+		  0,
+		  #insuStatus#
+		)
+		<selectKey resultClass="java.lang.String" keyProperty="insuId">
+			<![CDATA[	select @@IDENTITY as insuId  ]]>
+		</selectKey>  	
+	</insert>
+	
+	<!-- 关联保单所保的设备 -->
+	<insert id="insertInsu2Eqmt" parameterClass="com.brick.insurance.to.InsuranceTo">
+		insert into T_INSU_EMPT2INSULIST
+		(
+		   CREATE_ID
+		  ,CREATE_DATE
+		  ,STATUS
+		  ,RECD_ID
+		  ,INSU_ID
+		)
+		select 
+			#create_by#
+			,getdate()
+			,0
+			,recd.RECD_ID
+			,#insuId#
+		from T_RENT_CONTRACT rect
+		left join T_RENT_CONTRACTDETAIL recd on recd.RECT_ID = rect.RECT_ID
+		where rect.RECT_ID = #rectId#
+		and recd.STATUS = 0
+	</insert>
+	
+	<!-- 查询保单信息 -->
+	<select id="" parameterClass="com.brick.insurance.to.InsuranceTo" resultClass="com.brick.insurance.to.InsuranceTo">
+		select 
+		insu.INCU_ID as insuId,
+		incp.INCP_NAME as incpName, 
+		incp.RATE as insuRate, 
+		insu.INCP_NAME_MANUAL as incpNameManual, 
+		insu.INCU_CODE as insuCode, 
+		insu.INSU_START_DATE as insuStartDate,  
+		insu.INSU_END_DATE as insuEndDate, 
+		insu.INSU_PRICE as insuPrice,  
+		insu.INSU_PRICE_TOTAL as insuAmount, 
+		insu.AFFIRM_INSU_DATE as affirmInsuDate, 
+		insu.AFFIRM_SEIZE_DATE as affirmSeizeDate, 
+		insu.PRINT_INSU_DATE as printInsuDate
+		from T_INSU_INSURANCELIST insu
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		where insu.INCU_ID = #insuId#
+	</select>
+	
+	<!-- 投保-查询合同信息，判断投保的保险公司 -->
+	<select id="getContractInfoForSend" resultClass="com.brick.insurance.to.InsuranceTo">
+		select insu.INCU_ID as insuId
+		, decp.DECP_ID as decpId
+		, rect.RECT_ID as rectId
+		, rect.RECT_TYPE as contractType
+		, recs.LEASE_RZE as lease_rze
+		, prcd.CREDIT_RUNCODE as creditRuncode
+		, prcd.COMPANY_CODE as companyCode
+		from T_INSU_INSURANCELIST insu
+		left join T_RENT_CONTRACT rect on insu.rect_id = rect.rect_id
+		left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+		left join T_RENT_CONTRACTSCHEMA recs on recs.RECT_ID = rect.RECT_ID
+		left join T_USER_USER u on rect.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID
+		where insu.insu_status = 0 and insu.status = 0
+		and insu.GROUP_CODE is null
+	</select>
+	
+	<!-- 续保 -->
+	<insert id="insertRenewalInsu" parameterClass="com.brick.insurance.to.InsuranceTo">
+		insert into T_INSU_INSURANCELIST
+		(
+		  CREATE_ID,
+		  CREATE_DATE,
+		  RECT_ID,
+		  STATUS,
+		  INSU_STATUS,
+		  PARENT_INSU_ID,
+		  INCP_ID
+		  ,GROUP_CODE
+		) values (
+		  0,
+		  getdate(),
+		  #rectId#,
+		  0,
+		  #insuStatus#,
+		  #parentInsuId#,
+		  #incpId#
+		  ,#groupCode#
+		)
+		<selectKey resultClass="java.lang.String" keyProperty="insuId">
+			<![CDATA[	select @@IDENTITY as insuId  ]]>
+		</selectKey>  	
+	</insert>
+	
+	<!-- ***续保*** -查询合同信息 -->
+	<select id="getContractInfoForRenewal" resultClass="com.brick.insurance.to.InsuranceTo">
+		select 
+		insu.INCU_ID as parentInsuId
+		, dept.DECP_ID as decpId
+		, rect.RECT_ID as rectId
+		, rect.RECT_TYPE as contractType
+		, recs.LEASE_RZE as lease_rze
+		, insu.incp_id as incpId
+		, incp.IS_RENEWAL as isRenewal
+		from T_INSU_INSURANCELIST insu
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		left join T_RENT_CONTRACT rect on insu.RECT_ID = rect.RECT_ID
+		left join T_USER_USER u on rect.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		left join T_RENT_CONTRACTSCHEMA recs on recs.RECT_ID = rect.RECT_ID
+		left join (
+		  select recp.RECT_ID, max(recd.PAY_DATE) as rect_end_date
+		  from T_RENT_COLLECTIONPLAN recp
+		  left join T_RENT_COLLECTIONDETAIL recd on recd.RECP_ID = recp.RECP_ID
+		  where recd.STATUS = 0
+		  group by recp.RECT_ID
+		) t on t.RECT_ID = rect.RECT_ID
+		<![CDATA[ where datediff(day, getdate(), insu.INSU_END_DATE) <= 7 ]]>
+		and t.rect_end_date > insu.INSU_END_DATE
+		and insu.STATUS = 0
+		and insu.INSU_STATUS = 20
+		and not exists(
+		  select 0 from T_INSU_INSURANCELIST tt
+		  where tt.PARENT_INSU_ID = insu.INCU_ID
+		  and tt.STATUS = 0
+		)
+		<!-- select
+		insu.INCU_ID as parentInsuId
+		, dept.DECP_ID as decpId
+		, rect.RECT_ID as rectId
+		, rect.RECT_TYPE as contractType
+		, recs.LEASE_RZE as lease_rze
+		, insu.incp_id as incpId
+		, incp.IS_RENEWAL as isRenewal
+		from T_INSU_INSURANCELIST insu
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		left join T_RENT_CONTRACT rect on insu.RECT_ID = rect.RECT_ID
+		left join T_USER_USER u on rect.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		left join T_RENT_CONTRACTSCHEMA recs on recs.RECT_ID = rect.RECT_ID
+		where insu.INCU_ID in (
+		  select insu1.INCU_ID
+		  from T_INSU_INSURANCELIST insu1
+		  left join (
+		  select recp.RECT_ID, max(recd.PAY_DATE) as rect_end_date
+		    from T_RENT_COLLECTIONPLAN recp
+		    left join T_RENT_COLLECTIONDETAIL recd on recd.RECP_ID = recp.RECP_ID
+		    where recd.STATUS = 0
+		    group by recp.RECT_ID
+		  ) t on t.RECT_ID = insu1.RECT_ID
+		  where insu1.INSU_END_DATE >= convert(date, '2012-1-1')
+		  <![CDATA[ and insu1.INSU_END_DATE <= convert(date, (getdate() + 7)) ]]>
+		  and not exists(
+		    select OUTPUT_STATUS
+		    from T_RENT_CONTRACTDETAIL
+		    where OUTPUT_STATUS = '已导出'
+		    and RECT_ID = insu1.RECT_ID
+		  )
+		  and not exists (
+		    select INCU_ID from T_INSU_INSURANCELIST 
+		    where PARENT_INSU_ID = insu1.INCU_ID and STATUS = 0
+		  )
+		  and t.rect_end_date > insu1.INSU_END_DATE
+		  and insu.STATUS = 0
+		  and insu.INSU_STATUS in (20,30)
+		) -->
+	</select>
+	
+	<select id="getInsuExcelForEmail" parameterClass="map" resultClass="hashMap">
+		select
+		recd.RECT_ID
+		,convert(date,insu.INSU_START_DATE) as INSU_START_DATE
+		,convert(date,insu.INSU_END_DATE) as INSU_END_DATE
+		,cust.CUST_NAME
+		,THING_NAME
+		,MODEL_SPEC as THING_TYPE
+		,recd.THING_KIND as THING_BRAND
+		,THING_NUMBER
+		,recs.EQUPMENT_ADDRESS as THING_ADDRS
+		,(recd.SHUI_PRICE / 1.17) as INSU_AMOUNT
+		,(recd.SHUI_PRICE / 1.17) as SHUI_PRICE
+		,insu.INSU_PRICE as INSU_PRICE
+		from T_INSU_INSURANCELIST insu
+		left join T_INSU_EMPT2INSULIST inet on insu.INCU_ID = inet.INSU_ID
+		left join T_RENT_CONTRACTDETAIL recd on inet.RECD_ID = recd.RECD_ID
+		left join T_RENT_CONTRACT rect on recd.RECT_ID = rect.RECT_ID
+		left join T_CUST_CUSTOMER cust on cust.CUST_ID = rect.CUST_ID
+		left join T_RENT_CONTRACTSCHEMA recs on recs.RECT_ID = rect.RECT_ID
+		where insu.INCU_ID in ($insu_id$)
+	</select>
+	
+	<update id="updateInsuStatus" parameterClass="com.brick.insurance.to.InsuranceTo">
+		update T_INSU_INSURANCELIST
+		set INSU_STATUS = #insuStatus#
+			,MODIFY_DATE = getdate()
+			,MODIFY_ID = 0
+		where INCU_ID = #insuId#
+	</update>
+	
+	<update id="updateInsuCompany" parameterClass="com.brick.insurance.to.InsuranceTo">
+		update T_INSU_INSURANCELIST
+		set INCP_ID = #incpId#
+		, GROUP_CODE = #groupCode#
+		where INCU_ID = #insuId#
+	</update>
+	
+	<update id="updateInsuCompanyForRect" parameterClass="com.brick.insurance.to.InsuranceTo">
+		update T_RENT_CONTRACTSCHEMA
+		set INSURANCE_COMPANY_ID = #incpId#
+		where RECT_ID in (
+		  select RECT_ID
+		  from T_INSU_INSURANCELIST
+		  where INCU_ID = #insuId#
+		)
+	</update>
+	
+	<update id="updateInsuCompanyForRecp" parameterClass="com.brick.insurance.to.InsuranceTo">
+		update T_RENT_COLLECTIONPLAN
+		set INSURANCE_COMPANY_ID = #incpId#
+		where RECT_ID in (
+		  select RECT_ID
+		  from T_INSU_INSURANCELIST
+		  where INCU_ID = #insuId#
+		)
+	</update>
+	
+	<select id="getIncpEmail" parameterClass="com.brick.insurance.to.InsuranceTo" resultClass="java.lang.String">
+		select INCP_EMAIL 
+		from T_INSU_COMPANY
+		where INCP_ID = #incpId#
+	</select>
+	
+	<!-- 查询保单信息，用于投保后更新保单信息 -->
+	<select id="getInsuInfoForUpdate"  parameterClass="com.brick.insurance.to.InsuranceTo" resultClass="com.brick.insurance.to.InsuranceTo">
+		select insu.INCU_ID as insuId,
+		insu.INCP_ID as incpId,
+		incp.INCP_NAME as incpName,
+		isnull(incp.RATE, 0) as insuRate,
+		convert(float,isnull(incp.rate_more, 0)) as insuRateMore,
+		incp.insu_Type as insuType,
+		case when convert(date,cp.FIRST_PAYDATE) >= convert(date,(getdate() + 1))
+		then convert(date,cp.FIRST_PAYDATE) else convert(date,(getdate() + 1))
+		end as insuStartDateSql,
+		t.insuEndDate,
+		(t1.insuAmount / 1.17) AS insuAmount
+		from T_INSU_INSURANCELIST insu
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		left join T_RENT_CONTRACT rect on insu.RECT_ID = rect.RECT_ID
+		left join T_PRJT_CREDITSCHEME prcs on prcs.CREDIT_ID = rect.PRCD_ID
+		left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = insu.RECT_ID
+		left join (
+		  select recp.RECT_ID, max(recd.PAY_DATE) as insuEndDate
+		  from T_RENT_COLLECTIONPLAN recp
+		  left join T_RENT_COLLECTIONDETAIL recd on recd.RECP_ID = recp.RECP_ID
+		  where recd.STATUS = 0
+		  group by recp.RECT_ID
+		) t on t.RECT_ID = rect.RECT_ID
+		left join (
+		  select RECT_ID, sum(SHUI_PRICE) as insuAmount 
+		  from T_RENT_CONTRACTDETAIL
+		  group by RECT_ID
+		) t1 on t1.RECT_ID = rect.RECT_ID
+		where cp.STATUS = 0
+		and prcs.STATUS = 0
+		and rect.STATUS = 0
+		and insu.INCU_ID = #insuId#
+	</select>
+	
+	<!-- 查询保单信息，用于投保后更新保单信息 -->
+	<select id="getInsuInfoForUpdateRenewal"  parameterClass="com.brick.insurance.to.InsuranceTo" resultClass="com.brick.insurance.to.InsuranceTo">
+		select insu.INCU_ID as insuId,
+		insu.INCP_ID as incpId,
+		incp.INCP_NAME as incpName,
+		isnull(incp.RATE, 0) as insuRate,
+		convert(float,isnull(incp.rate_more, 0)) as insuRateMore,
+		incp.insu_Type as insuType,
+		convert(date,(
+		  select convert(datetime,INSU_END_DATE) + 1 from T_INSU_INSURANCELIST
+		  where INCU_ID = insu.PARENT_INSU_ID
+		)) as insuStartDateSql,
+		t.insuEndDate,
+		t1.insuAmount
+		from T_INSU_INSURANCELIST insu
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		left join T_RENT_CONTRACT rect on insu.RECT_ID = rect.RECT_ID
+		left join (
+		  select recp.RECT_ID, max(recd.PAY_DATE) as insuEndDate
+		  from T_RENT_COLLECTIONPLAN recp
+		  left join T_RENT_COLLECTIONDETAIL recd on recd.RECP_ID = recp.RECP_ID
+		  where recd.STATUS = 0
+		  group by recp.RECT_ID
+		) t on t.RECT_ID = rect.RECT_ID
+		left join (
+		  select RECT_ID, sum(shui_price) / 1.17 as insuAmount 
+		  from T_RENT_CONTRACTDETAIL
+		  where STATUS = 0
+		  group by RECT_ID
+		) t1 on t1.RECT_ID = rect.RECT_ID
+		where insu.INCU_ID = #insuId#
+	</select>
+	
+	<insert id="insertInfoForSurrender" parameterClass="map">
+		insert into T_INSU_SURRENDER (
+		   ID
+		  ,INCU_ID
+		  ,SURRENDER_DATE
+		  ,SURRENDER_PRICE
+		  ,CREATE_ID
+		  ,MODIFY_ID
+		  ,CREATE_DATE
+		  ,MODIFY_DATE
+		  ,STATUS
+		)
+		select insu.INCU_ID as insuId
+		, insu.INCU_ID as insuId
+		, convert(date, getdate() + 1) as surrenderDate
+		, insu.INSU_PRICE_TOTAL * insu.INSU_RATE / 1000 / 365
+		  * (datediff(day, (getdate() + 1), insu.INSU_END_DATE)) as surrenderPrice
+		, 0
+		, 0
+		, getdate()
+		, getdate()
+		,0
+		from T_INSU_INSURANCELIST insu
+		where INCU_ID = #INCU_ID#
+	</insert>
+	
+	<!-- 保单管理 -->
+	<select id="getAllInsu" parameterClass="map" resultClass="com.brick.insurance.to.InsuranceTo">
+		select 
+			insu.INCU_ID as insuId,
+			insu.STATUS as status,
+			insu.INSU_STATUS as insuStatus,
+			(select count(0) from T_INSU_ENDORSEMENTS
+				where INSU_ID = insu.INCU_ID
+				and STATUS = 0
+			) as exceptionStatus,
+			prcd.CREDIT_RUNCODE as creditRuncode,
+			cust.CUST_NAME as custName,
+			rect.LEASE_CODE as leaseCode,
+			incp.short_name as incpName,
+			insu.INCU_CODE as insuCode,
+			parent.INCU_CODE as parentInsuCode,
+			insu.INSU_START_DATE as insuStartDate,
+			insu.INSU_END_DATE as insuEndDate,
+			insu.INSU_PRICE as insuPrice,
+			insu.CHARGE_CODE as chargeCode,
+			(
+				select top 1 dd.FLAG 
+				from T_INSU_ENDORSEMENTS en
+				left join T_DATA_DICTIONARY dd on en.LIST_TYPE = dd.CODE
+				and dd.[TYPE] = '批单类型' and dd.STATUS = 0
+				where INSU_ID = insu.INCU_ID
+				and en.STATUS = 0
+			) as remark,
+			u.[NAME] as modify_by
+			,insu.GROUP_CODE as groupCode
+		from T_INSU_INSURANCELIST insu
+		left join T_RENT_CONTRACT rect on insu.RECT_ID = rect.RECT_ID
+		left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+		left join T_CUST_CUSTOMER cust on rect.CUST_ID = cust.CUST_ID
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		left join T_INSU_INSURANCELIST parent 
+		  on insu.PARENT_INSU_ID = parent.INCU_ID
+		left join T_USER_USER u on insu.MODIFY_ID = u.ID
+		where 1 = 1
+		<isNotEmpty property="status">
+			and insu.STATUS = #status#
+		</isNotEmpty>
+		<isNotEmpty property="exception_status">
+			<isEqual property="exception_status" compareValue="Y">
+				and exists (
+					select 0 from T_INSU_ENDORSEMENTS
+					where INSU_ID = insu.INCU_ID
+					and STATUS = 0
+				)
+			</isEqual>
+			<isEqual property="exception_status" compareValue="N">
+				and not exists (
+					select 0 from T_INSU_ENDORSEMENTS
+					where INSU_ID = insu.INCU_ID
+					and STATUS = 0
+				)
+			</isEqual>
+			<isEqual property="exception_status" compareValue="T">
+				and exists (
+					select 0 from T_RENT_CONTRACTDETAIL 
+					where (THING_NUMBER is null or THING_NUMBER = '')
+					and STATUS = 0
+					and RECT_ID = insu.RECT_ID
+				)
+			</isEqual>
+			<isNotEqual property="exception_status" compareValue="Y">
+				<isNotEqual property="exception_status" compareValue="N">
+					<isNotEqual property="exception_status" compareValue="T">
+						and exists (
+							select 0 from T_INSU_ENDORSEMENTS
+							where INSU_ID = insu.INCU_ID
+							and STATUS = 0
+							and LIST_TYPE = #exception_status#
+						)
+					</isNotEqual>
+				</isNotEqual>
+			</isNotEqual>
+		</isNotEmpty>
+		<isNotEmpty property="insu_status">
+			and insu.INSU_STATUS = #insu_status#
+		</isNotEmpty>
+		<isNotEmpty property="incp_id">
+			and insu.INCP_ID = #incp_id#
+		</isNotEmpty>
+		
+		<isEqual property="isRenewal" compareValue="1">
+			and parent.INCU_CODE is null
+		</isEqual>
+		<isEqual property="isRenewal" compareValue="0">
+			and parent.INCU_CODE is not null
+		</isEqual>
+		
+		<isNotEmpty property="start_date_from">
+			and convert(date, insu.INSU_START_DATE) >= convert(date, #start_date_from#)
+		</isNotEmpty>
+		<isNotEmpty property="start_date_to">
+			<![CDATA[ 
+			and convert(date, insu.INSU_START_DATE) <= convert(date, #start_date_to#)
+			]]>
+		</isNotEmpty>
+		<isNotEmpty property="end_date_from">
+			and convert(date, insu.INSU_END_DATE) >= convert(date, #end_date_from#)
+		</isNotEmpty>
+		<isNotEmpty property="end_date_to">
+			<![CDATA[ 
+			and convert(date, insu.INSU_END_DATE) <= convert(date, #end_date_to#)
+			]]>
+		</isNotEmpty>
+		
+		<isNotEmpty property="content">
+			and (
+				prcd.CREDIT_RUNCODE like '%$content$%'
+				or cust.CUST_NAME like '%$content$%'
+				or incp.short_name like '%$content$%'
+				or insu.INCU_CODE like '%$content$%'
+				or parent.INCU_CODE like '%$content$%'
+				or u.[NAME] like '%$content$%'
+				or insu.CHARGE_CODE like '%$content$%'
+				or rect.LEASE_CODE like '%$content$%'
+				or convert(varchar, insu.INSU_PRICE) like '$content$%'
+				or insu.group_code like '$content$%'
+			)
+		</isNotEmpty>
+	</select>
+	
+	<!-- 退保管理 -->
+	<select id="getAllSurrender" resultClass="com.brick.insurance.to.InsuranceTo" parameterClass="map">
+		select surr.ID as insuId
+		, prcd.CREDIT_RUNCODE as creditRuncode
+		, cust.CUST_NAME as custName
+		, rect.LEASE_CODE as leaseCode
+		, insu.INCU_CODE as insuCode
+		, incp.SHORT_NAME as incpName
+		, insu.INSU_START_DATE as insuStartDate
+		, insu.INSU_END_DATE as insuEndDate
+		, insu.INSU_PRICE as insuPrice
+		, surr.SURRENDER_DATE as surrenderDate
+		, surr.SURRENDER_PRICE as surrenderPrice
+		, surr.STATUS as surrenderStatus
+		, insu.STATUS as status
+		from T_INSU_SURRENDER surr
+		left join T_INSU_INSURANCELIST insu on surr.INCU_ID = insu.INCU_ID
+		left join T_RENT_CONTRACT rect on insu.RECT_ID = rect.RECT_ID
+		left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+		left join T_CUST_CUSTOMER cust on rect.CUST_ID = cust.CUST_ID
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		where surr.STATUS >= 0
+		<isNotEmpty property="surrenderStatus">
+			and surr.STATUS = #surrenderStatus#
+		</isNotEmpty>
+		<isNotEmpty property="incp_id">
+			and insu.INCP_ID = #incp_id#
+		</isNotEmpty>
+		<isNotEmpty property="start_date_from">
+			and convert(date, insu.INSU_START_DATE) >= convert(date, #start_date_from#)
+		</isNotEmpty>
+		<isNotEmpty property="start_date_to">
+			<![CDATA[ 
+			and convert(date, insu.INSU_START_DATE) <= convert(date, #start_date_to#)
+			]]>
+		</isNotEmpty>
+		<isNotEmpty property="end_date_from">
+			and convert(date, insu.INSU_END_DATE) >= convert(date, #end_date_from#)
+		</isNotEmpty>
+		<isNotEmpty property="end_date_to">
+			<![CDATA[ 
+			and convert(date, insu.INSU_END_DATE) <= convert(date, #end_date_to#)
+			]]>
+		</isNotEmpty>
+		<isNotEmpty property="content">
+			and (
+				prcd.CREDIT_RUNCODE like '%$content$%'
+				or cust.CUST_NAME like '%$content$%'
+				or incp.short_name like '%$content$%'
+				or insu.INCU_CODE like '%$content$%'
+				or rect.LEASE_CODE like '%$content$%'
+				or convert(varchar, insu.INSU_PRICE) like '$content$%'
+			)
+		</isNotEmpty>
+	</select>
+	
+	<!-- 退保单 -->
+	<select id="getSurrender" resultClass="com.brick.insurance.to.InsuranceTo" parameterClass="map">
+		select ID as insuId
+			, SURRENDER_DATE as surrenderDate
+			, convert(float, SURRENDER_PRICE) as surrenderPrice
+			, SURRENDER_CODE as surrenderCode
+			, SURRENDER_REASON as surrenderReason
+			, datediff(day, SURRENDER_DATE, (select insu_end_date from T_INSU_INSURANCELIST
+  				where incu_id = s.incu_id)) as dayDiff
+		from T_INSU_SURRENDER s
+		where INCU_ID = #insuId#
+	</select>
+	
+	<!-- 退保单修改 -->
+	<update id="updateSurrender" parameterClass="map">
+		update T_INSU_SURRENDER
+		set SURRENDER_DATE = convert(date, #surrenderDate#)
+		, SURRENDER_PRICE = #surrenderPrice#
+		, SURRENDER_REASON = #surrenderReason#
+		, SURRENDER_CODE = #surrenderCode#
+		, STATUS = #surrenderStatus#
+		, MODIFY_ID = #s_employeeId#
+		, MODIFY_DATE = getdate()
+		where ID = #insuId#
+	</update>
+	
+	<update id="updateInsuInfo" parameterClass="com.brick.insurance.to.InsuranceTo">
+		update T_INSU_INSURANCELIST
+		set INSU_PRICE_TOTAL = #insuAmount#
+		  ,INSU_PRICE = #insuPrice#
+		  ,INSU_START_DATE = #insuStartDate#
+		  ,INSU_END_DATE = #insuEndDate#
+		  ,INSU_RATE = #insuRate#
+		where INCU_ID = #insuId#
+	</update>
+	
+	<update id="updateIncpPricePercent" parameterClass="map">
+		update T_INSU_COMPANY
+		set PRICE_PERCENT = #price_percent#
+		where INCP_ID = #INCP_ID#
+	</update>
+	
+	<select id="getInsu2DecpByCompanyCode" resultClass="hashMap">
+		select * from T_INSU_INCP2DECP
+		where status = 0
+		and COMPANY_CODE = #companyCode#
+	</select>
+	
+	<delete id="deleteOldSetting">
+		delete from T_INSU_INCP2DECP
+	</delete>
+	
+	<insert id="saveInsuSetting" parameterClass="map">
+		insert into T_INSU_INCP2DECP (
+		   CREATE_DATE
+		  ,START_DATE
+		  ,STATUS
+		  ,INCP_ID
+		  ,DECP_ID
+		  ,COMPANY_CODE
+		  ,PRICE_PERCENT
+		) VALUES (
+		   getdate()
+		  ,convert(date, #start_date#)
+		  ,0
+		  ,#incp_id#
+		  ,#decp_id#
+		  ,#companyCode#
+		  ,#percent#
+		)
+	</insert>
+	
+	<select id="getIncpByDecp" parameterClass="map" resultClass="java.lang.Integer">
+		select INCP_ID from T_INSU_INCP2DECP
+		where STATUS = 0
+		and DECP_ID = #decpId#
+		and COMPANY_CODE = #companyCode#
+	</select>
+	
+	
+	<select id="getInsuPriceForAll" parameterClass="map" resultClass="java.lang.Double">
+		select isnull(sum(INSU_PRICE_TOTAL),0)
+		from T_INSU_INSURANCELIST insu
+		where INSU_START_DATE >= (
+		  select top 1 START_DATE from T_INSU_INCP2DECP
+		  <isNotEmpty property="companyCode">
+		  	where COMPANY_CODE = #companyCode#
+		  </isNotEmpty>
+		)
+		and STATUS = 0
+		and INCP_ID != 4
+		and INCP_ID in (
+			select INCP_ID from T_INSU_INCP2DECP
+			where STATUS = 0
+			and DECP_ID = #decpId#
+			and COMPANY_CODE = #companyCode#
+		)
+		<isNotEmpty property="companyCode">
+			and exists(
+				select 0 from T_RENT_CONTRACT rc
+				left join T_PRJT_CREDIT pc on rc.PRCD_ID = pc.ID
+				where pc.COMPANY_CODE = #companyCode#
+				and rc.RECT_ID = insu.RECT_ID
+			)
+		</isNotEmpty>
+	</select>
+	
+	<select id="getInsuPrice" parameterClass="map" resultClass="java.lang.Double">
+		select isnull(sum(INSU_PRICE_TOTAL),0)
+		from T_INSU_INSURANCELIST insu
+		where INSU_START_DATE >= (
+		  select top 1 START_DATE from T_INSU_INCP2DECP
+		  <isNotEmpty property="companyCode">
+		  	where COMPANY_CODE = #companyCode#
+		  </isNotEmpty>
+		)
+		and STATUS = 0
+		and INCP_ID != 4
+		<isNotEmpty property="incp_id">
+			and INCP_ID = #incp_id#
+		</isNotEmpty>
+		<isNotEmpty property="companyCode">
+			and exists(
+				select 0 from T_RENT_CONTRACT rc
+				left join T_PRJT_CREDIT pc on rc.PRCD_ID = pc.ID
+				where pc.COMPANY_CODE = #companyCode#
+				and rc.RECT_ID = insu.RECT_ID
+			)
+		</isNotEmpty>
+	</select>
+	
+	<select id="getTargetPercent" parameterClass="map" resultClass="java.lang.Double">
+		select top 1 PRICE_PERCENT from T_INSU_INCP2DECP
+		where STATUS = 0
+		and INCP_ID = #incp_id#
+		and COMPANY_CODE = #companyCode#
+	</select>
+	
+	<select id="getInsuInfoForShowOrUpdate" parameterClass="map" resultClass="com.brick.insurance.to.InsuranceTo">
+		select insu.INCU_ID as insuId,
+		incp.INCP_NAME as incpName,
+		insu.INSU_RATE as insuRate,
+		insu.INCU_CODE as insuCode,
+		convert(date, insu.INSU_START_DATE) as insuStartDateSql,
+		convert(date, insu.INSU_END_DATE) as insuEndDateSql,
+		datediff(day, convert(date, insu.INSU_START_DATE), convert(date, insu.INSU_END_DATE)) + 1 as dayDiff,
+		insu.EXCEPTION_STATUS as exceptionStatus,
+		insu.REMARK as remark,
+		insu.AFFIRM_INSU_DATE as affirmInsuDate,
+		insu.AFFIRM_SEIZE_DATE as affirmSeizeDate,
+		insu.PRINT_INSU_DATE as printInsuDate,
+		insu.INSU_PRICE_TOTAL as insuAmount,
+		insu.INSU_PRICE as insuPrice
+		from T_INSU_INSURANCELIST insu
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		where insu.INCU_ID = #insuId#
+	</select>
+	
+	<update id="updateInsuInfoFromPage" parameterClass="map">
+		update T_INSU_INSURANCELIST
+			set INSU_STATUS = #insuStatus#
+			,MODIFY_ID = #s_employeeId#
+			,MODIFY_DATE = getdate()
+			,INSU_START_DATE = #insu_start_date#
+			,INSU_END_DATE = #insu_end_date#
+		<isNotEmpty property="insuCode">
+			,INCU_CODE = #insuCode#
+		</isNotEmpty>
+		<isNotEmpty property="insuPrice">
+			,INSU_PRICE = #insuPrice#
+		</isNotEmpty>
+		<isNotEmpty property="affirmInsuDate">
+			,AFFIRM_INSU_DATE = convert(date, #affirmInsuDate#)
+		</isNotEmpty>
+		<isNotEmpty property="affirmSeizeDate">
+			,AFFIRM_SEIZE_DATE = convert(date, #affirmSeizeDate#)
+		</isNotEmpty>
+		<isNotEmpty property="printInsuDate">
+			,PRINT_INSU_DATE = convert(date, #printInsuDate#)
+		</isNotEmpty>
+		<isNotEmpty property="exceptionStatus">
+			,EXCEPTION_STATUS = #exceptionStatus#
+		</isNotEmpty>
+		<isNotEmpty property="remark">
+			,REMARK = #remark#
+		</isNotEmpty>
+		where INCU_ID = #insuId#
+	</update>
+	
+	<select id="getEqmtInfo" parameterClass="map" resultClass="hashMap">
+		select recd.THING_NAME,
+		(recd.SHUI_PRICE / 1.17) AS UNIT_PRICE,
+		recd.MODEL_SPEC,
+		recd.THING_NUMBER,
+		recd.BRAND,
+		recs.EQUPMENT_ADDRESS
+		from T_INSU_EMPT2INSULIST ei
+		left join T_RENT_CONTRACTDETAIL recd on ei.RECD_ID = recd.RECD_ID
+		left join T_RENT_CONTRACT rect on recd.RECT_ID = rect.RECT_ID
+		left join T_RENT_CONTRACTSCHEMA recs on recs.RECT_ID = rect.RECT_ID
+		where ei.INSU_ID = #insuId#
+	</select>
+	
+	<select id="getInseranceFile" resultClass="hashMap">
+		select 
+			SEND_FLAG,EMAIL_TO,EMAIL_SUBJECT,
+			replace(EMAIL_ATTACH_PATH, '\', '\\') as EMAIL_ATTACH_PATH,
+			CREATE_TIME, SEND_TIME
+		from T_SEND_EMAIL
+		where EMAIL_TYPE = 120
+		and STATUS = 0
+	</select>
+	
+	<select id="getWaitingForSurrender" resultClass="hashMap">
+		select insu.INCU_ID , insu.INCP_ID
+		from T_INSU_INSURANCELIST insu
+		where exists (
+		  select il.INCU_ID
+			from T_INSU_INSURANCELIST il
+			left join T_RENT_CONTRACT rc on il.RECT_ID = rc.RECT_ID
+			left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+			where il.STATUS = 0 and rc.STATUS = 0 and cp.STATUS = 0
+			and (cp.RECP_STATUS = 3 or
+			(cp.RECP_STATUS = 1 and
+			datediff(day,(select max(cdt.PAY_DATE) from T_RENT_COLLECTIONDETAIL cdt 
+			where cdt.RECP_ID = cp.RECP_ID),il.INSU_END_DATE) >= 30)) and il.INCU_ID = insu.INCU_ID 
+		) and insu.STATUS = 0 and insu.INSU_STATUS = 20
+		and insu.INCP_ID != 4
+	</select>
+	
+	<select id="getWaitingForSurrenderFile" resultClass="hashMap" parameterClass="map">
+		select cust.CUST_NAME, incp.INCP_NAME, insu.INCU_CODE 
+			, (
+			  select convert(date, max(fb.DECOMPOSE_TIME)) as DECOMPOSE_DATE
+			  from T_RENT_COLLECTIONPLAN rp
+			  left join T_RENT_DECOMPOSE fb on fb.RECP_ID = rp.RECP_ID
+			  where rp.STATUS = 0
+			  and (rp.RECP_STATUS = 1 or rp.RECP_STATUS = 3)
+			  and rp.RECT_ID = rect.RECT_ID
+			) as DECOMPOSE_DATE
+		from T_INSU_INSURANCELIST insu
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		left join T_RENT_CONTRACT rect on insu.RECT_ID = rect.RECT_ID
+		left join T_CUST_CUSTOMER cust on rect.CUST_ID = cust.CUST_ID
+		where insu.INCU_ID in ($insu_ids$)
+	</select>
+	
+	<update id="changeData" parameterClass="map">
+		update T_INSU_INSURANCELIST set INSU_END_DATE = convert(date, #newData#)
+		where INCU_ID = #insuId#
+	</update>
+	
+	<insert id="updateInsuExceptionStatus" parameterClass="map">
+		<!-- update T_INSU_INSURANCELIST set 
+			EXCEPTION_STATUS = 2
+			,REMARK = #exceptionMsg#
+			,MODIFY_DATE = getdate()
+			,MODIFY_ID = 0
+		where RECT_ID in (
+		  select RECT_ID from T_RENT_CONTRACT 
+		  where LEASE_CODE = #LEASE_CODE#
+		) -->
+		insert into T_INSU_ENDORSEMENTS (
+		   INSU_ID
+		  ,CREATE_BY
+		  ,CREATE_DATE
+		  ,LIST_TYPE
+		  ,STATUS
+		)
+		select insu.INCU_ID
+		, #s_employeeId#
+		, getdate()
+		, #list_type#
+		, 0
+		FROM T_INSU_INSURANCELIST insu
+		where insu.RECT_ID in(
+		  select RECT_ID from T_RENT_CONTRACT 
+		  where LEASE_CODE = #LEASE_CODE#
+		)
+	</insert>
+	
+	<select id="getIncpEmailByLeaseCode" parameterClass="map" resultClass="java.lang.String">
+		select top 1 INCP_EMAIL from T_INSU_COMPANY
+		where INCP_ID in (
+		  select INCP_ID from T_INSU_INSURANCELIST
+		  where RECT_ID in (
+		    select RECT_ID from T_RENT_CONTRACT 
+		    where LEASE_CODE = #LEASE_CODE#
+		  )
+		)
+	</select>
+	
+	<insert id="updateInsuExceptionStatusByRectId" parameterClass="map">
+		<!-- update T_INSU_INSURANCELIST set 
+			EXCEPTION_STATUS = 1
+			,REMARK = #exceptionMsg#
+			,MODIFY_DATE = getdate()
+			,MODIFY_ID = 0
+		where RECT_ID = #RECT_ID# -->
+		insert into T_INSU_ENDORSEMENTS (
+		   INSU_ID
+		  ,CREATE_BY
+		  ,CREATE_DATE
+		  ,LIST_TYPE
+		  ,STATUS
+		)
+		select insu.INCU_ID
+		, #s_employeeId#
+		, getdate()
+		, #list_type#
+		, 0
+		FROM T_INSU_INSURANCELIST insu
+		where insu.RECT_ID = #RECT_ID#
+	</insert>
+	
+	<select id="getIncpEmailByRectId" parameterClass="map" resultClass="java.lang.String">
+		select top 1 INCP_EMAIL from T_INSU_COMPANY
+		where INCP_ID in (
+		  select INCP_ID from T_INSU_INSURANCELIST
+		  where RECT_ID = #RECT_ID#
+		)
+	</select>
+	
+	<select id="getEqmtInfoForChangeNum" parameterClass="map" resultClass="hashMap">
+		select cust.CUST_NAME, incp.INCP_NAME,
+		insu.INCU_CODE, recd.THING_NAME, recd.MODEL_SPEC,
+		recd.UNIT_PRICE, recd.THING_NUMBER
+		from T_RENT_CONTRACTDETAIL recd
+		left join T_RENT_CONTRACT rect on recd.RECT_ID = rect.RECT_ID
+		left join T_CUST_CUSTOMER cust on rect.CUST_ID = cust.CUST_ID
+		left join T_INSU_INSURANCELIST insu on insu.RECT_ID = rect.RECT_ID
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		where recd.RECT_ID = #RECT_ID#
+	</select>
+	
+	<select id="getEqmtInfoForChangeEqmtAddr" parameterClass="map" resultClass="hashMap">
+		select top 1 cust.CUST_NAME, incp.INCP_NAME, insu.INCU_CODE 
+		from T_INSU_INSURANCELIST insu
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		left join T_RENT_CONTRACT rect on insu.RECT_ID = rect.RECT_ID
+		left join T_CUST_CUSTOMER cust on rect.CUST_ID = cust.CUST_ID
+		where insu.RECT_ID in (
+		  select RECT_ID from T_RENT_CONTRACT 
+		  where LEASE_CODE = #LEASE_CODE#
+		)
+	</select>
+	
+	<select id="getRectIdByLeaseCode" parameterClass="map" resultClass="java.lang.String">
+		select top 1 RECT_ID from T_RENT_CONTRACT
+		where LEASE_CODE = #lease_code#
+	</select>
+	
+	<select id="getDataForTrace" resultClass="hashMap">
+		select datediff(day,INSU_START_DATE ,getdate()) as '距今天数'
+		, incp.SHORT_NAME
+		, incp.incp_name as '保险公司名称'
+		, incp.INCP_EMAIL
+		, rect.CUST_NAME as '承租人名称'
+		, rect.LEASE_CODE as '合同号'
+		, insu.INSU_START_DATE as '保险起始日'
+		, insu.INSU_PRICE as '保费'
+		, ps.EQUPMENT_ADDRESS as '租赁物放置地'
+		from T_INSU_INSURANCELIST insu
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		left join T_RENT_CONTRACT rect on insu.RECT_ID = rect.RECT_ID
+		left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = prcd.ID
+		where insu.INSU_STATUS = 10
+		and insu.STATUS = 0
+		and datediff(day,INSU_START_DATE ,getdate()) >= 7
+		and datediff(day,INSU_START_DATE ,getdate()) % 7 = 0
+		order by datediff(day,INSU_START_DATE ,getdate())
+	</select>
+	
+	<select id="getDataForTrace2" resultClass="hashMap">
+		select datediff(day,INSU_START_DATE ,getdate()) as '距今天数'
+		, incp.SHORT_NAME
+		, incp.incp_name as '保险公司名称'
+		, incp.INCP_EMAIL
+		, rect.CUST_NAME as '承租人名称'
+		, rect.LEASE_CODE as '合同号'
+		, insu.INSU_START_DATE as '保险起始日'
+		, insu.INSU_PRICE as '保费'
+		, ps.EQUPMENT_ADDRESS as '租赁物放置地'
+		, (
+		  select top 1 dd.FLAG 
+		  from T_INSU_ENDORSEMENTS en
+		  left join T_DATA_DICTIONARY dd on en.LIST_TYPE = dd.CODE
+		  and dd.[TYPE] = '批单类型' and dd.STATUS = 0
+		  where INSU_ID = insu.INCU_ID
+		  and en.STATUS = 0
+		  order by CREATE_DATE desc
+		) as '类型'
+		from T_INSU_INSURANCELIST insu
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		left join T_RENT_CONTRACT rect on insu.RECT_ID = rect.RECT_ID
+		left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = prcd.ID
+		where insu.INSU_STATUS = 20
+		and insu.STATUS = 0
+		and exists (
+		  select 0 from T_INSU_ENDORSEMENTS
+			where INSU_ID = insu.INCU_ID
+			and STATUS = 0
+		)
+		and datediff(day,insu.MODIFY_DATE ,getdate()) >= 7
+		and datediff(day,insu.MODIFY_DATE ,getdate()) % 7 = 0
+		order by datediff(day,INSU_START_DATE ,getdate())
+	</select>
+	
+	<select id="getEndorsements" parameterClass="map" resultClass="com.brick.insurance.to.EndorsementsTo">
+		select en.ID
+		, en.CREATE_DATE as create_date 
+		, u.NAME as create_by
+		, en.INSU_ID as insuId
+		, d.flag as listType
+		, en.LIST_CODE as listCode
+		, en.GET_TIME as getTime
+		, en.REMARK as remark
+		, en.STATUS as status
+		from T_INSU_ENDORSEMENTS en
+		left join T_USER_USER u on en.CREATE_BY = u.ID
+		left join T_DATA_DICTIONARY d on en.LIST_TYPE = d.code
+		and d.[TYPE] = '批单类型'
+		where insu_id = #insuId#
+		and en.status in (0, 1)
+		order by en.CREATE_DATE desc
+	</select>
+	
+	<select id="getTypeDesc" parameterClass="com.brick.insurance.to.EndorsementsTo" resultClass="java.lang.String">
+		select flag from T_DATA_DICTIONARY
+		where [TYPE] = '批单类型'
+		and CODE in ($listType$)
+	</select>
+	
+	<insert id="saveEndorsements" parameterClass="com.brick.insurance.to.EndorsementsTo">
+		insert into T_INSU_ENDORSEMENTS (
+		   INSU_ID
+		  ,CREATE_BY
+		  ,CREATE_DATE
+		  ,LIST_TYPE
+		  ,STATUS
+		) VALUES (
+		   #insuId#
+		  ,#create_by#
+		  ,getdate()
+		  ,#listType#
+		  ,0
+		)
+	</insert>
+	
+	<update id="updateEndorsements" parameterClass="com.brick.insurance.to.EndorsementsTo">
+		update T_INSU_ENDORSEMENTS
+		set status = #status#
+		<isNotEmpty property="getTime">
+			,GET_TIME = convert(date, #getTime#)
+		</isNotEmpty>
+		<isNotEmpty property="remark">
+			,REMARK = #remark#
+		</isNotEmpty>
+		<isNotEmpty property="listCode">
+			,LIST_CODE = #listCode#
+		</isNotEmpty>
+		where id = #id#
+	</update>
+	
+	<select id="getAllIncp" resultClass="com.brick.insurance.to.InsuCompanyTo">
+		select INCP_ID as incp_id
+		, isnull(SHORT_NAME, INCP_NAME) as incp_name
+		, INCP_EMAIL as incp_mail
+		, INCP_CODE as incp_code
+		, INSU_WAY as insu_way
+		, INSU_WAY_CODE as insu_way_code
+		, IS_RENEWAL as is_renewal
+		, INSU_TYPE as insu_type
+		, INCP_INSU_CODE as incp_insu_code
+		from T_INSU_COMPANY
+		where INCP_STATUS = 0
+		order by INCP_CODE
+	</select>
+	
+	<update id="updateGroupCode" parameterClass="map">
+		update T_INSU_INSURANCELIST
+		set GROUP_CODE = #group_code#
+		where INCU_ID in ($insus$)
+	</update>
+	
+	<update id="updateInsuGroupAtIncp" parameterClass="com.brick.insurance.to.InsuCompanyTo">
+		update T_INSU_COMPANY
+		set INCP_INSU_CODE = #incp_insu_code#
+		where INCP_ID = #incp_id#
+	</update>
+	
+	<select id="getInsuByGroupCode" parameterClass="com.brick.insurance.to.InsuCompanyTo" resultClass="java.lang.Integer">
+		select INCU_ID
+		from T_INSU_INSURANCELIST
+		where GROUP_CODE = #incp_insu_code#
+		and INSU_STATUS = 0
+		and STATUS = 0
+	</select>
+	
+	<select id="getIncpById" resultClass="com.brick.insurance.to.InsuCompanyTo" parameterClass="com.brick.insurance.to.InsuCompanyTo">
+		select INCP_ID as incp_id
+		, isnull(SHORT_NAME, INCP_NAME) as incp_name
+		, INCP_EMAIL as incp_mail
+		, INCP_CODE as incp_code
+		, INSU_WAY as insu_way
+		, INSU_WAY_CODE as insu_way_code
+		, IS_RENEWAL as is_renewal
+		, INSU_TYPE as insu_type
+		, INCP_INSU_CODE as incp_insu_code
+		from T_INSU_COMPANY
+		where INCP_STATUS = 0
+		and INCP_ID = #incp_id#
+	</select>
+	
+	<update id="initIncpGroupCode" parameterClass="com.brick.insurance.to.InsuCompanyTo">
+		update T_INSU_COMPANY
+		set INCP_INSU_CODE = #incp_insu_code#
+		where INCP_ID = #incp_id#
+	</update>
+	
+</sqlMap>

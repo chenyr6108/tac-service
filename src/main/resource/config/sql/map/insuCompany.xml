@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="insuCompany">
+	<!-- 添加一条保险公司记录 -->
+	<insert id="create" parameterClass="map">
+	
+		<![CDATA[insert into t_insu_company
+				(
+				create_user_id,
+				modify_user_id,
+				incp_code,
+				incp_name,
+				incp_linkman,
+				incp_linktel,
+				incp_fax,
+				incp_email,
+				incp_address,
+				incp_zip,
+				rate,
+				factor,
+				remark,
+				short_name
+				)
+		values
+			(
+				#s_employeeId#,
+				#s_employeeId#,
+				#incp_code#,
+				#incp_name#,
+				#incp_linkman#,
+				#incp_linktel#,
+				#incp_fax#,
+				#incp_email#,
+				#incp_address#,
+				#incp_zip#,
+				#rate#,
+				#factor#,
+				#remark#,
+				#short_name#)
+				]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="incp_id" >
+			SELECT @@IDENTITY AS incp_id
+		</selectKey>
+	</insert>
+	<!-- 添加    中间关联表记录    -->
+	<insert id="createInsutype2Company" parameterClass="map">
+		<![CDATA[
+		insert into t_insu_insuretype2company
+				(
+				create_user_id,
+				modify_user_id,
+				incp_id,
+				intp_id,
+				intp_name
+				)
+		values
+				(
+				#s_employeeId#,
+				#s_employeeId#,
+				#incp_id#,
+				#intp_id#,
+				#intp_name#)
+				]]>
+	</insert>
+	
+	<!-- 删除一个保险公司中间表的记录 -->
+	<update id="deleteInsutype2Company" parameterClass="map">
+		<![CDATA[
+		update t_insu_insuretype2company set
+		 inic_status=-2
+		 ,modify_time=getdate()
+		 ,modify_user_id = #s_employeeId# 
+		where incp_id=#incp_id#
+		]]>
+	</update>
+	
+	<!-- 更新一条保险公司记录 -->
+	<update id="update" parameterClass="map">
+		<![CDATA[
+		update t_insu_company  
+		set  modify_time = getdate(),
+			 modify_user_id = #s_employeeId#,
+			 incp_code = #incp_code#,
+			 incp_name = #incp_name#,
+			 incp_linkman = #incp_linkman#,
+			 incp_linktel = #incp_linktel#,
+			 incp_fax = #incp_fax#,
+			 incp_email = #incp_email#,
+			 incp_address = #incp_address#,
+			 incp_zip = #incp_zip#,
+			 rate = #rate#,
+			 rate_more = #rate_more#,
+			 remark = #remark#,
+			 insu_type = #insu_type#,
+			 short_name = #short_name#,
+			 IS_RENEWAL = #isRenewal#,
+			 INSU_WAY = #insu_way#,
+			 INSU_WAY_CODE = #insu_way_code#
+		where  incp_id = #incp_id#
+		]]>
+	</update>
+	<!-- 用于列表选择wujw 2010-06-08 -->
+	<statement id="queryInsureCompanyListForSelect" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		select  c.incp_id           incp_id,
+				c.incp_name			incp_name ,
+				c.SHORT_NAME,
+				c.insu_type,
+				c.rate_more
+		from t_insu_company c
+		where c.incp_status = 0
+	]]>
+	</statement>
+	
+ 	<!-- 根据ID查询一条保险公司记录 -->
+	<select id="getCompanyById" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+		select  c.incp_id           incp_id,
+				c.create_time       create_time,
+				c.create_user_id    create_user_id,
+				c.modify_time       modify_time,
+				c.modify_user_id    modify_user_id,
+				c.incp_code         incp_code,
+				c.incp_name			incp_name,
+				c.incp_linkman		incp_linkman,
+				c.incp_linktel		incp_linktel,
+				c.incp_fax			incp_fax,
+				c.incp_email		incp_email,
+				c.incp_address		incp_address,
+				c.incp_zip			incp_zip,
+				c.rate				rate,
+				c.rate_more,
+				c.insu_type,
+				c.factor			factor,
+				c.remark			remark,
+				c.SHORT_NAME,
+				c.IS_RENEWAL,
+				c.INSU_WAY,
+				c.INSU_WAY_CODE,
+				c.INCP_INSU_CODE
+		from t_insu_company c
+		where c.incp_status = 0 and c.incp_id = #incp_id#
+		]]>
+	</select>
+	
+	<!--根据id来查看中间表中是否存在相关记录，如果存在，在用于修改状态 删除， -->
+	<select id="getInsutype2Company_count" parameterClass="map" resultClass="long">
+		<![CDATA[
+			select count(1)  from t_insu_insuretype2company  where inic_status = 0
+		]]>
+	</select>
+	<!-- 删除一个保险公司的记录 -->
+	<update id="deleteCompany" parameterClass="map">
+		<![CDATA[
+		update t_insu_company set incp_status=-2,modify_time=getdate() where incp_id=#incp_id#
+		]]>
+	</update>
+	<!-- 查询保险公司的个数 -->
+ 	<select id="queryCompanyAllInfo_count" parameterClass="map" resultClass="int">
+ 		<![CDATA[
+ 		select count(1) from t_insu_company c where incp_status = 0
+ 		]]>
+	 		<isNotEmpty prepend="and" property="content">
+				<![CDATA[(c.incp_code like '%$content$%' 
+				 		or c.incp_name like '%$content$%' 
+				 		or c.incp_linkman like '%$content$%' 
+				 		or  c.incp_linktel like '%$content$%') 
+				]]>
+			</isNotEmpty>  
+ 	</select>
+	
+	<!-- 查询保险公司 联系人信息 -->
+ 	<select id="queryCompanyAllInfo" parameterClass="map" resultClass="hashmap">
+ 		<![CDATA[
+ 		select  c.incp_id		incp_id,
+ 				c.incp_code		incp_code,
+ 				c.incp_name		incp_name,
+ 				c.incp_linkman	incp_linkman,
+ 				c.incp_linktel	incp_linktel,
+ 				c.SHORT_NAME
+ 		from t_insu_company c 
+ 		where c.incp_status = 0 
+ 		]]>
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				 		(c.incp_code like '%$content$%' 
+				 		or c.incp_name like '%$content$%' 
+				 		or c.incp_linkman like '%$content$%' 
+				 		or  c.incp_linktel like '%$content$%')
+				 ]]>
+			</isNotEmpty> 
+ 	</select>
+</sqlMap>

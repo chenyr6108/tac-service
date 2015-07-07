@@ -1,0 +1,633 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="projectManage">
+	<select id="getProject_count" parameterClass="map" resultClass="int"> 
+			select count(1)
+			from t_prjt_project t1
+			left join t_prjt_projectcustomer t2 on t2.prjt_id = t1.prjt_id
+			left join t_area t3 on t3.id = t1.province_id
+			left join t_user_user t4 on t4.id = t1.clerk_id 
+			where t1.status = 0
+		  <dynamic>
+		  	<isNotEmpty prepend="and" property="content">
+		  		(t1.type like '%$content$%' or t2.cust_type like '%$content$%' or t2.cust_name like '%$content$%'
+		  		or t3.name like '%$content$%' or t4.name like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		t1.create_time&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		t1.create_time&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="prjt_status">
+		  	<isNotEqual prepend="and" property="prjt_status" compareValue="-2">
+		  		 t1.prjt_status=#prjt_status#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic> 
+		 
+	</select>
+	<select id="getProject" parameterClass="map" resultClass="hashmap">
+			select t1.prjt_id,
+				   CONVERT(varchar,t1.create_time, 23)  create_time,
+			       t1.type,
+			       t1.prjt_status,
+			       t1.contract_type,
+			       t2.cust_type,
+			       t2.cust_name,
+			       t3.name       areaName,
+			       t4.name       clerkName
+			from t_prjt_project t1
+			left join t_prjt_projectcustomer t2 on t2.prjt_id = t1.prjt_id
+			left join t_area t3 on t3.id = t1.province_id
+			left join t_user_user t4 on t4.id = t1.clerk_id 
+			where  t1.status = 0
+		  <dynamic>
+		  	<isNotEmpty prepend="and" property="content">
+		  		(t1.type like '%$content$%' or t2.cust_type like '%$content$%' or t2.cust_name like '%$content$%'
+		  		or t3.name like '%$content$%' or t4.name like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		t1.create_time&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		t1.create_time&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="prjt_status">
+		  	<isNotEqual prepend="and" property="prjt_status" compareValue="-2">
+		  		 t1.prjt_status=#prjt_status#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic> 
+		order by t1.create_time desc
+	</select>
+	<select id="getProjectManage_count" parameterClass="map" resultClass="int"> 
+			select count(1)
+			from t_prjt_project t1
+			left join t_prjt_projectcustomer t2 on t2.prjt_id = t1.prjt_id
+			left join t_area t3 on t3.id = t1.province_id
+			left join t_user_user t4 on t4.id = t1.clerk_id 
+			where t1.status = 0 and t1.prjt_status != 0
+		  <dynamic>
+		  	<isNotEmpty prepend="and" property="content">
+		  		(t1.type like '%$content$%' or t2.cust_type like '%$content$%' or t2.cust_name like '%$content$%'
+		  		or t3.name like '%$content$%' or t4.name like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		t1.create_time&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		t1.create_time&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="prjt_status">
+		  	<isNotEqual prepend="and" property="prjt_status" compareValue="-2">
+		  		 t1.prjt_status=#prjt_status#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic> 
+
+	</select>
+	<select id="getProjectManage" parameterClass="map" resultClass="hashmap">
+			select t1.prjt_id,
+				   CONVERT(varchar,t1.create_time, 23)  create_time,
+			       t1.type,
+			       t1.prjt_status,
+			       t1.contract_type,
+			       t2.cust_type,
+			       t2.cust_name,
+			       t3.name       areaName,
+			       t4.name       clerkName
+			from t_prjt_project t1
+			left join t_prjt_projectcustomer t2 on t2.prjt_id = t1.prjt_id
+			left join t_area t3 on t3.id = t1.province_id
+			left join t_user_user t4 on t4.id = t1.clerk_id 
+			where  t1.status = 0 and t1.prjt_status != 0
+		  <dynamic>
+		  	<isNotEmpty prepend="and" property="content">
+		  		(t1.type like '%$content$%' or t2.cust_type like '%$content$%' or t2.cust_name like '%$content$%'
+		  		or t3.name like '%$content$%' or t4.name like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		t1.create_time&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		t1.create_time&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="prjt_status">
+		  	<isNotEqual prepend="and" property="prjt_status" compareValue="-2">
+		  		 t1.prjt_status=#prjt_status#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic> 
+		order by t1.create_time desc
+	</select>
+	
+		<insert id="insertProject" parameterClass="map"> 
+			<![CDATA[	insert into T_PRJT_PROJECT (
+							 CREATE_USER_ID,
+							 TYPE,
+							 PRJT_CODE, 
+							 PROVINCE_ID,
+							 CITY_ID, 
+							 CLERK_ID,
+							 DECP_ID,
+							 CONTRACT_TYPE,
+							 CUSTOMER_COME )
+							values(
+							 #s_employeeId#,
+							 #type#,
+							 #prjt_code#,
+							 #province_id#,
+							 #city_id#,
+							 #clerk_id#,
+							 #decp_id#,
+							 #contract_type#,
+							 #customer_come#
+							 )
+							 ]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="PRJT_ID">
+			<![CDATA[	select @@IDENTITY as PRJT_ID ]]>
+		</selectKey> 
+	 </insert>
+		<insert id="insertProCustomerCrop" parameterClass="map"> 
+			<![CDATA[	insert into T_PRJT_PROJECTCUSTOMER 
+							(
+							 CREATE_USER_ID,
+							 PRJT_ID,
+							 CUST_TYPE, 
+							 CUST_NAME,
+							 CORP_ORAGNIZATION_CODE
+							 )
+							values
+							(
+							 #s_employeeId#,
+							 #prjt_id#,
+							 #cust_type#,
+							 #cust_name#,
+							 #corp_oragnization_code#
+								)
+							 ]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="PRPC_ID">
+			<![CDATA[	select @@IDENTITY as PRPC_ID ]]>
+		</selectKey> 
+	 </insert>
+		<insert id="insertProCustomerNatu" parameterClass="map">
+			<![CDATA[	insert into T_PRJT_PROJECTCUSTOMER 
+							(
+							 CREATE_USER_ID,
+							 PRJT_ID,
+							 CUST_TYPE, 
+							 CUST_NAME,
+							 NATU_IDCARD
+							 )
+							values
+							(
+							 #s_employeeId#,
+							 #prjt_id#,
+							 #cust_type#,
+							 #cust_name#,
+							 #cust_idcard#
+								)
+							 ]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="PRPC_ID">
+			<![CDATA[	select @@IDENTITY as PRPC_ID  ]]>
+		</selectKey>  
+	 </insert>
+	 	<select id="selectProjectBaseInfo" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+				select t1.prjt_id,
+					   t2.cust_name,
+				       t2.cust_type,
+				       t3.decp_name_cn,
+				       t4.name,
+				       t2.corp_oragnization_code,
+				       t5.name     provinceName,  
+				       t6.name	   cityname,
+				       t2.natu_idcard,
+				       t1.province_id,
+				       t1.city_id,
+				       t1.clerk_id,
+				       t1.decp_id,
+				       t1.contract_type,
+				       t1.type,
+				       t1.customer_come   cccode,
+				       t7.flag as customer_come				       
+				from t_prjt_project t1
+				left join t_prjt_projectcustomer t2 on t2.prjt_id = t1.prjt_id
+				left join t_dept_company t3 on t3.decp_id = t1.decp_id
+				left join t_user_user t4 on t4.id = t1.clerk_id	
+				left join t_area t5 on t5.id = t1.province_id			
+				left join t_area t6 on t6.id = t1.city_id	
+				left join t_data_dictionary t7 on t7.code = CONVERT(varchar,t1.customer_come)			
+				where t1.prjt_id = #prjt_id# and t7.type=#data_type# 		
+		 ]]>
+	</select>
+	<select id="queryMap" parameterClass="map" resultClass="hashmap">
+			<![CDATA[
+		select   t2.flag as type
+		from t_prjt_project t1
+		left join t_data_dictionary t2 on t2.code = CONVERT(varchar,t1.type)
+		where t1.prjt_id = #prjt_id# and t2.type=#dictionaryType# 
+		]]>
+	</select>
+	 	<select id="selectNatuInfo" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+				select t.CUST_LEVEL,
+				       t.NATU_ZIP,
+				       t.NATU_GENDER,
+				       t.NATU_AGE,
+				       t.NATU_MOBILE,
+				       t.NATU_PHONE,
+				       t.NATU_IDCARD_ADDRESS,
+				       t.NATU_HOME_ADDRESS,
+				       t.NATU_WORK_UNITS,
+				       t.NATU_WORK_ADDRESS,
+				       t.NATU_MATE_NAME,
+				       t.NATU_MATE_IDCARD,
+				       t.NATU_MATE_MOBILE,
+				       t.NATU_MATE_IDCARD_ADDRESS,
+				       t.NATU_MATE_WORK_UNITS,
+				       t.NATU_MATE_WORK_ADDRESS
+				from t_prjt_projectcustomer t
+				where t.prjt_id = #prjt_id#		
+		 ]]>
+	</select>
+
+	 	<select id="selectCorpInfo" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+				select t.CUST_LEVEL,
+					   t.CORP_ENTERPRISES_PROPERTY,					   
+					   t.CORP_SETUP_DATE,
+					   t.CORP_PERIOD_VALIDITY,
+					   t.CORP_REGISTE_CAPITAL,
+					   t.CORP_PAICLUP_CAPITAL,
+					   t.CORP_BUSINESS_LICENSE,
+					   t.CORP_TAX_CODE,
+					   t.CORP_COMPANY_ZIP,
+					   t.CORP_REGISTE_ADDRESS,
+					   t.CORP_WORK_ADDRESS,
+					   t.CORP_BUSINESS_RANGE,
+					   t.CORP_COMPANY_WEBSITE,
+					   t.CORP_OTHER_MASSAGE,
+					   t.CORP_HEAD_SIGNATURE,
+					   t.CORP_HS_IDCARD,
+					   t.CORP_HS_LINK_MODE,
+					   t.CORP_HS_HOME_ADDRESS
+				from t_prjt_projectcustomer t
+				where t.prjt_id = #prjt_id#		
+		 ]]>
+	</select>
+		<select id="selectEquipment" parameterClass="map" resultClass="hashmap">
+			select t.sueq_id,
+	           t.thing_name,
+	           t.brand,
+	           t.model_spec,
+	           t.unit_price,
+	           t.memo,
+	           t.staybuy_price,
+	           sum(t.amount)  amount,
+	           sum(t.unit_price)  total,
+	           t.unit,
+	           t.thing_kind,
+	           t.lock_code
+		  from t_prjt_projectequipment t
+		 where t.prjt_id = #prjt_id#
+		   and t.status = 0
+		 group by t.sueq_id,
+    	          t.thing_name,
+    	          t.brand,
+    	          t.model_spec,
+    	          t.unit_price,
+    	          t.memo,
+    	          t.staybuy_price,
+    	          t.unit,
+    	          t.thing_kind,
+    	          t.lock_code
+		</select>
+	 	<select id="selectScheme" parameterClass="map" resultClass="hashmap">
+		select * from t_prjt_projectschema t
+					 where t.prjt_id = #prjt_id#
+		   				and t.status = 0
+	</select>
+		<select id="selectInsure" parameterClass="map" resultClass="hashmap">
+		select * from t_prjt_projectinsure t
+					 where t.prjt_id = #prjt_id#
+		   				and t.status = 0
+	</select>
+		<delete id="deleteScheme" parameterClass="map">
+		delete from t_prjt_projectschema   
+					where prjt_id = #prjt_id#
+		   			and status = 0
+	 </delete>
+	<delete id="deleteInsure" parameterClass="map">
+		 delete from t_prjt_projectinsure  
+					where prjt_id = #prjt_id#
+		   			and status = 0
+	 </delete>
+	<delete id="deleteEquipment" parameterClass="map">
+	 	delete from t_prjt_projectequipment 
+					where prjt_id = #prjt_id#
+		   			and status = 0
+	</delete>
+		<insert id="createEquipment" parameterClass="map">
+		insert into t_prjt_projectequipment 
+			(
+			CREATE_TIME,
+			CREATE_USER_ID,
+			MODIFY_TIME,
+			MODIFY_USER_ID,
+			SUEQ_ID,
+			THING_NAME,
+			BRAND,
+			MODEL_SPEC,
+			UNIT_PRICE,
+			MEMO,
+			STAYBUY_PRICE,
+			AMOUNT,
+			UNIT,
+			THING_KIND,
+			PRJT_ID,
+			LOCK_CODE
+			)
+			values
+			(
+			getdate(),
+			#s_employeeId#,
+			getdate(),
+			#s_employeeId#,
+			#SUEQ_ID#,
+			#THING_NAME#,
+			#BRAND#,
+			#MODEL_SPEC#,
+			#UNIT_PRICE#,
+			#MEMO#,
+			#STAYBUY_PRICE#,
+			1,
+			#UNIT#,
+			#THING_KIND#,
+			#prjt_id#,
+			#LOCK_CODE#
+			) 
+	</insert>
+		<insert id="createScheme" parameterClass="map">
+		insert into t_prjt_projectschema
+		  (
+		   LEASE_TERM,
+		   LEASE_PERIOD,
+		   PLEDGE_PRICE, 
+		   HEAD_HIRE,
+		   HEAD_HIRE_PERCENT,
+		   BUSINESS_TRIP_PRICE,
+		   FLOAT_RATE,
+		   MANAGEMENT_FEE,
+		   YEAR_INTEREST_TYPE,
+		   YEAR_INTEREST,
+		   LEASE_TOPRIC,
+		   PAY_WAY,
+		   START_DATE,
+		   FINE_TYPE,
+		   FINE_RATE,
+		   LEASE_RZE,
+		   DEAL_WAY,
+		   EQUPMENT_ADDRESS,
+		   INSURANCE_COMPANY_ID,
+		   BUY_INSURANCE_WAY,
+		   BUY_INSURANCE_TIME,
+		   INSURE_REBATE_RATE,
+		   STATUS,
+		   PRJT_ID,
+		   PLEDGE_PRICE_RATE,
+		   MANAGEMENT_FEE_RATE,
+		   CREATE_USER_ID,
+		   MODIFY_USER_ID,
+		   CREATE_TIME,
+		   MODIFY_TIME,
+		   PLEDGE_WAY,
+		   <!--  PLEDGE_PERIOD,-->
+		   INSURE_BASE_RATE,
+		   SALES_TAX_RATE,
+		   STAMP_TAX_TOPRIC,
+		   STAMP_TAX_MONTHPRIC)
+		   values
+		   (
+		   #LEASE_TERM#,
+		   #LEASE_PERIOD#,
+		   #PLEDGE_PRICE#, 
+		   #HEAD_HIRE#,
+		   #HEAD_HIRE_PERCENT#,
+		   #BUSINESS_TRIP_PRICE#,
+		   #FLOAT_RATE#,
+		   #MANAGEMENT_FEE#,
+		   #YEAR_INTEREST_TYPE#,
+		   #YEAR_INTEREST#,
+		   #LEASE_TOPRIC#,
+		   #PAY_WAY#,
+		   CONVERT(datetime,#START_DATE#),
+		   #FINE_TYPE#,
+		   #FINE_RATE#,
+		   #LEASE_RZE#,
+		   #DEAL_WAY#,
+		   #EQUPMENT_ADDRESS#,
+		   #INSURANCE_COMPANY_ID#,
+		   #BUY_INSURANCE_WAY#,
+		   #BUY_INSURANCE_TIME#,
+		   #INSURE_REBATE_RATE#,
+		   0,
+		   #prjt_id#,
+		   #PLEDGE_PRICE_RATE#,
+		   #MANAGEMENT_FEE_RATE#,
+		   #s_employeeId#, 
+		   #s_employeeId#, 
+		   getdate(),
+		   getdate(),
+		   #PLEDGE_WAY#,
+		   <!--  #PLEDGE_PERIOD#,-->
+		   #INSURE_BASE_RATE#,
+		   #SALES_TAX_RATE#,
+		   #STAMP_TAX_TOPRIC#,
+		   #STAMP_TAX_MONTHPRIC#
+		   )
+	</insert>
+		<insert id="createInsure" parameterClass="map">
+		insert into t_prjt_projectinsure
+			(
+			INSURE_ITEM,
+			START_DATE,
+			END_DATE,
+			INSURE_RATE,
+			INSURE_PRICE,
+			MEMO,
+			STATUS,
+			CREATE_TIME,
+			MODIFY_TIME,
+			PRJT_ID
+			)
+			values
+			(
+		    #INSURE_ITEM#,
+			#START_DATE#,
+			#END_DATE#,
+			#INSURE_RATE#,
+			#INSURE_PRICE#,
+			#MEMO#,
+			0,
+			getdate(),
+			getdate(),
+			#prjt_id#
+			)
+	</insert>
+
+	<update id="updateCorp" parameterClass="map">
+		<![CDATA[
+		update t_prjt_projectcustomer 
+		   set  MODIFY_TIME = getdate(),
+				MODIFY_USER_ID = #s_employeeId#,
+				CUST_LEVEL = #CUST_LEVEL#,
+				CORP_ENTERPRISES_PROPERTY = #CORP_ENTERPRISES_PROPERTY#,
+				CORP_SETUP_DATE = #CORP_SETUP_DATE#,
+				CORP_PERIOD_VALIDITY = #CORP_PERIOD_VALIDITY#,
+				CORP_REGISTE_CAPITAL = #CORP_REGISTE_CAPITAL#,
+				CORP_PAICLUP_CAPITAL = #CORP_PAICLUP_CAPITAL#,
+				CORP_BUSINESS_LICENSE = #CORP_BUSINESS_LICENSE#,
+				CORP_TAX_CODE = #CORP_TAX_CODE#,
+				CORP_COMPANY_ZIP = #CORP_COMPANY_ZIP#,
+				CORP_REGISTE_ADDRESS = #CORP_REGISTE_ADDRESS#,
+				CORP_WORK_ADDRESS = #CORP_WORK_ADDRESS#,
+				CORP_BUSINESS_RANGE = #CORP_BUSINESS_RANGE#,
+				CORP_COMPANY_WEBSITE = #CORP_COMPANY_WEBSITE#,
+				CORP_OTHER_MASSAGE = #CORP_OTHER_MASSAGE#,
+				CORP_HEAD_SIGNATURE = #CORP_HEAD_SIGNATURE#,
+				CORP_HS_IDCARD = #CORP_HS_IDCARD#,
+				CORP_HS_LINK_MODE = #CORP_HS_LINK_MODE#,
+				CORP_HS_HOME_ADDRESS = #CORP_HS_HOME_ADDRESS#
+		where PRJT_ID = #prjt_id#					
+		]]>
+	</update>
+	<update id="updateCorpArea" parameterClass="map">
+		<![CDATA[
+		update t_prjt_project 
+		   set  MODIFY_TIME = getdate(),
+				MODIFY_USER_ID = #s_employeeId#,
+				PROVINCE_ID = #PROVINCE_ID#,
+				CITY_ID = #CITY_ID#
+		where PRJT_ID = #prjt_id#					
+		]]>
+	</update>
+	<update id="updateNatu" parameterClass="map">
+		<![CDATA[
+		update t_prjt_projectcustomer 
+		   set  MODIFY_TIME = getdate(),
+				MODIFY_USER_ID = #s_employeeId#,
+				CUST_LEVEL =#CUST_LEVEL#,
+				NATU_ZIP =#NATU_ZIP#,
+				NATU_GENDER =#NATU_GENDER#,
+				NATU_AGE =#NATU_AGE#,
+				NATU_MOBILE =#NATU_MOBILE#,
+				NATU_PHONE =#NATU_PHONE#,
+				NATU_IDCARD_ADDRESS =#NATU_IDCARD_ADDRESS#,
+				NATU_HOME_ADDRESS =#NATU_HOME_ADDRESS#,
+				NATU_WORK_UNITS =#NATU_WORK_UNITS#,
+				NATU_WORK_ADDRESS =#NATU_WORK_ADDRESS#,
+				NATU_MATE_NAME =#NATU_MATE_NAME#,
+				NATU_MATE_IDCARD =#NATU_MATE_IDCARD#,
+				NATU_MATE_MOBILE =#NATU_MATE_MOBILE#,
+				NATU_MATE_IDCARD_ADDRESS =#NATU_MATE_IDCARD_ADDRESS#,
+				NATU_MATE_WORK_UNITS =#NATU_MATE_WORK_UNITS#,
+				NATU_MATE_WORK_ADDRESS =#NATU_MATE_WORK_ADDRESS#
+		where PRJT_ID = #prjt_id#					
+		]]>
+	</update>
+	<update id="commitProject" parameterClass="map">
+		<![CDATA[
+		update t_prjt_project 
+		   set  MODIFY_TIME = getdate(),
+				MODIFY_USER_ID = #s_employeeId#,
+				PRJT_STATUS = 1,
+				SUBMIT_TIME = getdate(),
+				SUBMIT_USER_ID = #s_employeeId#
+		where PRJT_ID = #PRJT_ID#					
+		]]>
+	</update>
+	<update id="acceptProject" parameterClass="map">
+		<![CDATA[
+		update t_prjt_project 
+		   set  MODIFY_TIME = getdate(),
+				MODIFY_USER_ID = #s_employeeId#,
+				PRJT_STATUS = 2,
+				AUDT_TIME = getdate(),
+				AUDT_USER_ID = #s_employeeId#
+		where PRJT_ID = #PRJT_ID#					
+		]]>
+	</update>
+	<update id="receptProject" parameterClass="map">
+		<![CDATA[
+		update t_prjt_project 
+		   set  MODIFY_TIME = getdate(),
+				MODIFY_USER_ID = #s_employeeId#,
+				PRJT_STATUS = 3,
+				AUDT_TIME = getdate(),
+				AUDT_USER_ID = #s_employeeId#
+		where PRJT_ID = #PRJT_ID#					
+		]]>
+	</update>
+	<update id="deleteProject" parameterClass="map">
+		<![CDATA[
+		update t_prjt_project 
+		   set  MODIFY_TIME = getdate(),
+				MODIFY_USER_ID = #s_employeeId#,
+				STATUS = -2
+		where PRJT_ID = #PRJT_ID#					
+		]]>
+	</update>
+
+	<update id="deleteProjectCus" parameterClass="map">
+		<![CDATA[
+		update t_prjt_projectcustomer 
+		   set  MODIFY_TIME = getdate(),
+				MODIFY_USER_ID = #s_employeeId#,
+				STATUS = -2
+		where PRJT_ID = #PRJT_ID#					
+		]]>
+	</update>
+	<update id="deleteProjectEqu" parameterClass="map">
+		<![CDATA[
+		update t_prjt_projectequipment 
+		   set  MODIFY_TIME = getdate(),
+				MODIFY_USER_ID = #s_employeeId#,
+				STATUS = -2
+		where PRJT_ID = #PRJT_ID#					
+		]]>
+	</update>
+	<update id="deleteProjectIns" parameterClass="map">
+		<![CDATA[
+		update t_prjt_projectinsure 
+		   set  MODIFY_TIME = getdate(),
+				MODIFY_USER_ID = #s_employeeId#,
+				STATUS = -2
+		where PRJT_ID = #PRJT_ID#					
+		]]>
+	</update>
+	<update id="deleteProjectSch" parameterClass="map">
+		<![CDATA[
+		update t_prjt_projectschema 
+		   set  MODIFY_TIME = getdate(),
+				MODIFY_USER_ID = #s_employeeId#,
+				STATUS = -2
+		where PRJT_ID = #PRJT_ID#					
+		]]>
+	</update>
+		<statement id="queryInsureTypeList" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T.INIC_ID,T.INTP_NAME FROM T_INSU_INSURETYPE2COMPANY T WHERE T.INIC_STATUS=0 ORDER BY T.INTP_NAME
+		]]>
+	</statement>
+		<statement id="queryInsureTypeListById" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[			
+			SELECT T.INIC_ID,T.INTP_NAME FROM T_INSU_INSURETYPE2COMPANY T 
+			WHERE T.INIC_STATUS=0 AND T.INCP_ID=#INCP_ID# 
+			ORDER BY T.INTP_NAME 			
+		]]>
+	</statement> 
+</sqlMap>

@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="rentContractPact">
+	<!-- 购销合同  -->
+	<statement id="queryPucsContractByPrcdId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T.PUCT_ID, T.PUCT_CODE, T.SIGN_DATE AS CREATE_TIME
+		  FROM T_PUCS_CONTRACT T
+		 WHERE T.STATUS = 0
+		   AND T.PRCD_ID = #PRCD_ID#
+	]]>
+	</statement>
+	<statement id="queryPucsContractFlagByRectId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT COUNT(T1.RECD_ID)-COUNT(T3.PUCD_ID) AS SHORTFALL
+		  FROM T_RENT_CONTRACTDETAIL T1
+		  LEFT JOIN T_EQMT_EQUIPMENT T2 ON T2.EQMT_ID=T1.EQMT_ID
+		  LEFT JOIN T_PUCS_CONTRACTDETAIL T3 ON T3.EQMT_ID = T2.EQMT_ID
+		 WHERE T1.STATUS = 0
+		   AND T2.STATUS = 0
+		   AND T1.RECT_ID = #RECT_ID#
+	]]>
+	</statement>
+	<!-- 支付表 -->
+	<statement id="queryPaylistByRectId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T.RECP_ID, T.RECP_CODE, T.CREATE_TIME
+		  FROM T_RENT_COLLECTIONPLAN T
+		 WHERE T.STATUS = 0
+		   AND T.RECT_ID =#RECT_ID#
+	]]>
+	</statement>
+	<!-- 风控 -->
+	<statement id="queryWindListByRectId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T.PRC_ID, T.PRC_HAO, T.SEC_DATE AS CREATE_TIME
+			  FROM T_PRJT_RISK_CONTROL T
+			 WHERE T.STATUS = 0
+			   AND T.CREDIT_ID = #PRCD_ID#
+	]]>
+	</statement>
+	<!-- 发货 -->
+	<statement id="queryDeliveryNoticesByRectId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T3.DELV_ID, T3.DELV_CODE, T3.DELIVERY_DATE CREATE_TIME 
+			  FROM T_RENT_CONTRACTDETAIL T1
+			  LEFT JOIN T_DELV_DELIVERYLOG2EQUIP T2 ON T2.EQMT_ID = T1.EQMT_ID
+			  LEFT JOIN T_DELV_DELIVERYLOG T3 ON T3.DELV_ID = T2.DELV_ID
+			 WHERE T1.STATUS = 0
+			   AND T2.STATUS = 0
+			   AND T3.STATUS = 0
+			   AND T1.RECT_ID = #RECT_ID#
+	]]>
+	</statement>
+	<!-- 付款 -->
+	<statement id="queryPaymentsByRectId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T3.PUPL_ID, T3.CREATE_TIME, T3.PUPL_CODE
+		  FROM T_PUCS_CONTRACT T1
+		  LEFT JOIN T_PUCS_PAYMENTPLAN T2 ON T2.PUCT_ID = T1.PUCT_ID
+		  LEFT JOIN T_PUCS_PAYMENTLOG T3 ON T3.PUPP_ID = T2.PUPP_ID
+		 WHERE T1.RECT_ID = #RECT_ID#
+		   AND T1.STATUS = 0
+		   AND T2.STATUS = 0
+		   AND T3.STATUS = 0
+	]]>
+	</statement>
+	<statement id="queryUploadByRectId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+				select t.syup_id,
+				       t.create_time,
+				       t.file_name,
+				       replace(t.path,'\','\\') path 
+				from t_sys_upload  t
+				where t.parent_id = #RECT_ID#
+	]]>
+	</statement>
+
+
+	<!-- 添加备注信息 -->
+	<insert id="insertMemo"   parameterClass="map">
+			insert into t_rent_contractremark
+			  (
+			   create_user_id,
+			   prcd_id,
+			   remark)
+			values
+			  (
+			   #s_employeeId#,
+			   #PRCD_ID#,
+			   #cont#)
+	</insert>
+
+	<!-- 最新备注 -->
+	<select id="selectNewMemo" parameterClass="map" resultClass="hashmap">
+		select top 1 * from (
+		select trcrk.recr_id,
+		       trcrk.create_time CREATE_TIME,
+		       trcrk.create_user_id CREATE_USER_ID,
+		       trcrk.modify_time,
+		       trcrk.modify_user_id,
+		       trcrk.status,
+		       trcrk.type,
+		       trcrk.rect_id,
+		       trcrk.prcd_id,
+		       trcrk.remark  REMARK,
+           	   tuu.name      NAME
+		  from t_rent_contractremark trcrk
+      	  left join t_user_user tuu ON tuu.id=trcrk.create_user_id
+		  ) c
+		  where  c.prcd_id=#PRCD_ID# 
+		   order by  c.create_time desc
+	</select>	
+	<!-- 更多备注 -->
+	<select id="selectMemo" parameterClass="map" resultClass="hashmap">
+		select * from (
+		select trcrk.recr_id,
+		       trcrk.create_time CREATE_TIME,
+		       trcrk.create_user_id CREATE_USER_ID,
+		       trcrk.modify_time,
+		       trcrk.modify_user_id,
+		       trcrk.status,
+		       trcrk.type,
+		       trcrk.rect_id,
+		       trcrk.prcd_id,
+		       trcrk.remark  REMARK,
+           	   tuu.name      NAME
+		  from t_rent_contractremark trcrk
+      	  left join t_user_user tuu ON tuu.id=trcrk.create_user_id
+		  ) c
+		  where  c.prcd_id=#PRCD_ID# 
+		  order by  c.create_time desc
+	</select>	
+	<!-- Modify by Michael 增加锁码栏位 -->
+	<select id="selectRentEquipment" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t1.eqmt_id,t2.model_spec, t2.thing_name, t2.amount, t2.create_time,t1.recp_id,t1.LOCK_CODE
+			  from t_rent_contractdetail t1
+			  left join t_eqmt_equipment t2 on t2.eqmt_id = t1.eqmt_id
+			 where t1.rect_id = #RECT_ID#
+			   and t1.status = 0
+		]]>
+	</select>	
+	<select id="selectCreidtEquipment" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t1.PRCE_ID eqmt_id,t1.MODEL_SPEC model_spec, t1.THING_NAME thing_name, t1.AMOUNT amount, 
+			t1.CREATE_TIME ,t1.CREDIT_ID,t1.SUEQ_ID,t1.LOCK_CODE
+			  from T_PRJT_CREDITEQUIPMENT t1
+			 where t1.CREDIT_ID =#PRCD_ID#
+		]]>
+	</select>
+	
+	<!-- chuzuren -->
+	<select id="getchuzuren" parameterClass="map" resultClass="hashmap">
+		select	t1.DECP_NAME_CN DECP_NAME_CN from T_DEPT_COMPANY t1
+				left join T_PRJT_CREDIT t2 on t2.DECP_ID=t1.DECP_ID
+				where t2.ID=#PRCD_ID#  and t1.STATUS=0
+	</select>
+	
+	<!-- 查询供应商保证 -->
+	<select id="querySupl" parameterClass="map"	resultClass="hashmap">
+		select t3.supl_true supl_true
+		from T_RENT_CONTRACT t1
+			 left join T_PRJT_CREDIT t2 on t2.lease_code=t1.lease_code
+			 left join T_PRJT_CREDITSCHEME t3 on t3.credit_id=t2.id
+		where t1.rect_id=#RECT_ID# and t1.status=0
+	</select>
+	<!-- 查询供应商保证按报告查询 -->
+	<select id="querySuplByCreditId" parameterClass="map"	resultClass="hashmap">
+		select t2.supl_true supl_true
+		from T_PRJT_CREDIT t1
+			 left join T_PRJT_CREDITSCHEME t2 on t2.credit_id=t1.id AND T2.STATUS = 0
+		where t1.id= #credit_id# and t1.status=0
+	</select>
+	
+	<update id="updateLockCodeByEqmtId" parameterClass="map">
+		<![CDATA[
+		  update t_rent_contractdetail set LOCK_CODE=#LOCK_CODE# 
+		  where EQMT_ID=#EQMT_ID#
+		]]>
+	</update>
+	
+	<update id="updateCreditLockCodeByEqmtId" parameterClass="map">
+		<![CDATA[
+		  update T_PRJT_CREDITEQUIPMENT set LOCK_CODE=#LOCK_CODE# 
+		  where PRCE_ID=#EQMT_ID#
+		]]>
+	</update>
+	
+	<!-- 添加修改锁码日志 -->
+	<insert id="insertMDFLockCodeLog"   parameterClass="map">
+		insert into T_LOCKCODE_MDF_LOG
+		  (
+		   EQMT_ID,
+		   RECT_ID,
+		   MODIFY_ID,
+		   MODIFY_TIME,
+		   LOCK_CODE,
+		   ORI_CODE,PRCD_ID
+		   )
+		values
+		  (
+		   #EQMT_ID#,
+		   #RECT_ID#,
+		   #s_employeeId#,
+		   getDate(),
+		   #LOCK_CODE#,
+		   #ORI_CODE#,#PRCD_ID#
+		  )
+	</insert>
+	
+	<select id="selectLockCodeMDFLog" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select tpc.LEASE_CODE,tcc.CUST_NAME,tpce.THING_NAME,tpce.MODEL_SPEC,tdd1.FLAG FLAG,tdd2.FLAG ORI_FLAG,tuu.NAME,lcml.modify_time from T_LOCKCODE_MDF_LOG  lcml
+			left join  t_prjt_credit tpc
+			on lcml.PRCD_ID=tpc.ID
+			left join T_PRJT_CREDITEQUIPMENT tpce
+			on tpce.CREDIT_ID=lcml.PRCD_ID and lcml.eqmt_id=tpce.PRCE_ID
+			left join T_USER_USER tuu on tuu.ID=lcml.modify_id
+			left join T_DATA_DICTIONARY tdd1 on tdd1.TYPE='锁码方式' and tdd1.CODE=lcml.lock_code
+			left join T_DATA_DICTIONARY tdd2 on tdd2.TYPE='锁码方式' and tdd2.CODE=lcml.ori_code
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID= tpc.CUST_ID and tcc.STATUS=0
+			where 1=1
+		]]>
+			<isNotEmpty prepend="and" property="searchValue">
+				<![CDATA[
+					(	tpc.LEASE_CODE like  '%$searchValue$%' 
+						OR tcc.CUST_NAME like  '%$searchValue$%' 
+						OR tpce.THING_NAME like '%$searchValue$%'
+					 	OR tuu.NAME like '%$searchValue$%' 
+					 )
+				  ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[
+				 CONVERT(DATE,
+					lcml.modify_time,23
+				 ) >= #QSTART_DATE# 
+				 ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[
+				  CONVERT(DATE,
+					lcml.modify_time,23
+				 ) <= #QEND_DATE#
+				 ]]>
+			</isNotEmpty>
+			<![CDATA[
+			 	order by lcml.modify_time desc
+			 ]]>		
+	</select>
+	
+	<select id="selectLockCodeMDFLog_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[	
+			select count(*) from T_LOCKCODE_MDF_LOG  lcml
+			left join  t_prjt_credit tpc
+			on lcml.PRCD_ID=tpc.ID
+			left join T_PRJT_CREDITEQUIPMENT tpce
+			on tpce.CREDIT_ID=lcml.PRCD_ID and lcml.eqmt_id=tpce.PRCE_ID
+			left join T_USER_USER tuu on tuu.ID=lcml.modify_id
+			left join T_DATA_DICTIONARY tdd1 on tdd1.TYPE='锁码方式' and tdd1.CODE=lcml.lock_code
+			left join T_DATA_DICTIONARY tdd2 on tdd2.TYPE='锁码方式' and tdd2.CODE=lcml.ori_code
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID= tpc.CUST_ID and tcc.STATUS=0
+			where 1=1
+		]]>
+			<isNotEmpty prepend="and" property="searchValue">
+				<![CDATA[
+					(	tpc.LEASE_CODE like  '%$searchValue$%' 
+						OR tcc.CUST_NAME like  '%$searchValue$%' 
+						OR tpce.THING_NAME like '%$searchValue$%'
+					 	OR tuu.NAME like '%$searchValue$%' 
+					 )
+				  ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[
+				 CONVERT(DATE,
+					lcml.modify_time,23
+				 ) >= #QSTART_DATE# 
+				 ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[
+				  CONVERT(DATE,
+					lcml.modify_time,23
+				 ) <= #QEND_DATE#
+				 ]]>
+			</isNotEmpty>
+	</select>
+	
+	<select id="selectCreditIDForMDF" parameterClass="map" resultClass="java.util.HashMap">	
+		select trct.PRCD_ID,teep.SUEQ_ID,trct.LEASE_CODE,trcd.THING_NAME,trcd.MODEL_SPEC  from T_RENT_CONTRACTDETAIL trcd
+		left join t_rent_contract  trct
+		on trcd.RECT_ID=trct.RECT_ID
+		left join T_EQMT_EQUIPMENT teep 
+		on teep.EQMT_ID=trcd.EQMT_ID and teep.STATUS=0
+		where trcd.STATUS = 0 and trcd.RECT_ID=#RECT_ID# and teep.EQMT_ID=#EQMT_ID#
+	</select>
+	
+	<select id="selectCreditEqmtDetail" parameterClass="map" resultClass="java.util.HashMap">	
+		select tpc.ID PRCD_ID,tpce.SUEQ_ID,tpc.LEASE_CODE,tpce.THING_NAME,tpce.MODEL_SPEC from T_PRJT_CREDITEQUIPMENT tpce
+		left join t_prjt_credit  tpc
+		on tpc.ID=tpce.CREDIT_ID
+		where tpce.EQMT_STATUS = 0 and tpce.CREDIT_ID=#PRCD_ID# and tpce.PRCE_ID=#EQMT_ID#
+	</select>
+	
+	<update id="updateCreditLockCodeByCreditId" parameterClass="map">
+		<![CDATA[
+		  update T_PRJT_CREDITEQUIPMENT set LOCK_CODE=#LOCK_CODE# 
+		  where SUEQ_ID=#SUEQ_ID# and CREDIT_ID=#PRCD_ID#
+		]]>
+	</update>
+</sqlMap>

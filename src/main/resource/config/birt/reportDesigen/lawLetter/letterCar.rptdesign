@@ -1,0 +1,966 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<report xmlns="http://www.eclipse.org/birt/2005/design" version="3.2.23" id="1">
+    <property name="createdBy">Eclipse BIRT Designer Version 4.2.2.v201301221637 Build &lt;4.2.2.v20130206-1509></property>
+    <property name="units">in</property>
+    <property name="iconFile">/templates/blank_report.gif</property>
+    <property name="layoutPreference">auto layout</property>
+    <property name="bidiLayoutOrientation">ltr</property>
+    <property name="imageDPI">96</property>
+    <data-sources>
+        <script-data-source name="Data Source" id="46"/>
+    </data-sources>
+    <data-sets>
+        <script-data-set name="Data Set" id="47">
+            <list-property name="resultSetHints">
+                <structure>
+                    <property name="position">1</property>
+                    <property name="name">thingName</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">2</property>
+                    <property name="name">brand</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">3</property>
+                    <property name="name">modelSpec</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">4</property>
+                    <property name="name">unitPrice</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">5</property>
+                    <property name="name">amount</property>
+                    <property name="dataType">integer</property>
+                </structure>
+                <structure>
+                    <property name="position">6</property>
+                    <property name="name">unit</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">7</property>
+                    <property name="name">thingKind</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">8</property>
+                    <property name="name">manufacturer</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">9</property>
+                    <property name="name">shuiPrice</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">10</property>
+                    <property name="name">detail</property>
+                    <property name="dataType">string</property>
+                </structure>
+            </list-property>
+            <list-property name="columnHints">
+                <structure>
+                    <property name="columnName">thingName</property>
+                    <text-property name="displayName">产品名</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">brand</property>
+                    <text-property name="displayName">供应商</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">modelSpec</property>
+                    <text-property name="displayName">产品型号</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">unitPrice</property>
+                    <text-property name="displayName">单价</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">amount</property>
+                    <text-property name="displayName">数量</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">unit</property>
+                    <text-property name="displayName">单位</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">thingKind</property>
+                    <text-property name="displayName">厂牌</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">manufacturer</property>
+                    <text-property name="displayName">制造商</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">shuiPrice</property>
+                    <text-property name="displayName">含税价</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">detail</property>
+                    <text-property name="displayName">详情</text-property>
+                </structure>
+            </list-property>
+            <structure name="cachedMetaData">
+                <list-property name="resultSet">
+                    <structure>
+                        <property name="position">1</property>
+                        <property name="name">thingName</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">2</property>
+                        <property name="name">brand</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">3</property>
+                        <property name="name">modelSpec</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">4</property>
+                        <property name="name">unitPrice</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">5</property>
+                        <property name="name">amount</property>
+                        <property name="dataType">integer</property>
+                    </structure>
+                    <structure>
+                        <property name="position">6</property>
+                        <property name="name">unit</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">7</property>
+                        <property name="name">thingKind</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">8</property>
+                        <property name="name">manufacturer</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">9</property>
+                        <property name="name">shuiPrice</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">10</property>
+                        <property name="name">detail</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                </list-property>
+            </structure>
+            <property name="dataSource">Data Source</property>
+            <method name="open"><![CDATA[importPackage(Packages.java.lang);
+importPackage(Packages.java.util);
+importPackage(Packages.com.brick.dun.command);
+
+
+//var resultList = DunTaskLawCommand.getSueqListByRectId(params["RECTID"].value);
+//i = 1;
+//count = resultList.size();
+//iter=resultList.iterator();
+System.out.println("-----------===========1========--------------------")
+var carDetail = DunTaskLawCommand.getSueqStringByRectId(params["RECTID"].value);
+
+]]></method>
+            <method name="fetch"><![CDATA[/**if(iter.hasNext() == false){
+	return false;
+}
+var data = iter.next();
+row["thingName"] = data.get("THING_NAME");
+row["brand"] = data.get("BRAND");
+row["modelSpec"] = data.get("MODEL_SPEC");
+row["unitPrice"] = data.get("UNIT_PRICE");
+row["amount"] = data.get("AMOUNT");
+row["unit"] = data.get("UNIT");
+row["thingKind"] = data.get("THING_KIND");
+row["manufacturer"] = data.get("MANUFACTURER");
+row["shuiPrice"] = data.get("SHUI_PRICE");
+row["carRigsterNumber"] = data.get("CAR_RIGSTER_NUMBER");
+row["detail"] ="品牌为"+data.get("THING_KIND")
+			+"，型号为"+data.get("MODEL_SPEC");
+if(data.get("CAR_RIGSTER_NUMBER")==null){
+	row["detail"] = row["detail"] +"，车牌号码为 的"+data.get("THING_NAME")
+} else {
+	row["detail"] = row["detail"] +"，车牌号码为" + data.get("CAR_RIGSTER_NUMBER")+"的"+data.get("THING_NAME")
+}
+row["detail"] = row["detail"]+"，数量为" +data.get("AMOUNT")+data.get("UNIT");
+if(count == i){
+	row["detail"] = row["detail"]+"。";
+} else {
+	row["detail"] = row["detail"]+"，";
+}
+i++;
+return true;*/]]></method>
+            <method name="close"><![CDATA[//resultList=null;]]></method>
+        </script-data-set>
+        <script-data-set name="Data Set1" id="159">
+            <list-property name="resultSetHints">
+                <structure>
+                    <property name="position">1</property>
+                    <property name="name">code</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">2</property>
+                    <property name="name">cust_info</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">3</property>
+                    <property name="name">cName</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">4</property>
+                    <property name="name">cMobile</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">5</property>
+                    <property name="name">cAddress</property>
+                    <property name="dataType">string</property>
+                </structure>
+            </list-property>
+            <list-property name="columnHints">
+                <structure>
+                    <property name="columnName">code</property>
+                    <text-property name="displayName">合同号</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">cust_info</property>
+                    <text-property name="displayName">客户信息</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">cName</property>
+                    <text-property name="displayName">保证人姓名1</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">cMobile</property>
+                    <text-property name="displayName">联系电话1</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">cAddress</property>
+                    <text-property name="displayName">地址1</text-property>
+                </structure>
+            </list-property>
+            <structure name="cachedMetaData">
+                <list-property name="resultSet">
+                    <structure>
+                        <property name="position">1</property>
+                        <property name="name">code</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">2</property>
+                        <property name="name">cust_info</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">3</property>
+                        <property name="name">cName</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">4</property>
+                        <property name="name">cMobile</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">5</property>
+                        <property name="name">cAddress</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                </list-property>
+            </structure>
+            <property name="dataSource">Data Source</property>
+            <method name="open"><![CDATA[importPackage(Packages.java.lang);
+importPackage(Packages.java.util);
+importPackage(Packages.com.brick.dun.command);
+
+
+
+var lawContent =DunTaskLawCommand.getLetterCarContentByRectId(params["RECTID"].value,params["dun_date"].value);
+vars["lease_code"]=lawContent.get("LEASE_CODE");
+vars["dun_day"]=lawContent.get("DUN_DAY");
+vars["period_num"]=lawContent.get("PERIOD_NUM");
+vars["cust_name"] =lawContent.get("CUST_NAME");
+vars["dun_monthPrice"]=lawContent.get("DUN_MONTHPRICE");
+vars["dun_fine"]=lawContent.get("DUN_FINE");
+vars["nowDate"]=lawContent.get("nowDate");
+vars["corp_hs_link_mode"]=lawContent.get("CORP_HS_LINK_MODE");
+vars["corp_work_address"]=lawContent.get("CORP_WORK_ADDRESS");
+vars["corp_head_signature"]=lawContent.get("CORP_HEAD_SIGNATURE");
+vars["DUN_DAY"]=lawContent.get("DUN_DAY");
+vars["DUN_COUNT"]=lawContent.get("DUN_COUNT");
+vars["PAY_DATE"]=lawContent.get("PAY_DATE");
+vars["PERIOD_NUM"]=lawContent.get("PERIOD_NUM");
+vars["DUN_PRICE"]=lawContent.get("DUN_PRICE");
+vars["carDetail"]=lawContent.get("carDetail");
+System.out.println(vars["carDetail"]);
+
+//共同还款人
+vars["spouseName"]=lawContent.get("spouseName")==null?"":lawContent.get("spouseName");
+vars["spouseName_"]=vars["spouseName"]==""?"":"共同还款人：";
+vars["spouseAddress"]=vars["spouseName"]==""?"":lawContent.get("spouseAddress");
+vars["spouseAddress_"]=vars["spouseName"]==""?"":"地址：";
+vars["spousePhone"]=vars["spouseName"]==""?"":lawContent.get("spousePhone");
+vars["spousePhone_"]=vars["spouseName"]==""?"":"联系电话：";
+//承租人
+vars["custName"]=lawContent.get("custName")==null?"":lawContent.get("custName");
+vars["custName_"]=vars["custName"]==""?"":"借款人：";
+vars["custAddress"]=vars["custAddress"]==""?"":lawContent.get("custAddress");
+vars["custAddress_"]=vars["custAddress"]==""?"":"地址：";
+vars["custPhone"]=vars["custPhone"]==""?"":lawContent.get("custPhone");
+vars["custPhone_"]=vars["custPhone"]==""?"":"联系电话：";
+
+var fine =DunTaskLawCommand.getDunFineByRectId(params["RECTID"].value);
+vars["fine"]=fine.get("fine");
+
+var resultList = lawContent.get("vouch");
+iter=resultList.iterator();
+
+]]></method>
+            <method name="fetch"><![CDATA[if(iter.hasNext() == false){
+	return false;
+}
+var data = iter.next();
+row["cName"] = data.get("CUST_NAME");
+row["cMobile"] = data.get("NATU_MOBILE");
+row["cAddress"] = data.get("NATU_IDCARD_ADDRESS");
+
+return true;]]></method>
+            <method name="close"><![CDATA[resultList=null;]]></method>
+        </script-data-set>
+        <script-data-set name="company" id="299">
+            <list-property name="resultSetHints">
+                <structure>
+                    <property name="position">1</property>
+                    <property name="name">corp_name_cn</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">2</property>
+                    <property name="name">address</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">3</property>
+                    <property name="name">telphone</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">4</property>
+                    <property name="name">cust_person</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">5</property>
+                    <property name="name">content</property>
+                    <property name="dataType">string</property>
+                </structure>
+            </list-property>
+            <list-property name="columnHints">
+                <structure>
+                    <property name="columnName">corp_name_cn</property>
+                    <text-property name="displayName">联保公司名称</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">address</property>
+                    <text-property name="displayName">地址</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">telphone</property>
+                    <text-property name="displayName">联系方式</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">cust_person</property>
+                    <text-property name="displayName">公司法人</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">content</property>
+                    <text-property name="displayName">内容</text-property>
+                </structure>
+            </list-property>
+            <structure name="cachedMetaData">
+                <list-property name="resultSet">
+                    <structure>
+                        <property name="position">1</property>
+                        <property name="name">corp_name_cn</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">2</property>
+                        <property name="name">address</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">3</property>
+                        <property name="name">telphone</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">4</property>
+                        <property name="name">cust_person</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">5</property>
+                        <property name="name">content</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                </list-property>
+            </structure>
+            <property name="dataSource">Data Source</property>
+            <method name="open"><![CDATA[importPackage(Packages.java.lang);
+importPackage(Packages.java.util);
+importPackage(Packages.com.brick.dun.command);
+
+
+var companyList = DunTaskLawCommand.getCompanyListByRectId(params["RECTID"].value);
+//System.out.print("222______________________________________________-"+companyList.size());
+iterCompany=companyList.iterator();]]></method>
+            <method name="fetch"><![CDATA[if(iterCompany.hasNext() == false){
+	return false;
+}
+var dataCompany = iterCompany.next();
+row["corp_name_cn"] = dataCompany.get("CORP_NAME_CN");
+row["address"] = dataCompany.get("REGISTERED_OFFICE_ADDRESS");
+row["cust_person"]=dataCompany.get("LEGAL_PERSON");
+row["telphone"]=dataCompany.get("LEGAL_MOBILE_NUMBER1");
+row["content"]="连保公司名称:"+dataCompany.get("CORP_NAME_CN")+"      注册地址："+dataCompany.get("REGISTERED_OFFICE_ADDRESS")
++"          法定代表人："+dataCompany.get("LEGAL_PERSON")+"         联系方式："+dataCompany.get("LEGAL_MOBILE_NUMBER1");
+return true;]]></method>
+            <method name="close"><![CDATA[companyList=null;]]></method>
+        </script-data-set>
+        <script-data-set name="person" id="300">
+            <list-property name="resultSetHints">
+                <structure>
+                    <property name="position">1</property>
+                    <property name="name">custName</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">2</property>
+                    <property name="name">address</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">3</property>
+                    <property name="name">phone</property>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="position">4</property>
+                    <property name="name">personContent</property>
+                    <property name="dataType">string</property>
+                </structure>
+            </list-property>
+            <list-property name="columnHints">
+                <structure>
+                    <property name="columnName">custName</property>
+                    <text-property name="displayName">保证人姓名</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">address</property>
+                    <text-property name="displayName">地址</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">phone</property>
+                    <text-property name="displayName">电话</text-property>
+                </structure>
+                <structure>
+                    <property name="columnName">personContent</property>
+                    <text-property name="displayName">担保人</text-property>
+                </structure>
+            </list-property>
+            <structure name="cachedMetaData">
+                <list-property name="resultSet">
+                    <structure>
+                        <property name="position">1</property>
+                        <property name="name">custName</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">2</property>
+                        <property name="name">address</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">3</property>
+                        <property name="name">phone</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                    <structure>
+                        <property name="position">4</property>
+                        <property name="name">personContent</property>
+                        <property name="dataType">string</property>
+                    </structure>
+                </list-property>
+            </structure>
+            <property name="dataSource">Data Source</property>
+            <method name="open"><![CDATA[importPackage(Packages.java.lang);
+importPackage(Packages.java.util);
+importPackage(Packages.com.brick.dun.command);
+
+
+var personList = DunTaskLawCommand.getNatureListByRectId(params["RECTID"].value);
+
+iterPerson=personList.iterator();]]></method>
+            <method name="fetch"><![CDATA[if(iterPerson.hasNext() == false){
+	return false;
+}
+var dataPerson = iterPerson.next();
+
+row["custName"] = dataPerson.get("CUST_NAME");
+
+row["phone"] = dataPerson.get("NATU_MOBILE");
+row["address"] = dataPerson.get("NATU_IDCARD_ADDRESS");
+row["personContent"]="连带保证人:"+dataPerson.get("CUST_NAME")+
+"              地址："+dataPerson.get("NATU_IDCARD_ADDRESS")+"               联系电话："+dataPerson.get("NATU_MOBILE")
+//System.out.print("111______________________________________________-"+row["personContent"]);
+return true;]]></method>
+            <method name="close"><![CDATA[personList=null;]]></method>
+        </script-data-set>
+    </data-sets>
+    <styles>
+        <style name="report" id="4">
+            <property name="fontFamily">sans-serif</property>
+            <property name="fontSize">10pt</property>
+        </style>
+        <style name="crosstab-cell" id="5">
+            <property name="borderBottomColor">#CCCCCC</property>
+            <property name="borderBottomStyle">solid</property>
+            <property name="borderBottomWidth">1pt</property>
+            <property name="borderLeftColor">#CCCCCC</property>
+            <property name="borderLeftStyle">solid</property>
+            <property name="borderLeftWidth">1pt</property>
+            <property name="borderRightColor">#CCCCCC</property>
+            <property name="borderRightStyle">solid</property>
+            <property name="borderRightWidth">1pt</property>
+            <property name="borderTopColor">#CCCCCC</property>
+            <property name="borderTopStyle">solid</property>
+            <property name="borderTopWidth">1pt</property>
+        </style>
+        <style name="crosstab" id="6">
+            <property name="borderBottomColor">#CCCCCC</property>
+            <property name="borderBottomStyle">solid</property>
+            <property name="borderBottomWidth">1pt</property>
+            <property name="borderLeftColor">#CCCCCC</property>
+            <property name="borderLeftStyle">solid</property>
+            <property name="borderLeftWidth">1pt</property>
+            <property name="borderRightColor">#CCCCCC</property>
+            <property name="borderRightStyle">solid</property>
+            <property name="borderRightWidth">1pt</property>
+            <property name="borderTopColor">#CCCCCC</property>
+            <property name="borderTopStyle">solid</property>
+            <property name="borderTopWidth">1pt</property>
+        </style>
+        <style name="fontStyle" id="145">
+            <property name="fontFamily">"华文楷体"</property>
+            <property name="fontSize">20px</property>
+        </style>
+        <style name="headStyle" id="146">
+            <property name="fontFamily">"华文楷体"</property>
+            <property name="fontSize">30px</property>
+            <property name="textAlign">center</property>
+            <property name="verticalAlign">middle</property>
+        </style>
+        <style name="NewStyle" id="36">
+            <property name="textAlign">right</property>
+            <property name="verticalAlign">middle</property>
+        </style>
+        <style name="NewStyle1" id="41">
+            <property name="fontFamily">"微软雅黑"</property>
+            <property name="fontSize">15pt</property>
+            <property name="textAlign">left</property>
+            <property name="verticalAlign">bottom</property>
+        </style>
+        <style name="NewStyle2" id="42">
+            <property name="fontFamily">"华文行楷"</property>
+            <property name="fontSize">10pt</property>
+            <property name="textAlign">left</property>
+            <property name="verticalAlign">top</property>
+        </style>
+        <style name="NewStyle3" id="44">
+            <property name="textAlign">center</property>
+            <property name="verticalAlign">top</property>
+        </style>
+        <style name="NewStyle4" id="116">
+            <property name="fontFamily">"微软雅黑"</property>
+            <property name="fontSize">16px</property>
+            <property name="textAlign">justify</property>
+            <property name="textIndent">2em</property>
+            <property name="letterSpacing">5px</property>
+            <property name="lineHeight">17pt</property>
+        </style>
+        <style name="thind" id="158">
+            <property name="fontFamily">"华文楷体"</property>
+            <property name="fontSize">20px</property>
+            <property name="textIndent">2em</property>
+        </style>
+        <style name="thind1" id="173">
+            <property name="fontFamily">"华文楷体"</property>
+            <property name="fontSize">16px</property>
+        </style>
+        <style name="NewStyle5" id="243">
+            <property name="marginLeft">1.2cm</property>
+            <property name="paddingLeft">1pt</property>
+        </style>
+    </styles>
+    <page-setup>
+        <simple-master-page name="Simple MasterPage" id="2">
+            <property name="leftMargin">0.9895833333333334in</property>
+            <property name="rightMargin">0.8020833333333334in</property>
+            <page-header>
+                <grid id="19">
+                    <property name="height">1.28125in</property>
+                    <property name="width">7.927083333333333in</property>
+                    <column id="20">
+                        <property name="width">2.0416666666666665in</property>
+                    </column>
+                    <column id="21">
+                        <property name="width">5.885416666666667in</property>
+                    </column>
+                    <row id="22">
+                        <property name="height">0.2708333333333333in</property>
+                        <cell id="23"/>
+                        <cell id="24"/>
+                    </row>
+                    <row id="25">
+                        <property name="height">0.3645833333333333in</property>
+                        <cell id="26">
+                            <property name="colSpan">1</property>
+                            <property name="rowSpan">2</property>
+                            <property name="style">NewStyle</property>
+                            <image id="35">
+                                <property name="height">0.48in</property>
+                                <property name="width">0.48in</property>
+                                <property name="source">file</property>
+                                <expression name="uri" type="constant">config/birt/reportDesigen/image/letter.jpg</expression>
+                            </image>
+                        </cell>
+                        <cell id="27">
+                            <property name="style">NewStyle1</property>
+                            <label id="39">
+                                <text-property name="text">江    苏    拙    正    律    师    事    务    所</text-property>
+                            </label>
+                        </cell>
+                    </row>
+                    <row id="28">
+                        <property name="height">0.3333333333333333in</property>
+                        <cell id="30">
+                            <label id="40">
+                                <text-property name="text">W R I G H T       &amp;       J  U S T I C E       L  A  W      F  I  R  M</text-property>
+                            </label>
+                        </cell>
+                    </row>
+                    <row id="31">
+                        <property name="height">0.3125in</property>
+                        <cell id="32">
+                            <property name="colSpan">2</property>
+                            <property name="rowSpan">1</property>
+                            <label id="43">
+                                <text-property name="text">        _________________________________________________________________________________</text-property>
+                            </label>
+                        </cell>
+                    </row>
+                </grid>
+            </page-header>
+            <page-footer>
+                <text id="3">
+                    <property name="contentType">html</property>
+                    <text-property name="content"><![CDATA[<p style="text-align: center;">
+_____________________________________________________________________________
+<br>
+地址：苏州干将西路1067号6楼A座 邮编： 215004 电话：0512-68703306 传真：0512-68703320<br>
+6FA,No 1067, West Road of Ganjiang Road Suzhou, Jiangsu Tel: 0512-68703306 Fax:0512-68703320</p>
+]]></text-property>
+                </text>
+            </page-footer>
+        </simple-master-page>
+    </page-setup>
+    <body>
+        <text id="45">
+            <property name="style">headStyle</property>
+            <property name="contentType">html</property>
+            <text-property name="content"><![CDATA[<div>
+<table>            
+	<tr><td><B>律                                                              师                                                   函</B></td></tr>
+</table>
+</div>]]></text-property>
+        </text>
+        <data id="168">
+            <property name="dataSet">Data Set1</property>
+            <list-property name="boundDataColumns">
+                <structure>
+                    <property name="name">cust_info</property>
+                    <text-property name="displayName">客户信息</text-property>
+                    <expression name="expression" type="javascript">dataSetRow["cust_info"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+            </list-property>
+            <property name="resultSetColumn">cust_info</property>
+        </data>
+        <text id="296">
+            <property name="style">fontStyle</property>
+            <property name="contentType">html</property>
+            <text-property name="content"><![CDATA[<B>借款人</B>：<u><VALUE-OF>vars["cust_name"]</VALUE-OF></u>&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;<B><VALUE-OF>vars["spouseName_"]</VALUE-OF></B><u><VALUE-OF>vars["spouseName"]</VALUE-OF></u><BR>]]></text-property>
+        </text>
+        <text id="297">
+            <property name="style">thind</property>
+            <property name="textAlign">left</property>
+            <property name="display">inline</property>
+            <property name="contentType">html</property>
+            <text-property name="content"><![CDATA[本律师作为裕融租赁有限公司的常年法律顾问，就您违反与裕融租赁有限公司及中国银行股份有限公司苏州工业园区支行签订《个人委托贷款借款合同》条款一事致函如下：<BR>
+您依上述《个人委托贷款借款合同》条款规定，向裕融租赁有限公司借款，购买<VALUE-OF>vars["carDetail"]</VALUE-OF>依上述《个人委托贷款借款合同》第十一条第一款规定，您应依据中国银行股份有限公司苏州工业园区支行所出具的还款计划按时将贷款汇入中国银行股份有限公司苏州工业园区支行应缴帐户内，依上述还款计划，第一期应还贷款日为<VALUE-OF>vars["PAY_DATE"]</VALUE-OF>，现因至发函日止您已迟缴<u><VALUE-OF>vars["DUN_COUNT"]</VALUE-OF></u>期应还贷款<u><VALUE-OF>vars["DUN_DAY"]</VALUE-OF></u>天，并经我司多次电话通知您缴款，您仍未缴款，依上述个人委托贷款借款合同条款之规定，您已严重违约，现发函郑重告知您：]]></text-property>
+        </text>
+        <text id="295">
+            <property name="style">thind</property>
+            <property name="display">inline</property>
+            <property name="contentType">html</property>
+            <text-property name="content"><![CDATA[<div>
+一、您应于我司发此函日起立即依上述个人委托贷款借款合同规定，就该合同第<u><VALUE-OF>vars["PERIOD_NUM"]</VALUE-OF></u>期起未还贷款累计<u><VALUE-OF>vars["DUN_PRICE"]</VALUE-OF></u>元。关于您逾期产生的罚息，请主动致电我司询问（我司电话0512-80983566）。<BR>
+二、如果您未依上述个人委托贷款借款合同之规定将应还贷款及违约金汇付于约定的银行账户上，则我司将于近日以您违约诉诸法院申请保全查封您的账户及财产，或依合同规定要求您一次全部清偿所欠的违约金及已到期未缴贷款及所有未到期的贷款。<BR>
+以上事宜望贵司收到此函后，在规定的时间内予以处理。否则我司将诉至法院，通过法律途径解决。<BR>
+
+此致<BR>&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; &amp;nbsp;&amp;nbsp;&amp;nbsp; 
+			
+江苏拙正律师事务所<BR>
+&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+					
+ 李淑青律师<BR>
+ &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;
+			
+<VALUE-OF>vars["nowDate"]</VALUE-OF> <BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+</div>]]></text-property>
+        </text>
+        <text id="399">
+            <property name="style">thind</property>
+            <property name="contentType">html</property>
+            <text-property name="content"><![CDATA[<div>
+<VALUE-OF>vars["custName_"]</VALUE-OF><VALUE-OF>vars["custName"]</VALUE-OF> <BR>
+<VALUE-OF>vars["custAddress_"]</VALUE-OF><VALUE-OF>vars["custAddress"]</VALUE-OF> <BR>
+<VALUE-OF>vars["custPhone_"]</VALUE-OF><VALUE-OF>vars["custPhone"]</VALUE-OF> <BR>
+<BR><BR>
+<VALUE-OF>vars["spouseName_"]</VALUE-OF><VALUE-OF>vars["spouseName"]</VALUE-OF><BR>
+<VALUE-OF>vars["spouseAddress_"]</VALUE-OF><VALUE-OF>vars["spouseAddress"]</VALUE-OF><BR>
+<VALUE-OF>vars["spousePhone_"]</VALUE-OF><VALUE-OF>vars["spousePhone"]</VALUE-OF>
+</div>]]></text-property>
+        </text>
+        <table id="443">
+            <property name="dataSet">Data Set1</property>
+            <list-property name="boundDataColumns">
+                <structure>
+                    <property name="name">cName</property>
+                    <text-property name="displayName">保证人姓名1</text-property>
+                    <expression name="expression" type="javascript">dataSetRow["cName"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="name">cAddress</property>
+                    <text-property name="displayName">地址1</text-property>
+                    <expression name="expression" type="javascript">dataSetRow["cAddress"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+                <structure>
+                    <property name="name">cMobile</property>
+                    <text-property name="displayName">联系电话1</text-property>
+                    <expression name="expression" type="javascript">dataSetRow["cMobile"]</expression>
+                    <property name="dataType">string</property>
+                </structure>
+            </list-property>
+            <column id="450"/>
+            <detail>
+                <row id="446">
+                    <cell id="447">
+                        <grid id="435">
+                            <column id="436"/>
+                            <row id="437">
+                                <cell id="438">
+                                    <label id="424">
+                                        <property name="fontFamily">"华文楷体"</property>
+                                        <property name="fontSize">20px</property>
+                                        <property name="textAlign">left</property>
+                                        <property name="display">inline</property>
+                                        <text-property name="text">       保证人姓名：</text-property>
+                                    </label>
+                                    <data id="452">
+                                        <property name="fontFamily">"华文楷体"</property>
+                                        <property name="fontSize">20px</property>
+                                        <property name="display">inline</property>
+                                        <property name="resultSetColumn">cName</property>
+                                    </data>
+                                </cell>
+                            </row>
+                            <row id="439">
+                                <cell id="440">
+                                    <label id="425">
+                                        <property name="fontFamily">"华文楷体"</property>
+                                        <property name="fontSize">20px</property>
+                                        <property name="textAlign">left</property>
+                                        <property name="display">inline</property>
+                                        <text-property name="text">       地址：</text-property>
+                                    </label>
+                                    <data id="453">
+                                        <property name="fontFamily">"华文楷体"</property>
+                                        <property name="fontSize">20px</property>
+                                        <property name="display">inline</property>
+                                        <property name="resultSetColumn">cAddress</property>
+                                    </data>
+                                </cell>
+                            </row>
+                            <row id="441">
+                                <cell id="442">
+                                    <label id="426">
+                                        <property name="fontFamily">"华文楷体"</property>
+                                        <property name="fontSize">20px</property>
+                                        <property name="textAlign">left</property>
+                                        <property name="display">inline</property>
+                                        <text-property name="text">       联系电话：</text-property>
+                                    </label>
+                                    <data id="454">
+                                        <property name="fontFamily">"华文楷体"</property>
+                                        <property name="fontSize">20px</property>
+                                        <property name="display">inline</property>
+                                        <property name="resultSetColumn">cMobile</property>
+                                    </data>
+                                </cell>
+                            </row>
+                            <row id="456">
+                                <cell id="457"/>
+                            </row>
+                            <row id="458">
+                                <cell id="459"/>
+                            </row>
+                        </grid>
+                    </cell>
+                </row>
+            </detail>
+        </table>
+    </body>
+    <property name="pageVariables">
+        <variable-element name="lease_code">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="dun_day">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="period_num">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="cust_name">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="dun_monthPrice">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="dun_fine">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="nowDate">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="corp_head_signature">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="corp_work_address">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="corp_hs_link_mode">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="fine">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="spouseName">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="spouseName_">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="spouseAddress">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="spouseAddress_">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="spousePhone">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="spousePhone_">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="DUN_DAY">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="PAY_DATE">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="DUN_COUNT">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="PERIOD_NUM">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="DUN_PRICE">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="custName">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="custName_">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="custAddress">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="custAddress_">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="custPhone">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="custPhone_">
+            <property name="type">report</property>
+        </variable-element>
+        <variable-element name="carDetail">
+            <property name="type">report</property>
+        </variable-element>
+    </property>
+</report>

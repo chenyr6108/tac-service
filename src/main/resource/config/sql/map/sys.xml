@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap  namespace="sys">
+
+	<select id="newid" parameterClass="map"	resultClass="java.util.HashMap">
+
+		select cast(uuid() as char(36)) uuid
+		
+	</select>
+	
+	<resultMap id="getModifyDateTimeResultMap" class="com.brick.base.to.BaseTo">
+		<result property="modify_date" column="MODIFY_DATE" javaType="Date"/>
+	</resultMap>
+	<resultMap id="getAuthDateTimeResultMap" class="com.brick.base.to.BaseTo">
+		<result property="auth_date" column="AUTH_DATE" javaType="Date"/>
+	</resultMap>
+	<select id="getModifyDateTime" parameterClass="com.brick.base.to.BaseTo" resultMap="getModifyDateTimeResultMap">
+		select MODIFY_DATE from $table_name$ where $primary_key$ = #key_value#
+	</select>
+	
+	<select id="getAuthDateTime" parameterClass="com.brick.base.to.BaseTo" resultMap="getAuthDateTimeResultMap">
+		select AUTH_DATE from $table_name$ where $primary_key$ = #key_value#
+	</select>
+
+</sqlMap>

@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="dept">
+	<typeAlias alias="dept" type="com.tac.dept.to.DeptTo"/>
+	
+	<insert id="insertDept" parameterClass="dept">	
+		insert into t_dept
+		(
+			name,
+			dept_leader,
+			create_by,
+			create_date,
+			status,
+			order_no,
+			parent_id,
+			company_id,
+			dept_level
+		)
+		values(
+			#name#,
+			#deptLeader#,
+			#createBy#,
+			getDate(),
+			0,
+			#orderNo#,
+			#parentId#,
+			#companyId#,
+			#deptLevel#
+		)
+		<selectKey resultClass="int" keyProperty="id" > 
+			SELECT @@IDENTITY AS ID 
+		</selectKey> 
+	</insert>
+	
+	<update id="updateDept" parameterClass="dept">
+		update t_dept 
+		set 
+			name=#name#,
+			dept_leader=#deptLeader#,
+			modify_by=#modifyBy#,
+			modify_date=getDate(),
+			order_no=#orderNo#,
+			parent_id=#parentId#,
+			company_id=#companyId#,
+			dept_level = #deptLevel#
+		where id = #id#
+	</update>
+	
+	<update id="deleteDept" parameterClass="map">
+		update  t_dept set status = 1
+		where id = #id#
+	</update>
+		
+	<select id="getDeptById" parameterClass="map" resultClass="dept">
+		select 
+			id as id,
+			name as name,
+			dept_leader as deptLeader,
+			create_by as createBy,
+			create_date as createDate,
+			modify_by as modifyBy,
+			modify_date as modifyDate,
+			status as status,
+			order_no as orderNo,
+			parent_id as parentId,
+			company_id as companyId,
+			dept_level as deptLevel
+		from t_dept
+		where id = #id#
+	</select>
+		
+	<select id="getDepts_count" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0) from t_dept where status = 0 
+		<isNotEmpty prepend="and" property="content">
+		(		
+		name like '%$content$%'		
+		)		
+		</isNotEmpty>
+	</select>
+	
+	<select id="getDepts" parameterClass="map" resultClass="dept">
+		select 
+			id as id,
+			name as name,
+			dept_leader as deptLeader,
+			create_by as createBy,
+			create_date as createDate,
+			modify_by as modifyBy,
+			modify_date as modifyDate,
+			status as status,
+			order_no as orderNo,
+			parent_id as parentId,
+			company_id as companyId,
+			dept_level as deptLevel
+		from t_dept where status = 0 
+		<isNotEmpty prepend="and" property="content">
+		(		
+		name like '%$content$%'		
+		)		
+		</isNotEmpty>
+	</select>
+	
+	<select id="getDeptLeaderById" parameterClass="map" resultClass="java.lang.Integer">
+	    select dept_leader from t_dept where id = #id#	    
+	</select>
+	
+	<select id="getParentDeptById" parameterClass="map" resultClass="java.lang.Integer">
+	    select parent_id from t_dept where id = #id#	    
+	</select>
+	
+	<select id="getUserParentDeptDetailById" parameterClass="map" resultClass="dept">
+	    SELECT 
+	      P.ID,
+	      P.NAME,
+	      P.PARENT_ID AS PARENTID,
+	      P.DEPT_LEADER AS DEPTLEADER,
+	      P.ORDER_NO AS ORDERNO,
+	      P.DEPT_LEVEL AS DEPTLEVEL,
+          P.COMPANY_ID AS COMPANYID,
+          P.STATUS
+	    FROM T_DEPT D
+        LEFT JOIN T_DEPT P ON P.ID = D.PARENT_ID
+        LEFT JOIN T_USER_USER U ON U.DEPARTMENT = D.ID
+        WHERE U.ID = #userId#
+	</select>
+	
+	<select id="getParentDeptDetailById" parameterClass="map" resultClass="dept">
+	    SELECT 
+	      P.ID,
+	      P.NAME,
+	      P.PARENT_ID AS PARENTID,
+	      P.DEPT_LEADER AS DEPTLEADER,
+	      P.ORDER_NO AS ORDERNO,
+	      P.DEPT_LEVEL AS DEPTLEVEL,
+          P.COMPANY_ID AS COMPANYID,
+          P.STATUS
+	    FROM T_DEPT D
+        LEFT JOIN T_DEPT P ON P.ID = D.PARENT_ID
+        WHERE D.ID = #id#
+	</select>
+	
+	<select id="getDeptNameById" parameterClass="map" resultClass="java.lang.String">
+	    select name from t_dept where id = #id#	    
+	</select>
+	
+	<select id="getUsersByDeptId" parameterClass="map" resultClass="com.tac.user.to.UserTo">
+	    select 
+			id as id,
+			name as name
+		from T_USER_USER
+		where department = #id#	and status =0    
+	</select>
+	
+	<select id="getDeptsByCompanyId" parameterClass="map" resultClass="dept">
+    	SELECT 
+	      d.id,
+	      d.name,
+	      d.name +'('+isnull(u.name,' ')+')' as displayName,
+	      d.parent_id as parentId,
+	      d.dept_leader as deptLeader,
+	      u.name as deptLeaderName,
+	      d.order_no as orderNo,
+	      d.dept_level as deptLevel,
+          dd.FLAG as deptLevelName,
+          d.company_id as companyId,
+          c.[NAME] as companyName,
+          dp.name as parentName,
+          d.status
+	    from t_dept  d
+	    left join T_USER_USER u on u.ID = d.dept_leader
+      	left join T_COMPANY c on c.ID =  d.company_id
+      	left join T_DEPT dp on dp.id = d.parent_id
+      	left join T_DATA_DICTIONARY dd on dd.CODE = d.dept_level and dd.[TYPE] ='部门等级'
+      	where d.status = 0
+	    order by d.dept_level,d.order_no
+	</select>
+	
+	<select id="getDeptLeaderByUserId" parameterClass="map" resultClass="java.lang.Integer">
+	    select d.DEPT_LEADER 
+		from t_user_user t
+		left join t_dept d on t.DEPARTMENT = d.ID
+		where t.ID = #userId#	    
+	</select>
+</sqlMap>

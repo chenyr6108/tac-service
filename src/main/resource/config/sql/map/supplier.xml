@@ -1,0 +1,1380 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="supplier">
+	
+	<insert id="create" parameterClass="map">
+	
+		  <![CDATA[ 
+				insert into t_supl_supplier(
+						name,
+						code,
+						Type,
+						Founded_date,
+						Registered_capital,
+						Income_capital,
+						Company_Corporation,
+						Corporation_id_card,
+						Corporation_link,
+						Corporation_address,
+						Business_licence,
+						Organization_certificate,
+						Tex_code,
+						Validity_Period,
+						Licence_address,
+						Work_address,
+						Business_scope,
+						Linkman_name,
+						Linkman_job,
+						Linkman_telphone,
+						Linkman_mobile,
+						Linkman_zip,
+						Company_Web,
+						Credit_type,
+						Open_account_bank,
+						Bank_account,
+						memo,
+						Create_date,
+						Modify_date,
+						linkman_email,
+						buyback_price,
+						supp_type,
+						REGISTERED_CAPITAL_MONEY_TYPE,
+						INCOME_CAPITAL_MONEY_TYPE,
+						SUPP_MODEL,
+						SUPP_LEVEL,
+						BUY_BACK,
+						NET_PAY,
+						LINKMAN_FAX,
+						DECP_ID 
+						) 
+				values
+						(
+						#name#,
+						#code#,
+						#Type#,
+						#Founded_date#,
+						#Registered_capital#,
+						#Income_capital#,
+						#Company_Corporation#,
+						#Corporation_id_card#,
+						#Corporation_link#,
+						#Corporation_address#,
+						#Business_licence#,
+						#Organization_certificate#,
+						#Tex_code#,
+						#Validity_Period#,
+						#Licence_address#,
+						#Work_address#,
+						#Business_scope#,
+						#Linkman_name#,
+						#Linkman_job#,
+						#Linkman_telphone#,
+						#Linkman_mobile#,
+						#Linkman_zip#,
+						#Company_Web#,
+						#Credit_type#,
+						#B_BANK_NAME#,
+						#B_BANK_ACCOUNT#,
+						#memo#,
+						getdate(),
+						getdate(),
+						#LINKMAN_EMAIL#,
+						#buyback_price#,
+						#supp_type#,
+						#moneyType1#,
+						#moneyType2#,
+						#SUPP_MODEL#,
+						#SUPP_LEVEL#,
+						#BUY_BACK#,
+						#NET_PAY#,
+						#LINKMAN_FAX#,
+						#decp_id#
+						)
+				
+	  ]]>
+	  <selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS ID
+		</selectKey>
+	</insert>
+	<!-- query code 检查编号是否存在  -->
+	<select id="queryCode" parameterClass="map" resultClass="java.util.HashMap" >
+		<![CDATA[
+			select count(1) as count from t_supl_supplier t where t.code=#code# 
+		]]>
+	</select>	
+	<!-- query code 检查名称是否存在  -->
+	<select id="queryName" parameterClass="map" resultClass="java.util.HashMap" >
+		<![CDATA[
+			select count(1) as count from t_supl_supplier t where t.name=#name# 
+		]]>
+	</select>	
+	
+	<!-- query code 查询最后一条id  -->
+	<select id="queryEndId" parameterClass="map" resultClass="java.util.HashMap" >
+		<![CDATA[
+			select top 1 ID from t_supl_supplier id order by id desc
+		]]>
+	</select>
+	
+	<!--query supplier by id-->
+	<select id="queryByid" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			      select 
+						t.id,
+						t.name,
+						t.code,
+						t.Type,
+						t.Founded_date,
+						t.Registered_capital,
+						t.Income_capital,
+						t.Company_Corporation,
+						t.Corporation_id_card,
+						t.Corporation_link,
+						t.Corporation_address,
+						t.Business_licence,
+						t.Organization_certificate,
+						t.Tex_code,
+						t.Validity_Period,
+						t.Licence_address,
+						t.Work_address,
+						t.Business_scope,
+						t.Linkman_name,
+						t.Linkman_job,
+						t.Linkman_telphone,
+						t.Linkman_mobile,
+						t.Linkman_zip,
+						t.Company_Web,
+						t.Credit_type,
+						t.Open_account_bank,
+						t.Bank_account,
+						t.memo,
+						t.status,
+						t.Create_date,
+						t.Modify_date,
+						t.Remark1,
+						t.Remark2,
+						t.Remark3,
+						t.Remark4,
+						t.linkman_email,
+						t.buyback_price,
+						t.supp_type,
+						ISNULL(t.REGISTERED_CAPITAL_MONEY_TYPE,'1') REGISTERED_CAPITAL_MONEY_TYPE,
+						ISNULL(t.INCOME_CAPITAL_MONEY_TYPE,'1') INCOME_CAPITAL_MONEY_TYPE,
+						t.SUPP_MODEL,
+						t.SUPP_LEVEL,
+						t.BUY_BACK,
+						t.NET_PAY,
+						t.LINKMAN_FAX,
+						t.decp_id,
+						d.DECP_NAME_CN		
+			      from t_supl_supplier t
+			      left join t_dept_company d on d.decp_id = t.decp_id
+			      where t.id = #id# and  t.status= 0 
+		]]>
+	</select>
+	<!---->
+	<update id="delteById" parameterClass="map">
+		<![CDATA[
+			update t_supl_supplier set status=-2 where id=#id# 
+		]]>
+	</update>
+	
+	<!--update supplier-->
+	<update id="updateById" parameterClass="map">
+		<![CDATA[
+			update t_supl_supplier set  name=#name#,
+				Type = #Type#,
+				Founded_date = #Founded_date#,
+				Registered_capital = #Registered_capital#,
+				Income_capital = #Income_capital#,
+				Company_Corporation = #Company_Corporation#,
+				Corporation_id_card = #Corporation_id_card#,
+				Corporation_link = #Corporation_link#,
+				Corporation_address = #Corporation_address#,
+				Business_licence = #Business_licence#,
+				Organization_certificate = #Organization_certificate#,
+				Tex_code = #Tex_code#,
+				Validity_Period = #Validity_Period#,
+				Licence_address = #Licence_address#,
+				Work_address = #Work_address#,
+				Business_scope = #Business_scope#,
+				Linkman_name = #Linkman_name#,
+				Linkman_job = #Linkman_job#,
+				Linkman_telphone = #Linkman_telphone#,
+				Linkman_mobile = #Linkman_mobile#,
+				Linkman_zip = #Linkman_zip#,
+				Company_Web = #Company_Web#,
+				Credit_type = #Credit_type#,
+				Open_account_bank = #B_BANK_NAME#,
+				Bank_account = #B_BANK_ACCOUNT#,
+				memo = #memo#,				
+				Modify_date = #Modify_date#,
+				linkman_email = #LINKMAN_EMAIL#,
+				supp_type=#supp_type#,
+				REGISTERED_CAPITAL_MONEY_TYPE=#moneyType1#,
+				INCOME_CAPITAL_MONEY_TYPE=#moneyType2#,
+				SUPP_MODEL=#SUPP_MODEL#,
+				SUPP_LEVEL=#SUPP_LEVEL#,
+				BUY_BACK=#BUY_BACK#,
+				NET_PAY=#NET_PAY#,
+				LINKMAN_FAX=#LINKMAN_FAX#
+				where id=#id#
+		]]>		
+	</update>	
+	<!--query count of supplier -->
+	<select id="query_count" resultClass="java.lang.Integer" parameterClass="java.util.HashMap">
+		<isEqual property="isSalesDesk" compareValue="Y">
+			select count(DISTINCT NAME) from t_supl_supplier t1  
+			left join T_SUPL_SUPPLIERUPLOAD t ON T1.ID=T.SUPPLIER_ID AND t.STATUS=0 
+			where t1.status = 0
+			<isNotEmpty property="SUPP_LEVEL">
+				  AND T1.SUPP_LEVEL=#SUPP_LEVEL#
+			</isNotEmpty>
+			<isNotEmpty property="SUPP_TYPE">
+				  AND t1.SUPP_TYPE=#SUPP_TYPE#
+			</isNotEmpty>
+			<isNotEmpty property="LICENCE_ADDRESS">
+				<isEqual property="LICENCE_ADDRESS" compareValue="0">
+					AND (t1.LICENCE_ADDRESS LIKE '%江苏%' OR t1.LICENCE_ADDRESS LIKE '%上海%' OR t1.LICENCE_ADDRESS LIKE '%安徽%' OR t1.LICENCE_ADDRESS LIKE '%浙江%')
+				</isEqual>
+				<isEqual property="LICENCE_ADDRESS" compareValue="1">
+					AND (t1.LICENCE_ADDRESS LIKE '%广东%' OR t1.LICENCE_ADDRESS LIKE '%福建%')
+				</isEqual>
+				<isEqual property="LICENCE_ADDRESS" compareValue="2">
+					AND (t1.LICENCE_ADDRESS LIKE '%重庆%' OR t1.LICENCE_ADDRESS LIKE '%四川%' OR t1.LICENCE_ADDRESS LIKE '%贵州%')
+				</isEqual>
+				<isEqual property="LICENCE_ADDRESS" compareValue="3">
+					AND (t1.LICENCE_ADDRESS LIKE '%河北%' OR t1.LICENCE_ADDRESS LIKE '%山西%' OR t1.LICENCE_ADDRESS LIKE '%北京%' OR t1.LICENCE_ADDRESS LIKE '%天津市%')
+				</isEqual>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="searchValue">
+				 t1.name like '%$searchValue$%' 
+			</isNotEmpty> 
+			       AND EXISTS
+					(SELECT 1 FROM T_SUPL_AREA_MAINTENANCE TSAM WHERE TSAM.STATUS=0 AND TSAM.SUPL_ID=t1.ID AND (TSAM.FIRST_MAINTAIN_USER_ID=#s_employeeId# OR TSAM.SECOND_MAINTAIN_USER_ID=#s_employeeId#))
+		</isEqual>
+		<isNotEqual property="isSalesDesk" compareValue="Y">
+			select count(DISTINCT NAME) from t_supl_supplier t1  
+			left join T_SUPL_SUPPLIERUPLOAD t ON T1.ID=T.SUPPLIER_ID AND t.STATUS=0 
+			where t1.status = 0
+			<isNotEmpty property="SUPP_LEVEL">
+				  AND T1.SUPP_LEVEL=#SUPP_LEVEL#
+			</isNotEmpty>
+			<isNotEmpty property="SUPP_TYPE">
+				  AND t1.SUPP_TYPE=#SUPP_TYPE#
+			</isNotEmpty>
+			<isNotEmpty property="LICENCE_ADDRESS">
+				<isEqual property="LICENCE_ADDRESS" compareValue="0">
+					AND (t1.LICENCE_ADDRESS LIKE '%江苏%' OR t1.LICENCE_ADDRESS LIKE '%上海%' OR t1.LICENCE_ADDRESS LIKE '%安徽%' OR t1.LICENCE_ADDRESS LIKE '%浙江%')
+				</isEqual>
+				<isEqual property="LICENCE_ADDRESS" compareValue="1">
+					AND (t1.LICENCE_ADDRESS LIKE '%广东%' OR t1.LICENCE_ADDRESS LIKE '%福建%')
+				</isEqual>
+				<isEqual property="LICENCE_ADDRESS" compareValue="2">
+					AND (t1.LICENCE_ADDRESS LIKE '%重庆%' OR t1.LICENCE_ADDRESS LIKE '%四川%' OR t1.LICENCE_ADDRESS LIKE '%贵州%')
+				</isEqual>
+				<isEqual property="LICENCE_ADDRESS" compareValue="3">
+					AND (t1.LICENCE_ADDRESS LIKE '%河北%' OR t1.LICENCE_ADDRESS LIKE '%山西%' OR t1.LICENCE_ADDRESS LIKE '%北京%' OR t1.LICENCE_ADDRESS LIKE '%天津市%')
+				</isEqual>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="searchValue">
+				<![CDATA[ t1.name like '%$searchValue$%' ]]>
+			</isNotEmpty> 
+		</isNotEqual>
+	</select>
+	<!--query all-->
+	<select id="query" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<isEqual property="isSalesDesk" compareValue="Y">
+			  		select distinct
+						t1.id,
+						t1.name name,
+						t1.SUPP_LEVEL,
+						t1.name supp_name,
+						t1.code,
+						t1.Type,
+						t1.Founded_date,
+						t1.Registered_capital,
+						t1.Income_capital,
+						t1.Company_Corporation,
+						t1.Corporation_id_card,
+						t1.Corporation_link,
+						t1.Corporation_address,
+						t1.Business_licence,
+						t1.Organization_certificate,
+						t1.Tex_code,
+						t1.Validity_Period,
+						t1.Licence_address,
+						t1.Work_address,
+						t1.Business_scope,
+						t1.Linkman_name,
+						t1.Linkman_job,
+						t1.Linkman_telphone,
+						t1.Linkman_mobile,
+						t1.Linkman_zip,
+						t1.Company_Web,
+						t1.Credit_type,
+						t1.Open_account_bank,
+						t1.Bank_account,
+						t1.memo,
+						t1.status,
+						t1.Create_date,
+						t1.Modify_date,
+						t1.Remark1,
+						t1.Remark2,
+						t1.Remark3,
+						t1.Remark4,
+						CASE WHEN t.SUPPLIER_ID IS NULL
+						THEN 'N'
+						ELSE 'Y'
+						END ATTACH,
+						d.decp_name_cn
+				from t_supl_supplier t1
+				left join T_SUPL_SUPPLIERUPLOAD t ON T1.ID=T.SUPPLIER_ID AND t.STATUS=0  
+				left join t_dept_company d on d.decp_id= t1.decp_id
+				where t1.status = 0	
+			<isNotEmpty property="SUPP_LEVEL">
+				  AND T1.SUPP_LEVEL=#SUPP_LEVEL#
+			</isNotEmpty>
+			<isNotEmpty property="searchMonth">
+				and (
+					  select isnull(min(datediff(day,pc.FINANCECONTRACT_DATE, getdate()) / 30), 99999)
+					  from T_SUPL_SUPPLIER supl
+					  left join T_SUPL_EQUIPMENT se on se.SUPPLIER_ID = supl.ID
+					  left join T_PRJT_CREDITEQUIPMENT pe on pe.SUEQ_ID = se.SUEQ_ID
+					  left join T_PRJT_CREDIT pc on pc.ID = pe.CREDIT_ID
+					  where pc.STATUS = 0
+					  and se.STATUS = 0
+					  and pe.EQMT_STATUS = 0
+					  and pc.FINANCECONTRACT_DATE is not null
+					  and supl.ID = t1.ID
+					) >= #searchMonth#
+			</isNotEmpty>
+			<isNotEmpty property="SUPP_TYPE">
+				  AND t1.SUPP_TYPE=#SUPP_TYPE#
+			</isNotEmpty>
+			<isNotEmpty property="deptId">
+				  AND t1.decp_id=#deptId#
+			</isNotEmpty>		
+			<isNotEmpty property="LICENCE_ADDRESS">
+				<isEqual property="LICENCE_ADDRESS" compareValue="0">
+					AND (t1.LICENCE_ADDRESS LIKE '%江苏%' OR t1.LICENCE_ADDRESS LIKE '%上海%' OR t1.LICENCE_ADDRESS LIKE '%安徽%' OR t1.LICENCE_ADDRESS LIKE '%浙江%')
+				</isEqual>
+				<isEqual property="LICENCE_ADDRESS" compareValue="1">
+					AND (t1.LICENCE_ADDRESS LIKE '%广东%' OR t1.LICENCE_ADDRESS LIKE '%福建%')
+				</isEqual>
+				<isEqual property="LICENCE_ADDRESS" compareValue="2">
+					AND (t1.LICENCE_ADDRESS LIKE '%重庆%' OR t1.LICENCE_ADDRESS LIKE '%四川%' OR t1.LICENCE_ADDRESS LIKE '%贵州%')
+				</isEqual>
+				<isEqual property="LICENCE_ADDRESS" compareValue="3">
+					AND (t1.LICENCE_ADDRESS LIKE '%河北%' OR t1.LICENCE_ADDRESS LIKE '%山西%' OR t1.LICENCE_ADDRESS LIKE '%北京%' OR t1.LICENCE_ADDRESS LIKE '%天津市%')
+				</isEqual>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="searchValue" >
+				 t1.name like '%$searchValue$%' 
+			</isNotEmpty>
+					AND EXISTS
+					(SELECT 1 FROM T_SUPL_AREA_MAINTENANCE TSAM WHERE TSAM.STATUS=0 AND TSAM.SUPL_ID=t1.ID AND (TSAM.FIRST_MAINTAIN_USER_ID=#s_employeeId# OR TSAM.SECOND_MAINTAIN_USER_ID=#s_employeeId#))
+			order by t1.name  
+		</isEqual>
+		<isNotEqual property="isSalesDesk" compareValue="Y">
+			<![CDATA[ select distinct
+						t1.id,
+						t1.name name,
+						t1.SUPP_LEVEL,
+						t1.name supp_name,
+						t1.code,
+						t1.Type,
+						t1.Founded_date,
+						t1.Registered_capital,
+						t1.Income_capital,
+						t1.Company_Corporation,
+						t1.Corporation_id_card,
+						t1.Corporation_link,
+						t1.Corporation_address,
+						t1.Business_licence,
+						t1.Organization_certificate,
+						t1.Tex_code,
+						t1.Validity_Period,
+						t1.Licence_address,
+						t1.Work_address,
+						t1.Business_scope,
+						t1.Linkman_name,
+						t1.Linkman_job,
+						t1.Linkman_telphone,
+						t1.Linkman_mobile,
+						t1.Linkman_zip,
+						t1.Company_Web,
+						t1.Credit_type,
+						t1.Open_account_bank,
+						t1.Bank_account,
+						t1.memo,
+						t1.status,
+						t1.Create_date,
+						t1.Modify_date,
+						t1.Remark1,
+						t1.Remark2,
+						t1.Remark3,
+						t1.Remark4,
+						CASE WHEN t.SUPPLIER_ID IS NULL
+						THEN 'N'
+						ELSE 'Y'
+						END ATTACH,
+						d.decp_name_cn
+				from t_supl_supplier t1
+				left join T_SUPL_SUPPLIERUPLOAD t ON T1.ID=T.SUPPLIER_ID AND t.STATUS=0  
+				left join t_dept_company d on d.decp_id= t1.decp_id
+				where t1.status = 0]]>	
+			<isNotEmpty property="searchMonth">
+				and (
+					  select isnull(min(datediff(day,pc.FINANCECONTRACT_DATE, getdate()) / 30), 99999)
+					  from T_SUPL_SUPPLIER supl
+					  left join T_SUPL_EQUIPMENT se on se.SUPPLIER_ID = supl.ID
+					  left join T_PRJT_CREDITEQUIPMENT pe on pe.SUEQ_ID = se.SUEQ_ID
+					  left join T_PRJT_CREDIT pc on pc.ID = pe.CREDIT_ID
+					  where pc.STATUS = 0
+					  and se.STATUS = 0
+					  and pe.EQMT_STATUS = 0
+					  and pc.FINANCECONTRACT_DATE is not null
+					  and supl.ID = t1.ID
+					) >= #searchMonth#
+			</isNotEmpty>
+			<isNotEmpty property="SUPP_LEVEL">
+				  AND T1.SUPP_LEVEL=#SUPP_LEVEL#
+			</isNotEmpty>
+			<isNotEmpty property="SUPP_TYPE">
+				  AND t1.SUPP_TYPE=#SUPP_TYPE#
+			</isNotEmpty>	
+			<isNotEmpty property="deptId">
+				  AND t1.decp_id=#deptId#
+			</isNotEmpty>
+			<isNotEmpty property="LICENCE_ADDRESS">
+				<isEqual property="LICENCE_ADDRESS" compareValue="0">
+					AND (t1.LICENCE_ADDRESS LIKE '%江苏%' OR t1.LICENCE_ADDRESS LIKE '%上海%' OR t1.LICENCE_ADDRESS LIKE '%安徽%' OR t1.LICENCE_ADDRESS LIKE '%浙江%')
+				</isEqual>
+				<isEqual property="LICENCE_ADDRESS" compareValue="1">
+					AND (t1.LICENCE_ADDRESS LIKE '%广东%' OR t1.LICENCE_ADDRESS LIKE '%福建%')
+				</isEqual>
+				<isEqual property="LICENCE_ADDRESS" compareValue="2">
+					AND (t1.LICENCE_ADDRESS LIKE '%重庆%' OR t1.LICENCE_ADDRESS LIKE '%四川%' OR t1.LICENCE_ADDRESS LIKE '%贵州%')
+				</isEqual>
+				<isEqual property="LICENCE_ADDRESS" compareValue="3">
+					AND (t1.LICENCE_ADDRESS LIKE '%河北%' OR t1.LICENCE_ADDRESS LIKE '%山西%' OR t1.LICENCE_ADDRESS LIKE '%北京%' OR t1.LICENCE_ADDRESS LIKE '%天津市%')
+				</isEqual>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="searchValue" >
+				<![CDATA[ t1.name like '%$searchValue$%' ]]>
+			</isNotEmpty>		
+		</isNotEqual>
+	</select>
+	
+	<select id="queryContribute_count" resultClass="java.lang.Integer" parameterClass="java.util.HashMap">
+		<![CDATA[ 
+		select count(1) count from (
+			select t8.ID,
+   t8.NAME,
+   T9.count_rect,
+   t9.count_recd,
+   t9.LEASE_SUM,
+   t10.sum_ren,
+   T9.avg_tr,
+   t9.PAY_MONEY SUMLEASE_RZE ,
+   t11.GRANT_PRICE GRANT_PRICE,
+   ROW_NUMBER() OVER (ORDER BY t9.LEASE_SUM desc,t9.avg_tr desc) ranking
+from T_SUPL_SUPPLIER t8
+LEFT JOIN (
+	SELECT T.ID ,SUM(T4.LEASE_TOPRIC) LEASE_SUM, COUNT(DISTINCT T4.RECT_ID) count_rect,
+			COUNT(DISTINCT T3.RECD_ID) count_recd,SUM(T5.PAY_MONEY) PAY_MONEY,AVG(T6.TR_IRR_RATE) avg_tr 
+		FROM
+			T_SUPL_SUPPLIER T
+			LEFT JOIN T_SUPL_EQUIPMENT T1 ON T1.SUPPLIER_ID = T.ID 
+			LEFT JOIN T_EQMT_EQUIPMENT T2 ON T2.SUEQ_ID = T1.SUEQ_ID 
+			LEFT JOIN T_RENT_CONTRACTDETAIL T3 ON T3.EQMT_ID = T2.EQMT_ID 
+			LEFT JOIN T_RENT_CONTRACT T4 ON T3.RECT_ID = T4.RECT_ID
+			LEFT JOIN T_RENT_CONTRACTSCHEMA T6 ON T6.RECT_ID = T4.RECT_ID
+			LEFT JOIN (
+				SELECT CREDIT_ID ,SUM(TT.PAY_MONEY) PAY_MONEY
+				FROM
+					T_SUPL_PLAYDETIL TT
+				WHERE
+					TT.BACKSTATE = 0
+					AND TT.STATE = 3
+					AND TT.STATUS = 0
+				GROUP BY CREDIT_ID
+			) T5 ON T5.CREDIT_ID = T4.PRCD_ID
+		WHERE
+			T.STATUS = 0
+			AND T1.STATUS = 0
+			AND T2.STATUS = 0
+			AND T3.STATUS = 0
+			AND T4.STATUS = 0
+			AND T6.STATUS = 0			
+		GROUP BY T.ID
+) t9 on t9.ID = t8.ID
+left join (
+	SELECT T.ID ,SUM(T4.REN_PRICE) SUM_REN
+	FROM
+		T_SUPL_SUPPLIER T
+		LEFT JOIN T_SUPL_EQUIPMENT T1 ON T1.SUPPLIER_ID = T.ID 
+		LEFT JOIN T_EQMT_EQUIPMENT T2 ON T2.SUEQ_ID = T1.SUEQ_ID 
+		LEFT JOIN T_RENT_CONTRACTDETAIL T3 ON T3.EQMT_ID = T2.EQMT_ID 
+		LEFT JOIN T_RENT_COLLECTIONDETAIL T4 ON T4.RECP_ID = T3.RECP_ID
+	WHERE
+		T.STATUS = 0
+		AND T1.STATUS = 0
+		AND T2.STATUS = 0
+		AND T3.STATUS = 0
+		AND T4.STATUS = 0
+	GROUP BY T.ID
+) t10 on t10.id = t8.ID
+left join T_PRODUCT_GRANTPLAN t11 on t11.PRODUCT_ID=t8.ID and t11.STATUS=0 and t11.CUGP_STATUS=0
+left join T_PRODUCT_UNIONGRANTPLAN t12 on t12.PRODUCT_ID=t8.ID and t12.STATUS=0
+where t8.STATUS = 0
+		]]>
+		<isNotEmpty prepend="and" property="searchValue" >
+			<![CDATA[ t8.name like '%$searchValue$%' ]]>
+		</isNotEmpty>
+		<![CDATA[ ) tttt ]]>
+	</select>
+	<select id="queryContribute" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[ 
+			select t8.ID,
+			   t8.NAME,
+			   T9.count_rect,
+			   t9.count_recd,
+			   t9.LEASE_SUM,
+			   t10.sum_ren,
+			   T9.avg_tr,
+			   t9.PAY_MONEY SUMLEASE_RZE ,
+			   t11.GRANT_PRICE GRANT_PRICE
+			from T_SUPL_SUPPLIER t8
+			LEFT JOIN (
+				SELECT T.ID ,SUM(T4.LEASE_TOPRIC) LEASE_SUM, COUNT(DISTINCT T4.RECT_ID) count_rect,
+						COUNT(DISTINCT T3.RECD_ID) count_recd,SUM(T5.PAY_MONEY) PAY_MONEY,AVG(T6.TR_IRR_RATE) avg_tr 
+					FROM
+						T_SUPL_SUPPLIER T
+						LEFT JOIN T_SUPL_EQUIPMENT T1 ON T1.SUPPLIER_ID = T.ID 
+						LEFT JOIN T_EQMT_EQUIPMENT T2 ON T2.SUEQ_ID = T1.SUEQ_ID 
+						LEFT JOIN T_RENT_CONTRACTDETAIL T3 ON T3.EQMT_ID = T2.EQMT_ID 
+						LEFT JOIN T_RENT_CONTRACT T4 ON T3.RECT_ID = T4.RECT_ID
+						LEFT JOIN T_RENT_CONTRACTSCHEMA T6 ON T6.RECT_ID = T4.RECT_ID
+						LEFT JOIN (
+							SELECT CREDIT_ID ,SUM(TT.PAY_MONEY) PAY_MONEY
+							FROM
+								T_SUPL_PLAYDETIL TT
+							WHERE
+								TT.BACKSTATE = 0
+								AND TT.STATE = 3
+								AND TT.STATUS = 0
+							GROUP BY CREDIT_ID
+						) T5 ON T5.CREDIT_ID = T4.PRCD_ID
+					WHERE
+						T.STATUS = 0
+						AND T1.STATUS = 0
+						AND T2.STATUS = 0
+						AND T3.STATUS = 0
+						AND T4.STATUS = 0
+						AND T6.STATUS = 0			
+					GROUP BY T.ID
+			) t9 on t9.ID = t8.ID
+			left join (
+				SELECT T.ID ,SUM(T4.REN_PRICE) SUM_REN
+				FROM
+					T_SUPL_SUPPLIER T
+					LEFT JOIN T_SUPL_EQUIPMENT T1 ON T1.SUPPLIER_ID = T.ID 
+					LEFT JOIN T_EQMT_EQUIPMENT T2 ON T2.SUEQ_ID = T1.SUEQ_ID 
+					LEFT JOIN T_RENT_CONTRACTDETAIL T3 ON T3.EQMT_ID = T2.EQMT_ID 
+					LEFT JOIN T_RENT_COLLECTIONDETAIL T4 ON T4.RECP_ID = T3.RECP_ID
+				WHERE
+					T.STATUS = 0
+					AND T1.STATUS = 0
+					AND T2.STATUS = 0
+					AND T3.STATUS = 0
+					AND T4.STATUS = 0
+				GROUP BY T.ID
+			) t10 on t10.id = t8.ID
+			left join T_PRODUCT_GRANTPLAN t11 on t11.PRODUCT_ID=t8.ID and t11.STATUS=0 and t11.CUGP_STATUS=0
+			left join T_PRODUCT_UNIONGRANTPLAN t12 on t12.PRODUCT_ID=t8.ID and t12.STATUS=0
+			
+			where t8.STATUS = 0
+		]]>
+		<isNotEmpty prepend="and" property="searchValue" >
+			<![CDATA[ t8.name like '%$searchValue$%' ]]>
+		</isNotEmpty>
+		order by $sortorder$ $ordertype$
+	</select>
+	
+	
+	
+	<!-- 根据供应商id 删除银行账户的信息 -->
+	 <update id="deleteSuppliesBankAccountById" parameterClass="map">
+	 	update t_supl_supplierbankaccount
+	 	set status=-2
+	 	where supl_id=#supl_id#
+	 </update>	 
+	 <!-- 根据供应商ID删除该id下的所有其他账户 -->
+	 <delete id="deleteSuppliersBankAccountBySuplId" parameterClass="map">
+	 	delete from t_supl_supplierbankaccount where state=1 and supl_id=#supl_id#
+	 </delete>
+	 
+	 <!-- 添加一条资信法人的银行账号信息 -->
+	 <insert id="createSupplierBankAccount" parameterClass="map">
+	 	insert into t_supl_supplierbankaccount
+			(
+			BANK_NAME,	
+			BANK_ACCOUNT,
+			STATE,
+			STATUS,
+			CREATE_DATE,
+			MODIFY_DATE,
+			SUPL_ID
+			)
+			values
+			(
+			#BANK_NAME#,
+			#BANK_ACCOUNT#,
+			#STATE#,
+			0,
+			getdate(),
+			getdate(),
+			#SUPL_ID#
+			)
+	 </insert>
+	 
+	 
+	  <!-- 根据资信id查询该ID下的所有银行账户 -->
+	 <select id="getSupplierBankAccountByCreditId" parameterClass="map" resultClass="hashmap">
+	 	select * from t_supl_supplierbankaccount where status=0 and supl_id=#id#
+	 </select>
+	 
+	 
+	
+	 
+	  <select id="queryGuarantorContribute_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ 
+			SELECT count(*)
+			FROM (
+				SELECT 1 DIFFREENT,CORP_NAME_CN NAME,ORGANIZATION_CODE_CERTIFICATE IDENTYCODE,COUNT(DISTINCT T2.RECT_ID) COUNTS,
+					MAX(T3.GRANT_PRICE) GRANT_PRICE
+				FROM
+					T_PRJT_VOUCHCUSTOMERCORP T
+					LEFT JOIN T_PRJT_CREDIT T1 ON T1.ID = T.PRCD_ID 
+					LEFT JOIN T_RENT_CONTRACT T2 ON T2.PRCD_ID = T1.ID AND T2.STATUS = 0
+					LEFT JOIN T_PRODUCT_VOUCHPLAN T3 ON T3.VOUCH_NAME = T.CORP_NAME_CN AND T3.VOUCH_CODE = T.ORGANIZATION_CODE_CERTIFICATE
+						AND T3.STATUS = 0
+				WHERE
+					T.STATUS = 0
+					AND T1.STATUS = 0
+				GROUP BY T.CORP_NAME_CN,T.ORGANIZATION_CODE_CERTIFICATE
+				UNION
+				SELECT 2 DIFFREENT,T.CUST_NAME NAME,T.NATU_IDCARD IDENTYCODE,COUNT(DISTINCT T2.RECT_ID) COUNTS,
+					MAX(T3.GRANT_PRICE) GRANT_PRICE
+				FROM
+					T_PRJT_CREDITVOUCHNATU T
+					LEFT JOIN T_PRJT_CREDIT T1 ON T1.ID = T.PRCD_ID 
+					LEFT JOIN T_RENT_CONTRACT T2 ON T2.PRCD_ID = T1.ID AND T2.STATUS = 0
+					LEFT JOIN T_PRODUCT_VOUCHPLAN T3 ON T3.VOUCH_NAME = T.CUST_NAME AND T3.VOUCH_CODE = T.NATU_IDCARD
+						AND T3.STATUS = 0
+				WHERE
+					T.STATUS = 0
+					AND T1.STATUS = 0
+				GROUP BY T.CUST_NAME,T.NATU_IDCARD
+			) tbigtable
+		]]>
+		<dynamic prepend="where">
+			<isNotEmpty prepend="and" property="searchValue" >
+				<![CDATA[ tbigtable.NAME like '%$searchValue$%']]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="code" >
+				<![CDATA[ tbigtable.IDENTYCODE like '%$code$%']]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="ranklow" >
+				<![CDATA[(tbigtable.ranking between #ranklow# and #rankup#)]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	 <select id="queryGuarantorContribute" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[ 
+			SELECT *,ROW_NUMBER() OVER (ORDER BY GRANT_PRICE desc) ranking
+			FROM (
+				SELECT 1 DIFFREENT,CORP_NAME_CN NAME,ORGANIZATION_CODE_CERTIFICATE IDENTYCODE,COUNT(DISTINCT T2.RECT_ID) COUNTS,
+					MAX(T3.GRANT_PRICE) GRANT_PRICE
+				FROM
+					T_PRJT_VOUCHCUSTOMERCORP T
+					LEFT JOIN T_PRJT_CREDIT T1 ON T1.ID = T.PRCD_ID 
+					LEFT JOIN T_RENT_CONTRACT T2 ON T2.PRCD_ID = T1.ID AND T2.STATUS = 0
+					LEFT JOIN T_PRODUCT_VOUCHPLAN T3 ON T3.VOUCH_NAME = T.CORP_NAME_CN AND T3.VOUCH_CODE = T.ORGANIZATION_CODE_CERTIFICATE 
+						AND T3.STATUS = 0
+				WHERE
+					T.STATUS = 0
+					AND T1.STATUS = 0
+				GROUP BY T.CORP_NAME_CN,T.ORGANIZATION_CODE_CERTIFICATE
+					UNION
+				SELECT 2 DIFFREENT,T.CUST_NAME NAME,T.NATU_IDCARD IDENTYCODE,COUNT(DISTINCT T2.RECT_ID) COUNTS,
+					MAX(T3.GRANT_PRICE) GRANT_PRICE
+				FROM
+					T_PRJT_CREDITVOUCHNATU T
+					LEFT JOIN T_PRJT_CREDIT T1 ON T1.ID = T.PRCD_ID 
+					LEFT JOIN T_RENT_CONTRACT T2 ON T2.PRCD_ID = T1.ID AND T2.STATUS = 0
+					LEFT JOIN T_PRODUCT_VOUCHPLAN T3 ON T3.VOUCH_NAME = T.CUST_NAME AND T3.VOUCH_CODE = T.NATU_IDCARD AND T3.STATUS = 0
+				WHERE
+					T.STATUS = 0
+					AND T1.STATUS = 0
+				GROUP BY T.CUST_NAME,T.NATU_IDCARD
+			) tbigtable
+		]]>
+		<dynamic prepend="where">
+			<isNotEmpty prepend="and" property="searchValue" >
+				<![CDATA[ tbigtable.NAME like '%$searchValue$%']]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="code" >
+				<![CDATA[ tbigtable.IDENTYCODE like '%$code$%']]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="ranklow" >
+				<![CDATA[(tbigtable.ranking between #ranklow# and #rankup#)]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	<select id="querySupplContract" parameterClass="map" resultClass="java.util.HashMap" >
+		<![CDATA[
+		 SELECT 
+			T.RECT_ID,T.LEASE_CODE,T.CUST_NAME,MAX(LEASE_TOPRIC) LEASE_TOPRIC
+		FROM	
+			T_RENT_CONTRACT T
+			LEFT JOIN T_RENT_CONTRACTDETAIL T1 ON T1.RECT_ID = T.RECT_ID
+			LEFT JOIN T_EQMT_EQUIPMENT T2 ON T2.EQMT_ID = T1.EQMT_ID 
+			LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.SUEQ_ID = T2.SUEQ_ID 
+			LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.ID = T3.SUPPLIER_ID 
+		WHERE
+			T.STATUS = 0
+			AND T1.STATUS = 0
+			AND T2.STATUS = 0
+			AND T3.STATUS = 0
+			AND T4.STATUS = 0
+			AND T4.ID = #ID#
+		GROUP BY T.LEASE_CODE,T.CUST_NAME,T.RECT_ID
+		]]>
+	</select>
+	 
+	<select id="getResourceIdListByEmplId" resultClass="java.lang.String">
+	        <![CDATA[
+	        SELECT re.RESOURCE_ID
+		      FROM fil_permission_resource2role re
+		     WHERE EXISTS 
+		            (SELECT 1 
+		               FROM FIL_PERMISSION_ROLE roles
+		              WHERE EXISTS
+		                      (SELECT 1 
+		                         FROM t_user_user2role users 
+		                        WHERE roles.ID=users.ROLE_ID
+		                          AND roles.STATUS=users.STATUS
+		                          AND users.EMPLOYEE_ID=#s_employeeId#
+		                          AND users.STATUS=0)
+		                  AND roles.ID=re.ROLE_ID
+		                  AND roles.STATUS=re.STATUS)
+		  ORDER BY re.RESOURCE_ID DESC
+		  ]]>
+	</select>
+	
+	<!-- Add by Michael 2012 08-28 增加供应商联系人 -->
+	<statement id="rollBackDefaultLinkMan" parameterClass="map">
+		<![CDATA[
+			update t_suppl_linkman  set  LINK_TYPE = 1, modify_time=getdate(), modify_user_id=#s_employeeId# 
+			where  SUPPL_ID=#suppl_id# and LINK_TYPE = 0
+		]]>
+	</statement>
+	
+	<!-- Set Default LinkMan -->
+	<statement id="setDefaultLinkMan" parameterClass="map">
+		<![CDATA[
+			update t_suppl_linkman  set  LINK_TYPE=0, modify_time=getdate(), modify_user_id=#s_employeeId# where  culm_id=#culm_id# 
+		]]>
+	</statement>
+	
+		<!-- 读取供应商下的所有联系方式 -->
+	<select id="querySupplLinkMan" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select t.culm_id,t.suppl_id,t.create_time,t.modify_time,t.status,t.link_name,
+
+			t.link_relation2cust,t.link_mobile,t.link_phone,t.link_gender,t.link_type,
+			
+			t.link_email,t.PROVINCE_ID,t.CITY_ID,t.AREA_ID ,t.CREATE_USER_ID,tuu.[NAME] as NAME
+			
+			from t_suppl_linkman t
+			
+			left join T_USER_USER  tuu on tuu.ID = t.CREATE_USER_ID
+			
+			 where t.suppl_id=#suppl_id# order by t.link_type 
+			
+		]]>
+	</select>
+	
+	<!-- 新增供应商联系人  -->
+	<insert id="createSupplLinkMan" parameterClass="map">
+		<![CDATA[ 
+			insert into t_suppl_linkman(suppl_id,create_user_id,link_relation2cust,link_name,link_idcard,link_mobile,link_phone,link_idcard_address,link_home_address,link_zip,link_work_units,link_work_address,link_duty,link_gender,link_age,link_email,PROVINCE_ID,CITY_ID,AREA_ID) 
+   				values(#suppl_id#,#s_employeeId#,#link_relation2cust#,#link_name#,#link_idcard#,#link_mobile#,#link_phone#,#link_idcard_address#,#link_home_address#,#link_zip#,#link_work_units#,#link_work_address#,#link_duty#,#link_gender#,#link_age#,#link_email#,#province_id#,#city_id#,#area_id#)
+   		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="culm_id">
+			<![CDATA[	select @@IDENTITY as culm_id  ]]>
+		</selectKey> 
+	</insert>
+	
+		<!-- 根据联系人ID读取承租人下的某个联系人 -->
+	<select id="readSupplLinkManById" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select t.culm_id,
+				   t.suppl_id,
+				   t.status,
+				   t.link_name,
+				   t.link_relation2cust,
+				   t.link_gender,
+				   t.link_age,
+				   t.link_mobile,
+				   t.link_phone,
+				   t.link_idcard,
+				   t.link_zip,
+				   t.link_email,
+				   t.link_idcard_address,
+				   t.link_home_address,
+				   t.link_work_units,
+				   t.link_duty,
+				   t.link_work_address,
+				   t.link_type,t.PROVINCE_ID,t.CITY_ID,t.AREA_ID 
+				   from t_suppl_linkman t where t.culm_id=#culm_id#
+		]]>
+	</select>
+	
+	<!-- 根据联系人ID更新承租人下的某个联系人 -->  
+	<update id="updateSupplLinkManById" parameterClass="map">
+		<![CDATA[ 
+		update t_suppl_linkman set link_name = #link_name#,
+								  link_relation2cust = #link_relation2cust#,
+								  MODIFY_TIME=getdate(),
+								  link_idcard = #link_idcard#,
+								  link_mobile = #link_mobile#, 
+								  link_phone = #link_phone#,
+								  link_idcard_address = #link_idcard_address#,
+								  link_home_address = #link_home_address#,
+								  link_zip = #link_zip#,
+								  link_work_units = #link_work_units#,
+								  link_work_address = #link_work_address#,
+								  link_duty = #link_duty#,
+								  link_gender = #link_gender#,
+								  link_age = #link_age#,
+								  link_email = #link_email#,
+								  PROVINCE_ID=#province_id#,
+								  CITY_ID=#city_id#,
+								  AREA_ID=#area_id#,
+								  MODIFY_USER_ID=#s_employeeId#
+		   						  where CULM_ID = #culm_id#      
+		]]>
+	</update>
+		<!-- 操作供应商下的所有联系方式的状态 -->
+	<statement id="operteSupplLinkManStatus" parameterClass="map">
+		<![CDATA[
+			update t_suppl_linkman  set  status=#status#, modify_time=getdate(), modify_user_id=#s_employeeId# where  culm_id=#culm_id# 
+		]]>
+	</statement>
+	
+	<!-- Add by Michael 2012 08-29 查询供应商联系人名称 -->
+	<select  id="querySuppllinInfo" parameterClass="map" resultClass="java.util.HashMap">
+		select distinct t.id ,t.NAME, t1.culm_id ,t1.link_name  
+				from T_SUPL_SUPPLIER t
+		left join t_suppl_linkman t1 on t.id = t1.suppl_id 
+		where t1.status =0 and t.id = #suppl_id#
+	</select>
+	
+	<insert id="createSupplLINKRecord" parameterClass="map">
+		<![CDATA[ 
+		INSERT INTO T_SUPPL_LINKRECORD
+			(SUPPL_ID,TYPE,CREATE_USER_ID,MODIFY_USER_ID,
+			LINK_PRINCIPAL,LINK_DATE,LINK_THEME,SELLOPPORTUNITY,LINK_DETAILS,LINK_MEMO,CULM_ID,FROM_TIME,TO_TIME,INTENT,IMPORTANT_RECORD)
+		VALUES 												
+			(#suppl_id#,#TYPE#,#s_employeeId#,#s_employeeId#,#LINK_PRINCIPAL#,
+			#LINK_DATE#,#LINK_THEME#,#SELLOPPORTUNITY#,#LINK_DETAILS#,#LINK_MEMO#,#CULM_ID#,#FROM_TIME#,#TO_TIME#,#INTENT#,#IMPORTANT_RECORD#)
+   		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="culr_id">
+			<![CDATA[	select @@IDENTITY as culr_id  ]]>
+		</selectKey> 
+	</insert>
+		<!-- readCustLinkRecord  -->
+	<select id="readSupplLinkRecord" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T.CULR_ID,T.LINK_THEME,T.LINK_PRINCIPAL,T.LINK_DATE,T.LINK_DETAILS,T.TYPE,T.STATUS,
+				   T.FROM_TIME,T.TO_TIME,T2.FLAG intentDescr,T3.FLAG importantDescr 
+			  FROM T_SUPPL_LINKRECORD T
+		 LEFT JOIN T_DATA_DICTIONARY T2 ON T2.CODE=T.INTENT AND T2.STATUS=0 AND T2.[TYPE]='拜访目的'
+	 	 LEFT JOIN T_DATA_DICTIONARY T3 ON T3.CODE=T.IMPORTANT_RECORD AND T3.STATUS=0 AND T3.[TYPE]='重点记录'   
+			 WHERE T.CULR_ID=#CULR_ID#
+		]]>
+	</select>
+	
+	<select id="querySupplLinkRecord" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T.CULR_ID,T.LINK_THEME,T.LINK_PRINCIPAL,T.LINK_DATE,T.LINK_DETAILS,T.TYPE,T.STATUS,tslm.LINK_NAME,
+				   T.FROM_TIME,T.TO_TIME,T2.FLAG intentDescr,T3.FLAG importantDescr 
+			FROM T_SUPPL_LINKRECORD T 
+			left join t_suppl_linkman  tslm on T.CULM_ID = tslm.CULM_ID and tslm.status=0
+			LEFT JOIN T_DATA_DICTIONARY T2 ON T2.CODE=T.INTENT AND T2.STATUS=0 AND T2.[TYPE]='拜访目的'
+	 	 	LEFT JOIN T_DATA_DICTIONARY T3 ON T3.CODE=T.IMPORTANT_RECORD AND T3.STATUS=0 AND T3.[TYPE]='重点记录'   
+			WHERE T.STATUS='0' AND T.suppl_id=#suppl_id# ORDER BY T.CREATE_TIME DESC 
+		]]>
+	</select>
+	
+	<update id="deleteLinkrecord"  parameterClass="map"> 
+		<![CDATA[
+			UPDATE T_SUPPL_LINKRECORD 
+			SET  STATUS = '-2',
+				MODIFY_USER_ID=#s_employeeId#,
+				MODIFY_TIME =getdate()
+			WHERE CULR_ID=#CULR_ID#	 
+		]]>
+	</update>
+	
+	<select id="querySupplCredit" parameterClass="map" resultClass="java.util.HashMap">
+		select tpc.ID,tpc.CREDIT_RUNCODE CREDIT_CODE,
+		tpc.LEASE_CODE,tpc.WIND_STATE,
+		RECP.RECT_ID,t1.CREDIT_ID 
+		,cust.CUST_NAME
+		,cs.LEASE_RZE
+		,decp.DECP_NAME_CN
+		,case 
+		when cs.SUPL_TRUE = 1 then '连保'
+		when cs.SUPL_TRUE = 2 then '回购含灭失'
+		when cs.SUPL_TRUE = 3 then '回购'
+		when cs.SUPL_TRUE = 4 then '无'
+		end as SUPL_TRUE
+		, tpc.FINANCECONTRACT_DATE
+		from t_prjt_credit tpc
+		left join T_CUST_CUSTOMER cust on tpc.CUST_ID = cust.CUST_ID
+		left join T_PRJT_CREDITSCHEME cs on cs.CREDIT_ID = tpc.ID
+		left join T_USER_USER u on tpc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID
+		left join (
+		select max(SUEQ_ID) SUEQ_ID,CREDIT_ID 
+		from T_PRJT_CREDITEQUIPMENT 
+		where EQMT_STATUS=0 group by CREDIT_ID
+		) tpce
+		on tpc.ID=tpce.CREDIT_ID 
+		left join T_SUPL_EQUIPMENT tse
+		on tse.SUEQ_ID=tpce.SUEQ_ID and tse.STATUS=0
+		left join T_SUPL_SUPPLIER tss
+		on tss.ID=tse.SUPPLIER_ID and tss.STATUS=0
+		left join T_RENT_CONTRACT RECT ON RECT.LEASE_CODE = tpc.LEASE_CODE
+		LEFT JOIN T_RENT_COLLECTIONPLAN RECP ON RECP.RECT_ID = RECT.RECT_ID
+		left join (
+		select distinct credit_id 
+		from t_prjt_risk_control 
+		where status=0
+		) t1 on t1.credit_id = tpc.id
+		where tss.id =#suppl_id# and tpc.STATUS = 0
+	</select>
+	
+	  	<select id="getSuplGrantMoneyBySuplID" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[
+		    select isnull(tpg.ADVANCEMACHINE_GRANT_PRICE,0) ADVANCEMACHINE_GRANT_PRICE, isnull(tpg.LIEN_GRANT_PRICE,0) LIEN_GRANT_PRICE,isnull(tpg.REPURCH_GRANT_PRICE,0)REPURCH_GRANT_PRICE from T_SUPL_SUPPLIER tss
+			left join T_PRODUCT_GRANTPLAN tpg
+			on tss.ID=tpg.PRODUCT_ID and tpg.STATUS=0
+			where tss.id=#suppl_id# and tss.status=0
+		]]>
+	 </select>	
+	 
+ 	<select id="getEmployeeList" resultClass="java.util.HashMap">
+	          SELECT ID employeeId,NAME name 
+        	 	FROM T_USER_USER 
+	           WHERE JOB IN ('1','2','8')
+	             AND CODE NOT LIKE 'u%' 
+	             AND STATUS=0 
+	</select>
+	
+	<update id="updateMaintainUserId">
+			UPDATE T_SUPL_SUPPLIER SET 
+			<isEqual property="flag" compareValue="1">FIRST_MAINTAIN_USER_ID=#USER_ID#</isEqual>
+			<isEqual property="flag" compareValue="2">SECOND_MAINTAIN_USER_ID=#USER_ID#</isEqual>
+			 WHERE ID=#supplier_id# 
+			   AND STATUS=0
+	</update>
+	
+	<select id="getAreaMaintenance" resultClass="java.util.HashMap">
+			        SELECT TSAM.DEPT_ID,DECP.DECP_NAME_CN DEPT_NAME,T1.NAME,
+			               TSAM.FIRST_MAINTAIN_USER_ID,T2.NAME,
+			               TSAM.SECOND_MAINTAIN_USER_ID
+			          FROM T_SUPL_AREA_MAINTENANCE TSAM
+			     LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.ID=TSAM.SUPL_ID
+			     LEFT JOIN T_USER_USER T1 ON T1.ID=TSAM.FIRST_MAINTAIN_USER_ID AND T1.STATUS=0
+			     LEFT JOIN T_USER_USER T2 ON T2.ID=TSAM.SECOND_MAINTAIN_USER_ID AND T2.STATUS=0
+           		 LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID=TSAM.DEPT_ID AND DECP.STATUS=0
+			     	 WHERE TSAM.STATUS=0
+			       	   AND TSS.STATUS=0
+			       	   AND TSAM.SUPL_ID=#suppl_id#
+	</select>
+	
+	<update id="updateAreaMaintenance">
+			UPDATE T_SUPL_AREA_MAINTENANCE SET STATUS=-1 WHERE SUPL_ID=#suppl_id#
+	</update>
+	
+	<insert id="insertAreaMaintenance">
+			INSERT INTO T_SUPL_AREA_MAINTENANCE
+			(SUPL_ID,DEPT_ID,FIRST_MAINTAIN_USER_ID,SECOND_MAINTAIN_USER_ID,STATUS,LAST_UPDATE_BY)
+			VALUES
+			(#suppl_id#,#DEPT_ID#,#FIRST_MAINTAIN_USER_ID#,#SECOND_MAINTAIN_USER_ID#,0,#s_employeeId#)
+	</insert>
+	
+	<select id="getSuplGroupInfo" resultClass="com.brick.supplier.to.SupplierGroupTO">
+		    SELECT TSSG.ID id,TSSG.SUPL_GROUP_CODE suplGroupCode
+			,TSSGM.count suplCount,TSGCA.[UNION] [union],TSGCA.BUY_BACK buyBack,
+			TSGCA.PAY_BEFORE payBefore,
+			TSSG.SUPL_GROUP_NAME suplGroupName,REMARK remark
+			,ISNULL((SELECT DISTINCT 'Y' 
+			  FROM T_SUPL_GROUP_CREDIT_AMOUNT T 
+			  WHERE T.SUPL_GROUP_CODE=TSSG.SUPL_GROUP_CODE
+			  AND T.STATUS=0),'N') flag
+			, TSGCA.INVOICE as invoice
+			, TSSGM.supl_name as suplName
+			FROM T_SUPL_SUPPLIER_GROUP TSSG
+			LEFT JOIN T_SUPL_GROUP_CREDIT_AMOUNT TSGCA ON TSGCA.STATUS=0 AND TSGCA.SUPL_GROUP_CODE=TSSG.SUPL_GROUP_CODE
+			LEFT JOIN (SELECT SUPL_GROUP_CODE,COUNT(0) [count], dbo.GetSuplNameByGroup(SUPL_GROUP_CODE) as 'supl_name'
+			  FROM T_SUPL_SUPPLIER_GROUP_MAP m
+			  left join T_SUPL_SUPPLIER su on m.SUPL_ID = su.ID
+			  WHERE m.STATUS=0
+			  <isNotEmpty property="supl_name">
+			  	and su.[NAME] like '%$supl_name$%'
+			  </isNotEmpty>
+			  
+			  GROUP BY SUPL_GROUP_CODE
+			) TSSGM ON TSSGM.SUPL_GROUP_CODE=TSSG.SUPL_GROUP_CODE
+			WHERE TSSG.STATUS=0
+			
+			<isNotEmpty property="group_name">
+				and TSSG.SUPL_GROUP_NAME like '%$group_name$%'
+			</isNotEmpty>
+	</select>
+	
+	<insert id="addSuplGroup">
+			INSERT INTO T_SUPL_SUPPLIER_GROUP
+			(SUPL_GROUP_CODE,SUPL_GROUP_NAME,REMARK,STATUS,CREATE_ON)
+			VALUES
+			(#suplGroupCode#,#suplGroupName#,#remark#,0,GETDATE())
+	</insert>
+	
+	<update id="removeSuplGroupMap">
+		UPDATE T_SUPL_SUPPLIER_GROUP_MAP SET STATUS=-1 WHERE SUPL_GROUP_CODE=#suplGroupCode#
+	</update>
+	<insert id="insertSuplGroupMap">
+		INSERT INTO T_SUPL_SUPPLIER_GROUP_MAP
+		(SUPL_GROUP_CODE,SUPL_ID,STATUS)
+		VALUES
+		(#suplGroupCode#,#suplId#,0)
+	</insert>
+	
+	<select id="getSupl" resultClass="com.brick.supplier.to.SupplierGroupTO">
+			SELECT TSSGM.SUPL_ID suplId,TSS.NAME suplName
+			  FROM T_SUPL_SUPPLIER_GROUP_MAP TSSGM
+		 LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.ID=TSSGM.SUPL_ID AND TSS.STATUS=0
+		     WHERE TSSGM.STATUS=0
+		       AND TSSGM.SUPL_GROUP_CODE=#suplGroupCode#
+	</select>
+	
+	<select id="checkHasMaping" resultClass="java.lang.String">
+		SELECT DISTINCT 'Y' FROM T_SUPL_SUPPLIER_GROUP_MAP WHERE STATUS=0 AND SUPL_ID = #suplId#
+	</select>
+	
+	<select id="getSuplList" resultClass="com.brick.supplier.to.SupplierGroupTO">
+			SELECT DISTINCT ID suplId,NAME suplName FROM T_SUPL_SUPPLIER WHERE STATUS=0
+	</select>
+	
+	<!-- 非循环授信 -->
+	<select id="getNotLoopCreditAmount" resultClass="com.brick.supplier.to.SupplierGroupTO">
+	        SELECT CREDIT_ID creditId,CREDIT_RUNCODE creditRunCode,LEASE_RZE leaseRze,
+	               SUPL_NAME suplName,SUPL_ID suplId,FLAG flag
+	          FROM V_SUPL_GROUP_CREDIT_NOT_LOOP
+	         WHERE SUPL_ID IN
+	         	   (
+	         	   SELECT SUPL_ID FROM T_SUPL_SUPPLIER_GROUP_MAP WHERE SUPL_GROUP_CODE=#suplGroupCode# AND STATUS=0
+	         	   )
+	      ORDER BY SUPL_NAME
+	</select>
+	
+	<select id="getNotLoopCreditAmountSum" resultClass="com.brick.supplier.to.SupplierGroupTO">
+			SELECT ROUND(SUM(O.leaseRze),1) leaseRze,O.SUPL_GROUP_CODE suplGroupCode,O.FLAG flag
+	          FROM (SELECT VW.SUPL_ID suplId,VW.LEASE_RZE leaseRze,TSSGM.SUPL_GROUP_CODE,VW.FLAG
+       			      FROM T_SUPL_SUPPLIER_GROUP_MAP TSSGM
+        		 LEFT JOIN V_SUPL_GROUP_CREDIT_NOT_LOOP VW ON VW.SUPL_ID=TSSGM.SUPL_ID
+        		     WHERE TSSGM.STATUS=0  
+                  	   AND VW.SUPL_ID IS NOT NULL
+                  	   AND SUPL_GROUP_CODE=#suplGroupCode#
+                  	   <isNotEmpty property="suplTrue">
+	                   AND VW.FLAG=#suplTrue#
+                  	   </isNotEmpty>
+	                 ) O
+	      GROUP BY O.SUPL_GROUP_CODE,O.FLAG
+	</select>
+	
+	<!-- 循环授信 -->
+	<select id="getLoopCreditAmountSum" resultClass="com.brick.supplier.to.SupplierGroupTO">
+			  SELECT ROUND(SUM(O.restAmount),1) restAmount,O.SUPL_GROUP_CODE suplGroupCode,O.FLAG flag
+          		FROM (SELECT VW.SUPL_ID suplId,VW.REST_AMOUNT restAmount,TSSGM.SUPL_GROUP_CODE,VW.FLAG
+       			      	FROM T_SUPL_SUPPLIER_GROUP_MAP TSSGM
+       		 	   LEFT JOIN V_SUPL_GROUP_CREDIT_LOOP VW ON VW.SUPL_ID=TSSGM.SUPL_ID
+        		       WHERE TSSGM.STATUS=0  
+	                  	 AND VW.SUPL_ID IS NOT NULL
+	                  	 AND TSSGM.SUPL_GROUP_CODE=#suplGroupCode#
+	                  	 <isNotEmpty property="suplTrue">
+	                  	 AND VW.FLAG=#suplTrue#
+	                  	 </isNotEmpty>
+	                 ) O
+	      	GROUP BY O.SUPL_GROUP_CODE,O.FLAG
+	</select>
+	
+	<select id="getSuplGroupCredit" resultClass="com.brick.supplier.to.SupplierGroupTO">
+			SELECT SUPL_GROUP_CODE suplGroupCode,SIGN_NUM signNum,[UNION] [union],UNION_LOOP_FLAG unionLoopFlag,
+				   BUY_BACK buyBack,BUY_BACK_LOOP_FLAG buyBackLoopFlag,PAY_BEFORE payBefore,PAY_BEFORE_LOOP_FLAG payBeforeLoopFlag,
+				   FROM_DATE fromDate,TO_DATE toDate
+			  FROM T_SUPL_GROUP_CREDIT_AMOUNT
+			 WHERE STATUS=0
+			   AND SUPL_GROUP_CODE=#suplGroupCode#
+	</select>
+	
+	<select id="getSuplGroupCreditForShow" resultClass="hashMap" parameterClass="map">
+			select top 1 ID, SUPL_GROUP_CODE, SIGN_NUM, [UNION]
+			, UNION_LOOP_FLAG, BUY_BACK, BUY_BACK_LOOP_FLAG
+			, PAY_BEFORE, PAY_BEFORE_LOOP_FLAG, FROM_DATE
+			, TO_DATE, STATUS, CREATE_ON, CREATE_BY, UNION_HAS
+			, BUY_BACK_HAS, BUY_BACK_START_DATE, BUY_BACK_END_DATE
+			, PAY_BEFORE_HAS, PAY_BEFORE_START_DATE, PAY_BEFORE_END_DATE
+			, INVOICE_HAS, INVOICE, INVOICE_LOOP_FLAG, INVOICE_START_DATE
+			, INVOICE_END_DATE, UNION_LAST, BUY_BACK_LAST
+			, PAY_BEFORE_LAST, INVOICE_LAST
+			from T_SUPL_GROUP_CREDIT_AMOUNT
+			WHERE STATUS=0
+			AND SUPL_GROUP_CODE=#suplGroupCode#
+	</select>
+	
+	<select id="getSuplGroupCreditForLog" resultClass="hashMap" parameterClass="map">
+			select CA.ID, SUPL_GROUP_CODE, SIGN_NUM, [UNION]
+			, UNION_LOOP_FLAG, BUY_BACK, BUY_BACK_LOOP_FLAG
+			, PAY_BEFORE, PAY_BEFORE_LOOP_FLAG, FROM_DATE
+			, TO_DATE, CA.STATUS, CA.CREATE_ON, U.[NAME] AS CREATE_BY, UNION_HAS
+			, BUY_BACK_HAS, BUY_BACK_START_DATE, BUY_BACK_END_DATE
+			, PAY_BEFORE_HAS, PAY_BEFORE_START_DATE, PAY_BEFORE_END_DATE
+			, INVOICE_HAS, INVOICE, INVOICE_LOOP_FLAG, INVOICE_START_DATE
+			, INVOICE_END_DATE, UNION_LAST, BUY_BACK_LAST
+			, PAY_BEFORE_LAST, INVOICE_LAST
+			from T_SUPL_GROUP_CREDIT_AMOUNT CA
+			LEFT JOIN T_USER_USER U ON CA.CREATE_BY = U.ID
+			WHERE SUPL_GROUP_CODE=#suplGroupCode#
+	</select>
+	
+	<update id="removeGroupCredit">
+			UPDATE T_SUPL_GROUP_CREDIT_AMOUNT SET STATUS=-1 WHERE SUPL_GROUP_CODE=#suplGroupCode#
+	</update>
+	
+	<insert id="addGroupCredit">
+			insert into T_SUPL_GROUP_CREDIT_AMOUNT(
+			   SUPL_GROUP_CODE
+			  ,SIGN_NUM
+			  ,[UNION]
+			  ,UNION_LOOP_FLAG
+			  ,BUY_BACK
+			  ,BUY_BACK_LOOP_FLAG
+			  ,PAY_BEFORE
+			  ,PAY_BEFORE_LOOP_FLAG
+			  ,FROM_DATE
+			  ,TO_DATE
+			  ,STATUS
+			  ,CREATE_ON
+			  ,CREATE_BY
+			  ,UNION_HAS
+			  ,BUY_BACK_HAS
+			  ,BUY_BACK_START_DATE
+			  ,BUY_BACK_END_DATE
+			  ,PAY_BEFORE_HAS
+			  ,PAY_BEFORE_START_DATE
+			  ,PAY_BEFORE_END_DATE
+			  ,INVOICE_HAS
+			  ,INVOICE
+			  ,INVOICE_LOOP_FLAG
+			  ,INVOICE_START_DATE
+			  ,INVOICE_END_DATE
+			  ,UNION_LAST
+			  ,BUY_BACK_LAST
+			  ,PAY_BEFORE_LAST
+			  ,INVOICE_LAST
+			) VALUES (
+			   #suplGroupCode#
+			  ,#SIGN_NUM#
+			  ,#UNION#
+			  ,#UNION_LOOP_FLAG#
+			  ,#BUY_BACK#
+			  ,#BUY_BACK_LOOP_FLAG#
+			  ,#PAY_BEFORE#
+			  ,#PAY_BEFORE_LOOP_FLAG#
+			  ,#FROM_DATE#
+			  ,#TO_DATE#
+			  ,0
+			  ,getdate()
+			  ,#s_employeeId#
+			  ,#UNION_HAS#
+			  ,#BUY_BACK_HAS#
+			  ,#BUY_BACK_START_DATE#
+			  ,#BUY_BACK_END_DATE#
+			  ,#PAY_BEFORE_HAS#
+			  ,#PAY_BEFORE_START_DATE#
+			  ,#PAY_BEFORE_END_DATE#
+			  ,#INVOICE_HAS#
+			  ,#INVOICE#
+			  ,#INVOICE_LOOP_FLAG#
+			  ,#INVOICE_START_DATE#
+			  ,#INVOICE_END_DATE#
+			  ,#UNION_LAST#
+			  ,#BUY_BACK_LAST#
+			  ,#PAY_BEFORE_LAST#
+			  ,#INVOICE_LAST#
+			)
+	</insert>
+	
+	<select id="getCreditLog" resultClass="com.brick.supplier.to.SupplierGroupTO">
+			SELECT TSSG.SUPL_GROUP_NAME suplGroupName,SIGN_NUM signNum,[UNION] [union],
+				   UNION_LOOP_FLAG unionLoopFlag,BUY_BACK buyBack,BUY_BACK_LOOP_FLAG buyBackLoopFlag,
+				   PAY_BEFORE payBefore,PAY_BEFORE_LOOP_FLAG payBeforeLoopFlag,CONVERT(VARCHAR,FROM_DATE,23) fromDateDescr,CONVERT(VARCHAR,TO_DATE,23) toDateDescr,
+				   CONVERT(VARCHAR,TSGCA.CREATE_ON,20) createOnDescr,TUU.NAME [name]
+			  FROM T_SUPL_GROUP_CREDIT_AMOUNT TSGCA
+		 LEFT JOIN T_SUPL_SUPPLIER_GROUP TSSG ON TSSG.SUPL_GROUP_CODE=TSGCA.SUPL_GROUP_CODE AND TSSG.STATUS=0
+		 LEFT JOIN T_USER_USER TUU ON TUU.ID=TSGCA.CREATE_BY
+			 WHERE TSGCA.SUPL_GROUP_CODE=#suplGroupCode#
+		  ORDER BY TSGCA.CREATE_ON ASC
+	</select>
+	
+	<select id="getPayBeforeLoop" resultClass="com.brick.supplier.to.SupplierGroupTO">
+			 <!--交机前循环,已用额度-->
+			SELECT SUM(O.restAmount) restAmount,O.SUPL_GROUP_CODE suplGroupCode
+			  FROM
+			   (
+               SELECT SUM(ISNULL(PAY_MONEY,0)) restAmount,TSS.ID suplId,TSP.BACKCOMP suplName,TSSGM.SUPL_GROUP_CODE
+	             FROM T_SUPL_SUPPLIER_GROUP_MAP TSSGM
+          	LEFT JOIN T_SUPL_SUPPLIER TSS ON  TSSGM.SUPL_ID=TSS.ID AND TSS.STATUS=0
+	        LEFT JOIN T_SUPL_PLAYDETIL TSP ON TSS.NAME=TSP.BACKCOMP AND TSP.STATUS=0  
+		    LEFT JOIN T_PRJT_CREDIT TPC ON TSP.CREDIT_ID=TPC.ID AND TPC.STATUS=0	      
+				      WHERE MANAGER!='2'
+  		          AND TSP.ADVANCE_FLAG=1 
+  		          AND TSP.BACKSTATE='0'
+  		          AND (TSP.STATE=0 OR TPC.LEASE_CODE IN (SELECT LEASE_CODE FROM T_RENT_FILE_LOSSINVOICE WHERE STATUS=0))
+  		          AND TSSGM.SUPL_GROUP_CODE=#suplGroupCode#
+  		          AND TSSGM.STATUS=0
+  		     GROUP BY TSP.BACKCOMP,TSS.ID,TSSGM.SUPL_GROUP_CODE
+  		       ) O
+	      GROUP BY O.SUPL_GROUP_CODE
+	</select>
+	
+	<select id="getPayBeforeNotLoop" resultClass="com.brick.supplier.to.SupplierGroupTO">
+			<!--交机前非循环,已用额度-->
+		    SELECT SUM(O.restAmount) restAmount,O.SUPL_GROUP_CODE suplGroupCode
+			  FROM
+			   (
+			   SELECT SUM(ISNULL(PAY_MONEY,0)) restAmount,TSS.ID suplId,TSP.BACKCOMP suplName,TSSGM.SUPL_GROUP_CODE
+	             FROM T_SUPL_SUPPLIER_GROUP_MAP TSSGM
+          	LEFT JOIN T_SUPL_SUPPLIER TSS ON  TSSGM.SUPL_ID=TSS.ID AND TSS.STATUS=0
+	        LEFT JOIN T_SUPL_PLAYDETIL TSP ON TSS.NAME=TSP.BACKCOMP AND TSP.STATUS=0  
+		    LEFT JOIN T_PRJT_CREDIT TPC ON TSP.CREDIT_ID=TPC.ID AND TPC.STATUS=0	      
+				      WHERE MANAGER='1'
+  		          AND TSP.ADVANCE_FLAG=1 
+  		          AND TSP.BACKSTATE='0'
+  		          AND TSP.STATE=3
+  		          AND TSSGM.SUPL_GROUP_CODE=#suplGroupCode#
+  		          AND TSSGM.STATUS=0
+  		     GROUP BY TSP.BACKCOMP,TSS.ID,TSSGM.SUPL_GROUP_CODE
+  		       ) O
+	      GROUP BY O.SUPL_GROUP_CODE
+	</select>
+	
+	 <!-- 根据条件查询供应商联系人 -->
+	<select id="querySupplLinkManByUserId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t.culm_id,t.suppl_id,t.create_time,t.modify_time,t.status,t.link_name,t.link_relation2cust,t.link_mobile,t.link_phone,t.link_gender,t.link_type,t.link_email,t.PROVINCE_ID,t.CITY_ID,t.AREA_ID
+			 from t_suppl_linkman t 
+			 where t.suppl_id=#suppl_id#  and t.CREATE_USER_ID=#createUserId#
+			 order by t.link_type 
+		]]>
+	</select>
+	<select id="queryCreditByCreditId" parameterClass="map" resultClass="java.util.HashMap">
+			select  * from    T_PRJT_CREDIT  where id=#credit_id#
+	</select>
+	<select id="querySuplIdByCreditId" parameterClass="map" resultClass="java.util.HashMap">
+			select tss.id as ID
+		    from t_prjt_creditequipment tpce
+		    LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID = tpce.SUEQ_ID and T4.STATUS=0
+			LEFT JOIN t_supl_supplier tss on tss.id=T4.supplier_id
+		   where tpce.credit_id =#credit_id#
+		   and tpce.EQMT_STATUS = 0
+	</select>
+	
+	<select id="querySupplLinkManById" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t.culm_id,t.suppl_id,t.create_time,t.modify_time,t.status,t.link_name,t.link_relation2cust,t.link_mobile,t.link_phone,t.link_gender,t.link_type,t.link_email,t.PROVINCE_ID,t.CITY_ID,t.AREA_ID
+			 from t_suppl_linkman t 
+			 where t.culm_id=#SUPPLIER_CONTACT#
+		]]>
+	</select>
+	
+	<select id="getSupplierContactInfo" parameterClass="map" resultClass="java.util.HashMap">
+	      select  tss.id,tss.[NAME],tsl.LINK_NAME,tsl.LINK_MOBILE,tsl.LINK_WORK_ADDRESS
+          from T_SUPL_SUPPLIER tss
+          left join t_suppl_linkman tsl on tss.ID = tsl.SUPPL_ID  and tsl.LINK_TYPE =0 and tss.STATUS =0
+          where tss.STATUS =0 
+          <isNotEmpty prepend="and" property="id">
+              tss.id = #id#
+          </isNotEmpty>
+         <isNotEmpty prepend="and" property="supplierName">
+              tss.[NAME] like '%$supplierName$%'
+          </isNotEmpty>
+          <isNotEmpty prepend="and" property="notInList">
+              not exists (select t.id from T_SUPL_SUPPLIER t where t.name in ($notInList$) and t.id =tss.id and t.STATUS =0)
+          </isNotEmpty>
+   
+          <isNotEmpty prepend="and" property="date">
+          	exists (
+          		select s.supplierId from  T_SUPL_PLAYDETIL t
+	           	left join (
+	            	select t.CREDIT_ID,max(t.[NAME])as name,max(t.id) as supplierId
+	            	from(	                
+	                  SELECT  tpce.CREDIT_ID,TT.[NAME],TT.ID
+	                  FROM T_PRJT_CREDITEQUIPMENT tpce 
+	                  LEFT JOIN 
+	                  (        
+	                    SELECT  TSE.SUEQ_ID,supl.[NAME],supl.ID
+	                    FROM T_SUPL_EQUIPMENT TSE
+	                    LEFT join T_SUPL_SUPPLIER supl on TSE.SUPPLIER_ID = supl.id         
+	                  ) TT ON  TT.SUEQ_ID = tpce.SUEQ_ID
+	             	) t group by t.CREDIT_ID
+	          	) s on s.CREDIT_ID = t.CREDIT_ID
+	           where t.BACKSTATE = 0 and   t.STATUS=0 and t.STATE=3 and s.supplierId = tss.id
+	           <isNotEmpty prepend="and" property="beginDate">
+	            	cast(t.PAY_DATE as date) &gt;= cast(#beginDate# as date)
+	           </isNotEmpty>
+	           <isNotEmpty prepend="and" property="endDate">
+	            	cast(t.PAY_DATE as date) &lt;= cast(#endDate# as date)
+	           </isNotEmpty>
+	         )
+	       </isNotEmpty>
+	</select>
+	
+	<insert id="insertOperationLogs">
+		INSERT INTO T_OPERATION_LOG(OPERATOR_TABLE_ID,OPERATOR_TABLE_NAME,OPERATION_MESSAGE,OPERATOR_ID,OPERATION_TIME,OPERATOR_IP,MEMO) 
+		VALUES(#OPERATOR_TABLE_ID#,#OPERATOR_TABLE_NAME#, #OPERATION_MESSAGE#,#OPERATOR_ID#,GETDATE(),#OPERATOR_IP#,#MEMO#)
+	</insert>
+	
+	<select id="queryOperationLogs" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT L.*,U.[NAME] FROM T_OPERATION_LOG L
+		LEFT JOIN T_USER_USER U ON L.OPERATOR_ID = U.ID
+		WHERE OPERATOR_TABLE_NAME = #OPERATOR_TABLE_NAME#
+		AND OPERATOR_TABLE_ID = #id#
+		ORDER BY OPERATION_TIME DESC
+	</select>
+	
+</sqlMap>

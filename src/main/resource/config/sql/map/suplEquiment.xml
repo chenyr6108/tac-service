@@ -1,0 +1,838 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="suplEquipment">
+	<select id="query_count" resultClass="java.lang.Integer" parameterClass="java.util.HashMap">
+		<![CDATA[
+			select count(1) 
+		     from t_supl_equipment t1,t_prdc_product t2,t_supl_supplier t3,T_PRDC_KIND t4 where t1.product_id=t2.id 
+			 and t1.Supplier_id=t3.id and t4.id=kind_id and t1.Status = 0 and t2.status=0 and t3.status=0 and t4.PRDC_KIND_STATUS=0
+		]]> 
+		<dynamic prepend="and">
+			<isNotEmpty prepend="and" property="searchValue">
+				<![CDATA[ (t3.NAME like '%$searchValue$%'  
+				       or t2.NAME like '%$searchValue$%' 
+				        or t4.name like '%$searchValue$%' )
+				      ]]> 
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<!--查询所有  -->
+	<select id="query" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[ select t1.sueq_id,
+					       t1.product_id,
+					       t1.supplier_id,
+					       t1.stock,
+					       t1.second_hand,
+					       t1.guidance_price,
+					       t1.ex_factory_price,
+					       t1.unit,
+					       t1.price_unit,
+					       t1.status,
+					       t1.create_date,
+					       t1.modify_date,
+					       t1.create_user_id,
+					       t1.useexpire,
+					       t1.status_bak,
+					       t1.type_bak,
+					       t1.remark_bak,
+					       t1.product_desc,
+					       t1.modify_user_id,		
+						   t2.name PRODUCT_NAME,
+						   t2.id PRODUCT_ID,
+						   t3.name SUPPLIER_NAME,
+						   t3.id SUPPLIER_ID,
+						   t4.name  kind_name 
+					from t_supl_equipment t1,t_prdc_product t2,t_supl_supplier t3,T_PRDC_KIND t4 where t1.product_id=t2.id 
+					and t1.Supplier_id=t3.id and t4.id=kind_id and t1.Status = 0 and t2.status=0 and t3.status=0 and t4.PRDC_KIND_STATUS=0]]>
+		<dynamic prepend="and">			
+			<isNotEmpty prepend="and" property="searchValue" >
+				<![CDATA[ (t3.NAME like '%$searchValue$%'  
+				       or t2.NAME like '%$searchValue$%' 
+				       or t4.name like '%$searchValue$%' )
+				      ]]> 
+			</isNotEmpty>
+		</dynamic>
+		<![CDATA[
+			order by t1.sueq_id desc
+		]]>
+	</select>
+	<select id="queryAlreadyUpRentEq_count" resultClass="java.lang.Integer" parameterClass="java.util.HashMap">
+		<![CDATA[
+			select count(1) 
+		     from  ( select t1.SUEQ_ID  SUEQ_ID,COUNT(t6.ID) ww
+			   from  T_SUPL_EQUIPMENT t1 
+			  left  join T_PRJT_CREDITEQUIPMENT t on t.SUEQ_ID=t1.SUEQ_ID
+			  join  T_PRJT_CREDIT t6 on t.CREDIT_ID=t6.ID
+			  where t1.Status = 0 and  t.EQMT_STATUS=0  and t6.STATUS=0
+			  group by t1.SUEQ_ID
+			  having  COUNT(*)!=0
+		     )  t8
+		 join  T_SUPL_EQUIPMENT t1 on  t1.SUEQ_ID=t8.SUEQ_ID
+		 left join t_prdc_product t2 on t1.product_id=t2.id 
+		 left join t_supl_supplier t3 on t1.Supplier_id=t3.id 
+		 left join T_PRDC_KIND t4   on  t4.id=kind_id
+		 where t1.Status = 0 and t2.status=0 and t3.status=0 and t4.PRDC_KIND_STATUS=0 
+		]]> 
+		<dynamic prepend="and">
+			<isNotEmpty prepend="and" property="searchValue">
+				<![CDATA[ (t3.NAME like '%$searchValue$%'  
+				        or t2.NAME like '%$searchValue$%' 
+				        or t4.NAME like '%$searchValue$%'
+				            )
+				      ]]> 
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	<!--查询所有已起租的产品  -->
+	<select id="queryAlreadyUpRentEq" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[
+	         select        t1.sueq_id,
+					       t1.product_id,
+					       t1.supplier_id,
+					       t1.stock,
+					       t1.second_hand,
+					       t1.guidance_price,
+					       t1.ex_factory_price,
+					       t1.unit,
+					       t1.price_unit,
+					       t1.status,
+					       t1.create_date,
+					       t1.modify_date,
+					       t1.create_user_id,
+					       t1.useexpire,
+					       t1.status_bak,
+					       t1.type_bak,
+					       t1.remark_bak,
+					       t1.product_desc,
+					       t1.modify_user_id,		
+						   t2.name PRODUCT_NAME,
+						   t2.id PRODUCT_ID,
+						   t3.name SUPPLIER_NAME, 
+						   t3.id SUPPLIER_ID,
+						   t4.name  kind_name 
+        
+         from  ( select t1.SUEQ_ID  SUEQ_ID,COUNT(t6.ID) ww
+			   from  T_SUPL_EQUIPMENT t1 
+			  left  join T_PRJT_CREDITEQUIPMENT t on t.SUEQ_ID=t1.SUEQ_ID
+			  join  T_PRJT_CREDIT t6 on t.CREDIT_ID=t6.ID
+			  where t1.Status = 0 and  t.EQMT_STATUS=0  and t6.STATUS=0
+			  group by t1.SUEQ_ID
+			  having  COUNT(*)!=0
+		     )  t8
+		 join  T_SUPL_EQUIPMENT t1 on  t1.SUEQ_ID=t8.SUEQ_ID
+		 left join t_prdc_product t2 on t1.product_id=t2.id 
+		 left join t_supl_supplier t3 on t1.Supplier_id=t3.id 
+		 left join T_PRDC_KIND t4   on  t4.id=kind_id
+		where t1.Status = 0 and t2.status=0 and t3.status=0 and t4.PRDC_KIND_STATUS=0 
+		 ]]>
+			<dynamic prepend="and">			
+			<isNotEmpty prepend="and" property="searchValue" >
+				<![CDATA[ (t3.NAME like '%$searchValue$%'  
+				           or t2.NAME like '%$searchValue$%'
+				           or t4.NAME like '%$searchValue$%'
+				            )
+				      ]]> 
+			</isNotEmpty>
+		</dynamic>
+		<![CDATA[
+			order by t1.sueq_id desc
+		]]>
+	</select>
+	
+	<select id="queryLeaseProduct_count" resultClass="java.lang.Integer">
+	 SELECT COUNT(1) FROM 
+    			(
+			    SELECT DISTINCT TPC.CREDIT_RUNCODE,TSET.SUEQ_ID,
+			           TSS.[NAME] SUPPLIER_NAME,
+			           TPP.[NAME] PRODUCT_NAME,
+			           TPK.[NAME] KIND_NAME,
+			           TSET.GUIDANCE_PRICE,
+			           TPCT.SHUI_PRICE,
+			           TRC.LEASE_CODE,
+			           TSET.USEEXPIRE
+			      FROM T_PRJT_CREDIT TPC
+			 LEFT JOIN T_PRJT_CREDITEQUIPMENT TPCT ON TPC.ID=TPCT.CREDIT_ID
+			 LEFT JOIN T_SUPL_EQUIPMENT TSET ON TPCT.SUEQ_ID=TSET.SUEQ_ID
+			 LEFT JOIN T_PRDC_PRODUCT TPP ON TSET.PRODUCT_ID=TPP.ID
+			 LEFT JOIN T_SUPL_SUPPLIER TSS ON TSET.SUPPLIER_ID=TSS.ID 
+			 LEFT JOIN T_PRDC_KIND TPK ON  TPK.ID=TPP.KIND_ID
+			 LEFT JOIN T_RENT_CONTRACT TRC ON TRC.PRCD_ID=TPC.ID
+			     WHERE TPC.STATUS=0
+			       AND TPCT.EQMT_STATUS=0
+			       AND TSET.STATUS=0
+			       AND TPP.STATUS=0
+			       AND TSS.STATUS=0
+			       AND TRC.STATUS=0
+			       AND TPK.PRDC_KIND_STATUS=0
+			 	<isNotEqual property="queryType" compareValue="1">
+				     <isNotEmpty property="searchValue">
+				 
+					   	AND (TSS.NAME LIKE '%$searchValue$%' OR TPP.NAME LIKE '%$searchValue$%' OR TPK.NAME LIKE '%$searchValue$%'
+					        OR TPC.CREDIT_RUNCODE LIKE '%$searchValue$%' OR TRC.LEASE_CODE LIKE '%$searchValue$%')				  
+						
+					</isNotEmpty>
+					<isNotEmpty property="supplName">
+						AND TSS.[NAME] LIKE '%$supplName$%'
+					</isNotEmpty>
+				</isNotEqual>
+				<isEqual property="queryType" compareValue="1">
+				     <isNotEmpty property="searchValue">
+				 
+					   	AND (TSS.NAME = #$searchValue# OR TPP.NAME = #searchValue# OR TPK.NAME = #searchValue#
+					        OR TPC.CREDIT_RUNCODE = #searchValue# OR TRC.LEASE_CODE = #searchValue#)				  
+						
+					</isNotEmpty>
+					<isNotEmpty property="supplName">
+						AND TSS.[NAME] = #supplName#
+					</isNotEmpty>
+				</isEqual>
+			       AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+			     ) O
+	</select>
+	
+	<select id="queryLeaseProduct" resultClass="java.util.HashMap">
+			    SELECT DISTINCT TPC.CREDIT_RUNCODE,TSET.SUEQ_ID,
+			           TSS.[NAME] SUPPLIER_NAME,
+			           TPP.[NAME] PRODUCT_NAME,
+			           TPK.[NAME] KIND_NAME,
+			           TSET.GUIDANCE_PRICE,
+			           TPCT.SHUI_PRICE,
+			           TRC.LEASE_CODE,
+			           TSET.USEEXPIRE,
+			           TPCT.MOUNTINGS
+			           , pt.[NAME] as PRO_TYPE
+			      FROM T_PRJT_CREDIT TPC
+			 LEFT JOIN T_PRJT_CREDITEQUIPMENT TPCT ON TPC.ID=TPCT.CREDIT_ID
+			 LEFT JOIN T_SUPL_EQUIPMENT TSET ON TPCT.SUEQ_ID=TSET.SUEQ_ID
+			 LEFT JOIN T_PRDC_PRODUCT TPP ON TSET.PRODUCT_ID=TPP.ID
+			 LEFT JOIN T_SUPL_SUPPLIER TSS ON TSET.SUPPLIER_ID=TSS.ID 
+			 LEFT JOIN T_PRDC_KIND TPK ON  TPK.ID=TPP.KIND_ID
+			 LEFT JOIN T_RENT_CONTRACT TRC ON TRC.PRCD_ID=TPC.ID
+			 left join T_PRDC_TYPE pt on TPK.[TYPE_ID] = pt.ID
+			     WHERE TPC.STATUS=0
+			       AND TPCT.EQMT_STATUS=0
+			       AND TSET.STATUS=0
+			       AND TPP.STATUS=0
+			       AND TSS.STATUS=0
+			       AND TPK.PRDC_KIND_STATUS=0
+			       AND TRC.STATUS=0
+			       
+			   <isNotEqual property="queryType" compareValue="1">
+				     <isNotEmpty property="searchValue">
+				 
+					   	AND (TSS.NAME LIKE '%$searchValue$%' OR TPP.NAME LIKE '%$searchValue$%' OR TPK.NAME LIKE '%$searchValue$%'
+					        OR TPC.CREDIT_RUNCODE LIKE '%$searchValue$%' OR TRC.LEASE_CODE LIKE '%$searchValue$%')				  
+						
+					</isNotEmpty>
+					<isNotEmpty property="supplName">
+						AND TSS.[NAME] LIKE '%$supplName$%'
+					</isNotEmpty>
+					
+					<isNotEmpty property="pro_type">
+						AND pt.[NAME] LIKE '%$pro_type$%'
+					</isNotEmpty>
+				</isNotEqual>
+				<isEqual property="queryType" compareValue="1">
+				     <isNotEmpty property="searchValue">
+				 
+					   	AND (TSS.NAME = #$searchValue# OR TPP.NAME = #searchValue# OR TPK.NAME = #searchValue#
+					        OR TPC.CREDIT_RUNCODE = #searchValue# OR TRC.LEASE_CODE = #searchValue#)				  
+						
+					</isNotEmpty>
+					<isNotEmpty property="supplName">
+						AND TSS.[NAME] = #supplName#
+					</isNotEmpty>
+					
+					<isNotEmpty property="pro_type">
+						AND pt.[NAME] = #pro_type#
+					</isNotEmpty>
+				</isEqual>
+			       AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+	</select>
+	
+	<select id="queryLeaseProductPrice" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		select
+		 min(t.GUIDANCE_PRICE) as MIN_GUIDANCE_PRICE,
+		 avg(t.GUIDANCE_PRICE) as AVG_GUIDANCE_PRICE,
+		 max(t.GUIDANCE_PRICE) as MAX_GUIDANCE_PRICE,
+		 min(t.SHUI_PRICE)  as MIN_SHUI_PRICE,
+		 avg(t.SHUI_PRICE)  as AVG_SHUI_PRICE,
+		 max(t.SHUI_PRICE)  as MAX_SHUI_PRICE
+		from(
+		SELECT DISTINCT TPC.CREDIT_RUNCODE,TSET.SUEQ_ID,
+				           TSS.[NAME] SUPPLIER_NAME,
+				           TPP.[NAME] PRODUCT_NAME,
+				           TPK.[NAME] KIND_NAME,
+				           TSET.GUIDANCE_PRICE,
+				           TPCT.SHUI_PRICE,
+				           TRC.LEASE_CODE,
+				           TSET.USEEXPIRE
+				      FROM T_PRJT_CREDIT TPC
+				 LEFT JOIN T_PRJT_CREDITEQUIPMENT TPCT ON TPC.ID=TPCT.CREDIT_ID
+				 LEFT JOIN T_SUPL_EQUIPMENT TSET ON TPCT.SUEQ_ID=TSET.SUEQ_ID
+				 LEFT JOIN T_PRDC_PRODUCT TPP ON TSET.PRODUCT_ID=TPP.ID
+				 LEFT JOIN T_SUPL_SUPPLIER TSS ON TSET.SUPPLIER_ID=TSS.ID 
+				 LEFT JOIN T_PRDC_KIND TPK ON  TPK.ID=TPP.KIND_ID
+				 LEFT JOIN T_RENT_CONTRACT TRC ON TRC.PRCD_ID=TPC.ID
+				     WHERE TPC.STATUS=0
+				       AND TPCT.EQMT_STATUS=0
+				       AND TSET.STATUS=0
+				       AND TPP.STATUS=0
+				       AND TSS.STATUS=0
+				       AND TPK.PRDC_KIND_STATUS=0
+				       AND TRC.STATUS=0
+				       AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+				       			   <isNotEqual property="queryType" compareValue="1">
+				     <isNotEmpty property="searchValue">
+				 
+					   	AND (TSS.NAME LIKE '%$searchValue$%' OR TPP.NAME LIKE '%$searchValue$%' OR TPK.NAME LIKE '%$searchValue$%'
+					        OR TPC.CREDIT_RUNCODE LIKE '%$searchValue$%' OR TRC.LEASE_CODE LIKE '%$searchValue$%')				  
+						
+					</isNotEmpty>
+					<isNotEmpty property="supplName">
+						AND TSS.[NAME] LIKE '%$supplName$%'
+					</isNotEmpty>
+				</isNotEqual>
+				<isEqual property="queryType" compareValue="1">
+				     <isNotEmpty property="searchValue">
+				 
+					   	AND (TSS.NAME = #$searchValue# OR TPP.NAME = #searchValue# OR TPK.NAME = #searchValue#
+					        OR TPC.CREDIT_RUNCODE = #searchValue# OR TRC.LEASE_CODE = #searchValue#)				  
+						
+					</isNotEmpty>
+					<isNotEmpty property="supplName">
+						AND TSS.[NAME] = #supplName#
+					</isNotEmpty>
+				</isEqual>
+		) t
+	
+	
+	
+	</select>
+	
+	<!--查询所有已起租的产品 的承租人 -->
+	<select id="queryRentCustoms" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[
+	         select distinct t6.ID , t1.SUEQ_ID,t3.CUST_NAME CUST_NAME,t4.LEASE_CODE LEASECODE
+			  from  T_SUPL_EQUIPMENT t1 
+			  left  join T_PRJT_CREDITEQUIPMENT t on t.SUEQ_ID=t1.SUEQ_ID
+			  join  T_PRJT_CREDIT t6 on t.CREDIT_ID=t6.ID
+			  left join  t_cust_customer t3 on t3.CUST_ID=t6.CUST_ID
+			  left join  T_RENT_CONTRACT t4 on t4.PRCD_ID=t6.ID
+			  where t1.Status = 0 and  t.EQMT_STATUS=0  and t6.STATUS=0  and t1.SUEQ_ID=#SUEQ_ID#
+		  
+		]]>
+	</select>
+	<!-- 得到所有的供应商 -->
+	<select id="getAllSupplier" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		select id,name from T_SUPL_SUPPLIER where status = 0
+	</select>
+	<!-- 得到所有的类型   PRDC_TYPE_STATUS-->
+	<select id="getAllTypes" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		select id,name from T_prdc_type where prdc_type_status = 0 
+	</select>
+	
+	<!--根据ID得到产品  PRDC_KIND_STATUS -->
+	<select id="getAllKinds" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		select id,name from T_prdc_kind where type_id=#type_id# and prdc_kind_status = 0  
+	</select>
+	
+	<!--根据产品的ID得到所有的产品型号 -->
+	<select id="getAllProduct" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[select id,name from t_prdc_product where kind_id=#kind_id# and status = 0 ]]>
+	</select>
+	
+	<!-- 根据ID得到所有的供应商提供的产品型号 -->
+	<select id="queryByid" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[select t1.sueq_id,
+                        t1.product_id,
+                        t1.supplier_id,
+                        t1.stock,
+                        t1.second_hand,
+                        t1.guidance_price,
+                        t1.ex_factory_price,
+                        t1.unit,
+                        t1.price_unit,
+                        t1.status,
+                        t1.create_date,
+                        t1.modify_date,
+                        t1.create_user_id,
+                        t1.useexpire,
+                        t1.status_bak,
+                        t1.type_bak,
+                        t1.remark_bak,
+                        t1.product_desc,
+                        t1.modify_user_id,		
+		                t2.name PRODUCT_NAME,
+		                t2.id PRODUCT_ID,
+		                t3.name SUPPLIER_NAME,
+		                t3.id SUPPLIER_ID 
+					from t_supl_equipment t1,t_prdc_product t2,t_supl_supplier t3 where t1.product_id=t2.id 
+					and t1.Supplier_id=t3.id and SUEQ_ID=#sueq_id#]]> 
+	</select>
+	<!-- 根据ID更新时得到所有的和供应商提供的型号的信息 -->
+	<select id="queryByidForUpate" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[select t1.sueq_id,
+				       t1.product_id,
+				       t1.supplier_id,
+				       t1.stock,
+				       t1.second_hand,
+				       t1.guidance_price,
+				       t1.ex_factory_price,
+				       t1.unit,
+				       t1.price_unit,
+				       t1.status,
+				       t1.create_date,
+				       t1.modify_date,
+				       t1.create_user_id,
+				       t1.useexpire,
+				       t1.status_bak,
+				       t1.type_bak,
+				       t1.remark_bak,
+				       t1.product_desc,
+				       t1.modify_user_id,
+		               t2.name PRODUCT_NAME,
+		               t2.id PRODUCT_ID,
+		               t3.name SUPPLIER_NAME,
+		               t3.id SUPPLIER_ID,
+					   t4.id  KIND_ID,
+					   t4.name KIND_NAME,
+					   t5.id TYPE_ID,
+					   t5.name TYPE_NAME
+					from 
+						t_supl_equipment t1,
+						t_prdc_product t2,
+						t_supl_supplier t3,
+						T_prdc_kind t4,
+						T_prdc_type t5 
+					where t1.product_id=t2.id 
+					and t1.Supplier_id=t3.id and t4.id=t2.kind_id and t5.id=t4.type_id and SUEQ_ID=#sueq_id#]]> 
+	</select>
+	<!-- 删除一个供应商提供的产品型号 -->
+	<update id="deleteById" parameterClass="map">
+		update t_supl_equipment set STATUS=-2 where Sueq_id=#sueq_id#
+	</update>
+	<!-- 创建供应商提供的产品型号 -->
+	<insert id="create" parameterClass="map">
+	 
+		  <![CDATA[ 
+				insert into t_supl_equipment(
+				product_id,Supplier_id,Guidance_price,Ex_factory_price,Unit,Price_unit,CREATE_USER_ID,MODIFY_USER_ID,useExpire,Type_bak,Remark_bak,Product_desc,Remark1,Remark2,Remark3,Remark4)values(
+				#product_id#,#Supplier_id#,#Guidance_price#,#Ex_factory_price#,#Unit#,#Price_unit#,#s_employeeId#,#s_employeeId#,#useExpire#,#Type_bak#,#Remark_bak#,#Product_desc#,#Remark1#,#Remark2#,#Remark3#,#Remark4#)
+	  ]]>
+	</insert>
+	<!-- 更新一个供应商提供的产品的信息 -->
+	<update id="updateById" parameterClass="map">
+		<![CDATA[
+			update t_supl_equipment set product_id=#product_id#,Supplier_id=#Supplier_id#,
+										Guidance_price=#Guidance_price#,Ex_factory_price=#Ex_factory_price#,Unit=#Unit#,Price_unit=#Price_unit#,
+										useExpire=#useExpire#,MODIFY_DATE=getdate(),
+										Product_desc=#Product_desc# where 
+										Sueq_id=#Sueq_id#
+		]]>
+	</update>
+	<update id="invalide" parameterClass="map">
+		<![CDATA[
+			update t_supl_equipment set Status=-1 where Sueq_id=#sueq_id#
+		]]>
+	</update>
+	
+	<!-- 查询供应商提供的所有产品类型 -->
+	<select id="getAllType" parameterClass="map" resultClass="hashmap">
+		select tpt.id type_id, tpt.name type_name
+			  from t_supl_equipment tse
+			 inner join t_prdc_product tpp on tpp.id = tse.product_id
+			 inner join t_prdc_kind tpd on tpd.id = tpp.kind_id
+			 inner join t_prdc_type tpt on tpt.id = tpd.type_id
+			 where tse.status = 0
+			 group by tpt.id, tpt.name
+			 order by tpt.name
+	</select>
+	<!-- 查询制造商 -->
+	<select id="getAllManufacturer" parameterClass="map" resultClass="hashmap">
+		select tpt.Manufacturer Manufacturer
+			  from t_supl_equipment tse
+			 inner join t_prdc_product tpp on tpp.id = tse.product_id and tpp.status=0
+			 inner join t_prdc_kind tpd on tpd.id = tpp.kind_id and tpd.PRDC_KIND_STATUS=0
+			 inner join t_prdc_type tpt on tpt.id = tpd.type_id and tpt.PRDC_TYPE_STATUS=0
+			 where tse.status = 0
+			 group by tpt.Manufacturer
+			 order by tpt.Manufacturer
+	</select>
+	
+	<select id="getManufacturer" resultClass="com.brick.base.to.SelectionTo" parameterClass="map">
+		select Manufacturer as display_name,
+				Manufacturer as option_value
+		from T_PRDC_TYPE
+		where ID = #TYPE_ID#
+	</select>
+	
+	<select id="getType" resultClass="com.brick.base.to.SelectionTo" parameterClass="map">
+		select [NAME] as display_name,
+				ID as option_value
+		from T_PRDC_TYPE
+		where ID in (
+		  select [TYPE_ID]
+		  from T_PRDC_KIND
+		  where ID in (
+		    select KIND_ID from T_PRDC_PRODUCT
+		    where STATUS = 0
+		    and ID in (
+		      select PRODUCT_ID
+		      from T_SUPL_EQUIPMENT
+		      where SUPPLIER_ID = #SUPPLIER_ID#
+		    )
+		  )
+		)
+		and PRDC_TYPE_STATUS = 0
+		order by [NAME]
+	</select>
+	
+	<select id="getSupl" resultClass="com.brick.base.to.SelectionTo">
+		select [NAME] as display_name,
+				ID as option_value
+		from T_SUPL_SUPPLIER
+		where STATUS = 0
+		order by [NAME]
+	</select>
+	
+	<select id="getProduct" resultClass="com.brick.base.to.SelectionTo" parameterClass="map">
+		select [NAME] as display_name,
+				ID as option_value 
+		from T_PRDC_PRODUCT
+		where STATUS = 0
+		and KIND_ID = #KIND_ID#
+		and ID in (
+		  select PRODUCT_ID
+		  from T_SUPL_EQUIPMENT
+		  where SUPPLIER_ID = #SUPPLIER_ID#
+		)
+		order by [NAME]
+	</select>
+	
+	<select id="getKind" resultClass="com.brick.base.to.SelectionTo" parameterClass="map">
+		select [NAME] as display_name,
+				ID as option_value 
+		from T_PRDC_KIND
+		where [TYPE_ID] = #TYPE_ID#
+		and ID in (
+		  select KIND_ID from T_PRDC_PRODUCT
+		  where STATUS = 0
+		  and ID in (
+		    select PRODUCT_ID
+		    from T_SUPL_EQUIPMENT
+		    where SUPPLIER_ID = #SUPPLIER_ID#
+		  )
+		)
+		and PRDC_KIND_STATUS = 0
+		order by [NAME]
+	</select>
+	
+	<!-- 根据制造商名称查询厂牌 -->
+	<select id="getAllTypeByManufacturer" parameterClass="map" resultClass="hashmap">
+		select TPT.ID,TPT.NAME
+		   from t_supl_equipment tse
+		  inner join t_prdc_product tpp on tpp.id = tse.product_id AND tpp.STATUS = 0
+		  inner join t_prdc_kind tpd on tpd.id = tpp.kind_id AND tpd.PRDC_KIND_STATUS = 0
+		  LEFT JOIN T_PRDC_TYPE TPT ON TPT.ID = tpd.TYPE_ID AND TPT.PRDC_TYPE_STATUS = 0
+		  where tse.status = 0
+		    and TPT.Manufacturer = #MANUFACTURER#
+		  group by TPT.id, TPT.name
+		  order by TPT.name
+	</select>
+	<!-- 根据类型ID获取类型下的所有产品 -->
+	<select id="getAllKind" parameterClass="map" resultClass="hashmap">
+		select tpd.id kind_id, tpd.name kind_name
+		   from t_supl_equipment tse
+		  inner join t_prdc_product tpp on tpp.id = tse.product_id
+		  inner join t_prdc_kind tpd on tpd.id = tpp.kind_id
+		  where tse.status = 0
+		    and tpd.type_id = #type_id#
+		  group by tpd.id, tpd.name
+		  order by tpd.name
+	</select>
+	<!-- 根据厂牌的id获取厂牌对应的制造商名称 -->
+	<select id="getManufacturerByTypeId" parameterClass="map" resultClass="java.lang.String">
+		SELECT Manufacturer FROM T_PRDC_TYPE WHERE ID = #type_id# AND PRDC_TYPE_STATUS = 0
+	</select>
+	<!-- 根据名称获取名称下的所有型号 -->
+	<select id="getAllProducts" parameterClass="map" resultClass="hashmap">
+		select tpp.id product_id, tpp.name product_name
+		    from t_supl_equipment tse
+		   inner join t_prdc_product tpp on tpp.id = tse.product_id
+		   where tse.status = 0
+		     and tpp.kind_id = #kind_id#
+		   group by tpp.id, tpp.name
+		   order by tpp.name
+	</select>
+	<!-- 获取拥有该型号产品的所有供应商 -->
+	<select id="getAllSuppliers" parameterClass="map" resultClass="hashmap">
+		select tse.sueq_id sueq_id, tss.name supplier_name,tss.id supplier_id,tss.SUPP_LEVEL,tss.BUY_BACK
+		  from t_supl_equipment tse
+		  inner join t_supl_supplier tss on tss.id=tse.supplier_id
+		 where tse.status = 0 and tss.status = 0 
+		   and tse.product_id = #product_id#
+		   group by tse.sueq_id, tss.name ,tss.id,tss.SUPP_LEVEL,tss.BUY_BACK
+		   order by tss.name 
+	</select>
+
+				<!-- 查询一个产品型号设备库中的个数 -->
+	<select id="getCount" parameterClass="map" resultClass="java.lang.Integer"> 
+		<![CDATA[
+			select count(1) count from T_SUPL_EQUIPMENT t
+			where t.STATUS = 0  and  t.PRODUCT_ID = #product_id#
+		]]>
+	</select>
+				<!-- 查询一个设备库中提供设备供应商的个数 -->
+	<select id="getSuppCount" parameterClass="map" resultClass="java.lang.Integer"> 
+		<![CDATA[
+			select count(1) count from T_SUPL_EQUIPMENT t
+			where t.STATUS = 0  and  t.supplier_id = #supplier_id#
+		]]>
+	</select>
+				<!-- 查询一个设备库中提供设备在设备表里有没有 -->
+	<select id="getEquCount" parameterClass="map" resultClass="java.lang.Integer"> 
+		<![CDATA[
+			select count(1) count from T_EQMT_EQUIPMENT t
+			where t.STATUS = 0  and  t.SUEQ_ID = #sueq_id#
+		]]>
+	</select>
+	
+	
+	<select id="validateProduct" parameterClass="map" resultClass="java.lang.Integer"> 
+		<![CDATA[
+			select count(1) count from T_SUPL_EQUIPMENT t
+			where t.STATUS = 0  and  t.PRODUCT_ID = #product_id# and t.supplier_id=#Supplier_id#
+		]]>
+	</select>
+	<!-- 
+		检查型号是否重复
+	 -->
+	 <!-- Modify by Michael 2012 08-28 检查设备型号是否存在增加区分大小写 -->
+	<select id="checkProduct" parameterClass="map" resultClass="java.lang.Integer"> 
+	<!--  
+		<![CDATA[
+			select count(1) count from T_PRDC_PRODUCT t1
+			left join T_PRDC_KIND t2 on t2.id = t1.kind_id and t2.prdc_kind_status = 0
+			left join T_PRDC_TYPE t3 on t3.id = t2.type_id and t3.prdc_type_status = 0
+ 			where t1.STATUS = 0  and  t1.name = #name# and t2.id = #kind_id# and t3.id = #type_id#  
+		]]>
+	-->
+		<![CDATA[
+			select count(1) count from (
+			select t1.name from T_PRDC_PRODUCT t1
+			left join T_PRDC_KIND t2 on t2.id = t1.kind_id and t2.prdc_kind_status = 0
+			left join T_PRDC_TYPE t3 on t3.id = t2.type_id and t3.prdc_type_status = 0
+ 			where t1.STATUS = 0 and  t2.id = #kind_id# and t3.id = #type_id# )TT
+ 			where name=#name# collate Chinese_PRC_CS_AI
+		]]>
+	</select>
+	<!-- 
+		检查机号是否重复
+	 -->
+	<select id="checkProductNumber" parameterClass="map" resultClass="java.lang.Integer"> 
+		<!-- 
+			select 
+				count(t.id) count 
+			from
+				T_PRDC_NUMBER t
+				left join T_PRDC_PRODUCT t1 on t1.id = t.product_id and t1.status = 0
+				left join T_PRDC_KIND t2 on t2.id = t1.kind_id and t2.prdc_kind_status = 0
+				left join T_PRDC_TYPE t3 on t3.id = t2.type_id and t3.prdc_type_status = 0
+ 			where 
+ 					t.STATUS = 0  
+ 				and  t.name = #name# 
+ 				and t1.id = #product_id# 
+ 				and t2.id = #kind_id# 
+ 				and t3.id = #type_id#
+		-->
+		<![CDATA[
+			SELECT 
+				COUNT(1)
+			FROM 
+				T_RENT_CONTRACTDETAIL T1
+				LEFT JOIN T_EQMT_EQUIPMENT T2 ON T2.EQMT_ID = T1.EQMT_ID
+				LEFT JOIN T_RENT_CONTRACT T3 ON T3.RECT_ID = T1.RECT_ID
+				LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID = T2.SUEQ_ID	
+			WHERE T1.STATUS = 0 
+				AND T2.STATUS = 0
+				AND T3.STATUS = 0
+				AND (T1.THING_NUMBER = #THING_NUMBER# OR T2.THING_NUMBER = #THING_NUMBER# )
+				AND T3.PRCD_ID != #PRCD_ID#
+				AND T4.PRODUCT_ID = #PRODUCT_ID#
+		]]>
+	</select>
+	<!-- 检查厂牌是否存在 -->
+	<select id="checkProductType" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[
+			SELECT 
+				ID
+			FROM 
+				T_PRDC_TYPE 
+			WHERE
+				PRDC_TYPE_STATUS = 0 
+				AND NAME = #type_name#
+		]]>
+	</select>
+	
+	<!-- 检查供应商是否存在 -->
+	<select id="checkSupplier" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[
+			SELECT 
+				ID
+			FROM 
+				T_SUPL_SUPPLIER
+			WHERE
+				STATUS = 0
+				AND NAME = #supplier_name#
+		]]>
+	</select>
+	<!-- 检查在报告中是否存在 -->
+	<select id="checkCreditExist" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT
+			ISNULL(SUM(TT.COUNT),0) COUNT
+		FROM (
+			SELECT 
+				COUNT(T.ID) COUNT
+			FROM T_PRJT_CREDIT T 
+				LEFT JOIN T_PRJT_CREDITEQUIPMENT T1 ON T1.CREDIT_ID = T.ID AND T1.EQMT_STATUS = 0
+				LEFT JOIN T_SUPL_EQUIPMENT T2 ON T2.SUEQ_ID = T1.SUEQ_ID  AND T2.STATUS = 0
+				LEFT JOIN T_SUPL_SUPPLIER T3 ON T3.ID = T2.SUPPLIER_ID AND T3.STATUS = 0
+				LEFT JOIN T_PRDC_PRODUCT T4 ON T4.ID = T2.PRODUCT_ID AND T4.STATUS = 0
+				LEFT JOIN T_PRDC_KIND T5 ON T5.ID = T4.KIND_ID AND T5.PRDC_KIND_STATUS = 0
+				LEFT JOIN T_PRDC_TYPE T6 ON T6.ID = T5.TYPE_ID AND T6.PRDC_TYPE_STATUS = 0
+			WHERE
+				T.STATUS = 0
+				AND T.WIND_STATE = 1
+		<isEqual property="checkType" compareValue="SUEQ" prepend="AND">
+				T2.SUEQ_ID = #ID#
+		</isEqual>
+		<isEqual property="checkType" compareValue="SUPPL" prepend="AND">
+				T3.ID = #ID#
+		</isEqual>
+		<isEqual property="checkType" compareValue="PRODUCT" prepend="AND">
+				T4.ID = #ID#
+		</isEqual>
+		<isEqual property="checkType" compareValue="KIND" prepend="AND">
+				T5.ID = #ID#
+		</isEqual>
+		<isEqual property="checkType" compareValue="TYPE" prepend="AND">
+				T6.ID = #ID#
+		</isEqual>
+
+			UNION ALL
+		
+			SELECT 
+				COUNT(1) COUNT
+			FROM
+				T_RENT_CONTRACT RECT
+				LEFT JOIN T_RENT_CONTRACTDETAIL T ON T.RECT_ID = RECT.RECT_ID AND T.STATUS = 0
+				LEFT JOIN T_EQMT_EQUIPMENT T1 ON T1.EQMT_ID = T.EQMT_ID AND T1.STATUS = 0
+				LEFT JOIN T_SUPL_EQUIPMENT T2 ON T2.SUEQ_ID = T1.SUEQ_ID  AND T2.STATUS = 0
+				LEFT JOIN T_SUPL_SUPPLIER T3 ON T3.ID = T2.SUPPLIER_ID AND T3.STATUS = 0
+				LEFT JOIN T_PRDC_PRODUCT T4 ON T4.ID = T2.PRODUCT_ID AND T4.STATUS = 0
+				LEFT JOIN T_PRDC_KIND T5 ON T5.ID = T4.KIND_ID AND T5.PRDC_KIND_STATUS = 0
+				LEFT JOIN T_PRDC_TYPE T6 ON T6.ID = T5.TYPE_ID AND T6.PRDC_TYPE_STATUS = 0
+			WHERE
+				RECT.STATUS = 0
+		<isEqual property="checkType" compareValue="SUEQ" prepend="AND">
+				T2.SUEQ_ID = #ID#
+		</isEqual>
+		<isEqual property="checkType" compareValue="SUPPL" prepend="AND">
+				T3.ID = #ID#
+		</isEqual>
+		<isEqual property="checkType" compareValue="PRODUCT" prepend="AND">
+				T4.ID = #ID#
+		</isEqual>
+		<isEqual property="checkType" compareValue="KIND" prepend="AND">
+				T5.ID = #ID#
+		</isEqual>
+		<isEqual property="checkType" compareValue="TYPE" prepend="AND">
+				T6.ID = #ID#
+		</isEqual>
+			
+			UNION ALL
+		
+			SELECT 
+				COUNT(1) COUNT
+			FROM
+				T_RENT_COLLECTIONPLAN RECP
+				LEFT JOIN T_RENT_CONTRACTDETAIL T ON T.RECP_ID = RECP.RECP_ID AND T.STATUS = 0
+				LEFT JOIN T_EQMT_EQUIPMENT T1 ON T1.EQMT_ID = T.EQMT_ID AND T1.STATUS = 0
+				LEFT JOIN T_SUPL_EQUIPMENT T2 ON T2.SUEQ_ID = T1.SUEQ_ID  AND T2.STATUS = 0
+				LEFT JOIN T_SUPL_SUPPLIER T3 ON T3.ID = T2.SUPPLIER_ID AND T3.STATUS = 0
+				LEFT JOIN T_PRDC_PRODUCT T4 ON T4.ID = T2.PRODUCT_ID AND T4.STATUS = 0
+				LEFT JOIN T_PRDC_KIND T5 ON T5.ID = T4.KIND_ID AND T5.PRDC_KIND_STATUS = 0
+				LEFT JOIN T_PRDC_TYPE T6 ON T6.ID = T5.TYPE_ID AND T6.PRDC_TYPE_STATUS = 0
+			WHERE
+				RECP.STATUS = 0
+		<isEqual property="checkType" compareValue="SUEQ" prepend="AND">
+				T2.SUEQ_ID = #ID#
+		</isEqual>
+		<isEqual property="checkType" compareValue="SUPPL" prepend="AND">
+				T3.ID = #ID#
+		</isEqual>
+		<isEqual property="checkType" compareValue="PRODUCT" prepend="AND">
+				T4.ID = #ID#
+		</isEqual>
+		<isEqual property="checkType" compareValue="KIND" prepend="AND">
+				T5.ID = #ID#
+		</isEqual>
+		<isEqual property="checkType" compareValue="TYPE" prepend="AND">
+				T6.ID = #ID#
+		</isEqual>
+		) TT
+	</select>
+	
+	<select id="getIsBuyBackBySuplId" resultClass="java.lang.String">
+			SELECT ISNULL(BUY_BACK,'N') FROM T_SUPL_SUPPLIER WHERE ID=(SELECT SUPPLIER_ID FROM T_SUPL_EQUIPMENT WHERE SUEQ_ID=#SUEQ_ID# AND STATUS=0) AND STATUS=0
+	</select>
+	
+	<!-- 根据制造商名称查询厂牌 -->
+	<select id="getAllTypeByManufacturerByBlur" parameterClass="map" resultClass="hashmap">
+		select TPT.ID,TPT.NAME
+		   from t_supl_equipment tse
+		  inner join t_prdc_product tpp on tpp.id = tse.product_id AND tpp.STATUS = 0
+		  inner join t_prdc_kind tpd on tpd.id = tpp.kind_id AND tpd.PRDC_KIND_STATUS = 0
+		  LEFT JOIN T_PRDC_TYPE TPT ON TPT.ID = tpd.TYPE_ID AND TPT.PRDC_TYPE_STATUS = 0
+		  where tse.status = 0
+		    and TPT.Manufacturer like '%$MANUFACTURER$%' 
+		  group by TPT.id, TPT.name
+		  order by TPT.name
+	</select>
+	
+	<select id="getAllManufacturerListByBlur" parameterClass="map" resultClass="hashmap">
+		select TPT.ID,TPT.MANUFACTURER
+		   from t_supl_equipment tse
+		  inner join t_prdc_product tpp on tpp.id = tse.product_id AND tpp.STATUS = 0
+		  inner join t_prdc_kind tpd on tpd.id = tpp.kind_id AND tpd.PRDC_KIND_STATUS = 0
+		  LEFT JOIN T_PRDC_TYPE TPT ON TPT.ID = tpd.TYPE_ID AND TPT.PRDC_TYPE_STATUS = 0
+		  where tse.status = 0
+		  group by TPT.id, TPT.MANUFACTURER
+		  order by TPT.ID desc
+	</select>		
+	
+	<!-- Add by ZhangYizhou on 2014-06-20 Begin -->
+	<!-- IT201406077:补全供应商及厂牌的autocomplete功能 -->
+	<select id="getSuppliersForHint" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+	 		SELECT ID,[NAME],CASE WHEN LINKMAN_TELPHONE <> '' THEN LINKMAN_TELPHONE ELSE LINKMAN_MOBILE END AS MOBILE 
+	 		FROM T_SUPL_SUPPLIER 
+	 		WHERE STATUS = 0 
+	 		ORDER BY ID DESC
+		]]>
+	</select>
+	<select id="getProductTypesForHint" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+	 		SELECT ID,[NAME] 
+	 		FROM T_PRDC_TYPE 
+	 		WHERE PRDC_TYPE_STATUS = 0 
+	 		ORDER BY ID DESC
+		]]>
+	</select>
+	<!-- Add by ZhangYizhou on 2014-06-20 End -->
+			
+</sqlMap>

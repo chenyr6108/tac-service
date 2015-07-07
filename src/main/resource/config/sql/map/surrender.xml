@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="surrender">
+	<!-- 查询设备 -->
+		<select id="getEqmtInsuList" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+			  select eqmt_id as RECD_ID  
+				from T_INSU_EMPT2INSULIST
+		 	   where INSU_ID=#INCU_ID#
+			]]>
+	</select>
+		<!-- 查询退保单 -->
+		<select id="getSurrender" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+			SELECT ID
+			      ,INCU_ID
+			      ,SURRENDER_DATE
+			      ,SURRENDER_PRICE
+			      ,SURRENDER_REASON
+			      ,CREATE_ID
+			      ,MODIFY_ID
+			      ,CREATE_DATE
+			      ,MODIFY_DATE
+			      ,STATUS
+			  FROM T_INSU_SURRENDER
+		 	   where ID=#ID#
+			]]>
+	</select>
+		<!-- 创建保单 -->
+		<insert id="createInsuList" parameterClass="map">
+	INSERT INTO T_INSU_SURRENDER
+           (ID
+           ,INCU_ID
+           ,SURRENDER_DATE
+           ,SURRENDER_PRICE
+           ,SURRENDER_REASON
+           ,CREATE_ID
+           ,MODIFY_ID
+           ,CREATE_DATE
+           ,MODIFY_DATE
+           ,STATUS
+           )
+     VALUES
+           (#INCU_ID#
+           ,#INCU_ID#
+           ,CONVERT(date,#SURRENDER_DATE#)
+           ,#SURRENDER_PRICE#
+           ,#SURRENDER_REASON#
+           ,#s_employeeId#
+           ,#s_employeeId#
+           ,GETDATE()
+           ,GETDATE()
+           ,0
+           )
+		</insert>
+		<!-- 分页 -->
+	<!-- 保单分页 -->
+		<select id="insuListManage" parameterClass="map" resultClass="java.util.HashMap">
+		<!--2011/12/12 Yang Yun Add "MODIFY_ID" field and update to "t1.status = -1" for display only "已退保"-->
+		<!--
+		<![CDATA[ 
+			SELECT t1.INCU_ID
+					,t2.INCP_NAME
+			      ,t1.INCU_CODE
+			      ,t1.INCP_ID
+			      ,t1.INSU_NAME
+			      ,t1.INSU_ADDRESS
+			      ,t1.MORTGAGE
+			      ,t1.INSU_CERTIFICATE
+			      ,t1.TO_INSU_NAME
+			      ,t1.TO_INSU_ADDRESS
+			      ,t1.INSU_PRICE_TOTAL
+			      ,t1.INSU_PRICE
+			      ,t1.INSU_START_DATE
+			      ,t1.INSU_END_DATE
+			      ,t1.INSU_RATE
+			      ,t1.COEFFICIENT
+			      ,t1.REMARK
+			      ,t1.CHARGE_CODE
+			      ,t1.AFFIRM_SEIZE_DATE
+			      ,t1.AFFIRM_INSU_DATE
+			      ,t1.PRINT_INSU_DATE
+			      ,t1.RENEWAL_INSU_CODE
+			      ,t1.ENTER_NAME
+			      ,t1.MONEY_KIND
+			      ,t1.EMS_CODE
+			      ,t1.OUTPUT_STATUS
+			      ,t1.OUTPUT_DATE
+			      ,t1.TO_INSU_CERTIFICATE
+			      ,t3.SURRENDER_PRICE
+			      ,t3.SURRENDER_DATE
+			      ,t1.status
+			      ,it.PAY_DATE
+			       ,t1.RECT_CODE,
+			       itt.CUST_NAME
+		-->
+		<![CDATA[ 
+			SELECT t1.INCU_ID
+					,t2.INCP_NAME
+			      ,t1.INCU_CODE
+			      ,t1.INCP_ID
+			      ,t1.INSU_NAME
+			      ,t1.INSU_ADDRESS
+			      ,t1.MORTGAGE
+			      ,t1.INSU_CERTIFICATE
+			      ,t1.TO_INSU_NAME
+			      ,t1.TO_INSU_ADDRESS
+			      ,t1.INSU_PRICE_TOTAL
+			      ,t1.INSU_PRICE
+			      ,t1.INSU_START_DATE
+			      ,t1.INSU_END_DATE
+			      ,t1.INSU_RATE
+			      ,t1.COEFFICIENT
+			      ,t1.REMARK
+			      ,t1.CHARGE_CODE
+			      ,t1.AFFIRM_SEIZE_DATE
+			      ,t1.AFFIRM_INSU_DATE
+			      ,t1.PRINT_INSU_DATE
+			      ,t1.RENEWAL_INSU_CODE
+			      ,t1.ENTER_NAME
+			      ,t1.MONEY_KIND
+			      ,t1.EMS_CODE
+			      ,t1.OUTPUT_STATUS
+			      ,t1.OUTPUT_DATE
+			      ,t1.TO_INSU_CERTIFICATE
+			      ,t3.SURRENDER_PRICE
+			      ,t3.SURRENDER_DATE
+			      ,t1.status
+			      ,it.PAY_DATE
+			       ,t1.RECT_CODE,
+			       itt.CUST_NAME,
+			       (select NAME from T_USER_USER
+			      where id = t3.MODIFY_ID) as MODIFY_ID
+			  FROM T_INSU_INSURANCELIST t1 left join T_INSU_COMPANY t2 on t1.INCP_ID=t2.INCP_ID
+			  	   left join t_insu_surrender t3 on t3.incu_id=t1.incu_id
+			  	   left join (
+			  	    select t.incu_id,MAX(t4.PAY_DATE) PAY_DATE
+					 from T_INSU_INSURANCELIST t left join T_INSU_EMPT2INSULIST t2 on t.INCU_ID=t2.INSU_ID
+						left join T_RENT_CONTRACTDETAIL rd on rd.EQMT_ID=t2.EQMT_ID
+						left join T_RENT_COLLECTIONPLAN t3 on t3.RECT_ID=rd.RECT_ID
+						left join T_RENT_COLLECTIONDETAIL t4 on t3.RECP_ID=t4.RECP_ID
+					 group by t.incu_id
+			  	   ) it on it.INCU_ID=t1.INCU_ID
+			  	   left join (
+			  	      select  t1.INCU_ID,max(t3.CUST_NAME) CUST_NAME from  T_INSU_INSURANCELIST t1
+					  left join T_INSU_EMPT2INSULIST t66 on t66.INSU_ID=t1.INCU_ID And t66.STATUS=0
+					  left join T_RENT_CONTRACTDETAIL t99 on t99.EQMT_ID=t66.EQMT_ID And t99.STATUS=0
+					  left join T_RENT_CONTRACT t3 on t3.RECT_ID=t99.RECT_ID And t3.STATUS=0
+					  where   t1.STATUS!=1 
+					  group by t1.INCU_ID
+			  	   ) itt on itt.INCU_ID=t1.INCU_ID
+			  where t1.status >= 40 and   (t3.STATUS=0 or t3.STATUS is null) 
+
+			]]>
+		<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and (t2.INCP_NAME LIKE '%$content$%' 
+				 	OR t1.INCU_CODE LIKE '%$content$%' 
+				 	OR t1.INSU_PRICE LIKE '%$content$%' 
+				 	OR t1.CHARGE_CODE LIKE '%$content$%' 
+				 	OR t1.TO_INSU_NAME LIKE '%$content$%' 
+				 	OR t1.INSU_NAME LIKE '%$content$%' 
+				 	OR t1.RECT_CODE LIKE '%$content$%' 
+				 	OR itt.CUST_NAME LIKE '%$content$%' 
+				 	)
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="" property="INCP">
+			<![CDATA[
+				 and (t2.INCP_ID LIKE '%$INCP$%' )
+			  ]]>
+		</isNotEmpty>
+	order by t1.INCU_ID desc
+	</select>
+	<select id="insuListManage_count"  parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ 
+		select count(1)
+		FROM T_INSU_INSURANCELIST t1 left join T_INSU_COMPANY t2 on t1.INCP_ID=t2.INCP_ID
+					  	   left join t_insu_surrender t3 on t3.incu_id=t1.incu_id
+					  	   left join (
+						  	      select  t1.INCU_ID,max(t3.CUST_NAME) CUST_NAME from  T_INSU_INSURANCELIST t1
+								  left join T_INSU_EMPT2INSULIST t66 on t66.INSU_ID=t1.INCU_ID And t66.STATUS=0
+								  left join T_RENT_CONTRACTDETAIL t99 on t99.EQMT_ID=t66.EQMT_ID And t99.STATUS=0
+								  left join T_RENT_CONTRACT t3 on t3.RECT_ID=t99.RECT_ID And t3.STATUS=0
+								  where   t1.STATUS!=1 
+								  group by t1.INCU_ID
+						  	   ) itt on itt.INCU_ID=t1.INCU_ID
+					  where t1.status >= 40 and   (t3.STATUS=0 or t3.STATUS is null) 
+		]]>
+		<isNotEmpty prepend="" property="content">
+			<![CDATA[
+				 and (t2.INCP_NAME LIKE '%$content$%' 
+				 	OR t1.INCU_CODE LIKE '%$content$%' 
+				 	OR t1.INSU_PRICE LIKE '%$content$%' 
+				 	OR t1.CHARGE_CODE LIKE '%$content$%' 
+				 	OR t1.TO_INSU_NAME LIKE '%$content$%' 
+				 	OR t1.INSU_NAME LIKE '%$content$%' 
+				 	OR itt.CUST_NAME LIKE '%$content$%' 
+				 	)
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="" property="INCP">
+			<![CDATA[
+				 and (t2.INCP_ID LIKE '%$INCP$%' )
+			  ]]>
+		</isNotEmpty>
+	</select>
+		<!-- 修改退保 -->
+	<update id="updateSurrender"  parameterClass="map">
+	<!--2011/12/12 Yang Yun Add "MODIFY_ID" and "MODIFY_DATE" field-->
+		<![CDATA[
+			UPDATE T_INSU_SURRENDER
+		   SET 
+		       SURRENDER_DATE = CONVERT(date,#SURRENDER_DATE#)
+		      ,SURRENDER_PRICE = #SURRENDER_PRICE#
+		      ,SURRENDER_REASON =#SURRENDER_REASON#
+		      ,MODIFY_ID = #s_employeeId#
+		      ,MODIFY_DATE = getdate()
+		 WHERE id=#ID#
+		  ]]>
+	</update>
+	<!-- 删除推保单 -->
+	<delete id="delSurrender"  parameterClass="map">
+		delete from t_insu_surrender 
+		 WHERE id=#ID#
+	</delete>
+			<!-- 恢复保单的状态 -->
+	<update id="recoverInsuList"  parameterClass="map">
+	<!--2011/12/12 Yang Yun Add "MODIFY_ID" and "MODIFY_DATE" field-->
+	<![CDATA[
+		UPDATE t_insu_insurancelist
+		   SET 
+		       STATUS = 0
+		      ,MODIFY_ID = #s_employeeId#
+		      ,MODIFY_DATE = GETDATE()
+		 WHERE INCU_ID=#ID#
+		  ]]>
+	</update>
+</sqlMap>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="acl">
+	
+	<select id="loginForEqmt" parameterClass="map"	resultClass="java.util.HashMap">
+		select t.id uuid, t.code ssn, t.name name,t2.DECP_ID compid,t.EMAIL EMAIL,T3.NAME UPPER_NAME,T3.EMAIL UPPER_EMAIL,t.JOB,
+		T.DEPT_ID,CASE WHEN T.FIRST_LOGIN='Y'<!-- 首先判断用户是否首次登录,如果非首次登录判断最近改密码是不是在3个月之内,此功能作用于强制改密码 add by ShenQi -->
+			           THEN 'Y'
+			           ELSE CASE WHEN DATEDIFF(DAY,T.MODIFY_DATE,GETDATE())>90 OR T.MODIFY_DATE IS NULL
+		                    THEN 'Y'
+		                    ELSE 'N'
+		                     END
+			            END FIRST_LOGIN
+        from t_user_user t
+        left join T_DEPT_DEPARTMENT t1 on t.DEPT_ID=t1.ID
+        left join T_DEPT_COMPANY t2 on t1.DECP_ID=t2.DECP_ID   
+        LEFT JOIN T_USER_USER T3 ON T.UPPER_USER = T3.ID 
+        where t.code = #code# 
+        and t.password = #password#
+        and t.status=0
+        and t2.DECP_NAME_CN not like '%乘用车%'
+	</select>
+	
+	<select id="loginForCar" parameterClass="map"	resultClass="java.util.HashMap">
+		select t.id uuid, t.code ssn, t.name name,t2.DECP_ID compid,t.EMAIL EMAIL,T3.NAME UPPER_NAME,T3.EMAIL UPPER_EMAIL,t.JOB,
+		T.DEPT_ID,CASE WHEN T.FIRST_LOGIN='Y'<!-- 首先判断用户是否首次登录,如果非首次登录判断最近改密码是不是在3个月之内,此功能作用于强制改密码 add by ShenQi -->
+			           THEN 'Y'
+			           ELSE CASE WHEN DATEDIFF(DAY,T.MODIFY_DATE,GETDATE())>90 OR T.MODIFY_DATE IS NULL
+		                    THEN 'Y'
+		                    ELSE 'N'
+		                     END
+			            END FIRST_LOGIN
+        from t_user_user t
+        left join T_DEPT_DEPARTMENT t1 on t.DEPT_ID=t1.ID
+        left join T_DEPT_COMPANY t2 on t1.DECP_ID=t2.DECP_ID   
+        LEFT JOIN T_USER_USER T3 ON T.UPPER_USER = T3.ID 
+        where t.code = #code# 
+        and t.password = #password#
+        and t.status=0
+        and t2.DECP_NAME_CN not like '%设备%'
+	</select>
+	
+	<select id="login" parameterClass="map"	resultClass="java.util.HashMap">
+		select t.id uuid, t.code ssn, t.name name,t2.DECP_ID compid,t.EMAIL EMAIL,T3.NAME UPPER_NAME,T3.EMAIL UPPER_EMAIL,t.JOB,
+		T.DEPT_ID,CASE WHEN T.FIRST_LOGIN='Y'<!-- 首先判断用户是否首次登录,如果非首次登录判断最近改密码是不是在3个月之内,此功能作用于强制改密码 add by ShenQi -->
+			           THEN 'Y'
+			           ELSE CASE WHEN DATEDIFF(DAY,T.MODIFY_DATE,GETDATE())>90 OR T.MODIFY_DATE IS NULL
+		                    THEN 'Y'
+		                    ELSE 'N'
+		                     END
+			            END FIRST_LOGIN
+        from t_user_user t
+        left join T_DEPT_DEPARTMENT t1 on t.DEPT_ID=t1.ID
+        left join T_DEPT_COMPANY t2 on t1.DECP_ID=t2.DECP_ID   
+        LEFT JOIN T_USER_USER T3 ON T.UPPER_USER = T3.ID 
+        where t.code = #code# 
+        and t.password = #password#
+        and t.status=0    
+	</select>
+	
+	
+	<select id="getUserByName" resultClass="java.lang.String" parameterClass="java.util.HashMap">
+		<![CDATA[
+			select password from t_user_user where code = #code# and status=0
+		]]> 
+		
+	</select>
+	
+	<!-- change user password by id  -->
+	<statement id="changePassword" parameterClass="map"  resultClass="java.util.HashMap">
+		update t_user_user set password = #needPassword#,MODIFY_DATE=GETDATE(),FIRST_LOGIN='N' where id=#s_employeeId# 
+	</statement>
+	<select id="getPassword" resultClass="java.util.HashMap" parameterClass="map">
+		<![CDATA[
+			select password pa from t_user_user where id=#s_employeeId# and status=0
+		]]> 
+		
+	</select>
+	
+</sqlMap>

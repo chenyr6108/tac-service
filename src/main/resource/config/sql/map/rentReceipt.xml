@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="rentReceipt">
+
+	<!-- 以下查询本金收据列表 -->
+	<select id="queryRentReceiptList" parameterClass="map"
+		resultClass="java.util.HashMap">
+		select trecp.recp_id as RECPID,trc.rect_id as RECTID ,tfc.recd_period as RECDPERIOD,
+		tfc.ficb_item as FICBITEM,tfc.Principal_Runcode as PRINCIPALRUNCODE,
+		tfc.ori_Principal_Runcode as
+		ORIPRINCIPALRUNCODE,trc.CUST_NAME as CUSTNAME,
+		Convert(decimal(18,2),
+		tfc.real_own_price)as REALOWNPRICE,tfc.create_date as CREATEDATE,trcd.INVOICE_CODE,
+		tbbf.BANK_NAME as BANKNAME,trc.LEASE_CODE as LEASECODE,tfc.IS_PRINT as ISPRINT
+		from
+		T_RENT_COLLECTIONPLAN trecp
+		left join T_RENT_CONTRACT trc on trc.rect_id = trecp.rect_id
+		left join T_FINA_COLLECTIONBILL tfc on trecp.RECP_ID=tfc.recp_id
+		left join T_FINA_INCOME tfi on tfi.FIIN_ID=tfc.fiin_id
+		left join t_bank_bankaccount tbbt on tfi.RECEIPT_BANKNO=tbbt.ACCOUNT_NO and tbbt.STATUS=0
+		left join t_bank_bankinfo tbbf on tbbf.BABI_ID=tbbt.BABI_ID and tbbf.STATUS=0
+		LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = trc.PRCD_ID AND T10.STATUS = 0
+		left join T_RENT_COLLECTIONDETAIL trcd on trcd.recp_id=trecp.recp_id and trcd.status=0 and trcd.period_num=tfc.recd_period
+		where (trecp.tax_plan_code ='2' or trecp.tax_plan_code ='3' ) and tfc.real_own_price!=0 and tfc.real_own_price is NOT NULL
+		<isNotEmpty prepend="and" property="ficb_item">
+		   tfc.ficb_item=#ficb_item#
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+			(trc.CUST_NAME LIKE '%$QSEARCH_VALUE$%' OR  tfc.Principal_Runcode  LIKE '%$QSEARCH_VALUE$%' OR trc.LEASE_CODE LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[	  tfc.create_date >=  CONVERT(date,#QSTART_DATE#) ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[	  tfc.create_date <= CONVERT(date,#QEND_DATE# )]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="" property="QSELECT_STATUS">
+			<isNotEqual prepend="and" property="QSELECT_STATUS"
+				compareValue="1">
+				<![CDATA[  tfc.IS_PRINT=1]]>
+			</isNotEqual>
+		</isNotEmpty>
+		<isNotEmpty prepend="" property="QSELECT_STATUS">
+			<isNotEqual prepend="and" property="QSELECT_STATUS"
+				compareValue="0">
+				<![CDATA[ (tfc.IS_PRINT=0 or tfc.IS_PRINT is null)]]>
+			</isNotEqual>
+		</isNotEmpty>
+		
+		<isNotEmpty prepend="" property="ISINVOICE">
+			<isEqual prepend="and" property="ISINVOICE"
+				compareValue="1">
+				<![CDATA[ 
+					 trcd.INVOICE_CODE is not null
+				 ]]>
+			</isEqual>
+		</isNotEmpty>
+		<isNotEmpty prepend="" property="ISINVOICE">
+			<isEqual prepend="and" property="ISINVOICE"
+				compareValue="0">
+				<![CDATA[
+				trcd.INVOICE_CODE is null
+				]]>
+			</isEqual>
+		</isNotEmpty>
+		
+		<isNotEmpty prepend="" property="startDate">
+			<isEqual prepend="" property="OLDNEW_STATUS" compareValue="1">
+				<![CDATA[  
+					and year(T10.FINANCECONTRACT_DATE)=year(#startDate#) and MONTH(T10.FINANCECONTRACT_DATE)=MONTH(#startDate#)  
+					and convert(date,convert(varchar,(year(trcd.FINANCE_DATE)))+'-'+convert(varchar,(MONTH(trcd.FINANCE_DATE)))+'-01')<=convert(date,convert(varchar,(year(T10.FINANCECONTRACT_DATE)))+'-'+convert(varchar,(MONTH(T10.FINANCECONTRACT_DATE)))+'-01')
+				]]>
+			</isEqual>
+			<isEqual prepend="" property="OLDNEW_STATUS" compareValue="0">
+				<![CDATA[ 
+					AND (year(T10.FINANCECONTRACT_DATE) < YEAR(convert(DATE,convert(varchar,#startDate#, 23)))							
+							OR
+						( 	year(T10.FINANCECONTRACT_DATE) = YEAR(convert(DATE,convert(varchar,#startDate#, 23)))
+						AND month(T10.FINANCECONTRACT_DATE) < MONTH(convert(DATE,convert(varchar,#startDate#, 23))) 
+						))
+					and ( 	YEAR(trcd.FINANCE_DATE) = YEAR(convert(DATE,convert(varchar,#startDate#, 23)))
+							AND MONTH(trcd.FINANCE_DATE) = MONTH(convert(DATE,convert(varchar,#startDate#, 23))) 
+						)					
+				]]>
+			</isEqual>
+		</isNotEmpty>
+	</select>
+	<!-- 以上查询本金收据列表 -->
+	<!-- 以下根据Id查询本金收据详情，pdf打印 -->
+	<select id="queryRentReceiptByRecpId" parameterClass="map"
+		resultClass="java.util.HashMap">
+		select trecp.recp_id as RECPID,trc.rect_id as RECTID,tfc.recd_period as RECDPERIOD,tfc.RECP_CODE,
+		tfc.ficb_item as FICBITEM,tfc.Principal_Runcode as PRINCIPALRUNCODE,
+		tfc.ori_Principal_Runcode as ORIPRINCIPALRUNCODE,trc.CUST_NAME as CUSTNAME,
+		Convert(decimal(18,2), tfc.real_own_price)as REALOWNPRICE,tfc.create_date as CREATEDATE,
+		tbbf.BANK_NAME as BANKNAME,trc.LEASE_CODE as LEASECODE,tfc.IS_PRINT as ISPRINT,trcd.INVOICE_CODE
+		from
+		T_RENT_COLLECTIONPLAN trecp
+		left join T_RENT_CONTRACT trc on trc.rect_id = trecp.rect_id
+		left join T_FINA_COLLECTIONBILL tfc on trecp.RECP_ID=tfc.recp_id
+		left join T_FINA_INCOME tfi on tfi.FIIN_ID=tfc.fiin_id
+		left join t_bank_bankaccount tbbt on tfi.RECEIPT_BANKNO=tbbt.ACCOUNT_NO and tbbt.STATUS=0
+		left join t_bank_bankinfo tbbf on tbbf.BABI_ID=tbbt.BABI_ID and tbbf.STATUS=0
+		left join T_RENT_COLLECTIONDETAIL trcd on trecp.recp_id=trcd.recp_id and trcd.PERIOD_NUM=tfc.recd_period and trcd.status=0
+		where (trecp.tax_plan_code='2' or trecp.tax_plan_code='3') and tfc.recd_period >0 and tfc.real_own_price!=''
+		and tfc.Principal_Runcode=#PRINCIPALRUNCODE#
+	</select>
+	
+	<select id="queryRentReceiptByRecpIdNew" parameterClass="map"
+		resultClass="java.util.HashMap">
+		select trecp.recp_id as RECPID,trc.rect_id as RECTID,tfc.PERIOD_NUM as RECDPERIOD,trecp.RECP_CODE,
+		(SELECT FLAG FROM T_DATA_DICTIONARY WHERE CODE=tfc.BILL_CODE) as FICBITEM,tfc.Principal_code as PRINCIPALRUNCODE,
+		'' as ORIPRINCIPALRUNCODE,trc.CUST_NAME as CUSTNAME,
+		Convert(decimal(18,2), tfc.Principal)as REALOWNPRICE,tfc.PRINCIPAL_CREATE_TIME as CREATEDATE,
+		tbbf.BANK_NAME as BANKNAME,trc.LEASE_CODE as LEASECODE,tfc.IS_PRINT as ISPRINT,trcd.INVOICE_CODE
+		from
+		T_RENT_COLLECTIONPLAN trecp
+		left join T_RENT_CONTRACT trc on trc.rect_id = trecp.rect_id
+		left join T_RENT_DECOMPOSE tfc on trecp.RECP_ID=tfc.recp_id
+		left join T_RENT_INCOME tfi on tfi.INCOME_ID=tfc.INCOME_ID
+		left join t_bank_bankaccount tbbt on tfi.RECEIPT_ACCOUNT=tbbt.ACCOUNT_NO and tbbt.STATUS=0
+		left join t_bank_bankinfo tbbf on tbbf.BABI_ID=tbbt.BABI_ID and tbbf.STATUS=0
+		left join T_RENT_COLLECTIONDETAIL trcd on trecp.recp_id=trcd.recp_id and trcd.PERIOD_NUM=tfc.PERIOD_NUM and trcd.status=0
+		where (trecp.tax_plan_code='2' OR trecp.tax_plan_code='3') and tfc.PERIOD_NUM >0
+		and tfc.Principal_code=#PRINCIPALRUNCODE#
+	</select>
+	<!-- 以上根据Id查询本金收据详情，pdf打印 -->
+	<!-- 以下记录打印日志 -->
+	<insert id="insertReceiptLog" parameterClass="map">
+		insert into
+		T_RENT_RECEIPT_LOG
+		(RECT_ID,
+		recp_id,
+		recd_period,
+		ficb_item,
+		Principal_Runcode,
+		ori_Principal_Runcode,
+		CUST_NAME,
+		real_own_price,
+		RECEIPT_create_date,
+		BANK_NAME,
+		LEASE_CODE,
+		LOG_create_date,
+		Print_user_name,
+		RECEIPT_TYPE
+		)
+		values
+		(
+		#RECTID#,
+		#RECPID#,
+		#RECDPERIOD#,
+		#FICBITEM#,
+		#PRINCIPALRUNCODE#,
+		#ORIPRINCIPALRUNCODE#,
+		#CUSTNAME#,
+		<isEmpty property="REALOWNPRICE">
+			null,
+		</isEmpty>
+		<isNotEmpty property="REALOWNPRICE">
+			#REALOWNPRICE#,
+		</isNotEmpty>
+		#CREATEDATE#,
+		#BANKNAME#,
+		#LEASECODE#,
+		getdate(),
+		#PRINTUSERNAME#,
+		#RECEIPT_TYPE#
+		)
+	</insert>
+	<!-- 以上记录打印日志 -->
+	<!-- 以下查询记录打印日志列表 -->
+	<select id="queryReciptLog" parameterClass="map" resultClass="java.util.HashMap">
+		select RECT_ID as RECTID, recp_id as RECPID, recd_period as RECDPERIOD,
+		ficb_item as FICBITEM, Principal_Runcode as PRINCIPALRUNCODE, ori_Principal_Runcode as ORIPRINCIPALRUNCODE,
+		CUST_NAME as CUSTNAME, real_own_price as REALOWNPRICE, RECEIPT_create_date as
+		RECEIPTCREATEDATE, BANK_NAME as BANKNAME, LEASE_CODE as LEASECODE,
+		LOG_create_date as LOGCREATEDATE, tuu.name as PRINTUSERNAME
+		from
+		T_RENT_RECEIPT_LOG
+		left join T_USER_USER tuu on tuu.ID=T_RENT_RECEIPT_LOG.Print_user_name
+		<dynamic prepend="where">
+			<!-- added by yangliu 2014.3.14区分直租和回租，回租为空 -->
+			<isNotEmpty prepend="and" property="RECEIPT_TYPE">
+				RECEIPT_TYPE = #RECEIPT_TYPE#
+			</isNotEmpty>
+			<isEmpty prepend="and" property="RECEIPT_TYPE">
+				RECEIPT_TYPE IS NULL
+			</isEmpty>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+			(CUST_NAME LIKE '%$QSEARCH_VALUE$%' OR  Principal_Runcode  LIKE '%$QSEARCH_VALUE$%' OR LEASE_CODE LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[	 CONVERT(date,LOG_create_date) >=  CONVERT(date,#QSTART_DATE#) ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[	  CONVERT(date,LOG_create_date) <= CONVERT(date,#QEND_DATE# )]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	<!-- 以上查询记录打印日志列表 -->
+	<!-- 以下更新打印状态 -->
+	<update id="upadteIsPrint" parameterClass="map">
+		update
+		T_FINA_COLLECTIONBILL set IS_PRINT =1 where principal_runcode
+		=#PRINCIPALRUNCODE#
+	</update>
+	
+	<update id="upadteIsPrintNew" parameterClass="map">
+		update
+		T_RENT_DECOMPOSE set IS_PRINT =1 where principal_code
+		=#PRINCIPALRUNCODE#
+	</update>
+	<!-- 以上更新打印状态 -->
+	
+	<!-- 根据billId更新打印状态 -->
+	<update id="upadteIsPrintNewByBillId" parameterClass="map">
+		UPDATE T_RENT_DECOMPOSE SET IS_PRINT = 1 WHERE BILL_ID =#BILL_ID#
+	</update>
+	
+	<!-- 直租发票根据billId查询 -->
+	<!-- 根据合同号查询公司code 判断裕融还是裕国的案子  modify by xuyuefei 2014/7/4-->
+	<select id="queryRentReceiptByBillIdNew" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT 
+			TRECP.RECP_ID AS RECPID,
+			TRC.RECT_ID AS RECTID,
+			TFC.PERIOD_NUM AS RECDPERIOD,
+			TRECP.RECP_CODE,
+			(SELECT FLAG FROM T_DATA_DICTIONARY WHERE CODE=TFC.BILL_CODE) AS FICBITEM,TFC.PRINCIPAL_CODE AS PRINCIPALRUNCODE,
+			'' AS ORIPRINCIPALRUNCODE,
+			TRC.CUST_NAME AS CUSTNAME,
+			CONVERT(DECIMAL(18,2), 
+			TFC.PRINCIPAL)AS REALOWNPRICE,
+			TFC.PRINCIPAL_CREATE_TIME AS CREATEDATE,
+			TBBF.BANK_NAME AS BANKNAME,
+			TRC.LEASE_CODE AS LEASECODE,
+			TFC.IS_PRINT AS ISPRINT,
+			TRCD.INVOICE_CODE,
+			TFC.BILL_ID,
+			TPC.COMPANY_CODE  <!-- 添加公司code -->
+		FROM T_RENT_COLLECTIONPLAN TRECP
+			LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID = TRECP.RECT_ID
+			LEFT JOIN T_PRJT_CREDIT TPC ON TPC.ID=TRC.PRCD_ID           <!-- 连接报告表 -->
+			LEFT JOIN T_RENT_DECOMPOSE TFC ON TRECP.RECP_ID=TFC.RECP_ID
+			LEFT JOIN T_RENT_INCOME TFI ON TFI.INCOME_ID=TFC.INCOME_ID
+			LEFT JOIN T_BANK_BANKACCOUNT TBBT ON TFI.RECEIPT_ACCOUNT=TBBT.ACCOUNT_NO AND TBBT.STATUS=0
+			LEFT JOIN T_BANK_BANKINFO TBBF ON TBBF.BABI_ID=TBBT.BABI_ID AND TBBF.STATUS=0
+			LEFT JOIN T_RENT_COLLECTIONDETAIL TRCD ON TRECP.RECP_ID=TRCD.RECP_ID AND TRCD.PERIOD_NUM=TFC.PERIOD_NUM AND TRCD.STATUS=0
+		WHERE 	TRECP.TAX_PLAN_CODE='4' 
+				AND TFC.PERIOD_NUM >0
+				AND TFC.BILL_ID=#billId#
+	</select>
+</sqlMap>

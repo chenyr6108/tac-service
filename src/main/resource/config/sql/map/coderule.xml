@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="coderule">
+<!--
+	 传的参数 
+	<parameterMap class="java.util.Map" id="prc_code_rule_inout">
+		<parameter property="i_type" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="i_flag" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="o_code" javaType="java.lang.Long" jdbcType="DOUBLE" mode="OUT"/>
+	</parameterMap>
+	 调用存储过程 
+	<procedure id="getLastCode" parameterMap="prc_code_rule_inout">
+		declare @a int 
+			exec prc_code_rule ?,?,@a output
+		select @a as tt 
+	</procedure>
+-->
+	<statement id="readPrcdContractTypeByPrcdId" parameterClass="map" resultClass="java.lang.Integer">
+	<![CDATA[
+		SELECT T.CONTRACT_TYPE FROM T_PRJT_CREDIT T WHERE T.ID=#PRCD_ID#
+	]]>
+	</statement>
+	<statement id="readPrcdCityByPrceId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T.PROVINCE_ID, T.CITY_ID FROM T_PRJT_CREDIT T WHERE T.ID=#PRCD_ID#
+	]]>
+	</statement>
+	<statement id="readRectCodeByRectId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T.LEASE_CODE FROM T_RENT_CONTRACT T WHERE T.RECT_ID=#RECT_ID#
+	]]>
+	</statement>
+	<select id="getLastCode"  parameterClass="map" resultClass="int">
+		declare @a int 
+			exec prc_code_rule #i_type#,#i_flag#,@a output
+		select @a as tt 
+	</select>
+</sqlMap>

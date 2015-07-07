@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap  namespace="sendMessage">
+
+	<!-- 查询要发送的短信 -->
+	<select id="selectAllSendMessage" parameterClass="map" resultClass="java.util.HashMap" >
+		select ID,MESSAGE,MTEL from send_test where sendFlag='0' and SEND_TYPE='1' 
+	</select>
+	
+			<!-- 更新单个短信发送时间和Flag -->
+	<update id="updateMessageSendFlag" parameterClass="map">
+		<![CDATA[
+			update send_test set sendFlag='1',SENDTIME=getDate() where id=#ID#
+		]]>
+	</update>		
+	
+		<!-- 更新此次发送短信时间 for 检测使用 -->
+	<update id="updateUpdateFlag" parameterClass="map">
+		<![CDATA[
+			update t_update_flag set update_time=getDate() where app_name='send_Message'
+		]]>
+	</update>	
+	
+	
+	<!-- 转移短信 -->
+	<select id="selectAllSendMessageForMove" resultClass="java.util.HashMap" >
+		select * from send_test where sendFlag='0' and SEND_TYPE='1' 
+	</select>
+	<insert id="saveSendMessageForMove" parameterClass="map">
+		insert into send_test(
+		   Mtel
+		  ,[Message]
+		  ,returnFlag
+		  ,sendFlag
+		  ,SENDTIME
+		  ,CREATETIME
+		  ,CREATE_BY
+		  ,CONTRACT_NUMBER
+		  ,CUSTOMER_NAME
+		  ,SEND_MODE
+		  ,SEND_TYPE
+		  ,[LOG]
+		) VALUES (
+		   #MTEL#
+		  ,#MESSAGE#
+		  ,#RETURNFLAG#
+		  ,#SENDFLAG#
+		  ,#SENDTIME#
+		  ,#CREATETIME#
+		  ,#CREATE_BY#
+		  ,#CONTRACT_NUMBER#
+		  ,#CUSTOMER_NAME#
+		  ,#SEND_MODE#
+		  ,#SEND_TYPE#
+		  ,#LOG#
+		)
+	</insert>
+	
+</sqlMap>

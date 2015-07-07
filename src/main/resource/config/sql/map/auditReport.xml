@@ -1,0 +1,556 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+ "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="auditReport">
+
+	<insert id="auditReportInsert" parameterClass="map">
+		insert into T_AUDIT_REPORT (
+		   CREATE_DATE
+		  ,DECP_ID
+		  ,VISIT_DAILY
+		  ,VISIT_TOTAL
+		  ,COMMIT_DAILY
+		  ,COMMIT_TOTAL
+		  ,COMMIT_PRO_DAILY
+		  ,COMMIT_PRO_TOTAL
+		  ,APPROVAL_DAILY
+		  ,RETURN_DAILY
+		  ,REJECT_DAILY
+		  ,UNAUDITED
+		  ,APPLY_COUNT
+		  ,NONE_COUNT
+		  ,RJ_COUNT
+		  ,APPLY_COUNT_TOTAL
+		  ,NONE_COUNT_TOTAL
+		  ,RJ_COUNT_TOTAL
+		  ,STATUS
+		) 
+		
+		select convert(date,#date#), decp.DECP_ID
+		, isnull(t1.VISIT_DAILY, 0) as VISIT_DAILY
+		, isnull(t2.VISIT_TOTAL, 0) as VISIT_TOTAL
+		, isnull(t3.COMMIT_DAILY, 0) as COMMIT_DAILY
+		, isnull(t4.COMMIT_TOTAL, 0) as COMMIT_TOTAL
+		, isnull(t3_pro.COMMIT_PRO_DAILY, 0) as COMMIT_PRO_DAILY
+		, isnull(t4_pro.COMMIT_PRO_TOTAL, 0) as COMMIT_PRO_TOTAL
+		, isnull(t5.APPROVAL_DAILY, 0) as APPROVAL_DAILY
+		, isnull(t6.RETURN_DAILY, 0) as RETURN_DAILY
+		, isnull(t7.REJECT_DAILY, 0) as REJECT_DAILY
+		, isnull(t8.UNAUDITED, 0) as UNAUDITED
+		
+		, isnull(t9.C, 0) as APPLY_COUNT
+		, isnull(t10.C, 0) as NONE_COUNT
+		, isnull(t11.C, 0) as RJ_COUNT
+		, isnull(t12.C, 0) as APPLY_COUNT_TOTAL
+		, isnull(t13.C, 0) as NONE_COUNT_TOTAL
+		, isnull(t14.C, 0) as RJ_COUNT_TOTAL
+		, 0
+		from (
+	      select dp.DECP_ID from T_DEPT_COMPANY dp
+	      where dp.STATUS = 0 and dp.LEGELR = 2
+			  and dp.DECP_ID != 1
+	      union all
+	      select 0) decp
+		left join (
+		<!-- 当日已访厂 -->
+		select count(0) as 'VISIT_DAILY', isnull(dp.DECP_ID, 0)as DECP_ID
+		from T_PRJT_VISIT vi
+		left join T_PRJT_CREDIT prcd on vi.CREDIT_ID = prcd.ID
+    	and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_PRJT_VISIT_REPORT vr on vr.VISIT_ID = vi.ID
+		where vi.STATUS = 0
+		and datediff(day,vr.MODIFY_DATE,convert(date,#date#)) = 0
+		group by dp.DECP_ID
+		) t1 on t1.DECP_ID = decp.DECP_ID
+		
+		left join (
+		<!-- 累计访厂 -->
+		<![CDATA[
+		select count(0) as 'VISIT_TOTAL', isnull(dp.DECP_ID, 0)as DECP_ID
+		from T_PRJT_VISIT vi
+		left join T_PRJT_CREDIT prcd on vi.CREDIT_ID = prcd.ID
+    	and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_PRJT_VISIT_REPORT vr on vr.VISIT_ID = vi.ID
+		where vi.STATUS = 0
+		and convert(date, vr.MODIFY_DATE) >= convert(date, #start_date#)
+		and convert(date, vr.MODIFY_DATE) <= convert(date, #date#)
+		group by dp.DECP_ID
+		]]>
+		) t2 on t2.DECP_ID = decp.DECP_ID
+		
+		left join (
+		<!-- 当日进件 -->
+		select count(0) as 'COMMIT_DAILY', isnull(dp.DECP_ID, 0)as DECP_ID
+		from T_PRJT_RISK_CONTROL prc
+		left join T_PRJT_CREDIT prcd on prc.CREDIT_ID = prcd.ID
+    	and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		where datediff(day,prc.commit_time,convert(date,#date#)) = 0
+		and prc.COMMIT_TIME is not null and prc.STATUS = 0
+		group by dp.DECP_ID
+		
+		) t3 on t3.DECP_ID = decp.DECP_ID
+		
+		left join (
+		<!-- 累计进件 -->
+<![CDATA[
+		select count(0) as 'COMMIT_TOTAL', isnull(dp.DECP_ID, 0)as DECP_ID
+		from T_PRJT_RISK_CONTROL prc
+		left join T_PRJT_CREDIT prcd on prc.CREDIT_ID = prcd.ID 
+    	and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+      	and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		where 
+		convert(date, prc.commit_time) >= convert(date, #start_date#)
+		and convert(date, prc.commit_time) <= convert(date, #date#)
+		and prc.COMMIT_TIME is not null and prc.STATUS = 0
+		group by dp.DECP_ID
+		]]>
+		) t4 on t4.DECP_ID = decp.DECP_ID
+		
+		left join (
+	  <!-- 当日进件（案件数） -->
+	  	select count(0) as 'COMMIT_PRO_DAILY', isnull(dp.DECP_ID, 0)as DECP_ID
+		from (
+		  select risk.CREDIT_ID, min(risk.COMMIT_TIME) as COMMIT_TIME 
+		  from T_PRJT_RISK_CONTROL risk
+		  where risk.STATUS = 0
+		  group by risk.CREDIT_ID
+		)prc
+		left join T_PRJT_CREDIT prcd on prc.CREDIT_ID = prcd.ID
+    	and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		where datediff(day,prc.commit_time,convert(date,#date#)) = 0
+		and prc.COMMIT_TIME is not null
+		group by dp.DECP_ID
+		) t3_pro on decp.DECP_ID = t3_pro.DECP_ID
+		
+		left join (
+		<!-- 累计进件（案件数） -->
+			<![CDATA[
+			select count(0) as 'COMMIT_PRO_TOTAL', isnull(dp.DECP_ID, 0)as DECP_ID
+			from (
+			  select risk.CREDIT_ID, min(risk.COMMIT_TIME) as COMMIT_TIME 
+			  from T_PRJT_RISK_CONTROL risk
+			  where risk.STATUS = 0
+			  group by risk.CREDIT_ID
+			)prc
+			left join T_PRJT_CREDIT prcd on prc.CREDIT_ID = prcd.ID 
+	    	and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+	      	and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+			left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+			left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+			where convert(date, prc.commit_time) >= convert(date, #start_date#)
+			and convert(date, prc.commit_time) <= convert(date, #date#)
+			and prc.COMMIT_TIME is not null
+			group by dp.DECP_ID
+			]]>
+		) t4_pro on decp.DECP_ID = t4_pro.DECP_ID
+		
+		left join (
+		<!-- 当日已审批-->
+			<!--1. 当日核准 -->
+		select count(0) as 'APPROVAL_DAILY', isnull(dp.DECP_ID, 0)as DECP_ID
+		from T_PRJT_RISK_CONTROL prc
+		left join T_PRJT_CREDIT prcd on prc.CREDIT_ID = prcd.ID
+    	and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		where datediff(day,prc.FINISH_TIME,convert(date,#date#)) = 0
+		and prc.FINISH_TIME is not null and prc.STATUS = 0
+		and prc.STATE = 1
+		group by dp.DECP_ID
+		
+		) t5 on t5.DECP_ID = decp.DECP_ID
+		
+		left join (
+		<!-- 2. 当日不通过附条件 -->
+		select count(0) AS 'RETURN_DAILY', isnull(dp.DECP_ID, 0)as DECP_ID
+		from T_PRJT_RISK_CONTROL prc
+		left join T_PRJT_CREDIT prcd on prc.CREDIT_ID = prcd.ID
+    	and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		where datediff(day,prc.FINISH_TIME,convert(date,#date#)) = 0
+		and prc.FINISH_TIME is not null and prc.STATUS = 0
+		and prc.STATE = 3
+		group by dp.DECP_ID
+		) t6 on t6.DECP_ID = decp.DECP_ID
+		
+		left join (
+		<!-- 3. 当日婉拒 -->
+		select count(0) as 'REJECT_DAILY', isnull(dp.DECP_ID, 0)as DECP_ID
+		from T_PRJT_RISK_CONTROL prc
+		left join T_PRJT_CREDIT prcd on prc.CREDIT_ID = prcd.ID
+    	and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		where datediff(day,prc.FINISH_TIME,convert(date,#date#)) = 0
+		and prc.FINISH_TIME is not null and prc.STATUS = 0
+		and prc.STATE = 4
+		group by dp.DECP_ID
+		) t7 on t7.DECP_ID = decp.DECP_ID
+		
+		left join (
+		<!-- 未审批 -->
+		<![CDATA[
+		select count(0) AS 'UNAUDITED', isnull(dp.DECP_ID, 0)as DECP_ID
+		from T_PRJT_RISK_CONTROL prc
+		left join T_PRJT_CREDIT prcd on prc.CREDIT_ID = prcd.ID
+    	and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		where convert(date, prc.COMMIT_TIME) <= convert(date, #date#)
+		and prc.STATUS = 0
+		and (prc.STATE = 0 or 
+		datediff(day,convert(date, #date#),convert(date, prc.FINISH_TIME)) > 0)
+		group by dp.DECP_ID
+		]]>
+		) t8 on t8.DECP_ID = decp.DECP_ID
+		
+		<!-- 申请访厂件数 -->
+		left join (
+			select count(0) as C, dp.DECP_ID
+			from (
+			  select CREDIT_ID 
+			  from T_PRJT_VISIT v
+			  where v.STATUS = 0
+			  and convert(date, v.CREATE_DATE) = convert(date, #date#)
+			  group by CREDIT_ID
+			)vt
+			left join T_PRJT_CREDIT prcd on prcd.ID = vt.CREDIT_ID
+				and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+			left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+			left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+			group by dp.DECP_ID
+		) t9 on t9.DECP_ID = decp.DECP_ID
+		
+		<!--免访厂件数 -->
+		left join (
+			select count(0) as C, dp.DECP_ID
+			from (
+			  select CREDIT_ID 
+			  from T_PRJT_VISIT v
+			  where v.STATUS = 0
+			  and v.VISIT_STATUS = 4
+			  and convert(date, v.MODIFY_DATE) = convert(date, #date#)
+			  group by CREDIT_ID
+			)vt
+			left join T_PRJT_CREDIT prcd on prcd.ID = vt.CREDIT_ID
+				and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+			left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+			left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+			group by dp.DECP_ID
+		) t10 on t10.DECP_ID = decp.DECP_ID
+		<!--访厂婉拒件数 -->
+		left join (
+			select count(0) as C, dp.DECP_ID
+			from (
+			  select v.CREDIT_ID
+			  from T_PRJT_VISIT v
+			  left join T_PRJT_VISIT_REPORT vr on vr.VISIT_ID = v.ID
+			  where vr.VISIT_RESULT = 2
+			  and v.STATUS = 0
+			  and vr.STATUS = 1
+			  and convert(date, vr.MODIFY_DATE) = convert(date, #date#)
+			  group by v.CREDIT_ID
+			
+			)vt
+			left join T_PRJT_CREDIT prcd on prcd.ID = vt.CREDIT_ID
+				and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+			left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+			left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+			group by dp.DECP_ID
+		) t11 on t11.DECP_ID = decp.DECP_ID
+		
+		<!-- 申请访厂累计件数 -->
+		left join (
+			select count(0) as C, dp.DECP_ID
+			from (
+			  select CREDIT_ID 
+			  from T_PRJT_VISIT v
+			  where v.STATUS = 0
+			  and convert(date, v.CREATE_DATE) >= convert(date, #start_date#)
+			  <![CDATA[ and convert(date, v.CREATE_DATE) <= convert(date, #date#) ]]>
+			  group by CREDIT_ID
+			)vt
+			left join T_PRJT_CREDIT prcd on prcd.ID = vt.CREDIT_ID
+				and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+			left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+			left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+			group by dp.DECP_ID
+		) t12 on t12.DECP_ID = decp.DECP_ID
+		
+		<!--免访厂累计件数 -->
+		left join (
+			select count(0) as C, dp.DECP_ID
+			from (
+			  select CREDIT_ID 
+			  from T_PRJT_VISIT v
+			  where v.STATUS = 0
+			  and v.VISIT_STATUS = 4
+			  and convert(date, v.MODIFY_DATE) >= convert(date, #start_date#)
+			  <![CDATA[ and convert(date, v.MODIFY_DATE) <= convert(date, #date#) ]]>
+			  group by CREDIT_ID
+			)vt
+			left join T_PRJT_CREDIT prcd on prcd.ID = vt.CREDIT_ID
+				and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+			left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+			left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+			group by dp.DECP_ID
+		) t13 on t13.DECP_ID = decp.DECP_ID
+		<!--访厂婉拒累计件数 -->
+		left join (
+			select count(0) as C, dp.DECP_ID
+			from (
+			  select v.CREDIT_ID
+			  from T_PRJT_VISIT v
+			  left join T_PRJT_VISIT_REPORT vr on vr.VISIT_ID = v.ID
+			  where vr.VISIT_RESULT = 2
+			  and v.STATUS = 0
+			  and vr.STATUS = 1
+			  and convert(date, vr.MODIFY_DATE) >= convert(date, #start_date#)
+			  <![CDATA[ and convert(date, vr.MODIFY_DATE) <= convert(date, #date#) ]]>
+			  group by v.CREDIT_ID
+			
+			)vt
+			left join T_PRJT_CREDIT prcd on prcd.ID = vt.CREDIT_ID
+				and (prcd.VIP_FLAG is null or prcd.VIP_FLAG = 0)
+			left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+			left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+			group by dp.DECP_ID
+		) t14 on t14.DECP_ID = decp.DECP_ID
+	</insert>
+
+	<select id="getDailyReport" parameterClass="com.brick.auditReport.to.AuditReportTo" resultClass="com.brick.auditReport.to.AuditReportTo">
+		select ar.ID as auditReportId
+		  , convert(date,dt.DATE) as date
+		  , dt.DAY_TYPE as dayType
+		  , #decpId# as decpId
+		  , isnull(decp.DECP_NAME_CN,'绿色通道') as decpName
+		  , isnull(ar.VISIT_DAILY, 0) as visitDaily
+		  , isnull(ar.VISIT_TOTAL, 0) as visitTotal
+		  , isnull(ar.COMMIT_DAILY, 0) as commitDaily
+		  , isnull(ar.COMMIT_TOTAL, 0) as commitTotal
+		  , isnull(ar.COMMIT_PRO_DAILY, 0) as commitProDaily
+		  , isnull(ar.COMMIT_PRO_TOTAL, 0) as commitProTotal
+		  , isnull(ar.APPROVAL_DAILY, 0) as approvalDaily
+		  , isnull(ar.RETURN_DAILY, 0) as returnDaily
+		  , isnull(ar.REJECT_DAILY, 0) as rejectDaily
+		  , isnull(ar.UNAUDITED, 0) as unaudited
+		  , isnull(ar.FINISH_PERCENT, 0) as finishPercent
+      	  , isnull(ar.APPROVED_PERCENT, 0) as approvedPercent
+      	  , isnull(ar.FINISH_PERCENT_PRO, 0) as finishPercentPro
+      	  , isnull(ar.APPROVED_PERCENT_PRO, 0) as approvedPercentPro
+      	  
+      	  , APPLY_COUNT as apply_count
+		  , NONE_COUNT as none_count
+		  , RJ_COUNT as rj_count
+		  , APPLY_COUNT_TOTAL as apply_count_total
+		  , NONE_COUNT_TOTAL as none_count_total
+		  , RJ_COUNT_TOTAL as rj_count_total
+		from T_DAY_TYPE dt
+		left join T_AUDIT_REPORT ar on dt.DATE = ar.CREATE_DATE
+		and ar.decp_id = #decpId#
+		left join T_DEPT_COMPANY decp on #decpId# = decp.DECP_ID
+		where convert(date, dt.DATE) >= convert(date, #start_date#)
+		<![CDATA[and convert(date, dt.DATE) <= convert(date, #end_date#)]]>
+		and (ar.DECP_ID = #decpId# or ar.DECP_ID is null)
+		order by dt.DATE
+	</select>
+	
+	<select id="getDailyReportByDecp" parameterClass="com.brick.auditReport.to.AuditReportTo" resultClass="com.brick.auditReport.to.AuditReportTo">
+		select 
+			ar.ID as auditReportId
+		  , ar.CREATE_DATE as date
+		  , decp.DECP_ID as decpId
+		  , isnull(decp.DECP_NAME_CN,'绿色通道') as decpName
+		  , isnull(ar.VISIT_DAILY, 0) as visitDaily
+		  , isnull(ar.VISIT_TOTAL, 0) as visitTotal
+		  , isnull(ar.COMMIT_DAILY, 0) as commitDaily
+		  , isnull(ar.COMMIT_TOTAL, 0) as commitTotal
+		  , isnull(ar.COMMIT_PRO_DAILY, 0) as commitProDaily
+		  , isnull(ar.COMMIT_PRO_TOTAL, 0) as commitProTotal
+		  , isnull(ar.APPROVAL_DAILY, 0) as approvalDaily
+		  , isnull(ar.RETURN_DAILY, 0) as returnDaily
+		  , isnull(ar.REJECT_DAILY, 0) as rejectDaily
+		  , isnull(ar.UNAUDITED, 0) as unaudited
+		  , isnull(ar.FINISH_PERCENT, 0) as finishPercent
+      	  , isnull(ar.APPROVED_PERCENT, 0) as approvedPercent
+      	  , isnull(ar.FINISH_PERCENT_PRO, 0) as finishPercentPro
+      	  , isnull(ar.APPROVED_PERCENT_PRO, 0) as approvedPercentPro
+      	  
+      	  , APPLY_COUNT as apply_count
+		  , NONE_COUNT as none_count
+		  , RJ_COUNT as rj_count
+		  , APPLY_COUNT_TOTAL as apply_count_total
+		  , NONE_COUNT_TOTAL as none_count_total
+		  , RJ_COUNT_TOTAL as rj_count_total
+		from (
+		  select dp.DECP_ID, dp.DECP_NAME_CN , dp.[ORDER]
+		  from T_DEPT_COMPANY dp
+		  where dp.STATUS = 0 and dp.LEGELR = 2
+		  and dp.DECP_ID != 1
+		  union all
+		  select 0, '绿色通道', 9999) decp
+		left join T_AUDIT_REPORT ar on ar.DECP_ID = decp.DECP_ID
+		and ar.CREATE_DATE = convert(date, #dateStr#)
+		and ar.STATUS = 0
+		order by decp.[ORDER]
+	</select>
+
+	<select id="getDailyReportByDecpForMonthTotal" parameterClass="com.brick.auditReport.to.AuditReportTo" resultClass="com.brick.auditReport.to.AuditReportTo">
+		select 
+		  isnull(sum(isnull(ar.VISIT_DAILY, 0)), 0) as visitDaily
+		  , isnull(sum(isnull(ar.COMMIT_DAILY, 0)), 0) as commitDaily
+		  , isnull(sum(isnull(ar.COMMIT_PRO_DAILY, 0)), 0) as commitProDaily
+		  , isnull(sum(isnull(ar.APPROVAL_DAILY, 0)), 0) as approvalDaily
+		  , isnull(sum(isnull(ar.RETURN_DAILY, 0)), 0) as returnDaily
+		  , isnull(sum(isnull(ar.REJECT_DAILY, 0)), 0) as rejectDaily
+		  , isnull(sum(isnull(ar.UNAUDITED, 0)), 0) as unaudited
+		  
+		  , sum(APPLY_COUNT) as apply_count
+		  , sum(NONE_COUNT) as none_count
+		  , sum(RJ_COUNT) as rj_count
+		  , sum(APPLY_COUNT_TOTAL) as apply_count_total
+		  , sum(NONE_COUNT_TOTAL) as none_count_total
+		  , sum(RJ_COUNT_TOTAL) as rj_count_total
+		from T_AUDIT_REPORT ar
+		left join T_DEPT_COMPANY decp on ar.DECP_ID = decp.DECP_ID
+		where convert(date, ar.CREATE_DATE) >= convert(date, #start_date#)
+		<![CDATA[and convert(date, ar.CREATE_DATE) <= convert(date, #end_date#)]]>
+		and ar.STATUS = 0
+	</select>
+
+	<select id="getAuditReportByYear" parameterClass="com.brick.auditReport.to.AuditReportTo" resultClass="com.brick.auditReport.to.AuditReportTo">
+		select 
+		isnull(sum(isnull(ar.VISIT_DAILY, 0)), 0) as visitDaily
+		, isnull(sum(isnull(ar.COMMIT_DAILY, 0)), 0) as commitDaily
+		, isnull(sum(isnull(ar.COMMIT_PRO_DAILY, 0)), 0) as commitProDaily
+		, isnull(sum(isnull(ar.APPROVAL_DAILY, 0)), 0) as approvalDaily
+		, isnull(sum(isnull(ar.RETURN_DAILY, 0)), 0) as returnDaily
+		, isnull(sum(isnull(ar.REJECT_DAILY, 0)), 0) as rejectDaily
+		, (
+			select count(0) from (
+		  select CREDIT_ID from T_PRJT_RISK_CONTROL
+		  where convert(date, COMMIT_TIME) >= convert(date, #start_date#)
+		  <![CDATA[and convert(date, COMMIT_TIME) <= convert(date, #end_date#)]]>
+		  and (FINISH_TIME is null 
+		  or convert(date, FINISH_TIME) > convert(date, #end_date#))
+		  group by CREDIT_ID
+		)t
+		) as unaudited
+		, sum(APPLY_COUNT) as apply_count
+	    , sum(NONE_COUNT) as none_count
+	    , sum(RJ_COUNT) as rj_count
+		from T_AUDIT_REPORT ar
+		where ar.STATUS = 0
+		and convert(date, ar.CREATE_DATE) >= convert(date, #start_date#)
+		<![CDATA[and convert(date, ar.CREATE_DATE) <= convert(date, #end_date#)]]>
+		
+		<!-- select mon.au_month as auditMonth,
+		isnull(t.visitDaily, 0) as visitDaily,
+		isnull(t.commitDaily, 0) as commitDaily,
+		isnull(t.commitProDaily, 0) as commitProDaily,
+		isnull(t.approvalDaily, 0) as approvalDaily,
+		isnull(t.returnDaily, 0) as returnDaily,
+		isnull(t.rejectDaily, 0) as rejectDaily,
+		isnull(t.unaudited, 0) as unaudited
+		from (
+		  select month(dt.DATE) as au_month
+		  from T_DAY_TYPE dt
+		  where dt.[YEAR] = year(getdate())
+		  group by month(dt.DATE)
+		) mon left join (
+		  select month(ar.CREATE_DATE) as audit_month
+		    , sum(isnull(ar.VISIT_DAILY, 0)) as visitDaily
+		    , sum(isnull(ar.COMMIT_DAILY, 0)) as commitDaily
+		    , sum(isnull(ar.COMMIT_PRO_DAILY, 0)) as commitProDaily
+		    , sum(isnull(ar.APPROVAL_DAILY, 0)) as approvalDaily
+		    , sum(isnull(ar.RETURN_DAILY, 0)) as returnDaily
+		    , sum(isnull(ar.REJECT_DAILY, 0)) as rejectDaily
+		    , (
+		    	select count(0) from (
+				  select CREDIT_ID from T_PRJT_RISK_CONTROL
+				  where year(COMMIT_TIME) = #auditYear#
+				  and year(FINISH_TIME) = #auditYear#
+				  and month(COMMIT_TIME) = month(ar.CREATE_DATE)
+				  and (FINISH_TIME is null or month(FINISH_TIME) > month(COMMIT_TIME))
+				  group by CREDIT_ID
+				)t
+		    ) as unaudited
+		  from T_AUDIT_REPORT ar
+		  where ar.STATUS = 0
+		  and year(ar.CREATE_DATE) = #auditYear#
+		  group by month(ar.CREATE_DATE)
+		) t on mon.au_month = t.audit_month -->
+	</select>
+
+	<select id="getBaseInfoForPercent" parameterClass="map" resultClass="com.brick.auditReport.to.AuditReportTo">
+		select 
+		ID as auditReportId
+		, (
+		  select sum(ar.APPROVAL_DAILY)
+		  from T_AUDIT_REPORT ar
+		  where datediff(day, ar.CREATE_DATE, t.CREATE_DATE) >= 0
+		  and ar.DECP_ID = t.DECP_ID
+		  and convert(date, ar.CREATE_DATE) >= convert(date, #start_date#)
+		<![CDATA[and convert(date, ar.CREATE_DATE) <= convert(date, #date#)]]>
+		) as 'sumApproved'
+		, (
+		  select sum(ar.RETURN_DAILY)
+		  from T_AUDIT_REPORT ar
+		  where datediff(day, ar.CREATE_DATE, t.CREATE_DATE) >= 0
+		  and ar.DECP_ID = t.DECP_ID
+		  and convert(date, ar.CREATE_DATE) >= convert(date, #start_date#)
+		<![CDATA[and convert(date, ar.CREATE_DATE) <= convert(date, #date#)]]>
+		) as 'sumReturn'
+		, (
+		  select sum(ar.REJECT_DAILY)
+		  from T_AUDIT_REPORT ar
+		  where datediff(day, ar.CREATE_DATE, t.CREATE_DATE) >= 0
+		  and ar.DECP_ID = t.DECP_ID
+		  and convert(date, ar.CREATE_DATE) >= convert(date, #start_date#)
+		<![CDATA[and convert(date, ar.CREATE_DATE) <= convert(date, #date#)]]>
+		) as 'sumReject'
+		, DECP_ID as decpId
+		, isnull(t.COMMIT_TOTAL, 0) as commitTotal
+		, isnull(t.COMMIT_PRO_TOTAL, 0) as commitProTotal
+		, UNAUDITED as unaudited
+		, isnull(APPROVAL_DAILY,0) as approvalDaily
+		, isnull(RETURN_DAILY,0) as returnDaily
+		, isnull(REJECT_DAILY,0) as rejectDaily
+		
+		, APPLY_COUNT as apply_count
+		  , NONE_COUNT as none_count
+		  , RJ_COUNT as rj_count
+		  , APPLY_COUNT_TOTAL as apply_count_total
+		  , NONE_COUNT_TOTAL as none_count_total
+		  , RJ_COUNT_TOTAL as rj_count_total
+		from T_AUDIT_REPORT t
+		where t.CREATE_DATE = convert(date, #date#)
+	</select>
+	
+	<delete id="deleteTodayInfo" parameterClass="map">
+		delete from T_AUDIT_REPORT
+		where datediff(day, CREATE_DATE, convert(date, #date#)) = 0
+	</delete>
+	
+	<update id="updatePercent" parameterClass="com.brick.auditReport.to.AuditReportTo">
+		update T_AUDIT_REPORT set 
+			FINISH_PERCENT = #finishPercent#
+			,APPROVED_PERCENT = #approvedPercent#
+			,FINISH_PERCENT_PRO = #finishPercentPro#
+			,APPROVED_PERCENT_PRO = #approvedPercentPro#
+		where ID = #auditReportId#
+	</update>
+	
+</sqlMap>

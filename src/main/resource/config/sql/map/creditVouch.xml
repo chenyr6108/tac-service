@@ -1,0 +1,1438 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="creditVoucher">
+	<!-- 查询法人 -->
+	<select id="selectCorpByCreditId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select * from T_PRJT_VOUCHCUSTOMERCORP where PRCD_ID=#credit_id# and STATUS = 0
+		]]>
+	</select>
+	<!-- 根据资信id查询该资信下的所有财务情况 -->
+	 <select id="getCreditFinaceStatementByPjcccId" parameterClass="map" resultClass="hashmap">
+		 <![CDATA[
+		 	select * from T_PRJT_VOUCHFINANESTATEMENT where pjccc_id=#PJCCC_ID# and status=0 order by pcfs_id
+	 	]]>
+	 </select>
+	<!-- 根据资信id查询该资信开户银行 -->
+	 <select id="getCreditCorpBankAccountByPjcccId" parameterClass="map" resultClass="hashmap">
+		 <![CDATA[
+		 	select * from T_PRJT_VOUCHCORPBANKACCOUNT where pjccc_id=#PJCCC_ID# and status=0
+	 	]]>
+	 </select>
+	<!-- 根据资信id查询该资信公司股东及份额 -->
+	 <select id="getCreditShareholderByPjcccId" parameterClass="map" resultClass="hashmap">
+		 <![CDATA[
+		 	select * from T_PRJT_VOUCHCORPSHAREHOLDER where pjccc_id=#PJCCC_ID# and status=0 
+	 	]]>
+	 </select>
+	<!-- 根据资信id查询该资信法人公司项目 -->
+	 <select id="getCreditCorpProjectByPjcccId" parameterClass="map" resultClass="hashmap">
+		 <![CDATA[
+		 	select * from T_PRJT_VOUCHCORPPROJECT where pjccc_id=#PJCCC_ID# and status=0 
+	 	]]>
+	 </select>
+	<!-- 根据资信id查询该资信过往记录项目 -->
+	 <select id="getCreditCorpPriorProjectsByPjcccId" parameterClass="map" resultClass="hashmap">
+		 <![CDATA[
+		 	select * from T_PRJT_VOUCHPRIORPROJECTS where pjccc_id=#PJCCC_ID# and status=0 
+	 	]]>
+	 </select>
+	
+	
+	<!-- 查询自然人表 -->
+	<select id="selectVouchNatu" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select *
+			  from t_prjt_creditvouchnatu
+			 where prcd_id = #credit_id#
+			   and status = 0
+			  
+		]]>
+	</select>
+	
+	<select id="selectAND" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		 	SELECT 
+			 ( CASE WHEN CUST_NAME IS NULL THEN ' ' WHEN  CUST_NAME ='' THEN ' ' ELSE CUST_NAME END) CUST_NAME,
+			 ( CASE WHEN NATU_IDCARD_ADDRESS IS NULL THEN ' ' WHEN  NATU_IDCARD_ADDRESS ='' THEN ' ' ELSE NATU_IDCARD_ADDRESS END) NATU_IDCARD_ADDRESS,
+			 ( CASE WHEN NATU_IDCARD IS NULL THEN ' ' WHEN  NATU_IDCARD ='' THEN ' ' ELSE NATU_IDCARD END) NATU_IDCARD,
+			 ( CASE WHEN NATU_MATE_NAME IS NULL THEN ' ' WHEN  NATU_MATE_NAME ='' THEN ' ' ELSE NATU_MATE_NAME END) NATU_MATE_NAME,
+			 ( CASE WHEN NATU_MATE_IDCARD IS NULL THEN ' ' WHEN  NATU_MATE_IDCARD ='' THEN ' ' ELSE NATU_MATE_IDCARD END) NATU_MATE_IDCARD,
+			 ( CASE WHEN NATU_MATE_IDCARD_ADDRESS IS NULL THEN ' ' WHEN  NATU_MATE_IDCARD_ADDRESS ='' THEN ' ' ELSE NATU_MATE_IDCARD_ADDRESS END) NATU_MATE_IDCARD_ADDRESS,
+			 flagPermit
+			FROM T_PRJT_CREDITVOUCHNATU 
+				WHERE 	PRCD_ID=#credit_id# AND STATUS=0
+		]]>
+	</select>
+	
+	
+	
+	<select id="selectVND" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		 SELECT 
+			 ( CASE WHEN  CORP_NAME_CN IS NULL THEN ' ' WHEN CORP_NAME_CN = '' THEN ' ' ELSE  CORP_NAME_CN END ) LEGAL_PERSON ,
+			 ( CASE WHEN  BUSINESS_LICENCE_CODE IS NULL THEN ' ' WHEN BUSINESS_LICENCE_CODE = '' THEN ' ' ELSE  BUSINESS_LICENCE_CODE END ) LEGAL_ID_CARD ,
+			 ( CASE WHEN  REGISTERED_OFFICE_ADDRESS IS NULL THEN ' ' WHEN REGISTERED_OFFICE_ADDRESS = '' THEN ' ' ELSE  REGISTERED_OFFICE_ADDRESS END ) LEGAL_HOME_ADDRESS 
+			FROM  T_PRJT_VOUCHCUSTOMERCORP
+			WHERE  PRCD_ID=#credit_id# AND STATUS=0
+		]]>
+	</select>
+	
+	
+	
+	  <!--根据资信ID删除该资信下的所有过往记录的项目  -->
+	 <delete id="deleteCreditPriorProjectsByPjcccId" parameterClass="map">
+	 	<![CDATA[ 
+	 		delete from T_PRJT_VOUCHPRIORPROJECTS where pjccc_id=#pjccc_id#
+	 	]]>
+	 </delete>
+	 <!-- 根绝资信ID删除该id下的所有其他账户 -->
+	 <delete id="deleteCreditCorpBankAccountByPjcccId" parameterClass="map">
+	 	<![CDATA[ 
+		 	delete from T_PRJT_VOUCHCORPBANKACCOUNT where pjccc_id=#pjccc_id# 
+	 	]]>
+	 </delete>
+	 <!-- 根据资信ID删除资信下的股东信息 -->
+	 <delete id="deleteCreditCorpShareholderByPjcccId" parameterClass="map">
+	 	<![CDATA[ 
+		 	  delete from T_PRJT_VOUCHCORPSHAREHOLDER where pjccc_id=#pjccc_id#	
+	 	]]>
+	 </delete>
+	 <!-- 根据资信id删除资信法人公司项目 -->
+	 <delete id="deleteCreditCorpProjectByPjcccId">
+	 	<![CDATA[ 
+	 		delete from T_PRJT_VOUCHCORPPROJECT where pjccc_id=#pjccc_id# 
+	 	]]> 
+	 </delete>
+	 <!-- 根据资信ID删除资信下的股东信息 -->
+	 <delete id="deleteCreditFinanestatementByPjcccId" parameterClass="map">
+	 	<![CDATA[ 
+		 	  delete from T_PRJT_VOUCHFINANESTATEMENT where pjccc_id=#pjccc_id#	
+	 	]]>
+	 </delete>
+	 <!-- 根据ID删除资信下的法人信息 -->
+	 <delete id="deleteCreditCustomerCorpByPjcccId" parameterClass="map">
+	 	<![CDATA[ 
+		 	  delete from T_PRJT_VOUCHCUSTOMERCORP where pjccc_id=#pjccc_id#
+	 	]]>
+	 </delete>
+	 
+	 <!-- 添加法人信息 -->
+	<insert id="createCreditCustomerCorp" parameterClass="map">
+		<![CDATA[
+		 	insert into T_PRJT_VOUCHCUSTOMERCORP
+				(
+				PRCD_ID,
+				CORP_NAME_CN,
+				CORP_NAME_EN,
+				EMPLOYEE_COUNT,
+				CORP_TYPE,
+				BUSINESS_LICENCE_CODE,
+				BUSINESS_TIME_LIMIT,
+				ORGANIZATION_CODE_CERTIFICATE,
+				ROAD_WORTHINESS_INSPECTION,
+				TAX_REGISTRATION_NUMBER,
+				INCORPORATING_DATE,
+				REGISTERED_CAPITAL,
+				REGISTERED_OFFICE_ADDRESS,
+				MANAGING_SCOPE,
+				TELEPHONE,
+				FAX,
+				URL,
+				MEMO,
+				CONTRIBUTED_CAPITAL,
+				POSTCODE,
+				LEGAL_PERSON,
+				LEGAL_ID_CARD,
+				LEGAL_TELEPHONE,
+				LEGAL_POSTCODE,
+				LEGAL_HOME_ADDRESS,
+				LEGAL_MOBILE_NUMBER1,
+				LEGAL_MOBILE_NUMBER2,
+				LINK_MAN,
+				LINK_ID_CARD,
+				LINK_TELEPHONE,
+				LINK_JOB,
+				LINK_POSTCODE,
+				LINK_MAILING_ADDRESS,
+				LINK_MOBILE_NUMBER1,
+				LINK_MOBILE_NUMBER2,
+				LINK_EMAIL,
+				LINK_MSN,
+				OTHER_INFO,
+				STATUS,
+				CREATE_USER_ID,
+				MODIFY_USER_ID,
+				CREATE_DATE,
+				MODIFY_DATE,
+				
+				flagPermit,
+				
+				linkflagPermit)
+				values
+				(
+				#credit_id#,
+				#CORP_NAME_CN#,
+				#CORP_NAME_EN#,
+				#EMPLOYEE_COUNT#,
+				#CORP_TYPE#,
+				#BUSINESS_LICENCE_CODE#,
+				#BUSINESS_TIME_LIMIT#,
+				#ORGANIZATION_CODE_CERTIFICATE#,
+				#ROAD_WORTHINESS_INSPECTION#,
+				#TAX_REGISTRATION_NUMBER#,
+				(case
+			       when #INCORPORATING_DATE# = '' then
+			         getdate()
+			       else
+			         CONVERT(datetime,#INCORPORATING_DATE#)
+			     end),
+				#REGISTERED_CAPITAL#,
+				#REGISTERED_OFFICE_ADDRESS#,
+				#MANAGING_SCOPE#,
+				#TELEPHONE#,
+				#FAX#,
+				#URL#,
+				#MEMO#,
+				#CONTRIBUTED_CAPITAL#,
+				#POSTCODE#,
+				#LEGAL_PERSON#,
+				#LEGAL_ID_CARD#,
+				#LEGAL_TELEPHONE#,
+				#LEGAL_POSTCODE#,
+				#LEGAL_HOME_ADDRESS#,
+				#LEGAL_MOBILE_NUMBER1#,
+				#LEGAL_MOBILE_NUMBER2#,
+				#LINK_MAN#,
+				#LINK_ID_CARD#,
+				#LINK_TELEPHONE#,
+				#LINK_JOB#,
+				#LINK_POSTCODE#,
+				#LINK_MAILING_ADDRESS#,
+				#LINK_MOBILE_NUMBER1#,
+				#LINK_MOBILE_NUMBER2#,
+				#LINK_EMAIL#,
+				#LINK_MSN#,
+				#OTHER_INFO#,
+				0,
+				#s_employeeId#,
+				#s_employeeId#,
+				getdate(),
+				getdate(),
+				
+				#flagPermit#,
+				
+				#linkflagPermit#
+				)
+		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="pjccc_id">
+			<![CDATA[	select @@IDENTITY as pjccc_id  ]]>
+		</selectKey>
+	 </insert>
+	 
+	 <insert id="insertVoucherReportFile" parameterClass="map">
+		insert into T_PRJT_CREDIT_VOUCHER_FILE (
+		   PVCC_ID
+		  ,STATUS
+		  ,FILE_TYPE
+		  ,FILE_NAME_STR
+		  ,FILE_PATH
+		) VALUES (
+		   #pjccc_id#
+		  ,0
+		  ,#file_type#
+		  ,#file_name#
+		  ,#file_path#
+		)
+	</insert>
+	
+	<select id="getVoucherFile" parameterClass="map" resultClass="java.util.HashMap">
+		select * from T_PRJT_CREDIT_VOUCHER_FILE
+		where pvcc_id = #PJCCC_ID#
+		and STATUS = 0
+	</select>
+	
+	<update id="deleteVoucherFile" parameterClass="map">
+		update T_PRJT_CREDIT_VOUCHER_FILE
+		set STATUS = -1
+		where ID = #file_id#
+	</update>
+	
+	  <!-- 查找最后一条Id即刚创建的Id（创建银行账号时用） -->
+	 <select id="selectEndPjccc_id" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		  select top 1 pjccc_id from T_PRJT_VOUCHCUSTOMERCORP order by PJCCC_ID desc
+		]]>
+	</select>
+	
+	 <!-- 添加一条资信法人的银行账号信息 -->
+	 <insert id="createCreditCorpBankAccount" parameterClass="map">
+	 	<![CDATA[ 
+		 	insert into T_PRJT_VOUCHCORPBANKACCOUNT
+				(
+				BANK_NAME,	
+				BANK_ACCOUNT,
+				STATE,
+				STATUS,
+				CREATE_DATE,
+				MODIFY_DATE,
+				PJCCC_ID
+				)
+				values
+				(
+				#BANK_NAME#,
+				#BANK_ACCOUNT#,
+				#STATE#,
+				0,
+				getdate(),
+				getdate(),
+				#pjccc_id#
+				)
+		]]>
+	 </insert>
+	 <!-- 添加一条资信过往记录的项目 -->
+	 <insert id="createCreditPriorProjects" parameterClass="map">
+		 <![CDATA[ 
+		 	insert into T_PRJT_VOUCHPRIORPROJECTS
+				(
+				PROJECT_NAME, 
+				STATE,
+				STATUS,
+				CRATE_DATE,
+				PJCCC_ID,
+				PROJECT_CONTENT
+				)
+				values
+				(
+				#PROJECT_NAME#, 
+				#STATE#,
+				0,
+				getdate(),
+				#pjccc_id#,
+				#PROJECT_CONTENT#
+				)
+		]]>
+	 </insert>
+	 <!-- 插入一条资信法人股东信息 -->
+	 <insert id="createCreditCorpShareholder" parameterClass="map">
+	 	<![CDATA[ 
+		 	insert into T_PRJT_VOUCHCORPSHAREHOLDER
+				( 
+				HOLDER_NAME,	 
+				HOLDER_CAPITAL, 
+				HOLDER_WAY,	 
+				HOLDER_RATE,	 
+				HOLDER_MOME ,
+				pjccc_id, 
+				STATUS,
+				CREATE_DATE,
+				MODIFY_DATE
+				)	 
+				values
+				( 
+				#HOLDER_NAME#,	 
+				#HOLDER_CAPITAL#, 
+				#HOLDER_WAY#,	 
+				#HOLDER_RATE#,	 
+				#HOLDER_MOME#,
+				#pjccc_id#, 
+				0,
+				getdate(),
+				getdate()
+				)	 
+		]]>
+	 </insert>
+	 
+	 <!-- 插入一条资信法人公司项目 -->
+	 <insert id="createCreditCorpProject" parameterClass="map">
+		 <![CDATA[ 
+		 	insert into T_PRJT_VOUCHCORPPROJECT
+				(	 
+				PROJECT_NAME ,
+				PROJECT_DATE ,
+				PROJECT_CONTENT ,
+				STATUS ,
+				CREATE_DATE ,
+				MODIFY_DATE ,
+				pjccc_id	  
+				)
+				values
+				( 
+				#PROJECT_NAME# ,
+				#PROJECT_DATE# ,
+				#PROJECT_CONTENT# ,
+				0 ,
+				getdate() ,
+				getdate() ,
+				#pjccc_id#	   
+				)
+		]]> 
+	 </insert>
+	 <!-- 插入一条资信财务情况信息 -->
+	 <insert id="createCreditFinaneStatement" parameterClass="map">
+		 <![CDATA[ 
+		 	insert into T_PRJT_VOUCHFINANESTATEMENT
+				(
+				PROJECT_NAME,
+				MONEY_FUNDS,
+				ACCOUNTS_RECEIVABLE,
+				STOCK,
+				CAPITAL_ASSERTS,
+				TOTAL_ASSERTS,
+				SHORTTIME_LOAN,
+				ACCOUNTS_PAYABLE,
+				TOTAL_OWES,
+				CONTRIBUTED_CAPITAL,
+				CAPITAL_RESERVE,
+				UNDISTRIBUTED_PROFIT,
+				SALES_REVENUE,
+				COST_OF_MARKETING,
+				PERIOD_EXPENSE,
+				TOTAL_PROFIT,
+				DEBTR,
+				PROFIT_MARGIN,
+				TTM,
+				SALES_GROWTH,
+				NAGR,
+				pjccc_id,
+				CREATE_DATE,
+				MODIFY_DATE,
+				CREATE_USER_ID,
+				MODIFY_USER_ID,
+				STATUS
+				)
+				values
+				(
+				#PROJECT_NAME#,
+				#MONEY_FUNDS#,
+				#ACCOUNTS_RECEIVABLE#,
+				#STOCK#,
+				#CAPITAL_ASSERTS#,
+				#TOTAL_ASSERTS#,
+				#SHORTTIME_LOAN#,
+				#ACCOUNTS_PAYABLE#,
+				#TOTAL_OWES#,
+				#CONTRIBUTED_CAPITAL#,
+				#CAPITAL_RESERVE#,
+				#UNDISTRIBUTED_PROFIT#,
+				#SALES_REVENUE#,
+				#COST_OF_MARKETING#,
+				#PERIOD_EXPENSE#,
+				#TOTAL_PROFIT#,
+				#DEBTR#,
+				#PROFIT_MARGIN#,
+				#TTM#,
+				#SALES_GROWTH#,
+				#NAGR#,
+				#pjccc_id#,
+				getdate(),
+				getdate(),
+				#s_employeeId#,
+				#s_employeeId#,
+				0
+				) 
+		]]>
+	 </insert>
+	 
+	<!-- 添加自然人表 -->
+	<insert id="createNatu" parameterClass="map">
+		<![CDATA[ 
+			insert into t_prjt_creditvouchnatu(
+				prcd_id,create_time,
+				modify_time,create_user_id,cust_name,
+				natu_idcard,natu_gender,natu_age,
+				natu_mobile,natu_phone,natu_zip,
+				natu_idcard_address,natu_home_address,natu_work_units,
+				natu_work_address,natu_mate_name,natu_mate_mobile,
+				natu_mate_idcard,natu_mate_idcard_address,natu_mate_work_units,
+				natu_mate_work_address,remark,cust_level,
+				modify_user_id,bank_accounts,open_bank,
+				natu_fax,status,flagPermit,
+				natu_mate_age,natu_mate_gender,
+				natu_mate_zip,natu_mate_phone,
+				open_mate_bank,bank_accounts_mate,
+				natu_mate_fax,natu_mate_home_address,
+				istogether,mate_flag_permit)
+			values(
+				#credit_id#,getdate(),
+				getdate(),#s_employeeId#,#cust_name#,
+				#natu_idcard#,#natu_gender#,#natu_age#,
+				#natu_mobile#,#natu_phone#,#natu_zip#,
+				#natu_idcard_address#,#natu_home_address#,#natu_work_units#,
+				#natu_work_address#,#natu_mate_name#,#natu_mate_mobile#,
+				#natu_mate_idcard#,#natu_mate_idcard_address#,#natu_mate_work_units#,
+				#natu_mate_work_address#,#remark#,0,
+				#s_employeeId#,#bank_accounts#,#open_bank#,
+				#natu_fax#,0,#flagPermit#,
+				#natu_mate_age#,#natu_mate_gender#,
+				#natu_mate_zip#,#natu_mate_phone#,
+				#open_mate_bank#,#bank_accounts_mate#,
+				#natu_mate_fax#,#natu_mate_home_address#,
+				#istogether#,#mate_flag_permit#)
+	  	]]>
+	  	<selectKey resultClass="java.lang.Long" keyProperty="pron_id">
+			<![CDATA[	select @@IDENTITY as pron_id  ]]>
+		</selectKey>
+	</insert>
+	<!-- 添加自然人配偶表 -->
+	<insert id="createNatuMate" parameterClass="map">
+		<![CDATA[ 
+			insert into t_prjt_creditvouchnatu(
+				prcd_id,create_time,
+				modify_time,create_user_id,
+				cust_name,natu_mobile,
+				natu_idcard,natu_idcard_address,natu_work_units,
+				natu_work_address,cust_level,
+				modify_user_id,status,
+				natu_age,natu_gender,
+				natu_zip,natu_phone,
+				open_bank,bank_accounts,
+				natu_fax,natu_home_address,
+				mate_id,istogether,flagpermit,mate_flag_permit)
+			values(
+				#credit_id#,getdate(),
+				getdate(),#s_employeeId#,
+				#natu_mate_name#,#natu_mate_mobile#,
+				#natu_mate_idcard#,#natu_mate_idcard_address#,#natu_mate_work_units#,
+				#natu_mate_work_address#,0,
+				#s_employeeId#,0,
+				#natu_mate_age#,#natu_mate_gender#,
+				#natu_mate_zip#,#natu_mate_phone#,
+				#open_mate_bank#,#bank_accounts_mate#,
+				#natu_mate_fax#,#natu_mate_home_address#,
+				#mate_id#,0,#mate_flag_permit#,0)
+	  	]]>
+	</insert>
+	<!-- 删除自然人 -->
+	<delete id="deleteNatu"   parameterClass="map">
+		<![CDATA[
+			delete from t_prjt_creditvouchnatu where pron_id=#pron_id#
+		]]>
+	</delete>
+	
+	<!-- 更新自然人 -->
+	<update id="updateNatu" parameterClass="map">
+		<![CDATA[
+			update t_prjt_creditvouchnatu 
+				set 
+					modify_time=getdate(),
+					cust_name=#cust_name#,natu_idcard=#natu_idcard#,
+					natu_gender=#natu_gender#,natu_age=#natu_age#,
+					natu_mobile=#natu_mobile#,natu_phone=#natu_phone#,
+					natu_zip=#natu_zip#,natu_idcard_address=#natu_idcard_address#,
+					natu_home_address=#natu_home_address#,natu_work_units=#natu_work_units#,
+					natu_work_address=#natu_work_address#,
+					natu_mate_name=#natu_mate_name#,
+					natu_mate_mobile=#natu_mate_mobile#,natu_mate_idcard=#natu_mate_idcard#,
+					natu_mate_idcard_address=#natu_mate_idcard_address#,
+					natu_mate_work_units=#natu_mate_work_units#,
+					natu_mate_work_address=#natu_mate_work_address#,
+					natu_mate_age=#natu_mate_age#,
+					natu_mate_gender=#natu_mate_gender#,
+					natu_mate_zip=#natu_mate_zip#,
+					natu_mate_otherpermit=#natu_mate_otherpermit#,
+					open_mate_bank=#open_mate_bank#,
+					bank_accounts_mate=#bank_accounts_mate#,
+					natu_mate_fax=#natu_mate_fax#,
+					natu_mate_home_address=#natu_mate_home_address#,
+					istogether=#istogether#,
+					remark=#remark#,
+					modify_user_id=#s_employeeId#,bank_accounts=#bank_accounts#,
+					open_bank=#open_bank#,natu_fax=#natu_fax#,
+					flagPermit=#flagPermit#,
+					mate_flag_permit=#mate_flag_permit#
+				where 
+					pron_id=#pron_id#
+		]]>
+	</update>
+	<select id ="getCreditVoucherNatuById" parameterClass="map"  resultClass="java.util.HashMap" >
+	    
+	   select 
+			cust_name,
+			natu_idcard,
+			natu_gender,natu_age,
+			natu_mobile,natu_phone,
+			natu_zip,natu_idcard_address,
+			natu_home_address,natu_work_units,
+			natu_work_address,
+			natu_mate_name,
+			natu_mate_mobile,natu_mate_idcard,
+			natu_mate_idcard_address,
+			natu_mate_work_units,
+			natu_mate_work_address,
+			natu_mate_age,
+			natu_mate_gender,
+			natu_mate_zip,
+			natu_mate_otherpermit,
+			open_mate_bank,
+			bank_accounts_mate,
+			natu_mate_fax,
+			natu_mate_home_address,
+			istogether,
+			remark,
+			bank_accounts,
+			open_bank,natu_fax,
+			flagPermit,
+			mate_flag_permit,
+			PRCD_ID
+		from t_prjt_creditvouchnatu
+		where pron_id=#pron_id#
+	</select>
+	<!-- 更新法人 -->
+	<update id="updateCreditCustomerCorpById" parameterClass="map">
+		<![CDATA[
+		 	update T_PRJT_VOUCHCUSTOMERCORP
+	  			  set
+				CORP_NAME_CN=#CORP_NAME_CN#,
+				CORP_NAME_EN=#CORP_NAME_EN#,
+				EMPLOYEE_COUNT=#EMPLOYEE_COUNT#,
+				CORP_TYPE=#CORP_TYPE#,
+				BUSINESS_LICENCE_CODE=#BUSINESS_LICENCE_CODE#,
+				BUSINESS_TIME_LIMIT=#BUSINESS_TIME_LIMIT#,
+				ORGANIZATION_CODE_CERTIFICATE=#ORGANIZATION_CODE_CERTIFICATE#,
+				ROAD_WORTHINESS_INSPECTION=#ROAD_WORTHINESS_INSPECTION#,
+				TAX_REGISTRATION_NUMBER=#TAX_REGISTRATION_NUMBER#,
+				INCORPORATING_DATE=CONVERT(datetime,#INCORPORATING_DATE#),
+				REGISTERED_CAPITAL=#REGISTERED_CAPITAL#,
+				REGISTERED_OFFICE_ADDRESS=#REGISTERED_OFFICE_ADDRESS#,
+				MANAGING_SCOPE=#MANAGING_SCOPE#,
+				TELEPHONE=#TELEPHONE#,
+				FAX=#FAX#,
+				URL=#URL#,
+				MEMO=#MEMO#,
+				CONTRIBUTED_CAPITAL=#CONTRIBUTED_CAPITAL#,
+				POSTCODE=#POSTCODE#,
+				LEGAL_PERSON=#LEGAL_PERSON#,
+				LEGAL_ID_CARD=#LEGAL_ID_CARD#,
+				LEGAL_TELEPHONE=#LEGAL_TELEPHONE#,
+				LEGAL_POSTCODE=#LEGAL_POSTCODE#,
+				LEGAL_HOME_ADDRESS=#LEGAL_HOME_ADDRESS#,
+				LEGAL_MOBILE_NUMBER1=#LEGAL_MOBILE_NUMBER1#,
+				LEGAL_MOBILE_NUMBER2=#LEGAL_MOBILE_NUMBER2#,
+				LINK_MAN=#LINK_MAN#,
+				LINK_ID_CARD=#LINK_ID_CARD#,
+				LINK_TELEPHONE=#LINK_TELEPHONE#,
+				LINK_JOB=#LINK_JOB#,
+				LINK_POSTCODE=#LINK_POSTCODE#,
+				LINK_MAILING_ADDRESS=#LINK_MAILING_ADDRESS#,
+				LINK_MOBILE_NUMBER1=#LINK_MOBILE_NUMBER1#,
+				LINK_MOBILE_NUMBER2=#LINK_MOBILE_NUMBER2#,
+				LINK_EMAIL=#LINK_EMAIL#,
+				LINK_MSN=#LINK_MSN#,
+				OTHER_INFO=#OTHER_INFO#,  
+				MODIFY_USER_ID=#s_employeeId#, 
+				MODIFY_DATE=getdate(),
+				
+				flagPermit=#flagPermit#,
+				
+				linkflagPermit=#linkflagPermit#
+	     		 where 
+	   	  		 PJCCC_ID=#pjccc_id#
+   	  	]]>
+	 </update>
+	 
+	<select id="getCreditCustomerCorpById" parameterClass="map" resultClass="java.util.HashMap">
+	    	 	select  
+				CORP_NAME_CN,
+				CORP_NAME_EN,
+				EMPLOYEE_COUNT,
+				CORP_TYPE,
+				BUSINESS_LICENCE_CODE,
+				BUSINESS_TIME_LIMIT,
+				ORGANIZATION_CODE_CERTIFICATE,
+				ROAD_WORTHINESS_INSPECTION,
+				TAX_REGISTRATION_NUMBER,
+				INCORPORATING_DATE,
+				REGISTERED_CAPITAL,
+				REGISTERED_OFFICE_ADDRESS,
+				MANAGING_SCOPE,
+				TELEPHONE,
+				FAX,
+				URL,
+				MEMO,
+				CONTRIBUTED_CAPITAL,
+				POSTCODE,
+				LEGAL_PERSON,
+				LEGAL_ID_CARD,
+				LEGAL_TELEPHONE,
+				LEGAL_POSTCODE,
+				LEGAL_HOME_ADDRESS,
+				LEGAL_MOBILE_NUMBER1,
+				LEGAL_MOBILE_NUMBER2,
+				LINK_MAN,
+				LINK_ID_CARD,
+				LINK_TELEPHONE,
+				LINK_JOB,
+				LINK_POSTCODE,
+				LINK_MAILING_ADDRESS,
+				LINK_MOBILE_NUMBER1,
+				LINK_MOBILE_NUMBER2,
+				LINK_EMAIL,
+				LINK_MSN,
+				OTHER_INFO,  				
+				flagPermit,				
+				linkflagPermit,PRCD_ID
+				from T_PRJT_VOUCHCUSTOMERCORP
+	     		 where 
+	   	  		 PJCCC_ID=#pjccc_id#
+	</select>
+	 <!-- 查询自然人 -->
+	<select id="getNatuValues" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select top 1 * from t_prjt_creditvouchnatu  
+		]]>
+		<dynamic prepend="where">
+			<isNotEmpty prepend="and" property="natu_name">
+				<![CDATA[ cust_name = #cust_name# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="natu_idcard">
+				<![CDATA[ natu_idcard=#natu_idcard# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="otherPermit">
+				<![CDATA[ otherPermit=#otherPermit# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="natu_mate_name">
+				<![CDATA[ natu_mate_name=#natu_mate_name# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="natu_mate_idcard">
+				<![CDATA[ natu_mate_idcard=#natu_mate_idcard# ]]>
+			</isNotEmpty>
+		</dynamic>
+		<![CDATA[ order by create_time desc ]]>
+	</select>
+	 <!-- 查询法人-->
+	<select id="getCorpValues" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select top 1 * from t_prjt_vouchcustomercorp  
+		]]>
+		<dynamic prepend="where">
+			<isNotEmpty prepend="and" property="corp_name_cn">
+				<![CDATA[ corp_name_cn = #corp_name_cn# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="organization_code_certificate">
+				<![CDATA[ organization_code_certificate=#organization_code_certificate# ]]>
+			</isNotEmpty>
+		</dynamic>
+		<![CDATA[ order by create_date desc ]]>
+	</select>
+	
+	<!-- 删除以前的配偶  -->
+	 <delete id="delNatuMateByMateId" parameterClass="map">
+	 	<![CDATA[ 
+	 		delete from t_prjt_creditvouchnatu where mate_id=#mate_id#
+	 	]]>
+	 </delete>
+	 <!-- 担保人管理页面信息  个数-->	
+	<select id="getAllVouch_count" parameterClass="map" resultClass="int">
+		<![CDATA[
+		select COUNT(*) from (
+			select tb.TYPE,MAX(tb.ID) ID,MAX(tb.CUST_NAME) CUST_NAME,tb.CODE,tb.NAME,MAX(tb.PHONE) PHONE from (
+				select 1 TYPE,t.PJCCC_ID ID,t.CORP_NAME_CN NAME,T.ORGANIZATION_CODE_CERTIFICATE CODE,T2.CUST_NAME,T.TELEPHONE PHONE 
+				from T_PRJT_VOUCHCUSTOMERCORP t
+				LEFT JOIN T_PRJT_CREDIT T1 ON T.PRCD_ID=T1.ID
+				LEFT JOIN T_CUST_CUSTOMER T2 ON T1.CUST_ID = T2.CUST_ID
+				LEFT JOIN T_RENT_CONTRACT T3 ON T1.ID=T3.PRCD_ID
+				where t.STATUS=0 AND T1.STATUS=0
+				union
+				select 0 TYPE,t.PRON_ID ID,t.CUST_NAME NAME,T.NATU_IDCARD CODE,T2.CUST_NAME,T.NATU_MOBILE PHONE 
+				from T_PRJT_CREDITVOUCHNATU t
+				LEFT JOIN T_PRJT_CREDIT T1 ON T.PRCD_ID=T1.ID
+				LEFT JOIN T_CUST_CUSTOMER T2 ON T1.CUST_ID = T2.CUST_ID
+				LEFT JOIN T_RENT_CONTRACT T3 ON T1.ID=T3.PRCD_ID
+				where t.STATUS=0 AND T1.STATUS=0) tb
+		]]>
+			 <dynamic prepend="where">	
+			  	<isNotEmpty prepend="and" property="content">
+			  		(tb.NAME like '%$content$%' or tb.CODE like '%$content$%' or tb.CUST_NAME like '%$content$%' or tb.PHONE like '%$content$%')
+			  	</isNotEmpty>		  	  
+			  	<isNotEmpty  prepend="and"  property="type">	
+				  	<isEqual  property="type" compareValue="2">
+				  		 tb.type is not null
+				  	</isEqual>
+				  	<isEqual  property="type" compareValue="0">
+				  		 tb.type=0
+				  	</isEqual>	
+				  	<isEqual  property="type" compareValue="1">
+				  		 tb.type=1
+				  	</isEqual>				  						  						  		  			  			  	 				
+		  		</isNotEmpty>				  	
+		  	</dynamic>	
+		  	group by Tb.CODE,tb.NAME,TYPE	) tx	  	  
+	</select>
+	<!-- 担保人管理页面信息  -->	
+	<select id="getAllVouch" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+				
+		select tb.TYPE,MAX(tb.ID) ID,MAX(tb.CUST_NAME) CUST_NAME,tb.CODE,tb.NAME,MAX(tb.PHONE) PHONE from (
+				select 1 TYPE,t.PJCCC_ID ID,t.CORP_NAME_CN NAME,T.ORGANIZATION_CODE_CERTIFICATE CODE,T2.CUST_NAME,T.TELEPHONE PHONE 
+				from T_PRJT_VOUCHCUSTOMERCORP t
+				LEFT JOIN T_PRJT_CREDIT T1 ON T.PRCD_ID=T1.ID
+				LEFT JOIN T_CUST_CUSTOMER T2 ON T1.CUST_ID = T2.CUST_ID
+				LEFT JOIN T_RENT_CONTRACT T3 ON T1.ID=T3.PRCD_ID
+				where t.STATUS=0 AND T1.STATUS=0
+				union
+				select 0 TYPE,t.PRON_ID ID,t.CUST_NAME NAME,T.NATU_IDCARD CODE,T2.CUST_NAME,T.NATU_MOBILE PHONE 
+				from T_PRJT_CREDITVOUCHNATU t
+				LEFT JOIN T_PRJT_CREDIT T1 ON T.PRCD_ID=T1.ID
+				LEFT JOIN T_CUST_CUSTOMER T2 ON T1.CUST_ID = T2.CUST_ID
+				LEFT JOIN T_RENT_CONTRACT T3 ON T1.ID=T3.PRCD_ID
+				where t.STATUS=0 AND T1.STATUS=0) tb
+				
+		]]>
+			  <dynamic prepend="where">	
+			  	<isNotEmpty prepend="and" property="content">
+			  		(tb.NAME like '%$content$%' or tb.CODE like '%$content$%' or tb.CUST_NAME like '%$content$%' or tb.PHONE like '%$content$%')
+			  	</isNotEmpty>		  	  
+			  	<isNotEmpty  prepend="and"  property="type">	
+				  	<isEqual  property="type" compareValue="2">
+				  		 tb.type is not null
+				  	</isEqual>
+				  	<isEqual  property="type" compareValue="0">
+				  		 tb.type=0
+				  	</isEqual>	
+				  	<isEqual  property="type" compareValue="1">
+				  		 tb.type=1
+				  	</isEqual>				  						  						  		  			  			  	 				
+		  		</isNotEmpty>				  	
+		  	</dynamic>	
+		  	
+		  	group by Tb.CODE,tb.NAME,TYPE	  
+			<![CDATA[	ORDER BY tb.CODE desc ]]>
+	</select>
+	 
+	<!-- 担保人管理页面信息法人查看  -->	
+	<select id="getAllVouchCorpShow" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select * from T_PRJT_VOUCHCUSTOMERCORP where PJCCC_ID=#ID#
+		]]>
+	</select>	 
+	
+	<!-- 担保人管理页面信息自然人查看  -->	
+	<select id="getAllVouchNatuShow" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select * from t_prjt_creditvouchnatu  where PRON_ID = #ID#
+		]]>
+	</select>
+	
+	<select id="getAllVouchNatuShowByCredit" resultClass="java.util.HashMap"><!-- 通过报告号获得担保人信息(自然人) add by ShenQi -->
+          SELECT *
+            FROM T_PRJT_CREDITVOUCHNATU 
+           WHERE PRCD_ID=#credit_id#
+             AND STATUS=0
+	</select>
+	<insert id="insertNatuByCredit"><!-- 通过报告号获得担保人信息(自然人) add by ShenQi -->
+		    INSERT INTO T_PRJT_CREDITVOUCHNATU
+		    (PRCD_ID,CREATE_TIME,MODIFY_TIME,CREATE_USER_ID,CUST_CODE,CUST_NAME,NATU_IDCARD,NATU_GENDER,NATU_AGE,NATU_MOBILE,NATU_PHONE,NATU_ZIP,
+		     NATU_IDCARD_ADDRESS,NATU_HOME_ADDRESS,NATU_WORK_UNITS,NATU_WORK_ADDRESS,NATU_MATE_NAME,NATU_MATE_MOBILE,NATU_MATE_IDCARD,NATU_MATE_IDCARD_ADDRESS,
+		     NATU_MATE_WORK_UNITS,NATU_MATE_WORK_ADDRESS,REMARK,CUST_LEVEL,MODIFY_USER_ID,PROVINCE_ID,CITY_ID,BANK_ACCOUNTS,OPEN_BANK,NATU_FAX,STATUS,HKMacPermit,
+		     PASSPORT,OTHERPERMIT,FLAGPERMIT,ISTOGETHER,MATE_ID,NATU_MATE_AGE,NATU_MATE_GENDER,NATU_MATE_ZIP,NATU_MATE_OTHERPERMIT,OPEN_MATE_BANK,
+		     NATU_MATE_PHONE,BANK_ACCOUNTS_MATE,NATU_MATE_FAX,NATU_MATE_HOME_ADDRESS,MATE_FLAG_PERMIT,ISTYPE)
+		    VALUES
+		    (#PRCD_ID#,GETDATE(),GETDATE(),#s_employeeId#,#CUST_CODE#,#CUST_NAME#,#NATU_IDCARD#,#NATU_GENDER#,#NATU_AGE#,#NATU_MOBILE#,#NATU_PHONE#,#NATU_ZIP#,
+		     #NATU_IDCARD_ADDRESS#,#NATU_HOME_ADDRESS#,#NATU_WORK_UNITS#,#NATU_WORK_ADDRESS#,#NATU_MATE_NAME#,#NATU_MATE_MOBILE#,#NATU_MATE_IDCARD#,#NATU_MATE_IDCARD_ADDRESS#,
+		     #NATU_MATE_WORK_UNITS#,#NATU_MATE_WORK_ADDRESS#,#REMARK#,#CUST_LEVEL#,#s_employeeId#,#PROVINCE_ID#,#CITY_ID#,#BANK_ACCOUNTS#,#OPEN_BANK#,#NATU_FAX#,0,#HKMACPERMIT#,
+		     #PASSPORT#,#OTHERPERMIT#,#FLAGPERMIT#,#ISTOGETHER#,#MATE_ID#,#NATU_MATE_AGE#,#NATU_MATE_GENDER#,#NATU_MATE_ZIP#,#NATU_MATE_OTHERPERMIT#,#OPEN_MATE_BANK#,
+		     #NATU_MATE_PHONE#,#BANK_ACCOUNTS_MATE#,#NATU_MATE_FAX#,#NATU_MATE_HOME_ADDRESS#,#MATE_FLAG_PERMIT#,#ISTYPE#)
+		<selectKey resultClass="java.lang.Long" keyProperty="pron_id">
+			SELECT @@IDENTITY AS PRON_ID
+		</selectKey>
+	</insert>
+	
+	<!-- 查询所有法人和自然人 个数 -->
+	<select id="allVouch_count" parameterClass="map" resultClass="int">
+		<![CDATA[
+	select count(*)  from (
+			  select tpp.GRANT_PRICE,tpp.LAST_PRICE,tpp.CUVP_STATUS,t.CODE,t.COUNTSUM,t.CREATE_TIME,t.ID,t.NAME,t.PHONE,t.TYPE,tpp.PDVP_ID from (
+			  select 1 TYPE ,NAME,CODE,ID,COUNTFR COUNTSUM,T3.TELEPHONE PHONE ,T3.CREATE_DATE  CREATE_TIME
+				       from (  select t.CORP_NAME_CN NAME,t.ORGANIZATION_CODE_CERTIFICATE CODE,MAX(t.PJCCC_ID) ID
+								 from T_PRJT_VOUCHCUSTOMERCORP t 
+								 where  t.STATUS=0 
+								 group by t.CORP_NAME_CN,t.ORGANIZATION_CODE_CERTIFICATE  ) t
+				       LEFT JOIN (select COUNT(PJCCC_ID) COUNTFR,CORP_NAME_CN,ORGANIZATION_CODE_CERTIFICATE 
+				                 FROM T_PRJT_VOUCHCUSTOMERCORP  where STATUS=0
+				                  GROUP BY CORP_NAME_CN,ORGANIZATION_CODE_CERTIFICATE ) FR   ON t.NAME =FR.CORP_NAME_CN AND T.CODE = FR.ORGANIZATION_CODE_CERTIFICATE 
+				       LEFT JOIN T_PRJT_VOUCHCUSTOMERCORP T3 ON T3.PJCCC_ID=T.ID AND t.NAME =T3.CORP_NAME_CN AND T.CODE = T3.ORGANIZATION_CODE_CERTIFICATE   where T3.STATUS=0
+			  union
+			    select 0 TYPE ,NAME,CODE,ID,COUNTFR COUNTSUM,T3.NATU_MOBILE PHONE,T3.CREATE_TIME CREATE_TIME
+				       from (  select t.CUST_NAME NAME,t.NATU_IDCARD CODE,MAX(t.PRON_ID) ID
+								 from T_PRJT_CREDITVOUCHNATU t 
+								 where  t.STATUS=0 
+								 group by t.CUST_NAME,t.NATU_IDCARD  ) t
+				       LEFT JOIN (select COUNT(PRON_ID) COUNTFR,CUST_NAME,NATU_IDCARD 
+				                 FROM T_PRJT_CREDITVOUCHNATU  where STATUS=0
+				                  GROUP BY CUST_NAME,NATU_IDCARD ) FR   ON t.NAME =FR.CUST_NAME AND T.CODE = FR.NATU_IDCARD 
+				       LEFT JOIN T_PRJT_CREDITVOUCHNATU T3 ON T3.PRON_ID=T.ID  AND t.NAME =T3.CUST_NAME AND T.CODE = T3.NATU_IDCARD 
+				        where T3.STATUS=0	
+		    ) t
+		    left join T_PRODUCT_VOUCHPLAN tpp on t.NAME=tpp.VOUCH_NAME and t.CODE=tpp.VOUCH_CODE AND TPP.STATUS =0  and   tpp.VOUCH_TYPE=t.TYPE
+		    ) t
+		]]>
+		<dynamic prepend="where">	
+			  	<isNotEmpty prepend="and" property="content">
+			  		(t.NAME like '%$content$%' or t.CODE like '%$content$%' or t.PHONE like '%$content$%' )
+			  	</isNotEmpty>	
+			  	<isNotEmpty  prepend="and"  property="type">	
+				  	<isEqual  property="type" compareValue="2">
+				  		 t.type is not null
+				  	</isEqual>
+				  	<isEqual  property="type" compareValue="0">
+				  		 t.type=0
+				  	</isEqual>	
+				  	<isEqual  property="type" compareValue="1">
+				  		 t.type=1
+				  	</isEqual>				  						  						  		  			  			  	 				
+		  		</isNotEmpty>
+		  		<isNotEmpty  prepend=""  property="QCUGPDTATUS">	
+				  	<isEqual prepend="and" property="QCUGPDTATUS" compareValue="2">
+				  		 t.CUVP_STATUS is  null
+				  	</isEqual>
+				  	<isEqual prepend="and" property="QCUGPDTATUS" compareValue="0">
+				  		 t.CUVP_STATUS=0
+				  	</isEqual>	
+				  	<isEqual prepend="and" property="QCUGPDTATUS" compareValue="1">
+				  		 t.CUVP_STATUS=1
+				  	</isEqual>				  						  						  		  			  			  	 				
+		  		</isNotEmpty>
+		  		<isNotEmpty prepend="and" property="QSTARTMONEY">
+			  		<![CDATA[t.GRANT_PRICE   >= #QSTARTMONEY#]]>
+			  	</isNotEmpty>
+			  	<isNotEmpty prepend="and" property="QENDMONEY">
+			  		<![CDATA[t.GRANT_PRICE  <=#QENDMONEY# ]]>
+			  	</isNotEmpty>			  	  	
+		</dynamic>
+	</select>	
+	
+	<!-- 查询所有法人和自然人 -->
+	<select id="allVouch" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+	select * from (
+			  select tpp.GRANT_PRICE,tpp.LAST_PRICE,tpp.CUVP_STATUS,t.CODE,t.COUNTSUM,t.CREATE_TIME,t.ID,t.NAME,t.PHONE,t.TYPE,tpp.PDVP_ID from (
+			  select 1 TYPE ,NAME,CODE,ID,COUNTFR COUNTSUM,T3.TELEPHONE PHONE ,T3.CREATE_DATE  CREATE_TIME
+				       from (  select t.CORP_NAME_CN NAME,t.ORGANIZATION_CODE_CERTIFICATE CODE,MAX(t.PJCCC_ID) ID
+								 from T_PRJT_VOUCHCUSTOMERCORP t 
+								 where  t.STATUS=0 
+								 group by t.CORP_NAME_CN,t.ORGANIZATION_CODE_CERTIFICATE  ) t
+				       LEFT JOIN (select COUNT(PJCCC_ID) COUNTFR,CORP_NAME_CN,ORGANIZATION_CODE_CERTIFICATE 
+				                 FROM T_PRJT_VOUCHCUSTOMERCORP  where STATUS=0
+				                  GROUP BY CORP_NAME_CN,ORGANIZATION_CODE_CERTIFICATE ) FR   ON t.NAME =FR.CORP_NAME_CN AND T.CODE = FR.ORGANIZATION_CODE_CERTIFICATE 
+				       LEFT JOIN T_PRJT_VOUCHCUSTOMERCORP T3 ON T3.PJCCC_ID=T.ID AND t.NAME =T3.CORP_NAME_CN AND T.CODE = T3.ORGANIZATION_CODE_CERTIFICATE   where T3.STATUS=0
+			  union
+			    select 0 TYPE ,NAME,CODE,ID,COUNTFR COUNTSUM,T3.NATU_MOBILE PHONE,T3.CREATE_TIME CREATE_TIME
+				       from (  select t.CUST_NAME NAME,t.NATU_IDCARD CODE,MAX(t.PRON_ID) ID
+								 from T_PRJT_CREDITVOUCHNATU t 
+								 where  t.STATUS=0 
+								 group by t.CUST_NAME,t.NATU_IDCARD  ) t
+				       LEFT JOIN (select COUNT(PRON_ID) COUNTFR,CUST_NAME,NATU_IDCARD 
+				                 FROM T_PRJT_CREDITVOUCHNATU  where STATUS=0
+				                  GROUP BY CUST_NAME,NATU_IDCARD ) FR   ON t.NAME =FR.CUST_NAME AND T.CODE = FR.NATU_IDCARD 
+				       LEFT JOIN T_PRJT_CREDITVOUCHNATU T3 ON T3.PRON_ID=T.ID  AND t.NAME =T3.CUST_NAME AND T.CODE = T3.NATU_IDCARD 
+				        where T3.STATUS=0	
+		    ) t
+		    left join T_PRODUCT_VOUCHPLAN tpp on t.NAME=tpp.VOUCH_NAME and t.CODE=tpp.VOUCH_CODE AND TPP.STATUS =0  and   tpp.VOUCH_TYPE=t.TYPE
+		    ) t
+		]]>
+		<dynamic prepend="where">	
+			  	<isNotEmpty prepend="and" property="content">
+			  		(t.NAME like '%$content$%' or t.CODE like '%$content$%' or t.PHONE like '%$content$%' )
+			  	</isNotEmpty>
+			  	<isNotEmpty  prepend="and"  property="type">	
+				  	<isEqual  property="type" compareValue="2">
+				  		 t.type is not null
+				  	</isEqual>
+				  	<isEqual  property="type" compareValue="0">
+				  		 t.type=0
+				  	</isEqual>	
+				  	<isEqual  property="type" compareValue="1">
+				  		 t.type=1
+				  	</isEqual>				  						  						  		  			  			  	 				
+		  		</isNotEmpty>
+		  			<isNotEmpty  prepend=""  property="QCUGPDTATUS">	
+				  	<isEqual prepend="and" property="QCUGPDTATUS" compareValue="2">
+				  		 t.CUVP_STATUS is  null
+				  	</isEqual>
+				  	<isEqual prepend="and" property="QCUGPDTATUS" compareValue="0">
+				  		 t.CUVP_STATUS=0
+				  	</isEqual>	
+				  	<isEqual prepend="and" property="QCUGPDTATUS" compareValue="1">
+				  		 t.CUVP_STATUS=1
+				  	</isEqual>				  						  						  		  			  			  	 				
+		  		</isNotEmpty>
+		  		<isNotEmpty prepend="and" property="QSTARTMONEY">
+			  		<![CDATA[t.GRANT_PRICE   >= #QSTARTMONEY#]]>
+			  	</isNotEmpty>
+			  	<isNotEmpty prepend="and" property="QENDMONEY">
+			  		<![CDATA[t.GRANT_PRICE  <=#QENDMONEY# ]]>
+			  	</isNotEmpty>			  	  				  	
+		</dynamic>
+		<![CDATA[order by  t.CREATE_TIME desc ]]>
+	</select>	
+	
+	<!-- 添加担保资产 -->
+	<insert id="createProperty" parameterClass="map">
+		<![CDATA[ 
+			insert into T_PRJT_PROPERTY(
+			CREDIT_ID,
+			VOUCH_ID,
+			VOUCH_TYPE,
+			HOUSE_ADDRESS,
+			HOUSE_NAME,
+			HOUSE_AREA,
+			HOUSE_PROVE,
+			HOUSE_OTHERRIGHT,
+			NOTES,
+			CREATE_DATE,
+			CREATE_ID,
+			MODIFY_DATE,
+			MODIFY_ID,
+			STATUS,
+			TYPE,
+			TPPY_STATUS,
+			TPPY_TYPE,
+			PROPERTY_OWNER
+			)
+			VALUES(
+			#CREDIT_ID#,
+			#VOUCH_ID#,
+			#VOUCH_TYPE#,
+			#HOUSE_ADDRESS#,
+			#HOUSE_NAME#,
+			#HOUSE_AREA#,
+			#HOUSE_PROVE#,
+			#HOUSE_OTHERRIGHT#,
+			#NOTES#,
+			getdate(),
+			#CREATE_ID#,
+			getdate(),
+			#MODIFY_ID#,
+			0,
+			0,
+			0,
+			0,
+			#PROPERTY_OWNER#
+			)
+	  	]]>
+	</insert>
+	
+	<!-- 查找法人担保资产 -->
+	
+	<select id="getCorpProperty" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select	T.ID,
+					T.CREDIT_ID,
+					T.VOUCH_ID,
+					T.HOUSE_ADDRESS,
+					T.HOUSE_NAME,
+					T.HOUSE_AREA,
+					T.HOUSE_PROVE,
+					T.HOUSE_OTHERRIGHT,
+					T.NOTES ,
+					T.PROPERTY_OWNER,
+					VOUCH_TYPE
+			
+			from T_PRJT_PROPERTY t where t.CREDIT_ID = #credit_id# AND STATUS = 0 AND VOUCH_TYPE = 1
+		]]>
+	</select>
+	
+	<select id="getCorpPropertyForCopy" parameterClass="map" resultClass="java.util.HashMap">
+			      SELECT *
+					FROM T_PRJT_PROPERTY T 
+		     WHERE T.CREDIT_ID=#credit_id#
+		       AND STATUS=0 
+		       AND VOUCH_TYPE=1
+		       AND VOUCH_ID=#PJCCC_ID#
+	</select>
+	
+	<!-- 更新一条法人担保资产 -->
+	<update id="updateCropProperty" parameterClass="map">
+		<![CDATA[
+		 	UPDATE T_PRJT_PROPERTY SET
+		 			HOUSE_ADDRESS = #HOUSE_ADDRESS#,
+		 			HOUSE_NAME = #HOUSE_NAME#,
+		 			HOUSE_AREA = #HOUSE_AREA#,
+		 			HOUSE_PROVE = #HOUSE_PROVE#,
+		 			HOUSE_OTHERRIGHT = #HOUSE_OTHERRIGHT#,
+		 			NOTES = #NOTES#
+		 			
+		 			WHERE ID = #ID# AND STATUS = 0 AND VOUCH_TYPE = 1
+		 			
+   	  	]]>
+	 </update>
+	 
+	 
+	
+	<!-- 查找自然人担保资产 -->
+	
+	<select id="getNatuProperty" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select	T.ID,
+					T.CREDIT_ID,
+					T.VOUCH_ID,
+					T.HOUSE_ADDRESS,
+					T.HOUSE_NAME,
+					T.HOUSE_AREA,
+					T.HOUSE_PROVE,
+					T.HOUSE_OTHERRIGHT,
+					T.NOTES ,
+					T.PROPERTY_OWNER,
+					VOUCH_TYPE
+			
+			from T_PRJT_PROPERTY t where t.CREDIT_ID = #credit_id# AND STATUS = 0 AND VOUCH_TYPE = 0
+		]]>
+	</select>
+	
+	<!-- 更新一条自然人担保资产 -->
+	<update id="updateNatuProperty" parameterClass="map">
+		<![CDATA[
+		 	UPDATE T_PRJT_PROPERTY SET
+		 			HOUSE_ADDRESS = #HOUSE_ADDRESS#,
+		 			HOUSE_NAME = #HOUSE_NAME#,
+		 			HOUSE_AREA = #HOUSE_AREA#,
+		 			HOUSE_PROVE = #HOUSE_PROVE#,
+		 			HOUSE_OTHERRIGHT = #HOUSE_OTHERRIGHT#,
+		 			NOTES = #NOTES#,
+		 			PROPERTY_OWNER = #PROPERTY_OWNER# 
+		 			
+		 			WHERE ID = #ID# AND STATUS = 0 AND VOUCH_TYPE = 0
+		 			
+   	  	]]>
+	 </update>
+	 
+	 <!-- 删除担保资产  -->
+	<update id="deleteProperty" parameterClass="map">
+		<![CDATA[
+		 	UPDATE T_PRJT_PROPERTY SET
+		 			STATUS = -2
+		 			WHERE VOUCH_ID = #pjccc_id# AND VOUCH_TYPE = #VOUCH_TYPE#
+		 			
+   	  	]]>
+	 </update>
+	 
+	  <!-- 删除担保资产 根据ID  -->
+	<update id="deletePropertyById" parameterClass="map">
+		<![CDATA[
+		 	UPDATE T_PRJT_PROPERTY SET
+		 			STATUS = -2
+		 			WHERE ID = #id#
+		 			
+   	  	]]>
+	 </update>
+	 <!--报告查看基本信息  担保人财务信息select    baiman -->
+	 <select id="getVoucherReports" parameterClass="map" resultClass="hashmap">
+	 	select * from T_PRJT_VOUCHREPORT where credit_id=#credit_id#  
+        order by PJCCC_ID ,project_item desc
+	 </select>
+	 <select id="getVoucherReports2" parameterClass="map" resultClass="hashmap">
+	 	select * from T_PRJT_VOUCHREPORT where PJCCC_ID=#excelId#  
+        order by PJCCC_ID ,project_item desc
+	 </select>
+	 <select id="getAllFinanceReports" resultClass="java.util.HashMap">
+	 	    SELECT * 
+		      FROM T_PRJT_VOUCHREPORT 
+		     WHERE CREDIT_ID=#credit_id# 
+		       AND PJCCC_ID=#PJCCC_ID#
+		  ORDER BY PJCCC_ID,PROJECT_ITEM DESC
+	 </select>
+	 <!--报告查看基本信息  担保人财务信息delete   baiman -->
+	 <delete id="deleteVoucherReport" parameterClass="map">
+	 	delete from T_PRJT_VOUCHREPORT where PJCCC_ID=#pjccc_id#
+	 </delete>
+	 <!--报告查看基本信息  担保人财务信息insert    baiman -->
+	 <insert id="createVoucherReport" parameterClass="map">
+	 	insert into T_PRJT_VOUCHREPORT
+	 	( 
+			project_item,
+			ca_cash_price,
+			ca_short_Invest,
+			ca_bills_should,
+			ca_Funds_should,
+			ca_Goods_stock,
+			ca_other,
+			fa_land,
+			fa_buildings,
+			fa_equipments,
+			fa_rent_Assets,
+			fa_transports,
+			fa_other,
+			fa_Depreciations,
+			fa_Incompleted_projects,
+			lang_Invest,
+			other_Assets,
+			sd_short_debt,
+			sd_bills_should,
+			sd_funds_should,
+			sd_other_pay,
+			sd_shareholders,
+			sd_one_year,
+			sd_other,
+			lang_debt,
+			other_long_debt,
+			other_debt,
+			share_capital,
+			surplus_Capital,
+			surplus_income,
+			this_losts,
+			project_changed,
+			s_start_date,
+			s_sale_net_income,
+			s_sale_cost,
+			s_other_gross_profit,
+			s_operating_expenses,
+			credit_id,
+			s_nonbusiness_income,
+			s_interest_expense,
+			s_other_nonbusiness_expense,
+			s_income_tax_expense,
+			ca_other_Funds_should,
+			PJCCC_ID
+	 	)values
+	 	(
+	 	    #project_item#,
+			#ca_cash_price#,
+			#ca_short_Invest#,
+			#ca_bills_should#,
+			#ca_Funds_should#,
+			#ca_Goods_stock#,
+			#ca_other#,
+			#fa_land#,
+			#fa_buildings#,
+			#fa_equipments#,
+			#fa_rent_Assets#,
+			#fa_transports#,
+			#fa_other#,
+			#fa_Depreciations#,
+			#fa_Incompleted_projects#,
+			#lang_Invest#,
+			#other_Assets#,
+			#sd_short_debt#,
+			#sd_bills_should#,
+			#sd_funds_should#,
+			#sd_other_pay#,
+			#sd_shareholders#,
+			#sd_one_year#,
+			#sd_other#,
+			#lang_debt#,
+			#other_long_debt#,
+			#other_debt#,
+			#share_capital#,
+			#surplus_Capital#,
+			#surplus_income#,
+			#this_losts#,
+			#project_changed#,
+			#s_start_date#,
+			#s_sale_net_income#,
+			#s_sale_cost#,
+			#s_other_gross_profit#,
+			#s_operating_expenses#,
+			#credit_id#,
+			#s_nonbusiness_income#,
+			#s_interest_expense#,
+			#s_other_nonbusiness_expense#,
+			#s_income_tax_expense#,
+			#ca_other_Funds_should#,
+			#pjccc_id#
+			)
+	 </insert>
+	 <select id="findCreditInfoByDanbaorenId" parameterClass="map" resultClass="hashmap">
+	 	select t33.PJCCC_ID,t33.ID,t33.CREDIT_CODE,t33.LEASE_CODE,t33.CUST_NAME
+				from (select t21.PJCCC_ID,t22.ID,t44.CUST_NAME,t22.LEASE_CODE, t22.CREDIT_CODE
+						from (select t2.* from (select * from T_PRJT_VOUCHCUSTOMERCORP where PJCCC_ID=#danbaorenid#) t1
+						left join T_PRJT_VOUCHCUSTOMERCORP t2 on t1.CORP_NAME_CN=t2.CORP_NAME_CN and t2.ORGANIZATION_CODE_CERTIFICATE=t1.ORGANIZATION_CODE_CERTIFICATE) t21
+						left join T_PRJT_CREDIT t22
+						on t22.ID=t21.PRCD_ID
+						left join T_CUST_CUSTOMER t44
+						on t44.CUST_ID=t22.CUST_ID
+						where t21.STATUS=0 and t22.STATUS=0			
+				) t33 
+				WHERE t33.ID is not null
+				group by t33.PJCCC_ID,t33.ID,t33.LEASE_CODE,t33.CUST_NAME,t33.CREDIT_CODE
+				
+	 </select>
+	 <select id="findCreditInfoByDanbaorenNatuId" parameterClass="map" resultClass="hashmap">
+	 	select t33.PRON_ID,t33.ID,t33.CREDIT_CODE,t33.LEASE_CODE,t33.CUST_NAME
+				from (select t21.PRON_ID,t22.ID,t44.CUST_NAME,t22.LEASE_CODE, t22.CREDIT_CODE
+						from (select t2.* from (select * from T_PRJT_CREDITVOUCHNATU where PRON_ID=#danbaorenid#) t1
+						left join T_PRJT_CREDITVOUCHNATU t2 on t1.CUST_NAME=t2.CUST_NAME and t2.NATU_IDCARD=t1.NATU_IDCARD) t21
+						left join T_PRJT_CREDIT t22
+						on t22.ID=t21.PRCD_ID
+						left join T_CUST_CUSTOMER t44
+						on t44.CUST_ID=t22.CUST_ID
+						where t21.STATUS=0 and t22.STATUS=0			
+				) t33 
+				WHERE  t33.ID is not null
+				group by t33.PRON_ID,t33.ID,t33.LEASE_CODE,t33.CUST_NAME,t33.CREDIT_CODE
+				
+	 </select>
+	 
+	 <!-- 根据担保人姓名，证件号码，类型查询出该担保人授信余额  法人 -->
+	  <select id="getLastPriceByName_Code_Corp" parameterClass="map" resultClass="java.lang.Double">
+	 		<!-- 
+	 		SELECT (IsNUll(MAX(GRANT_PRICE),0) - IsNUll(SUM(PRICE),0)) PRICECOUNT
+FROM (
+	SELECT 
+		(CASE
+			WHEN T2.RECP_ID IS NULL OR T.REPEAT_CREDIT != 1 
+					OR 
+						(
+							SELECT 
+								TOP 1 TT.REAL_OWN_PRICE
+							FROM
+								T_RENT_COLLECTIONDETAIL TT
+								LEFT JOIN (
+										SELECT
+											RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+										FROM
+											T_FINA_COLLECTIONBILL TTT
+										WHERE
+											TTT.FICB_TYPE=0 
+											AND TTT.FICB_ITEM= #ficbItem#
+											AND TTT.FICB_STATE = 5 
+											AND TTT.STATUS=0
+											AND TTT.RECP_ID = T2.RECP_ID
+										GROUP BY 
+											RECD_PERIOD
+								) TT1 ON TT1.recp_id = TT.recp_id AND TT1.RECD_PERIOD = TT.PERIOD_NUM
+							WHERE
+								((TT1.REAL_PRICEcount - TT.IRR_MONTH_PRICE) &lt;= 0.005
+								AND (TT1.REAL_PRICEcount - TT.IRR_MONTH_PRICE) &gt;= -0.005)
+								AND TT.STATUS = 0 
+								AND TT.RECP_ID = T2.RECP_ID
+							ORDER BY PERIOD_NUM DESC
+						) IS NULL
+			THEN IsNUll(T3.LEASE_TOPRIC,0) - IsNUll(T3.PLEDGE_ENTER_MCTOAG,0) - IsNUll(T3.PLEDGE_ENTER_AG,0)
+			WHEN T2.RECP_STATUS = 1 
+				 OR T2.RECP_STATUS = 3
+			THEN 0
+			ELSE (
+					SELECT 
+						TOP 1 TT.REAL_OWN_PRICE
+					FROM
+						T_RENT_COLLECTIONDETAIL TT
+						LEFT JOIN (
+								SELECT
+									RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+								FROM
+									T_FINA_COLLECTIONBILL TTT
+								WHERE
+									TTT.FICB_TYPE=0 
+									AND TTT.FICB_ITEM= #ficbItem#
+									AND TTT.FICB_STATE = 5 
+									AND TTT.STATUS=0
+									AND TTT.RECP_ID = T2.RECP_ID
+								GROUP BY 
+									RECD_PERIOD
+						) TT1 ON TT1.recp_id = TT.recp_id AND TT1.RECD_PERIOD = TT.PERIOD_NUM
+					WHERE
+						((TT1.REAL_PRICEcount - TT.IRR_MONTH_PRICE) &lt;= 0.005
+						AND (TT1.REAL_PRICEcount - TT.IRR_MONTH_PRICE) &gt;= -0.005)
+						AND TT.STATUS = 0 
+						AND TT.RECP_ID = T2.RECP_ID
+					ORDER BY PERIOD_NUM DESC
+						)
+			END) PRICE,
+		T.GRANT_PRICE
+	FROM
+		T_PRODUCT_VOUCHPLAN T
+	left join T_PRJT_VOUCHCUSTOMERCORP T4 on T.VOUCH_NAME=T4.CORP_NAME_CN AND T.VOUCH_CODE=T4.ORGANIZATION_CODE_CERTIFICATE and t4.STATUS=0
+	left join T_RENT_CONTRACT T1 on T1.PRCD_ID=T4.PRCD_ID and T1.STATUS=0
+		LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECT_ID = T1.RECT_ID AND T2.STATUS = 0
+		LEFT JOIN T_RENT_CONTRACTSCHEMA T3 ON T3.RECT_ID = T1.RECT_ID AND T3.STATUS = 0 
+	WHERE
+		T.STATUS = 0
+		AND T.VOUCH_NAME=#name# and T.VOUCH_CODE=#vouchcode#
+	) TTTT
+	-->
+	 		SELECT (IsNUll(MAX(GRANT_PRICE),0) - IsNUll(SUM(PRICE),0)) PRICECOUNT
+FROM (
+	SELECT 
+		(CASE
+			WHEN T1.RECT_ID IS NULL THEN ISNULL(TPCS.LEASE_TOPRIC,0)-ISNULL(TPCS.PLEDGE_ENTER_AG,0)-ISNULL(TPCS.PLEDGE_ENTER_MCTOAG,0)
+			WHEN T.REPEAT_CREDIT = 1 AND (T2.RECP_STATUS = 1 OR T2.RECP_STATUS = 3) THEN 0
+			WHEN T2.RECP_ID IS NULL OR T.REPEAT_CREDIT != 1 
+					OR 
+						(
+							SELECT 
+								MIN(TT.REAL_OWN_PRICE)
+							FROM
+								T_RENT_COLLECTIONDETAIL TT 
+							WHERE
+								 TT.STATUS = 0 
+								AND TT.RECP_ID = T2.RECP_ID
+								AND ISNULL(TT.REDUCE_LOSS_PRICE,0)+ISNULL(TT.REDUCE_OTHER_PRICE,0)+ISNULL(TT.REDUCE_OWN_PRICE,0)+ISNULL(TT.REDUCE_REN_PRICE,0)>0
+						) IS NULL
+			THEN ROUND(IsNUll(T3.LEASE_TOPRIC,0),0,1) - ROUND(IsNUll(T3.PLEDGE_ENTER_MCTOAG,0),0,1) - ROUND(IsNUll(T3.PLEDGE_ENTER_AG,0),0,1)
+			ELSE (
+					SELECT 
+						ISNULL(MIN(TT.REAL_OWN_PRICE),0)
+					FROM
+						T_RENT_COLLECTIONDETAIL TT 
+					WHERE
+						 TT.STATUS = 0 
+						AND TT.RECP_ID = T2.RECP_ID
+						AND ISNULL(TT.REDUCE_LOSS_PRICE,0)+ISNULL(TT.REDUCE_OTHER_PRICE,0)+ISNULL(TT.REDUCE_OWN_PRICE,0)+ISNULL(TT.REDUCE_REN_PRICE,0)>0
+						)
+			END) PRICE,
+		T.GRANT_PRICE
+	FROM
+		T_PRODUCT_VOUCHPLAN T
+	left join T_PRJT_VOUCHCUSTOMERCORP T4 on T.VOUCH_NAME=T4.CORP_NAME_CN AND T.VOUCH_CODE=T4.ORGANIZATION_CODE_CERTIFICATE and t4.STATUS=0
+	left join T_PRJT_CREDIT tpc on tpc.ID=T4.PRCD_ID AND tpc.WIND_STATE=1
+	LEFT JOIN T_PRJT_CREDITSCHEME TPCS ON TPCS.CREDIT_ID=tpc.ID
+	left join T_RENT_CONTRACT T1 on T1.PRCD_ID=T4.PRCD_ID and T1.STATUS=0
+		LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECT_ID = T1.RECT_ID AND T2.STATUS = 0
+		LEFT JOIN T_RENT_CONTRACTSCHEMA T3 ON T3.RECT_ID = T1.RECT_ID AND T3.STATUS = 0 
+	WHERE
+		T.STATUS = 0
+		AND T.VOUCH_NAME=#name# and T.VOUCH_CODE=#vouchcode# and T.VOUCH_TYPE=1
+	) TTTT
+	  </select>
+	  
+	  <!-- 根据担保人姓名，证件号码，类型查询出该担保人授信余额  自然人 -->
+	  <select id="getLastPriceByName_Code_Natu" parameterClass="map" resultClass="java.lang.Double">
+	 SELECT (IsNUll(MAX(GRANT_PRICE),0) - IsNUll(SUM(PRICE),0)) PRICECOUNT
+FROM (
+	SELECT 
+		(CASE
+			WHEN T1.RECT_ID IS NULL THEN ISNULL(TPCS.LEASE_TOPRIC,0)-ISNULL(TPCS.PLEDGE_ENTER_AG,0)-ISNULL(TPCS.PLEDGE_ENTER_MCTOAG,0)
+			WHEN T.REPEAT_CREDIT = 1 AND (T2.RECP_STATUS = 1 OR T2.RECP_STATUS = 3) THEN 0
+			WHEN T2.RECP_ID IS NULL OR T.REPEAT_CREDIT != 1
+			 OR
+						(
+							SELECT 
+								MIN(TT.REAL_OWN_PRICE)
+							FROM
+								T_RENT_COLLECTIONDETAIL TT 
+							WHERE
+								 TT.STATUS = 0 
+								AND TT.RECP_ID = T2.RECP_ID
+								AND ISNULL(TT.REDUCE_LOSS_PRICE,0)+ISNULL(TT.REDUCE_OTHER_PRICE,0)+ISNULL(TT.REDUCE_OWN_PRICE,0)+ISNULL(TT.REDUCE_REN_PRICE,0)>0
+						) IS NULL
+			THEN ROUND(IsNUll(T3.LEASE_TOPRIC,0),0,1) - ROUND(IsNUll(T3.PLEDGE_ENTER_MCTOAG,0),0,1) - ROUND(IsNUll(T3.PLEDGE_ENTER_AG,0),0,1)
+			ELSE (
+					SELECT 
+						ISNULL(MIN(TT.REAL_OWN_PRICE),0)
+					FROM
+						T_RENT_COLLECTIONDETAIL TT 
+					WHERE
+						 TT.STATUS = 0 
+						AND TT.RECP_ID = T2.RECP_ID
+						AND ISNULL(TT.REDUCE_LOSS_PRICE,0)+ISNULL(TT.REDUCE_OTHER_PRICE,0)+ISNULL(TT.REDUCE_OWN_PRICE,0)+ISNULL(TT.REDUCE_REN_PRICE,0)>0
+				)
+			END) PRICE,
+		T.GRANT_PRICE
+	FROM
+		T_PRODUCT_VOUCHPLAN T
+		
+	left join T_PRJT_CREDITVOUCHNATU T4 on T.VOUCH_NAME=T4.CUST_NAME AND T.VOUCH_CODE=T4.NATU_IDCARD and t4.STATUS=0
+	left join T_PRJT_CREDIT tpc on tpc.ID=T4.PRCD_ID AND tpc.WIND_STATE=1
+	LEFT JOIN T_PRJT_CREDITSCHEME TPCS ON TPCS.CREDIT_ID=tpc.ID
+	left join T_RENT_CONTRACT T1 on T1.PRCD_ID=T4.PRCD_ID and T1.STATUS=0
+		LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECT_ID = T1.RECT_ID AND T2.STATUS = 0
+		LEFT JOIN T_RENT_CONTRACTSCHEMA T3 ON T3.RECT_ID = T1.RECT_ID AND T3.STATUS = 0 
+	WHERE
+		T.STATUS = 0
+		AND T.VOUCH_NAME=#name# and T.VOUCH_CODE=#vouchcode# and T.VOUCH_TYPE=0
+	) TTTT
+	  </select>
+</sqlMap>

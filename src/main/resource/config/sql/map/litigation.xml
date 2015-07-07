@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	<sqlMap namespace="litigation">
+		<!-- 以下新增诉讼进程 -->
+			<insert id="addLitigation" parameterClass="map">
+				INSERT INTO T_RENT_LITIGATION (
+				  RECT_ID
+				  ,LEASE_CODE
+				  ,PROCESS
+				  ,REMARK
+				  ,CREATE_DATE
+				  ,CREATE_USER
+				  ,STATUS
+				  ,LITIGATION_DATE
+				) VALUES (
+				  #RECT_ID#,
+				  #LEASE_CODE#,
+				  #PROCESS#,
+				  #REMARK#,
+				  getdate(),
+				  #CREATE_USER#,
+				  #STATUS#,
+				  #LITIGATION_DATE#
+				)
+			</insert>
+		<!-- 以上新增诉讼进程 -->	
+				<!-- 以下更新诉讼进程 -->
+			<update id="updateLitigation"  parameterClass="map">
+				UPDATE  T_RENT_LITIGATION SET
+				STATUS ='0'
+				WHERE LEASE_CODE=#LEASE_CODE# and STATUS ='1'
+			</update>
+			<!-- 以上更新诉讼进程 -->
+			<!-- 以下查询诉讼列表 -->
+			<select id="queryLitigationList" parameterClass="map" resultClass="java.util.HashMap">
+					SELECT TDDY.FLAG,TRL.RECT_ID,  TRCT.CUST_NAME,TUU.NAME ,CASE   WHEN TUU.JOB = 1 
+						    THEN (SELECT NAME FROM T_USER_USER WHERE STATUS = 0 AND ID =TUU.UPPER_USER)
+						    ELSE TUU.NAME	END UPNAME,T1.BRAND,
+				        	TRPN.RECP_CODE,TDSUPL.FLAG SUPL_TRUE,TDLOCK.FLAG LOCK_CODE
+				        	,COMP.DECP_NAME_CN, ISNULL(TDD.DUN_DAY, 0)  DUN_DAY,TRL.CREATE_DATE
+				FROM T_RENT_LITIGATION TRL
+				LEFT JOIN T_RENT_CONTRACT TRCT ON TRL.RECT_ID = TRCT.RECT_ID AND TRCT.STATUS = 0
+				LEFT JOIN T_RENT_COLLECTIONPLAN TRPN ON TRCT.RECT_ID = TRPN.RECT_ID AND TRPN.STATUS = 0
+				LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE = '供应商保证' AND  TDSUPL.CODE = TRPN.SUPL_TRUE 
+				LEFT JOIN T_CUST_CUSTOMER TCCT ON TRCT.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+				LEFT JOIN T_USER_USER TUU ON TUU.ID = TRCT.SENSOR_ID 
+				LEFT JOIN (SELECT RECT_ID,MAX(T.BRAND) BRAND FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) T1
+				ON T1.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN (SELECT RECT_ID,MIN(LOCK_CODE) LOCK_CODE FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) TLOCK
+				ON TLOCK.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN T_DATA_DICTIONARY TDLOCK ON TDLOCK.TYPE = '锁码方式' AND  TDLOCK.CODE = TLOCK.LOCK_CODE 
+				LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = TUU.DEPT_ID AND DEPT.STATUS = 0
+				LEFT JOIN T_DEPT_COMPANY COMP ON DEPT.DECP_ID = COMP.DECP_ID AND COMP.STATUS = 0
+				LEFT JOIN T_DUN_DAILY TDD ON TDD.RECT_ID=TRCT.RECT_ID AND	CONVERT(DATETIME,CONVERT(VARCHAR,TDD.CREATE_DATE,23))=CONVERT(DATETIME,CONVERT(VARCHAR,getdate(),23))
+				LEFT JOIN  T_DATA_DICTIONARY TDDY ON TDDY.CODE=TRL.PROCESS AND TDDY.TYPE='诉讼进程' AND TDDY.STATUS=0 
+				WHERE TRL.STATUS='1'
+				<isNotEmpty prepend="and" property="selectStatus">
+					<![CDATA[ TRL.PROCESS =#selectStatus# ]]>
+				</isNotEmpty>
+				<isNotEmpty prepend="and" property="DEPT_ID">
+					<![CDATA[ COMP.DECP_ID=#DEPT_ID# ]]>
+				</isNotEmpty>
+				<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+					<![CDATA[
+					(TRCT.CUST_NAME LIKE '%$QSEARCH_VALUE$%'  OR TRL.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' OR T1.BRAND LIKE '%$QSEARCH_VALUE$%' )
+					  ]]>
+				</isNotEmpty>
+				<isEqual prepend="and" property="p_usernode" compareValue="2">
+					exists(select ID from T_USER_USER
+					where DEPT_ID in
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = TRCT.SENSOR_ID)
+
+				</isEqual>
+				<isEqual prepend="and" property="p_usernode" compareValue="1">
+				TRCT.SENSOR_ID=#s_employeeId#  
+				</isEqual>
+				
+			</select>
+				
+			<!-- 以上查询诉讼列表 -->
+			
+			<!-- 以下获取合同标识 -->
+			<select id="getRectIdByLCode" parameterClass="map" resultClass="java.lang.Integer">
+			  SELECT RECT_ID FROM T_RENT_CONTRACT WHERE LEASE_CODE=#LEASE_CODE#
+			</select>
+			<!-- 以上获取合同标识 -->
+			<select id="queryLProcessList" parameterClass="map" resultClass="java.util.HashMap">
+				SELECT TRL.ID, TRL.RECT_ID, TRL.LEASE_CODE, TRL.PROCESS, TRL.REMARK, 
+				       TRL.CREATE_DATE, TRL.CREATE_USER, TRL.STATUS, TRL.LITIGATION_DATE ,TUU.NAME,
+       				   TDDY.FLAG
+				FROM T_RENT_LITIGATION  TRL
+				LEFT JOIN T_USER_USER TUU ON TUU.ID=TRL.CREATE_USER
+				LEFT JOIN  T_DATA_DICTIONARY TDDY ON TDDY.CODE=TRL.PROCESS AND TDDY.TYPE='诉讼进程' AND TDDY.STATUS=0 
+				WHERE TRL.RECT_ID=#RECT_ID#
+				ORDER BY TRL.CREATE_DATE DESC
+			</select>
+			<select id="getPrClassList" parameterClass="map" resultClass="java.util.HashMap">
+				select T.DATA_ID,T.CODE,T.FLAG,T.DEFAULT_VALUE,T.SHORTNAME from t_data_dictionary t where t.type=#dataType# and t.status=0 order by t.level_num,t.code
+			</select>
+			
+			
+			<!-- 以下查询登录者的权限 -->
+	<select id="getResourceIdListByEmplId" parameterClass="map"
+		resultClass="java.lang.String">
+		SELECT PERMISSION_CODE FROM FIL_PERMISSION_RESOURCE WHERE ID IN
+		(
+		SELECT re.RESOURCE_ID
+		FROM fil_permission_resource2role re
+		WHERE EXISTS
+		(SELECT 1
+		FROM FIL_PERMISSION_ROLE roles
+		WHERE EXISTS
+		(SELECT 1
+		FROM t_user_user2role users
+		WHERE roles.ID=users.ROLE_ID
+		AND roles.STATUS=users.STATUS
+		AND users.EMPLOYEE_ID=#s_employeeId#
+		AND users.STATUS=0)
+		AND roles.ID=re.ROLE_ID
+		AND roles.STATUS=re.STATUS)
+		)
+		AND PERMISSION_CODE IS NOT NULL AND PERMISSION_CODE!=''
+
+	</select>
+
+	<!-- 以上查询登录者的权限 -->
+	<!-- 以下查询公司的code -->
+		<select id="getCustCode" parameterClass="map"
+		resultClass="java.lang.String">
+		SELECT   CUST_CODE FROM  T_RENT_CONTRACT WHERE RECT_ID=#RECT_ID#
+		</select>
+	<!-- 以上查询公司的code -->
+	</sqlMap>

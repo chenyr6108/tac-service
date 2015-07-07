@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="supportPaylist">
+	
+	<!-- query needed infomation from paylist  --> 
+	<statement id="queryInfoBycode" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		
+		 SELECT T1.RECP_ID ID, T1.MODIFY_USER_ID, 
+			 CONVERT(varchar,T1.MODIFY_TIME,120) MODIFY_TIME,
+			  CAST(T1.STATUS AS varchar) STATUS,
+			  CONVERT(varchar,T1.START_DATE,120) START_DATE,
+			   CONVERT(varchar,T1.END_DATE,120) END_DATE, 
+			    CAST( T1.VERSION_CODE AS varchar) VERSION_CODE, CAST(T1.PAYDATE_FLAG AS varchar) PAYDATE_FLAG,
+			     CAST(T1.ASSET_STATUS AS varchar) ASSET_STATUS,
+ 		CAST(T1.FUND_STATUS AS varchar) FUND_STATUS,
+ 				 CAST(T1.WARN_STATUS  AS varchar) WARN_STATUS,
+ 			CAST(T2.STATUS AS varchar ) STAS, 
+ 		CONVERT(varchar,T2.PAY_DATE,120) PAY_DATE,
+    CAST(T2.DUN_STATUS AS varchar) DUN_STATUS,
+ CAST(T2.REDUCE_STATUS AS varchar) REDUCE_STATUS,
+ 	 CAST(T2.PASSED AS varchar) PASSED,
+ 	 T2.REDUCE_OWN_PRICE ,CAST(T2.LOCKED AS varchar) LOCKED,
+ 					T3.NAME,
+						T4.RECP_CODE RECPSYMBOL
+ FROM T_RENT_COLLECTIONPLAN T1
+ LEFT JOIN T_RENT_COLLECTIONDETAIL T2 ON  T2.RECP_ID = T1.RECP_ID
+ LEFT JOIN T_USER_USER T3 ON T1.MODIFY_USER_ID = T3.ID
+ LEFT JOIN T_FINA_COLLECTIONBILL T4 ON T1.RECP_ID = T4.RECP_ID
+  WHERE T1.RECP_CODE=#PAYCODE#
+ ORDER BY T1.CREATE_TIME , PAY_DATE	 
+		
+				 
+		]]>
+	</statement>
+	<!-- delete date from  T_RENT_COLLECTIONPLAN    -->
+	<update id="delDate" parameterClass="map" >
+		<![CDATA[
+		 UPDATE T_RENT_COLLECTIONPLAN
+			 SET 
+			  START_DATE ='' , END_DATE ='',
+			  MODIFY_TIME=GETDATE(),
+			  MODIFY_USER_ID=#EMPLOYEEID#, 
+        PAYDATE_FLAG ='0'
+			   WHERE RECP_ID =#RECPID#
+			
+		]]>	
+	</update>
+	
+	<!-- delete date from  t_rent_collectiondetail    -->
+	<update id="delAttachDate" parameterClass="map" >
+		<![CDATA[
+			  UPDATE T_RENT_COLLECTIONDETAIL
+			  SET 
+			  PAY_DATE='',MODIFY_TIME=GETDATE(),
+			  MODIFY_USER_ID=#EMPLOYEEID# 
+			  
+ 			WHERE RECP_ID =#RECPID#
+		]]>	
+	</update>
+	
+		<!-- change  date flag from  T_RENT_COLLECTIONPLAN    -->
+	<update id="changeDateIdentification" parameterClass="map" >
+		<![CDATA[
+		 UPDATE T_RENT_COLLECTIONPLAN
+			 SET 
+			  MODIFY_TIME=GETDATE(),
+			  MODIFY_USER_ID=#EMPLOYEEID#, 
+        PAYDATE_FLAG ='0'
+			   WHERE RECP_ID =#RECPID#
+			
+		]]>	
+	</update>
+	
+	
+	<!-- delete  paylist  and the connected infomation -->
+	<update id="delpaylist" parameterClass="map" >
+		<![CDATA[
+		 UPDATE T_RENT_COLLECTIONPLAN 
+			 SET 
+			  MODIFY_TIME=GETDATE(),
+			  MODIFY_USER_ID=#EMPLOYEEID#, 
+        STATUS ='-2'
+			   WHERE RECP_ID =#RECPID#
+			
+		]]>	
+	</update>
+	<!-- delete  paylist  and the connected infomation      T_RENT_COLLECTIONDETAIL  -->
+	<update id="delCollectiondetail" parameterClass="map" >
+		<![CDATA[
+			  UPDATE T_RENT_COLLECTIONDETAIL 
+			  SET 
+			  MODIFY_TIME=GETDATE(),
+			  MODIFY_USER_ID=#EMPLOYEEID# ,
+       			 STATUS='-2'
+			  
+ 			WHERE RECP_ID =#RECPID#
+		]]>	
+	</update>
+	
+	<!-- delete  paylist  and the connected infomation      T_RENT_COLLECTIONINSURE  -->
+	<update id="delCollectioninsure" parameterClass="map" >
+		<![CDATA[
+			  UPDATE  T_RENT_COLLECTIONINSURE
+			  SET 
+			  MODIFY_TIME=GETDATE(),
+			  MODIFY_USER_ID=#EMPLOYEEID#,
+       			 STATUS='-2'
+			  
+ 			WHERE RECP_ID =#RECPID#
+		]]>	
+	</update>
+	
+	<!-- delete  paylist  and the connected infomation     T_RENT_CONTRACTDETAIL  -->
+	<update id="delContractdetail" parameterClass="map" >
+		<![CDATA[
+			  UPDATE   T_RENT_CONTRACTDETAIL 
+			  SET 
+			  MODIFY_TIME=GETDATE(),
+			  MODIFY_USER_ID=#EMPLOYEEID#,
+       			 STATUS='-2'
+			  
+ 			WHERE RECP_ID =#RECPID#
+		]]>	
+	</update>
+	
+	<statement id="selectRentContractdetail" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		SELECT  RECD_ID,
+				   CREATE_USER_ID,
+				   CREATE_TIME,
+				   MODIFY_USER_ID,
+				   RECT_ID,
+				   EQMT_ID,
+				   RECS_ID,
+				   THING_NAME,
+				   BRAND,
+				   MODEL_SPEC,
+				   UNIT_PRICE,
+				   THING_KIND,
+				   UNIT,
+				   AMOUNT,
+				   STAYBUY_PRICE,
+				   RECP_ID,
+				   REDN_ID,
+				   MEMO
+		FROM T_RENT_CONTRACTDETAIL 
+		WHERE RECP_ID =#RECPID#   
+		]]>
+		</statement>
+	<insert id="createRentContractDetail" parameterClass="map">
+	 	<![CDATA[
+		INSERT INTO T_RENT_CONTRACTDETAIL
+				  ( 
+				   CREATE_USER_ID,
+				   MODIFY_USER_ID,
+				   RECT_ID,
+				   EQMT_ID,
+				   RECS_ID,
+				   THING_NAME,
+				   BRAND,
+				   MODEL_SPEC,
+				   UNIT_PRICE,
+				   THING_KIND,
+				   UNIT,
+				   STAYBUY_PRICE,
+				      AMOUNT,
+					   RECP_ID,
+				   REDN_ID,
+				   MEMO)
+				VALUES
+				  ( 
+				   #EMPLOYEEID#,
+				   #EMPLOYEEID#,
+				   #RECT_ID#,
+				   #EQMT_ID#,
+				   #RECS_ID#,
+				   #THING_NAME#,
+				   #BRAND#,
+				   #MODEL_SPEC#,
+				   #UNIT_PRICE#,
+				   #THING_KIND#,
+				   #UNIT#,
+				   #STAYBUY_PRICE#,
+				     #AMOUNT#,
+					  #RECP_ID#,
+				   #REDN_ID#,
+				   #MEMO#)
+		 ]]>
+	</insert>
+	
+	
+	
+	
+	<!-- delete  paylist  and the connected infomation      T_RENT_COLLECTIONOTHERFEE  -->
+	<update id="delCollectionOtherfee" parameterClass="map" >
+		<![CDATA[
+			  UPDATE    T_RENT_COLLECTIONOTHERFEE 
+			  SET 
+			  MODIFY_TIME=GETDATE(),
+			  MODIFY_USER_ID=#EMPLOYEEID#,
+       			 STATUS='-2'
+			  
+ 			WHERE RECP_ID =#RECPID#
+		]]>	
+	</update> 
+	
+	<!-- delete  paylist  and the connected infomation     T_RENT_COLLECTIONREMARK -->
+	<update id="delCollectionRemark" parameterClass="map" >
+		<![CDATA[
+			  UPDATE    T_RENT_COLLECTIONREMARK 
+			  SET 
+			  MODIFY_TIME=GETDATE(),
+			  MODIFY_USER_ID=#EMPLOYEEID#,
+       			 STATUS='-2'
+			  
+ 			WHERE RECP_ID =#RECPID#
+		]]>	
+	</update> 
+	
+	<!-- 根据来款号查询分解单 -->
+	<select id="queryFina" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select ficb_id from t_fina_collectionbill 
+			 where fiin_id = #select_income_id#
+		]]>
+	</select>
+	<!-- 更新分解单状态 -->
+	<update id="delFina" parameterClass="map" >
+		<![CDATA[
+			  update t_fina_collectionbill 
+			  	set status = -2
+ 				where ficb_id=#FICB_ID#
+		]]>	
+	</update> 
+	<!-- 更新来款状态 -->
+	<update id="delFinaIncome" parameterClass="map" >
+		<![CDATA[
+			  update t_fina_income 
+			  	set decompose_status = 2
+ 				where fiin_id=#select_income_id#
+		]]>	
+	</update> 
+	
+	
+	
+	<!-- delete  memo  from   t_rent_contractremark  -->
+	<update id="delContractmemo" parameterClass="map" >
+		<![CDATA[
+			  UPDATE   T_RENT_CONTRACTREMARK
+			  SET 
+			  MODIFY_TIME=GETDATE(),
+			  MODIFY_USER_ID=#EMPLOYEEID#,
+       			 STATUS='-2'
+			  
+ 			WHERE RECR_ID=#RECRID#
+		]]>	
+	</update> 
+	
+	<!-- select memo from t_rent_contractremark by LEASE_CODE -->
+	<statement id="selectContractmemo" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+	  SELECT T1.LEASE_CODE ,T1.ID,
+			CONVERT(VARCHAR,T2.CREATE_TIME,120) CREATE_TIME,T2.CREATE_USER_ID, T2.REMARK,T2.RECR_ID,
+		T3.NAME
+ 		FROM T_PRJT_CREDIT T1 
+		LEFT JOIN T_RENT_CONTRACTREMARK T2 ON T1.ID = T2.PRCD_ID
+		LEFT JOIN T_USER_USER T3 ON T2.CREATE_USER_ID = T3.ID
+			WHERE  T2.STATUS= 0 AND  T1.LEASE_CODE = #CODE#
+			ORDER BY  T2.CREATE_TIME
+		]]>
+	</statement>
+	
+	
+	<!-- select customer  T_PRJT_CREDITCUSTOMERCORP    T_RENT_CONTRACT T_PRJT_CREDIT T_CUST_CUSTOMER -->
+	<statement id="selectRentcontractCustomer" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+	  SELECT
+	   T.CUST_ID, T.CUST_NAME NAME1,T.STATUS AAA,
+	  T.CUST_TYPE,T2.CUST_NAME NAME2,T4.CORP_NAME_CN NAME3,
+	T2.CREATE_TIME ,T2.CREATE_USER_ID,T2.REMARK,T2.STATUS BBB,
+	T4.CORP_NAME_EN,T4.STATUS CCC,T4.CREDIT_ID
+	
+ 			FROM  T_RENT_CONTRACT T
+		LEFT JOIN T_CUST_CUSTOMER T2 ON T.CUST_ID= T2.CUST_ID
+		LEFT JOIN T_PRJT_CREDIT T3 ON T3.CUST_ID= T2.CUST_ID
+		LEFT JOIN T_PRJT_CREDITCUSTOMERCORP T4 ON T4.CREDIT_ID =T3.ID
+		WHERE T3.LEASE_CODE=#CODE#
+			ORDER BY  T2.CREATE_TIME
+		]]>
+	</statement>
+	
+	
+	
+	<!-- UPDATE   customer  name  from   t_rent_contract    -->
+	<update id="updateCreditname" parameterClass="map" >
+		<![CDATA[
+			  UPDATE   T_RENT_CONTRACT
+			  SET 
+			  MODIFY_TIME=getdate(),
+			  MODIFY_USER_ID=#EMPLOYEEID#,
+       		CUST_NAME=#PARAM#
+			  
+ 			WHERE CUST_ID=#CUST_ID#
+		]]>	
+	</update> 
+	<!-- UPDATE   customer  name  from   T_CUST_CUSTOMER    -->
+	<update id="updateCustomername" parameterClass="map" >
+		<![CDATA[ UPDATE   T_CUST_CUSTOMER 
+				  SET 
+				  MODIFY_TIME=getdate(),
+				  MODIFY_USER_ID=#EMPLOYEEID#,
+	       		  CUST_NAME=#PARAM#
+	 			WHERE CUST_ID=#CUST_ID#
+		]]>	
+	</update> 
+	<!-- UPDATE   customer  name  from   T_PRJT_CREDITCUSTOMERCORP      -->
+	<update id="updatenameCreditcorp" parameterClass="map" >
+		<![CDATA[
+			     UPDATE   T_PRJT_CREDITCUSTOMERCORP
+			  SET 
+			  MODIFY_TIME=getdate(),
+			  MODIFY_USER_ID=#EMPLOYEEID#,
+       		CORP_NAME_CN=#PARAM#
+			  
+ 			WHERE CREDIT_ID = #CREDIT_ID#
+		]]>	
+	</update> 
+</sqlMap>

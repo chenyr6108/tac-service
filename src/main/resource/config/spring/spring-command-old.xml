@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	     http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+	     http://www.springframework.org/schema/context
+	     http://www.springframework.org/schema/context/spring-context-3.2.xsd
+	     http://www.springframework.org/schema/tx
+	     http://www.springframework.org/schema/tx/spring-tx-3.2.xsd">
+       
+	<bean id = "acl" class="com.brick.user.service.UserService" >
+		<!-- 域控方式登陆 -->
+		<!-- <property name="LOGIN_TYPE" value="LDAP"/> -->
+		<!-- 数据库查询方式登陆 -->
+		<property name="LOGIN_TYPE" value="DB"/>
+		<!-- ldap_URL -->
+		<property name="LDAP_URL" value="ldap://10.2.1.230:389"/>
+		<!-- Domain_Name -->
+		<property name="AD_DOMAIN_NAME" value="@tacleasing.cn"/>
+	</bean>
+    <bean id = "document" class="com.brick.service.app.Document" /> 
+       
+    <bean id = "role" class="com.brick.permission.service.RoleService" parent="baseCommand"/>  
+	<bean id = "assignmentPermission" class="com.brick.permission.service.AssignmentPermission"></bean>
+	<bean id = "supplier" class="com.brick.product.service.SupplierService" parent="baseCommand">
+		<property name="customerVisitService" ref="customerVisitService"/>
+	</bean>
+	<bean id = "department" class="com.brick.department.service.DepartmentManage" /> 
+	<bean id = "employee" class="com.brick.employee.service.EmployeeManage" parent="baseCommand"/> 
+	<bean id = "customer" class="com.brick.customer.service.Customer" parent="baseCommand">
+		<property name="customerVisitService" ref="customerVisitService"/>
+		<property name="customerService" ref="customerService"/>
+		
+	</bean>   
+	<bean id = "customerlink" class="com.brick.customer.service.CustomerLink" />   
+	<bean id = "rentContract" class="com.brick.contract.service.RentContract" parent="baseCommand">   
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	<bean id = "collectionManage" class="com.brick.collection.service.CollectionManage" parent="baseCommand"/>   
+	<bean id = "handlePaylistService" class="com.brick.collection.service.HandlePaylistService" />   
+	<bean id = "area" class="com.brick.area.service.AreaService"/>
+	<bean id = "checkContract" class="com.brick.contract.service.CheckContractService" />   
+ 	<bean id = "suplEquipment" class="com.brick.product.service.SuplEquipmentService" parent="baseCommand"/>
+	<bean id = "productType" class="com.brick.product.service.ProductTypeService" /> 
+	<bean id = "productKind" class="com.brick.product.service.ProductKindService" parent="baseCommand"/> 
+	<bean id = "productProduct" class="com.brick.product.service.ProductProductService" /> 
+	<bean id = "creditCustomer" class="com.brick.credit.service.CreditCustomerManage" parent="baseCommand">
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean> 
+	<bean id = "creditReport" class="com.brick.credit.service.CreditReportManage" parent="baseCommand" >
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="riskAuditService" ref="riskAuditService"/>
+		<property name="tagService" ref="tagService"></property>
+		<property name="invoiceManageService" ref="invoiceManageService"/>
+		<property name="visitationService" ref="visitationService"/>
+		<property name="creditReportService" ref="creditReportService"/>
+	</bean> 
+	<bean id = "insuCompany"  class="com.brick.baseManage.service.InsuCompanyService"  parent="baseCommand"/>
+	<bean id = "insureType"    class="com.brick.baseManage.service.InsureTypeService" />
+	<bean id = "bankInfo" class="com.brick.baseManage.service.BankInfoService" /> 
+	<bean id = "bankAccount" class="com.brick.baseManage.service.BankAccountService" parent="baseCommand"/> 
+	<bean id = "pucsContract" class="com.brick.contract.service.PucsContract" />
+	<bean id = "creditCustomerCorp" class="com.brick.credit.service.CreditCustomerCorpService" /> 
+	<bean id = "creditPriorRecords" class="com.brick.credit.service.CreditPriorRecordsService" /> 
+	<bean id = "creditPaylistService" class="com.brick.credit.service.CreditPaylistService" /> 
+	 
+	<bean id = "pointsItems" class="com.brick.pointsItems.service.PointsItemsConfiguration" /> 
+	<bean id = "riskAuditUpdate" class="com.brick.risk_audit.RiskAuditUpdate" />  
+	<bean id = "riskAuditSee" class="com.brick.risk_audit.RiskAuditSee" parent="baseCommand"/>  
+	<bean id = "riskAuditUpdateAfter" class="com.brick.risk_audit.RiskAuditUpdateAfter" />  
+	<bean id = "composeUpload" class="com.brick.decompose.service.ComposeService" /> 
+	<bean id = "decompose" class="com.brick.decompose.service.DecomposeManager" parent="baseCommand"> 
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	<bean id = "deposit" class="com.brick.decompose.service.DepositService" /> 
+	<bean id = "receivables" class="com.brick.receivables.service.ReceivablesManager" /> 
+	<bean id = "report" class="com.brick.report.service.ReportService" parent="baseCommand"/> 
+	<bean id = "statement" class="com.brick.statement.service.StatementService" /> 
+	<bean id = "checkDecompose" class="com.brick.decompose.service.CheckManager" /> 
+	<bean id = "paymentService" class="com.brick.contract.service.PaymentService" /> 
+	<bean id = "deliveryNoticeService" class="com.brick.contract.service.DeliveryNoticeService" /> 
+	<bean id = "businessLog" class="com.brick.baseManage.service.BusinessLog" parent="baseCommand" /> 
+	<bean id = "dunTask" class="com.brick.dun.service.DunTaskService" parent="baseCommand" /> 
+	<bean id = "dunRent" class="com.brick.dun.service.DunRentService" /> 
+	<bean id = "dataDictionary" class="com.brick.baseManage.service.DictionaryService" />
+	<bean id = "memocontract" class="com.brick.contract.service.MemoContract" /> 
+	<bean id = "companyManage" class="com.brick.department.service.CompanyManageService" /> 
+	<bean id = "show" class="com.brick.permission.service.ShowService" parent="baseCommand">
+		<property name="showReportService" ref="showReportService"/>
+	</bean> 
+	<bean id = "rentFile" class="com.brick.contract.service.RentFile" >
+	    	<property name="path" value="\home\filsoft\financelease\car\rentfile" />
+	    	<property name="mailUtilService" ref="mailUtilService" />
+	    	<property name="invoiceManageService" ref="invoiceManageService" />
+	</bean> 
+	<bean id = "fileService" class="com.brick.baseManage.service.FileManageService" /> 
+	<bean id = "invoiceContract" class="com.brick.contract.service.InvoiceContractService" />
+	<bean id = "supportCreditReportDelete" class="com.brick.support.service.SupportCreditReportDelete" />
+	<bean id = "supportPaylist" class="com.brick.support.service.SupportPaylist" />
+	<bean id = "supportUpdatePayMoney" class="com.brick.support.service.SupportUpdatePayMoney" />
+	<bean id = "supportRiskDelete" class="com.brick.support.service.SupportRiskDelete" /> 
+	<bean id = "creditVoucher" class="com.brick.credit.service.CreditVouchService" />
+	<bean id = "supportUpdatePay" class="com.brick.support.service.SupportUpdatePay" /> 
+	<bean id = "projectManage" class="com.brick.project.service.ProjectManage" /> 
+	<bean id = "uploadService" class="com.brick.upload.service.UploadService" /> 
+	<bean id = "exportPayToPdf" class="com.brick.collection.service.ExportPayToPdf" />
+	<bean id = "dunDaily" class="com.brick.decompose.service.DunDailyService" /> 
+	<bean id = "riskLevel" class="com.brick.risk_audit.RiskLevelManage" /> 
+	<bean id = "salesLeads" class="com.brick.salesLeads.service.SalesLeadsManager" />
+	<bean id = "lockManagement" class="com.brick.contract.service.LockManagementService" parent="baseCommand">
+		<property name="lockCodeService" ref="lockCodeService"/>
+		<property name="payerService" ref="payerService"/>
+	</bean>
+	<bean id = "biReport" class="com.brick.biReport.service.BiReportService" />
+	<bean id = "expContract" class="com.brick.contract.service.ExpContract" />
+	<bean id = "expQuoToPdf" class="com.brick.credit.service.ExportQuoToPdf" />
+	<bean id = "achievement" class="com.brick.report.service.AchievementService" />
+	<bean id = "openInvoice" class="com.brick.collection.service.OpenInvoice" />
+	<bean id = "moneyRate" class="com.brick.moneyRate.service.MoneyRateService" />
+	<bean id = "differentReport" class="com.brick.report.service.DifferentReportService" />
+	<bean id = "exportContractPdf" class="com.brick.exportcontractpdf.service.ExportContractPdf" />
+	<bean id = "exportCreditPdfs" class="com.brick.exportcontractpdf.service.ExportBeginCustPdf" />
+	<bean id = "exporLleaseHoldPdf" class="com.brick.exportcontractpdf.service.ExporLleaseHoldPdf" />
+	<bean id = "insuranceReport" class="com.brick.report.service.InsuranceService" parent="baseCommand"/>
+	<bean id = "exportPayMoneyPdf" class="com.brick.exportcontractpdf.service.ExportPayMoneyPdf" />
+	<bean id = "custCredit" class="com.brick.customer.service.CustomerCredit" />
+	<bean id = "productCredit" class="com.brick.product.service.ProductCredit" parent="baseCommand">
+		<property name="productCreditService" ref="productCreditService"></property>
+	</bean>
+	<bean id = "supplierContribute" class="com.brick.product.service.SupplierContributeService" />
+	<bean id = "applyCompanyManage" class="com.brick.applycompanymanage.service.ApplyCompanyManage" parent="baseCommand"/>
+	<bean id = "supplierReports" class="com.brick.product.service.SupplierReportsService" parent="baseCommand"/>
+	<bean id = "backVisit" class="com.brick.backVisit.service.BackVisitMessageService" parent="baseCommand"/>
+	<bean id = "visitViewToPdf" class="com.brick.backVisit.service.visitViewToPdf" />
+	<bean id = "emailAndSms" class="com.brick.sendEmailAndSms.service.EmailAndSms" parent="baseCommand"/>
+
+	<bean id = "backMoney" class="com.brick.backMoney.service.backMoneyMessageService" parent="baseCommand">
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="insuranceService" ref="insuranceService" />
+		<property name="shoppingService" ref="shoppingService" />
+		<property name="backMoneyService" ref="backMoneyService" />
+	</bean>
+
+	<bean id = "backMoneyToPdf" class="com.brick.backMoney.service.backMoneyToPdf" />
+	<bean id = "exportCreditMakeContractPdf" class="com.brick.exportcontractpdf.service.exportCreditMakeContractPdf" />
+	<bean id = "exportApporvalletters" class="com.brick.exportcontractpdf.service.ExportApporvalletters" />
+	<bean id = "backinfo" class="com.brick.backinfo.service.BackInfoManage" />
+	<bean id = "bonusManage" class="com.brick.bonus.service.BonusService"  parent="baseCommand"/>
+	<bean id = "payMoney" class="com.brick.payMoney.service.payMoneyMessageService" parent="baseCommand">
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="payMoneyService" ref="payMoneyService"/>
+	</bean>
+	<bean id = "creditVouchManage" class="com.brick.credit.service.CreditVouchManage" />
+	<bean id = "equipmentManager" class="com.brick.contract.service.EquipmentManagerService" />
+	<bean id = "activitiesLog" class="com.brick.activitiesLog.service.activitiesLogService" />
+	<bean id = "activityLogging" class="com.brick.baseManage.service.ActivityLoggingService" />
+	<bean id = "passwordHomework" class="com.brick.exportcontractpdf.service.PasswordHomework" />
+	<bean id = "officeTable" class="com.brick.tables.service.OfficeTableService" />
+	<bean id = "contractCustomerHAB" class="com.brick.customer.service.ContractCustomerHAB" />
+	<bean id = "insure" class="com.brick.insurance.service.InsureService" parent="baseCommand"/>
+	<bean id = "cancellation" class="com.brick.insurance.service.CancellationService" />
+	<bean id = "insuranceList" class="com.brick.insurance.service.InusranceListService" parent="baseCommand">
+		<property name="mailUtil" ref="mailUtilService"/>
+	</bean>
+	<bean id = "renewal" class="com.brick.insurance.service.RenewalService" />
+	<bean id = "satisfaction" class="com.brick.insurance.service.SatisfactionService" parent="baseCommand">
+		<property name="mailUtil" ref="mailUtilService"/>
+	</bean>
+	<bean id = "exportInsuExcel" class="com.brick.insurance.service.ExportExcel"></bean>
+	<bean id = "surrender" class="com.brick.insurance.service.SurrenderService"></bean>
+	<bean id = "expBankNoticepdf" class="com.brick.contract.service.ExpBankNoticepdf"></bean>
+	<bean id = "productNumber" class="com.brick.product.service.ProductNumberService"></bean>
+	<bean id = "expEqmtPriceAgreeWTpdf" class="com.brick.contract.service.ExpEqmtPriceAgreeWTpdf"></bean>
+	<bean id = "expEqmtPriceAgreeYBpdf" class="com.brick.contract.service.ExpEqmtPriceAgreeYBpdf"></bean>
+
+	<bean id = "exportApplySupperPromise" class="com.brick.exportcontractpdf.service.ExportApplySupperPromisePdf" />
+	<bean id = "backVisitRecordPDF" class="com.brick.backVisit.service.backVisitRecordPDF"></bean>
+	<bean id = "expBuyBackPdf" class="com.brick.exportcontractpdf.service.ExpBuyBackPdf"></bean>
+
+    <bean id = "expDunTaskDetails" class="com.brick.dun.service.ExpDunTaskDetails"></bean>
+
+	<bean id = "interest" class="com.brick.report.service.InterestService" parent="baseCommand"></bean>
+	<bean id = "settleManage" class="com.brick.settle.service.SettleManage"></bean>
+	<!-- Add By Michael 2011 09/20 For 修改合同设备 -->
+	<bean id = "rentContractEquiMDF" class="com.brick.contract.service.RentContractEquiMDF">
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	 
+	<!-- 访问 -->
+	<bean id="visit" class="com.brick.dataStatistics.service.VisitCommand" parent="baseCommand"> 
+	    <property name="visitService" ref="visitService"></property>
+	</bean>
+	
+    <!-- 资讯 -->
+    <bean id="information" class="com.brick.information.command.InformationCommand" parent="baseCommand">
+        <property name="informationService" ref="informationService"></property>
+    </bean>
+    
+    <!-- 预估拨款 -->
+ 	<bean name="estimatePay" class="com.brick.estimatePay.command.EstimatePayCommand" parent="baseCommand">
+       <property name="estimatePayService" ref="estimatePayService"></property>
+	</bean>
+	
+	<!-- 统计供应商交机前的拨款 -->
+	<bean id="prePayStaticForSupplier" class="com.brick.prePayStatic.command.PrePayStaticForSupplierCommand" parent="baseCommand"/>
+	
+	<!-- 交机前拨款统计 -->
+	<bean id="prePayStaticForDept" class="com.brick.prePayStatic.command.PrePayStaticForDeptCommand" parent="baseCommand">
+	  
+	</bean>
+	
+	<!-- 每日应收租金，每日实际来款 -->
+	 <bean id="rentOfDay" class="com.brick.dataStatistics.service.RentOfDayCommand" parent="baseCommand"/> 
+	
+	<!-- 导出回租开票资料 -->
+	<bean id="InvoiceData" class="com.brick.financial.command.ExportInvoiceDataCommand" parent="baseCommand"/>
+	
+	<bean id = "reportDate" class="com.brick.report.command.ReportDateCommand" parent="baseCommand"></bean>
+	<bean id = "dunCaseService" class="com.brick.bussinessReport.service.DunCaseService"></bean>
+	<!-- Add By Michael 2012 1/9 For 增加测算表费用设置 -->
+	<!-- <bean id = "paylistFeeSet" class="com.brick.paylistFeeSet.service.PaylistFeeSet"></bean> -->
+</beans>

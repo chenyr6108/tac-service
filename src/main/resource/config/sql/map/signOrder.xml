@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="signOrder">
+	
+	<!-- 查询所有签办单 -->
+	<select id="getAllSignOrders" resultClass="com.brick.signOrder.to.SignOrderTo" parameterClass="java.util.HashMap">
+		SELECT 
+			S.ID AS id,
+			S.SIGN_CODE AS signCode, 
+			S.APPLY_USER_ID AS applyUserId, 
+			U1.NAME AS applyUserName, 
+			S.COMPANY_CODE AS companyCode, 
+			S.CREATE_TIME AS createTime, 
+			S.CONTENT AS content, 
+			S.ORDER_STATUS AS orderStatus, 
+			S.COUNTERSIGN_CODE_ORDER AS countersignCodeOrder, 
+			S.CURRENT_COUNTERSIGN_CODE_ORDER AS currentCountersignCodeOrder,
+			(CASE WHEN S.CURRENT_COUNTERSIGN_CODE_ORDER > 0 THEN U3.NAME ELSE '' END) AS currentCountersignCodeOrderName,
+			S.COMPLETE_CODE_ORDER AS completeCodeOrder, 
+			S.CURRENT_OPERATOR_ID AS currentOperatorId, 
+			U2.NAME AS currentOperatorName, 
+			S.SUMMARY AS summary, 
+			S.COMPLETE_TIME AS completeTime, 
+			S.LAST_COUNTERSIGN_CODE_ORDER AS lastCountersignCodeOrder,
+			S.LAST_COMPLETE_CODE_ORDER AS lastCompleteCodeOrder,
+			S.CODE code,
+		    A.AGENT_USER_ID agentUserId,
+		    U4.NAME agentUserName
+		FROM T_SIGN_ORDER S
+		LEFT JOIN T_USER_USER U1 ON U1.ID = S.APPLY_USER_ID
+		LEFT JOIN T_USER_USER U2 ON U2.ID = S.CURRENT_OPERATOR_ID
+		LEFT JOIN T_USER_USER U3 ON U3.ID = S.CURRENT_COUNTERSIGN_CODE_ORDER
+		LEFT JOIN T_AGENT A ON A.USER_ID = S.CURRENT_OPERATOR_ID AND A.AGENT_MODULE = '4' AND CONVERT(DATETIME, GETDATE()) BETWEEN A.START_TIME AND A.END_TIME
+		LEFT JOIN T_USER_USER U4 ON U4.ID = A.AGENT_USER_ID
+		LEFT JOIN T_DEPT dept1 ON dept1.ID = U1.DEPARTMENT
+		LEFT JOIN T_DEPT dept2 ON dept2.ID = dept1.PARENT_ID
+		<dynamic prepend="where">
+		 	<isNotEmpty property="current_state" prepend="and">
+		 		<!-- 未完成 -->
+		 		<isEqual property="current_state" compareValue="-100">
+					S.ORDER_STATUS NOT IN (-3, -2, 5)
+		 		</isEqual>
+		 		<!-- 已完成 -->
+		 		<isEqual property="current_state" compareValue="-101">
+					S.ORDER_STATUS IN (-3, -2, 5)
+		 		</isEqual>
+		 		<isNotEqual property="current_state" compareValue="-101">
+		 			<isNotEqual property="current_state" compareValue="-100">
+						S.ORDER_STATUS = #current_state#
+		 			</isNotEqual>
+		 		</isNotEqual>
+	        </isNotEmpty> 
+		 	<isEqual property="isMy" prepend="and" compareValue="1">
+		 		(S.CURRENT_OPERATOR_ID = #s_employeeId#
+		 		OR U4.ID = #s_employeeId#)
+		 	</isEqual>
+		 	<isEqual property="isMy" prepend="and" compareValue="2">
+		 		(S.CURRENT_OPERATOR_ID = #s_employeeId#
+		 		OR U4.ID = #s_employeeId#
+		 		OR S.APPLY_USER_ID = #s_employeeId#
+		 		OR U1.upper_user = #s_employeeId#
+		 		OR dept1.DEPT_LEADER = #s_employeeId#
+		 		OR dept2.DEPT_LEADER = #s_employeeId#
+		 		<isNotEmpty property="countesignStatus">
+		 			<iterate property="countesignStatus" >
+                    	OR ',' + S.COUNTERSIGN_CODE_ORDER + ',' LIKE '%,$countesignStatus[]$,%' 
+                    </iterate>
+		 		</isNotEmpty>
+		 		OR ',' + S.LAST_COUNTERSIGN_CODE_ORDER + ',' LIKE '%,$s_employeeId$,%'
+		 		)
+		 	</isEqual>
+		 	<isEqual property="isApply" prepend="and" compareValue="1">
+		 		S.APPLY_USER_ID = #s_employeeId#
+		 	</isEqual>
+		 	<isNotEmpty property="code" prepend="and">
+		 		S.CODE = #code#
+		 	</isNotEmpty>
+		 	<isNotEmpty property="QSTART_DATE" prepend="and">
+				CONVERT(DATE, S.CREATE_TIME) >= CONVERT(DATE, #QSTART_DATE#)
+	        </isNotEmpty>
+		 	<isNotEmpty property="QEND_DATE" prepend="and">
+				CONVERT(DATE, S.CREATE_TIME) &lt;= CONVERT(DATE, #QEND_DATE#)
+	        </isNotEmpty> 
+		 	<isNotEmpty property="QSEARCH_VALUE" prepend="and">
+				<![CDATA[
+				(S.SIGN_CODE LIKE '%$QSEARCH_VALUE$%'
+				OR U1.NAME LIKE '%$QSEARCH_VALUE$%'
+				OR S.CONTENT LIKE '%$QSEARCH_VALUE$%'
+				OR U2.NAME LIKE '%$QSEARCH_VALUE$%'
+				OR S.SUMMARY LIKE '%$QSEARCH_VALUE$%')
+				]]>
+				<!-- OR TDD.DEPT_NAME LIKE '%$QSEARCH_VALUE$%' -->
+	        </isNotEmpty>
+	        <isNotEmpty property="companyCode" prepend="and">
+				S.COMPANY_CODE = #companyCode#
+	        </isNotEmpty> 
+	        
+		</dynamic>
+	</select>
+	
+	<select id="getStatusByUserId" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT CODE FROM T_DATA_DICTIONARY
+		WHERE [TYPE]='签办单流程状态' AND CODE BETWEEN '-100' AND '-199' AND REMARK = CAST(#s_employeeId# AS NVARCHAR) ORDER BY LEVEL_NUM
+	</select>
+	
+	<!-- 签办单流程状态 -->
+	<select id="getSignOrderStatesList" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT * FROM T_DATA_DICTIONARY
+		WHERE TYPE='签办单流程状态' ORDER BY LEVEL_NUM
+	</select>
+	
+	<!-- 上传文件 -->
+	<insert id="insertSignOrderFile" parameterClass="map">
+		INSERT INTO 
+		T_FILE(FILE_TYPE, PATH, CREATE_USER_ID, ORG_FILE_NAME, STATUS, CREATE_DATE, TITLE)
+		VALUES(#fileType#, #path#, #userId#, #fileName#, 1, #date#, #title#)
+		<selectKey resultClass="int" keyProperty="MODIFY_ID">
+			<![CDATA[	select @@IDENTITY as MODIFY_ID  ]]>
+		</selectKey>
+	</insert>
+	
+	<!-- 获取公司部门最大编号 -->
+	<select id="getMaxSignOrderCodeByCompanyNameAndDepartmentCode" parameterClass="java.util.HashMap" resultClass="string">
+		SELECT TOP 1 SIGN_CODE FROM T_SIGN_ORDER
+		WHERE 
+			COMPANY_CODE = #companyCode#
+			AND CODE = #departmentCode#
+		ORDER BY ID DESC
+	</select>
+	
+	<!-- 添加签办单 -->
+	<insert id="insertSignOrder" parameterClass="com.brick.signOrder.to.SignOrderTo">
+		INSERT INTO 
+		T_SIGN_ORDER(SIGN_CODE, APPLY_USER_ID, COMPANY_CODE, CREATE_TIME, CONTENT, 
+					ORDER_STATUS, COUNTERSIGN_CODE_ORDER, COMPLETE_CODE_ORDER, CURRENT_OPERATOR_ID, SUMMARY, 
+					COMPLETE_TIME, LAST_COUNTERSIGN_CODE_ORDER, LAST_COMPLETE_CODE_ORDER, CODE, UPDATE_TIME)
+		VALUES(#signCode#, #applyUserId#, #companyCode#, GETDATE(), #content#,
+				#orderStatus#, #countersignCodeOrder#, #completeCodeOrder#, #currentOperatorId#, #summary#,
+				#completeTime#, #lastCountersignCodeOrder#, #lastCompleteCodeOrder#, #code#, GETDATE())
+		<selectKey resultClass="int" keyProperty="id">
+			<![CDATA[	select @@IDENTITY as id  ]]>
+		</selectKey>
+	</insert>
+	
+	<!-- 根据id查询签办单 -->
+	<select id="getSignOrderById" parameterClass="java.lang.Integer" resultClass="com.brick.signOrder.to.SignOrderTo">
+		SELECT 
+		    S.ID id, 
+		    S.SIGN_CODE signCode, 
+		    S.APPLY_USER_ID applyUserId,
+		    U.NAME applyUserName,
+		    DECP.DECP_NAME_CN + '-' +DEPT.DEPT_NAME AS deptName,
+		    U.EMAIL applyUserEmail,
+		    S.COMPANY_CODE companyCode,
+		    S.CREATE_TIME createTime,
+		    S.CONTENT content,
+		    S.ORDER_STATUS orderStatus,
+		    orderStatusName = 
+		        (CASE WHEN S.ORDER_STATUS >= -200 AND S.ORDER_STATUS &lt;= -100 THEN '会签中' 
+		         ELSE (
+		            SELECT FLAG FROM T_DATA_DICTIONARY WHERE TYPE = '签办单流程状态' AND CODE = S.ORDER_STATUS
+		         ) END),
+		    S.COUNTERSIGN_CODE_ORDER countersignCodeOrder,
+			S.CURRENT_COUNTERSIGN_CODE_ORDER AS currentCountersignCodeOrder,
+			(CASE WHEN S.CURRENT_COUNTERSIGN_CODE_ORDER > 0 THEN U2.NAME ELSE '' END) AS currentCountersignCodeOrderName,
+		    S.COMPLETE_CODE_ORDER completeCodeOrder,  
+		    S.CURRENT_OPERATOR_ID currentOperatorId,
+		    U1.NAME currentOperatorName,
+		    U1.EMAIL currentOperatorEmail,
+		    AGENT.AGENT_USER_ID agentUserId,
+        	UA.[NAME] agentUserName,
+		    S.SUMMARY summary,
+		    S.COMPLETE_TIME completeTime,
+		    S.LAST_COUNTERSIGN_CODE_ORDER lastCountersignCodeOrder,
+		    S.LAST_COMPLETE_CODE_ORDER lastCompleteCodeOrder,
+		    S.CODE code,
+		    S.UPDATE_TIME updateTime,
+		    S.CURRENT_COUNTERSIGN_CODE_ORDER currentCountersignCodeOrder
+		FROM T_SIGN_ORDER S
+		LEFT JOIN T_USER_USER U ON U.ID = S.APPLY_USER_ID AND U.STATUS = 0
+		LEFT JOIN T_DEPT_DEPARTMENT DEPT ON U.DEPT_ID = DEPT.ID
+		LEFT JOIN T_DEPT_COMPANY DECP ON DEPT.DECP_ID = DECP.DECP_ID
+		LEFT JOIN T_USER_USER U1 ON U1.ID = S.CURRENT_OPERATOR_ID AND U1.STATUS = 0
+		LEFT JOIN T_USER_USER U2 ON U2.ID = S.CURRENT_COUNTERSIGN_CODE_ORDER
+		LEFT JOIN T_AGENT AGENT ON S.CURRENT_OPERATOR_ID = AGENT.[USER_ID] AND AGENT.STATUS = 0 AND AGENT.AGENT_MODULE = 4 AND GETDATE() BETWEEN AGENT.START_TIME AND AGENT.END_TIME
+		LEFT JOIN T_USER_USER UA ON UA.ID = AGENT.AGENT_USER_ID
+		WHERE S.ID = #id#
+	</select>
+	
+	<!-- 更新签办单 -->
+	<update id="updateSignOrder" parameterClass="com.brick.signOrder.to.SignOrderTo">
+		UPDATE T_SIGN_ORDER SET 
+		    UPDATE_TIME = CONVERT(DATETIME, #updateTime#)
+		    <isNotEmpty property="content" prepend=",">
+		    	CONTENT = #content#
+		    </isNotEmpty>
+		    <isNotEmpty property="orderStatus" prepend=",">
+		    	ORDER_STATUS = #orderStatus#
+		    </isNotEmpty>
+		    <isNotEmpty property="countersignCodeOrder" prepend=",">
+		    	COUNTERSIGN_CODE_ORDER = #countersignCodeOrder#
+		    </isNotEmpty>
+		    <isNotEmpty property="completeCodeOrder" prepend=",">
+		    	COMPLETE_CODE_ORDER = #completeCodeOrder#
+		    </isNotEmpty>
+		    <isNotEmpty property="currentOperatorId" prepend=",">
+		    	CURRENT_OPERATOR_ID = #currentOperatorId#
+		    </isNotEmpty>
+		    <isNotEmpty property="summary" prepend=",">
+		    	SUMMARY = #summary#
+		    </isNotEmpty>
+		    <isNotEmpty property="completeTime" prepend=",">
+		    	COMPLETE_TIME = CONVERT(DATETIME, #completeTime#)
+		    </isNotEmpty>
+		    <isNotEmpty property="lastCountersignCodeOrder" prepend=",">
+		    	LAST_COUNTERSIGN_CODE_ORDER = #lastCountersignCodeOrder#
+		    </isNotEmpty>
+		    <isNotEmpty property="lastCompleteCodeOrder" prepend=",">
+		    	LAST_COMPLETE_CODE_ORDER = #lastCompleteCodeOrder#
+		    </isNotEmpty>
+		    <isNotEmpty property="currentCountersignCodeOrder" prepend=",">
+		    	CURRENT_COUNTERSIGN_CODE_ORDER = #currentCountersignCodeOrder#
+		    </isNotEmpty>
+		WHERE ID = #id#
+	</update>
+	
+	<!-- 更新会签名单 -->
+	<update id="updateCountersign" parameterClass="java.util.HashMap">
+		UPDATE T_SIGN_ORDER SET COUNTERSIGN_CODE_ORDER = #countersignCodeOrder#
+		WHERE ID = #signOrderId#
+	</update>
+	
+	<!-- 添加签办单log -->
+	<insert id="addSignOrderLog" parameterClass="com.brick.signOrder.to.SignOrderLogTo">
+		INSERT INTO T_SIGN_ORDER_LOG
+		(SIGN_ORDER_ID, SIGN_STATUS, OPERATE_TIME_BEGIN, OPERATE_TIME_END, OPERATOR_ID, OPERATE_STATE, OPERATE_SUGGEST, ORG_OPERATOR_ID)
+		VALUES
+		(#signOrderId#, #signStatus#, #operateTimeBegin#, #operateTimeEnd#, #operatorId#, #operateState#, #operateSuggest#, #orgOperatorId#)
+	</insert>
+	
+	<!-- 根据id查询log -->
+	<select id="getSignOrderLogsById" resultClass="com.brick.signOrder.to.SignOrderLogTo" parameterClass="java.lang.Integer">
+		SELECT
+			L.ID id, 
+			L.SIGN_ORDER_ID signOrderId, 
+			L.SIGN_STATUS signStatus, 
+			L.OPERATE_TIME_BEGIN operateTimeBegin, 
+			L.OPERATE_TIME_END operateTimeEnd,  
+			L.OPERATOR_ID operatorId, 
+			U.NAME operatorName,
+    		U.EMAIL operatorEmail,
+			L.OPERATE_STATE operateState, 
+			L.OPERATE_SUGGEST operateSuggest,
+			L.ORG_OPERATOR_ID orgOperatorId,
+			U1.NAME orgOperatorName,
+    		U1.EMAIL orgOperatorEmail
+		FROM T_SIGN_ORDER_LOG L
+		LEFT JOIN T_USER_USER U ON U.ID = L.OPERATOR_ID
+		LEFT JOIN T_USER_USER U1 ON U1.ID = L.ORG_OPERATOR_ID
+		WHERE L.SIGN_ORDER_ID = #signOrderId#
+		ORDER BY L.ID DESC
+	</select>
+	
+	<!-- 根据ids查询用户 -->
+	<select id="getUsersByIds" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		SELECT * FROM T_USER_USER	
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="ids">
+				<![CDATA[ ID IN ]]>        
+				<iterate conjunction="," open="(" close=")" property="ids" >
+					#ids[]#
+                </iterate>
+			</isNotEmpty>
+		</dynamic>
+		<!-- 使查询结果按照传入ids顺序排序 -->
+		ORDER BY CHARINDEX(',' + RTRIM(ID) + ',' , ',' + #ids1# + ',')
+	</select>
+	
+	<!-- 更新后会名单 -->
+	<update id="updateLastCountersign" parameterClass="java.util.HashMap">
+		UPDATE T_SIGN_ORDER SET LAST_COUNTERSIGN_CODE_ORDER = #lastCountersignCodeOrder#
+		WHERE ID = #signOrderId#
+	</update>
+	
+	<!-- 查询主管审核信息 -->
+	<select id="getHeadInfoById" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT * FROM 
+		(SELECT TOP 1
+			G.ID,
+		    G.SIGN_ORDER_ID,
+		    G.OPERATE_TIME_END UP_TIME,
+		    U1.NAME UP_NAME,
+		    U2.NAME UP_ORG_NAME,
+		    G.OPERATE_SUGGEST UP_SUGGEST,
+    		G.OPERATE_STATE UP_OP
+		FROM T_SIGN_ORDER_LOG G
+		LEFT JOIN T_USER_USER U1 ON U1.ID = G.OPERATOR_ID
+		LEFT JOIN T_USER_USER U2 ON U2.ID = G.ORG_OPERATOR_ID
+		WHERE 
+			G.SIGN_ORDER_ID = #signOrderId# AND G.SIGN_STATUS = 1
+		ORDER BY G.ID DESC
+		) T1 
+		LEFT JOIN 
+		(SELECT TOP 1
+			G.ID,
+		    G.SIGN_ORDER_ID,
+		    G.OPERATE_TIME_END UP_UP_TIME,
+		    U1.NAME UP_UP_NAME,
+		    U2.NAME UP_UP_ORG_NAME,
+		    G.OPERATE_SUGGEST UP_UP_SUGGEST,
+    		G.OPERATE_STATE UP_UP_OP
+		FROM T_SIGN_ORDER_LOG G
+		LEFT JOIN T_USER_USER U1 ON U1.ID = G.OPERATOR_ID
+		LEFT JOIN T_USER_USER U2 ON U2.ID = G.ORG_OPERATOR_ID
+		WHERE 
+		    G.SIGN_ORDER_ID = #signOrderId# AND G.SIGN_STATUS = 2
+		ORDER BY G.ID DESC
+		) T2 ON T1.SIGN_ORDER_ID = T2.SIGN_ORDER_ID AND T2.ID > T1.ID
+		LEFT JOIN
+		(SELECT TOP 1
+		    G.ID,
+		    G.SIGN_ORDER_ID,
+		    G.OPERATE_TIME_END SENIOR_TIME,
+		    U1.NAME SENIOR_NAME,
+		    U2.NAME SENIOR_ORG_NAME,
+		    G.OPERATE_SUGGEST SENIOR_SUGGEST,
+		    G.OPERATE_STATE SENIOR_OP
+		FROM T_SIGN_ORDER_LOG G
+		LEFT JOIN T_USER_USER U1 ON U1.ID = G.OPERATOR_ID
+		LEFT JOIN T_USER_USER U2 ON U2.ID = G.ORG_OPERATOR_ID
+		WHERE 
+		    G.SIGN_ORDER_ID = #signOrderId# AND G.SIGN_STATUS = 3
+		ORDER BY G.ID DESC
+		) T3 ON T3.SIGN_ORDER_ID = T1.SIGN_ORDER_ID AND T3.ID > T1.ID
+	</select>
+	
+	<!-- 查询会签信息 -->
+	<select id="getCountersignInfoById" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT 
+		    G.SIGN_ORDER_ID,
+		    G.OPERATE_TIME_END,
+		    U1.NAME NAME,
+		    U2.NAME ORG_NAME,
+		    G.OPERATE_SUGGEST,
+		    G.OPERATE_STATE,
+		    G.SIGN_STATUS
+		FROM T_SIGN_ORDER_LOG G
+		LEFT JOIN T_USER_USER U1 ON U1.ID = G.OPERATOR_ID
+		LEFT JOIN T_USER_USER U2 ON U2.ID = G.ORG_OPERATOR_ID
+		WHERE 
+		    G.SIGN_ORDER_ID = #signOrderId#
+		    AND G.SIGN_STATUS &lt;= -100
+		    AND G.SIGN_STATUS >= -200
+		    AND G.OPERATE_STATE IN (6,16,17)
+		ORDER BY G.ID
+	</select>
+	
+	<!-- 查询后会信息 -->
+	<select id="getLastCountersignInfoById" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		SELECT 
+		    G.SIGN_ORDER_ID,
+		    G.OPERATE_TIME_END,
+		    U1.NAME NAME,
+		    U2.NAME ORG_NAME,
+		    G.OPERATE_SUGGEST,
+		    G.OPERATE_STATE,
+		    G.SIGN_STATUS
+		FROM T_SIGN_ORDER_LOG G
+		LEFT JOIN T_USER_USER U1 ON U1.ID = G.OPERATOR_ID
+		LEFT JOIN T_USER_USER U2 ON U2.ID = G.ORG_OPERATOR_ID
+		WHERE 
+		    G.SIGN_ORDER_ID = #signOrderId#
+		    AND G.SIGN_STATUS = 4
+		    AND G.OPERATE_STATE = 20
+		ORDER BY G.ID
+	</select>
+	
+</sqlMap>
+
+
+

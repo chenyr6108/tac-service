@@ -1,0 +1,1214 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+ "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="businessSupport">
+    <update id="extensionProjectValidDate" parameterClass="map">
+    	<!-- Modify by ZhangYizhou on 2014-06-19 Begin -->
+    	<!-- IT201406071 : 延长案件有效期画面完善 -->
+    	<isNotEmpty property="valid_date">
+    	UPDATE T_PRJT_CREDIT SET VALID_DAY = DATEDIFF(DAY,(
+		select MAX(FINISH_TIME) FROM T_PRJT_RISK_CONTROL WHERE STATE = 1 AND CREDIT_ID = 
+		(
+		SELECT ID FROM T_PRJT_CREDIT WHERE LEASE_CODE = '$lease_code$'
+		)),convert(date,'$valid_date$')) 
+		WHERE LEASE_CODE = '$lease_code$';
+		</isNotEmpty>
+		<isNotEmpty property="valid_day">
+		UPDATE T_PRJT_CREDIT SET VALID_DAY = $valid_day$ 
+		WHERE LEASE_CODE = '$lease_code$';
+		</isNotEmpty>
+    	<!-- 
+    	update T_PRJT_CREDIT 
+    	set VALID_DAY = #valid_day#
+		where LEASE_CODE = #lease_code#
+		and STATUS = 0
+		-->
+		<!-- Modify by ZhangYizhou on 2014-06-19 End -->
+    </update>
+    
+    <!-- Add by ZhangYizhou on 2014-06-19 Begin -->
+    <!-- IT201406071 : 延长案件有效期画面完善 -->
+    <select id="getValidDayByLeaseCode" parameterClass="map" resultClass="java.lang.Integer">
+    SELECT VALID_DAY FROM T_PRJT_CREDIT WHERE LEASE_CODE = '$lease_code$'
+    </select>
+    <!-- Add by ZhangYizhou on 2014-06-19 End -->
+    
+    <select id="getCreditIdByLeaseCode" parameterClass="map" resultClass="java.lang.Integer">
+    	select ID from T_PRJT_CREDIT
+		where LEASE_CODE = #lease_code#
+    </select>
+    
+    <select id="getUpdateTime" resultClass="java.sql.Timestamp">
+    	select update_time from t_update_flag
+    </select>
+    
+    <select id="getAllNotApproved" resultClass="com.brick.credit.to.CreditTo">
+    	<![CDATA[
+    	select prcd.ID as creditId,
+    		prcd.CREDIT_RUNCODE as creditRuncode, cust.CUST_NAME as custName, 
+			decp.DECP_NAME_CN as decpName,uu.[NAME] as upperUser, 
+			u.[NAME] as sensorUser, tt.min_commit_date as minCommitDate,
+			datediff(day, tt.min_commit_date, getdate()) as dayDiff,
+		  prsm.LEASE_RZE as leaseRze,
+		(select count(0) from T_PRJT_RISK_CONTROL
+		where credit_id = tt.CREDIT_ID and state = 3) as arg1,
+		prcd.STATE as state
+		,(
+		  select top 1 MEMO_CONTENT
+		  from T_PRJT_CREDIT_MEMO
+		  where CREDIT_ID = prcd.ID
+		  order by CREATE_DATE desc
+		) as memo
+		from (
+		select CREDIT_ID, min(create_time) as min_commit_date
+		from T_PRJT_CREDITMEMO t
+		where t.STATUS = 0
+		group by CREDIT_ID 
+		having datediff(day,min(create_time),getdate()) > 5
+		and CREDIT_ID not in(
+		select credit_id from T_PRJT_RISK_CONTROL
+		where (STATE = 1 or STATE = 4)
+		)
+		) tt left join T_PRJT_CREDIT prcd on tt.CREDIT_ID = prcd.ID
+		left join T_PRJT_CREDITSCHEME prsm on prsm.CREDIT_ID = prcd.ID
+		left join T_CUST_CUSTOMER cust on prcd.CUST_ID = cust.CUST_ID
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_USER_USER uu on u.upper_user = uu.id
+		left join T_DEPT_DEPARTMENT dept on dept.id = u.DEPT_ID
+		left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID
+		where prcd.STATUS = 0
+		and prcd.state != -1
+		and (prcd.WIND_STATE != 4 or prcd.WIND_STATE is null)
+		and (prcd.state != 2 or (prcd.state = 2 and exists(
+		  select PRC_ID from T_PRJT_RISK_CONTROL
+		  where CREDIT_ID = prcd.ID
+		)))
+		]]>
+		<isNotEmpty property="decp_id">
+			and decp.DECP_ID in ($decp_id$)
+		</isNotEmpty>
+		<isEqual prepend="and" property="p_usernode" compareValue="1">
+	  	 	<![CDATA[ 
+	  	 	(u.ID = #s_employeeId#
+	  	 	or uu.ID = #s_employeeId#)
+	  	 	]]>
+	  	</isEqual>
+		<isEqual prepend="and" property="p_usernode" compareValue="2">
+			<![CDATA[	
+				exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+				where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+			]]>
+		</isEqual>
+		<isNotEmpty property="search_content">
+			and (
+				prcd.CREDIT_RUNCODE like '%$search_content$%'
+				or cust.CUST_NAME like '%$search_content$%'
+				or decp.DECP_NAME_CN like '%$search_content$%'
+				or uu.[NAME] like '%$search_content$%'
+				or u.[NAME] like '%$search_content$%'
+			)
+		</isNotEmpty>
+		$order$
+    </select>
+    
+    <select id="getAllNotCommit" resultClass="com.brick.credit.to.CreditTo">
+    	<![CDATA[
+    	select prcd.ID as creditId,
+    		prcd.CREDIT_RUNCODE as creditRuncode, cust.CUST_NAME as custName, 
+			decp.DECP_NAME_CN as decpName,uu.[NAME] as upperUser, 
+			u.[NAME] as sensorUser, vi.REAL_VISIT_DATE as realVisitDate,
+			convert(nvarchar,vr.MODIFY_DATE, 23) as modify_date_str,
+			datediff(day, vi.MODIFY_DATE, getdate()) as dayDiff,
+			isnull(vr.ADDED_INFO,'无') as addedInfo, prsm.LEASE_RZE as leaseRze
+			,(
+			  select top 1 MEMO_CONTENT
+			  from T_PRJT_CREDIT_MEMO
+			  where CREDIT_ID = prcd.ID
+			  order by CREATE_DATE desc
+			) as memo
+		from T_PRJT_CREDIT prcd
+		left join T_PRJT_CREDITSCHEME prsm on prsm.CREDIT_ID = prcd.ID
+		left join T_PRJT_VISIT vi on vi.CREDIT_ID = prcd.ID 
+		and vi.STATUS = 0 and vi.VISIT_STATUS >= 3
+		left join T_CUST_CUSTOMER cust on prcd.CUST_ID = cust.CUST_ID
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_USER_USER uu on u.upper_user = uu.id
+		left join T_DEPT_DEPARTMENT dept on dept.id = u.DEPT_ID
+		left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID
+		left join T_PRJT_VISIT_REPORT vr on vr.VISIT_ID = vi.ID
+		where datediff(day,vr.MODIFY_DATE ,getdate()) > 7
+		and vr.STATUS = 1
+		and prcd.STATE != 1 and prcd.STATE != -1
+		and not exists (
+		select PRC_ID from T_PRJT_RISK_CONTROL
+		where credit_id = prcd.ID
+		)
+		]]>
+		<isNotEmpty property="decp_id">
+			and decp.DECP_ID in ($decp_id$)
+		</isNotEmpty>
+		<isEqual prepend="and" property="p_usernode" compareValue="1">
+	  	 	<![CDATA[ 
+	  	 	(u.ID = #s_employeeId#
+	  	 	or uu.ID = #s_employeeId#)
+	  	 	]]>
+	  	</isEqual>
+		<isEqual prepend="and" property="p_usernode" compareValue="2">
+			<![CDATA[	
+				exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+				where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+			]]>
+		</isEqual>
+		<isNotEmpty property="search_content">
+			and (
+				prcd.CREDIT_RUNCODE like '%$search_content$%'
+				or cust.CUST_NAME like '%$search_content$%'
+				or decp.DECP_NAME_CN like '%$search_content$%'
+				or uu.[NAME] like '%$search_content$%'
+				or u.[NAME] like '%$search_content$%'
+			)
+		</isNotEmpty>
+		$order$
+    </select>
+    
+    <select id="getDayType" parameterClass="map" resultClass="java.lang.String">
+    	select DAY_TYPE from T_DAY_TYPE
+		where datediff(day,DATE,convert(date,#dateStr#)) = 0
+    	
+    </select>
+    
+    <select id="getAllCreditForChangeVip" parameterClass="map" resultClass="hashMap">
+    	select pc.ID, pc.CREDIT_RUNCODE, pc.VIP_FLAG, cust.CUST_NAME,
+		u.[NAME], up.[NAME] as UP_NAME
+		from T_PRJT_CREDIT pc
+		left join T_CUST_CUSTOMER cust on pc.CUST_ID = cust.CUST_ID
+		left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		left join T_USER_USER up on u.upper_user = up.ID
+		where pc.STATUS = 0
+		<isNotEmpty>
+			and (pc.CREDIT_RUNCODE like '%$search_content$%'
+			or cust.CUST_NAME like '%$search_content$%'
+			or u.[NAME] like '%$search_content$%'
+			or up.[NAME] like '%$search_content$%')
+		</isNotEmpty>
+		<isEqual property="vip_flag" compareValue="1">
+			and pc.VIP_FLAG = 1
+		</isEqual>
+		<isEqual  property="vip_flag" compareValue="2">
+			and (pc.VIP_FLAG is null or pc.VIP_FLAG = 0)
+		</isEqual>
+    </select>
+    
+    <update id="doChangeVip" parameterClass="map">
+    	update T_PRJT_CREDIT
+		set VIP_FLAG = #to_vip_flag#
+		where ID = #prcd_id#
+    </update>
+    
+    <insert id="addPerformanceLog" parameterClass="map">
+    	insert into T_PERFORMANCE_LOG (
+		   ACTION_INFO
+		  ,START_TIME
+		  ,END_TIME
+		  ,TIME_CONSUMING
+		  ,LOGIN_NAME
+		  ,LOGIN_IP
+		) VALUES (
+		   #actionInfo#
+		  ,#startDate#
+		  ,#endDate#
+		  ,#timeConsuming#
+		  ,#loginName#
+		  ,#loginIp#
+		)
+    </insert>
+    
+    <select id="getDateDiff" parameterClass="map" resultClass="hashMap">
+    	select top 1 prcd.VALID_DAY, 
+    	datediff(day, t.approval_date, getdate()) as dateDiff
+		from T_PRJT_CREDIT prcd
+		left join (
+		  select prrc.CREDIT_ID,
+		  max(prcm.CREATE_TIME) as approval_date
+		  from T_PRJT_RISK_CONTROL prrc
+		  left join T_PRJT_RISK_CONTROLMEMO prcm 
+		  on prcm.PRC_ID = prrc.PRC_ID
+		  where prrc.STATUS = 0 and prcm.STATUS = 0
+		  and prrc.STATE = 1
+		  group by prrc.CREDIT_ID
+		) t on t.CREDIT_ID = prcd.ID
+		where prcd.STATUS = 0
+		and t.approval_date is not null
+		<isNotEmpty property="credit_runcode">
+			and prcd.CREDIT_RUNCODE = #credit_runcode#
+		</isNotEmpty>
+		<isNotEmpty property="credit_id">
+			and prcd.ID = #credit_id#
+		</isNotEmpty>
+    </select>
+    
+    <!-- Add by Michael 2012 09-11 增加判断是否是设备款的首拨款 -->
+    <select id="isFirstPayMent" parameterClass="map" resultClass="java.lang.Long">    
+	    select count(*) num from T_SUPL_PLAYDETIL
+	    where BACKSTATE='0' and state='3'
+	    and CREDIT_ID=#credit_id#
+      </select>
+    
+    <select id="getRentInfo" parameterClass="map" resultClass="hashMap">
+    	select 
+		sum(t.IRR_MONTH_PRICE - isnull(t.REDUCE_OWN_PRICE,0)) as loss_price,
+		sum(isnull(t.loss_own_price,0)) as loss_own_price,
+		sum(isnull(t.loss_ren_price,0)) as loss_ren_price
+		from (
+		select 
+		recd.OWN_PRICE, recd.REN_PRICE, recd.IRR_MONTH_PRICE, recd.REDUCE_OWN_PRICE,
+		case when isnull(recd.REDUCE_OWN_PRICE, 0) >= isnull(recd.REN_PRICE, 0)
+		then isnull(recd.IRR_MONTH_PRICE, 0) - isnull(recd.REDUCE_OWN_PRICE, 0)
+		else isnull(recd.IRR_MONTH_PRICE, 0) - isnull(recd.REN_PRICE, 0) end 
+		as loss_own_price,
+		case when isnull(recd.REDUCE_OWN_PRICE, 0) >= isnull(recd.REN_PRICE, 0)
+		then 0
+		else isnull(recd.REN_PRICE, 0) - isnull(recd.REDUCE_OWN_PRICE, 0) end
+		as loss_ren_price
+		from T_RENT_COLLECTIONDETAIL recd
+		left join T_RENT_COLLECTIONPLAN recp on recd.RECP_ID = recp.RECP_ID
+		left join T_RENT_CONTRACT rect on recp.RECT_ID = rect.RECT_ID
+		left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+		where 1 = 1
+		<isNotEmpty property="recp_id">
+			and recp.RECP_ID = #recp_id#
+		</isNotEmpty>
+		<isNotEmpty property="lease_code">
+			and rect.LEASE_CODE = #lease_code#
+		</isNotEmpty>
+		<isNotEmpty property="rect_id">
+			and rect.RECT_ID = #rect_id#
+		</isNotEmpty>
+		<isNotEmpty property="credit_id">
+			and prcd.ID = #credit_id#
+		</isNotEmpty>
+		<isNotEmpty property="credit_runcode">
+			and prcd.CREDIT_RUNCODE = #credit_runcode#
+		</isNotEmpty>
+		) t
+    </select>
+    
+    <select id="getNatuIdcard" parameterClass="map" resultClass="hashMap">
+    	select CUST_NAME,NATU_IDCARD,PRCD_ID
+		from T_PRJT_CREDITVOUCHNATU
+		where PRCD_ID = #credit_id#
+    </select>
+    
+    <select id="getCorpName" parameterClass="map" resultClass="hashMap">
+    	select CORP_NAME_CN,PRCD_ID
+		from T_PRJT_VOUCHCUSTOMERCORP
+		where PRCD_ID = #credit_id#
+    </select>
+    
+    <select id="getVouchByNatu" parameterClass="map" resultClass="java.lang.String">
+    	select v.PRCD_ID
+		from T_PRJT_CREDITVOUCHNATU v
+		where v.NATU_IDCARD = #NATU_IDCARD#
+		and v.PRCD_ID != #PRCD_ID#
+		and exists (
+		  select 0 from T_PRJT_CREDIT c
+		  where c.ID = v.PRCD_ID
+		  and c.BUSINESS_STATUS > 800
+		)
+    </select>
+    
+    <select id="getVouchByCorp" parameterClass="map" resultClass="java.lang.String">
+    	select v.PRCD_ID
+		from T_PRJT_VOUCHCUSTOMERCORP v
+		where v.CORP_NAME_CN = #CORP_NAME_CN#
+		and v.PRCD_ID != #PRCD_ID#
+		and exists (
+		  select 0 from T_PRJT_CREDIT c
+		  where c.ID = v.PRCD_ID
+		  and c.BUSINESS_STATUS > 800
+		)
+    </select>
+    
+    <select id="getSatisfactionForEmail" parameterClass="map" resultClass="hashMap">
+    	select insa.INSF_ID,
+			insu.INCU_CODE, 
+			insa.EQMT_ID,
+			incp.INCP_NAME,
+			insu.RECT_CODE,
+			cust.CUST_NAME,
+			insa.CREATE_DATE,
+			datediff(day, insa.CREATE_DATE, getdate()) as DAY_DIFF,
+			(
+			  select top 1 RECORD_REMARK
+			  from T_INSU_SATISFACTIONTRACK
+			  where INSF_ID = insa.INSF_ID
+			  order by RECORD_DATE desc
+			) as RECORD_REMARK,
+			(
+			  select top 1 RECORD_DATE
+			  from T_INSU_SATISFACTIONTRACK
+			  where INSF_ID = insa.INSF_ID
+			  order by RECORD_DATE desc
+			) as RECORD_DATE,
+			u.EMAIL,
+			uu.EMAIL as UP_EMAIL
+		from T_INSU_SATISFACTION insa
+		left join T_INSU_INSURANCELIST insu on insa.INCU_ID = insu.INCU_ID
+		left join T_RENT_CONTRACT rect on rect.LEASE_CODE = insu.RECT_CODE
+		left join T_CUST_CUSTOMER cust on rect.CUST_ID = cust.CUST_ID
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		left join T_USER_USER u on rect.SENSOR_ID = u.ID
+		left join T_USER_USER uu on u.upper_user = uu.ID
+		where insa.STATUS = 0
+		and datediff(day, insa.CREATE_DATE, getdate()) > 60
+		order by $orderBy$
+    </select>
+    
+    <select id="getHistoryPledgeBChargeBack" resultClass="java.util.HashMap">
+          SELECT TPC.CREDIT_RUNCODE,TCC.CUST_NAME,
+                 TRC.LEASE_CODE,TPB.RECP_CODE,TUU.NAME,TPB.PRICE,
+                 TPB.PLEDGE_TYPE,TPB.CREATE_TIME,TPB.RECP_ID
+            FROM T_PLEDGE_B_CHARGE_BACK TPB
+       LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.STATUS=0 AND TPB.RECP_ID=TRCN.RECP_ID
+       LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TRCN.RECT_ID=TRC.RECT_ID
+       LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TPC.ID=TRC.PRCD_ID
+       LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TPC.CUST_ID=TCC.CUST_ID
+       LEFT JOIN T_USER_USER TUU ON TUU.STATUS=0 AND TUU.ID=TPB.CREATE_BY
+           WHERE TPB.STATUS=0
+           <isNotEmpty property="content">
+             AND (TPC.CREDIT_RUNCODE LIKE '%$content$%' 
+             		OR TCC.CUST_NAME LIKE '%$content$%' 
+             		OR TRC.LEASE_CODE LIKE '%$content$%'
+             		OR TPB.RECP_CODE LIKE '%$content$%')
+           </isNotEmpty>
+    </select>
+    
+    <select id="getPledgeBChargeBackBaseData" resultClass="java.util.HashMap">
+            SELECT T.RECP_ID,T.FICB_ID,T.FIIN_ID,T.REAL_PRICE,T.RECP_CODE
+              FROM T_FINA_COLLECTIONBILL  T
+         LEFT JOIN T_RENT_COLLECTIONPLAN TRCP ON T.RECP_ID=TRCP.RECP_ID 
+             WHERE FICB_ITEM='保证金B' 
+               AND FICB_TYPE='0' 
+               AND (FICB_STATE='4' OR FICB_STATE='5') 
+               AND TRCP.RECP_STATUS=0
+               AND NOT EXISTS (SELECT 1 FROM T_PLEDGE_B_CHARGE_BACK TP WHERE TP.STATUS=0 AND TP.RECP_ID=T.RECP_ID)
+               AND T.RECP_CODE=#recpCode#
+    </select>
+    
+    <update id="updatePledgeBToPaddingMoney">
+    	UPDATE T_FINA_INCOME SET DECOMPOSE_STATUS=2
+    	 WHERE FIIN_ID=#fiinId#
+    </update>
+    
+    <insert id="insertHistoryPledgeBChargeBack">
+    	INSERT INTO T_PLEDGE_B_CHARGE_BACK
+    	(RECP_ID,RECP_CODE,PRICE,PLEDGE_TYPE,STATUS,CREATE_BY,CREATE_TIME)
+    	VALUES
+    	(#recpId#,#recpCode#,#price#,'保证金B',0,#s_employeeId#,GETDATE())
+    </insert>
+    
+    <select id="getDispatchCaseList" resultClass="java.util.HashMap">
+          SELECT TRFSS.STATE,TPC.CREDIT_RUNCODE,TPC.LEASE_CODE,
+          		 TCC.CUST_NAME,TUU.NAME,TUU1.NAME DISPATCH_NAME,
+          		 TRFSS.ID,TUU1.EMAIL,TUU1.ID DISPATCH_ID,CONVERT(DATETIME,TRFSS.HW_TIME,23) HW_TIME
+            FROM T_RENT_FILE_SENDER_STATE TRFSS
+       LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TRFSS.CREDIT_ID=TPC.ID
+       LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TCC.CUST_ID=TPC.CUST_ID
+       LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID 
+       LEFT JOIN T_USER_USER TUU1 ON TUU1.ID=TRFSS.DISPATCH_USER_ID
+           WHERE TRFSS.STATE=4 
+             AND TRFSS.STATUS=0
+             <isNotEmpty property="id">
+             AND TRFSS.ID=#id#
+             </isNotEmpty>
+    </select>
+    
+    <select id="getDispatchIdList" resultClass="java.util.HashMap">
+    	SELECT TUU.NAME,TUU.ID 
+	      FROM T_RENT_DISPATCH_USER  TRDU
+	 LEFT JOIN T_USER_USER TUU ON TRDU.USER_ID=TUU.ID 
+		 WHERE TUU.STATUS=0
+	       AND TUU.ID!=#dispatchId#
+	  ORDER BY TUU.ID     
+    </select>
+    
+    <select id="getDispatchUserInfo" resultClass="java.util.HashMap">
+    	SELECT NAME,EMAIL FROM T_USER_USER WHERE STATUS=0 AND ID=#TRANSFER_ID#
+    </select>
+    <update id="updateDispatchId">
+    	UPDATE T_RENT_FILE_SENDER_STATE SET DISPATCH_USER_ID=#TRANSFER_ID#,HW_TIME=GETDATE()
+    	 WHERE STATE=4 AND ID=#id#
+    </update>
+    <insert id="insertDispatchLog">
+    	INSERT INTO T_RENT_FILE_DISPATCH_LOG
+    	(CREDIT_RUNCODE,LEASE_CODE,CUST_NAME,MEMO,STATUS,CREATE_BY,CREATE_TIME)
+    	VALUES
+    	(#CREDIT_RUNCODE#,#LEASE_CODE#,#CUST_NAME#,#MEMO#,0,#s_employeeId#,GETDATE())
+    </insert>
+    
+    <select id="getDispatchLogList" resultClass="java.util.HashMap">
+    	SELECT T1.CREDIT_RUNCODE,T1.LEASE_CODE,T1.CUST_NAME,T1.MEMO,
+    		   T2.NAME,CONVERT(DATETIME,T1.CREATE_TIME) CREATE_TIME
+    	  FROM T_RENT_FILE_DISPATCH_LOG T1 
+     LEFT JOIN T_USER_USER T2 ON T1.CREATE_BY=T2.ID
+    	 WHERE T1.STATUS=0 ORDER BY T1.ID
+    </select>
+    
+    <select id="getAllSql" parameterClass="map" resultClass="com.brick.businessSupport.to.SqlTO">
+    	select du.ID as id
+    		, du.CREATE_TIME as create_time
+    		, u.name as create_by
+    		, du.EXECUTED_TIME as executed_time
+    		, du.SQL as sql
+    		, du.SQL_TYPE as sql_type
+    		, du.RESULT as result
+    		, du.STATUS as status
+    		, du.ITEM_CODE as item_code
+		from T_DATABASE_UPDATE du
+		left join T_USER_USER u on du.CREATE_BY = u.ID
+		where 1 = 1
+		<isNotEmpty property="search_status">
+			and du.status = #search_status#
+		</isNotEmpty>
+		<isNotEmpty property="create_by">
+			and du.create_by = #create_by#
+		</isNotEmpty>
+		<isNotEmpty property="search_context">
+			and (
+				du.SQL like '%$search_context$%'
+				or du.ITEM_CODE like '%$search_context$%'
+			)
+		</isNotEmpty>
+    </select>
+    
+    <insert id="createSql" parameterClass="com.brick.businessSupport.to.SqlTO">
+    	insert into T_DATABASE_UPDATE (
+		   CREATE_TIME
+		  ,CREATE_BY
+		  ,SQL
+		  ,SQL_TYPE
+		  ,ITEM_CODE
+		  ,STATUS
+		) VALUES (
+		   getdate()
+		  ,#create_by#
+		  ,#sql#
+		  ,#sql_type#
+		  ,#item_code#
+		  ,0
+		)
+		<selectKey resultClass="java.lang.String" keyProperty="id">
+			<![CDATA[	select @@IDENTITY as id  ]]>
+		</selectKey>
+    </insert>
+    
+    
+    <select id="getSqlById" parameterClass="com.brick.businessSupport.to.SqlTO" resultClass="com.brick.businessSupport.to.SqlTO">
+    	select du.ID as id
+    		, du.CREATE_TIME as create_time
+    		, u.name as create_by
+    		, du.EXECUTED_TIME as executed_time
+    		, du.SQL as sql
+    		, du.SQL_TYPE as sql_type
+    		, du.RESULT as result
+    		, du.STATUS as status
+    		, du.ITEM_CODE as item_code
+		from T_DATABASE_UPDATE du
+		left join T_USER_USER u on du.CREATE_BY = u.ID
+		where du.id = #id#
+    </select>
+    
+    <update id="updateSql" parameterClass="com.brick.businessSupport.to.SqlTO">
+    	update T_DATABASE_UPDATE
+		SET
+		  RESULT = #result#
+		  ,STATUS = #status#
+		  <isNotNull property="executed_time">
+		  	,EXECUTED_TIME = getdate()
+		  </isNotNull>
+		  <isNotNull property="sql">
+		  	,SQL = #sql#
+		  </isNotNull>
+		  <isNotNull property="sql_type">
+		  	,SQL_TYPE = #sql_type#
+		  </isNotNull>
+		  <isNotNull property="item_code">
+		  	,ITEM_CODE = #item_code#
+		  </isNotNull>
+		WHERE ID = #id#
+    </update>
+    
+    <update id="executeUpdateSql" parameterClass="com.brick.businessSupport.to.SqlTO">
+    	<![CDATA[$sql$]]>
+    </update>
+    <insert id="executeInsertSql" parameterClass="com.brick.businessSupport.to.SqlTO">
+    	<![CDATA[$sql$]]>
+    </insert>
+    
+    <select id="executeSelectSql" parameterClass="map" resultClass="java.util.LinkedHashMap" remapResults="true">
+    	<![CDATA[$sql$]]>
+    </select>
+    
+    
+    <select id="queryMotorCarRecp" resultClass="java.util.HashMap">
+	    SELECT TRCN.RECP_ID,TRCN.RECP_CODE,TPC.CREDIT_RUNCODE,TCC.CUST_NAME,TUU.[NAME],TUU1.[NAME] UP_NAME,TPC.ID,
+	           TRCN.START_DATE FIRST_PAY_DATE,O.PAY_MONEY,TPC.FINANCECONTRACT_DATE,TMCBS.MEMO,
+	           TDC.DECP_ID,TDC.DECP_NAME_CN,(SELECT ISNULL(COUNT(ID),0) FROM T_MOTOR_CAR_BUSINESS_SUPPORT WHERE RECP_ID=TRCN.RECP_ID) [COUNT],
+	           (SELECT ISNULL(COUNT(ID),0) FROM T_MOTOR_CAR_BUSINESS_SUPPORT WHERE RECP_ID=TRCN.RECP_ID AND STATUS=0) AUTH_COUNT
+	      FROM T_RENT_COLLECTIONPLAN TRCN 
+	 LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TRCN.RECT_ID=TRC.RECT_ID
+	 LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TRC.CUST_ID=TCC.CUST_ID
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TPC.ID=TRC.PRCD_ID
+	 LEFT JOIN (SELECT SUM(T.PAY_MONEY) PAY_MONEY,T.CREDIT_ID FROM T_SUPL_PLAYDETIL T WHERE T.STATUS=0 AND T.BACKSTATE=0 AND T.STATE=3 GROUP BY CREDIT_ID) O ON O.CREDIT_ID=TPC.ID
+	 LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	 LEFT JOIN T_USER_USER TUU1 ON TUU1.ID=TPC.CLERK_ID
+	 LEFT JOIN T_DEPT_DEPARTMENT TDD ON TDD.STATUS=0 AND TUU.DEPT_ID=TDD.ID
+	 LEFT JOIN T_DEPT_COMPANY TDC ON TDC.STATUS=0 AND TDD.DECP_ID=TDC.DECP_ID
+	 LEFT JOIN T_MOTOR_CAR_BUSINESS_SUPPORT TMCBS ON TMCBS.STATUS=0 AND TRCN.RECP_ID=TMCBS.RECP_ID
+	     WHERE TRCN.STATUS=0
+	       <!--AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+	       AND CONVERT(DATE,'1900-1-1')!=CONVERT(DATE,TPC.FINANCECONTRACT_DATE) 已经拨款的 -->
+	       AND TPC.PRODUCTION_TYPE=3<!-- 产品类别3是乘用车 -->
+	       AND O.PAY_MONEY IS NOT NULL
+	   <isNotEmpty property="content">
+	   	   AND (TRCN.RECP_CODE LIKE '%$content$%' OR
+	   	   		TPC.CREDIT_RUNCODE LIKE '%$content$%' OR
+	   	   		TCC.CUST_NAME LIKE '%$content$%' OR
+	   	   		TUU.[NAME] LIKE '%$content$%' OR
+	   	   		TMCBS.MEMO LIKE '%$content$%')
+	   </isNotEmpty>
+	   <isNotEmpty property="deptId">
+	   	   AND TDC.DECP_ID=#deptId#
+	   </isNotEmpty>
+	   <isNotEmpty property="recpId">
+	       AND TRCN.RECP_ID=#recpId#
+	   </isNotEmpty>
+    </select>
+    
+    <select id="queryMotorCarLog" resultClass="java.util.HashMap">
+    	SELECT T.*,TU.NAME FROM T_MOTOR_CAR_BUSINESS_SUPPORT T 
+   	 LEFT JOIN T_USER_USER TU ON TU.ID=T.CREATE_BY
+    	 WHERE RECP_ID=#recpId# ORDER BY CREATE_TIME DESC
+    </select>
+    
+    <select id="getRoleId" resultClass="java.lang.String">
+    	SELECT CONVERT(NVARCHAR,ROLE_ID) FROM  T_USER_USER2ROLE WHERE EMPLOYEE_ID=#s_employeeId#
+    </select>
+    
+    <update id="enableMotorCarDate">
+    	UPDATE T_MOTOR_CAR_BUSINESS_SUPPORT SET STATUS=-1 WHERE RECP_ID=#recpId# AND STATUS=0
+    </update>
+    
+    <update id="updatePayDate0">
+    	UPDATE T_SUPL_PLAYDETIL SET PAY_DATE=#newDate# WHERE CREDIT_ID=#creditId# AND STATUS=0
+    </update>
+    
+    <update id="updatePayDate1">
+    	UPDATE T_PRJT_CREDIT SET FINANCECONTRACT_DATE=#newDate# WHERE ID=#creditId# AND STATUS=0
+    </update>
+    
+    <update id="updatePayDate2">
+    	UPDATE T_KINGDEER_PAY_CAR SET PAY_DATE=#newDate# WHERE RECP_ID=#recpId# AND STATUS=0
+    </update>
+    
+    <update id="updatePayDate3">
+    	UPDATE T_RENT_COLLECTIONPLAN SET START_DATE=#firstPayDate# WHERE RECP_ID=#recpId# AND STATUS=0
+    </update>
+    
+    <update id="updatePayDate4">
+    	UPDATE T_RENT_COLLECTIONDETAIL SET PAY_DATE=#newDate# WHERE STATUS=0 AND RECP_ID=#RECP_ID# AND PERIOD_NUM=#PERIOD_NUM#
+    </update>
+    
+    <select id="getPayDetail" resultClass="java.util.HashMap">
+    	SELECT PAY_DATE,PERIOD_NUM,RECP_ID FROM T_RENT_COLLECTIONDETAIL WHERE RECP_ID=#recpId# ORDER BY PERIOD_NUM
+    </select>
+    
+    <select id="checkHasUpdate" resultClass="java.lang.Integer">
+    	SELECT ISNULL(COUNT(ID),0) FROM T_MOTOR_CAR_BUSINESS_SUPPORT WHERE RECP_ID=#recpId# AND STATUS=0
+    </select>
+    
+    <insert id="insertMotorCarLog">
+    	INSERT INTO T_MOTOR_CAR_BUSINESS_SUPPORT
+    	(RECP_ID,ORIGINAL_FIRST_PAY_DATE,ORIGINAL_PAY_DATE,MEMO,CREATE_BY,CREATE_TIME,STATUS)
+    	VALUES
+    	(#RECP_ID#,#FIRST_PAY_DATE#,#FINANCECONTRACT_DATE#,#MEMO#,#s_employeeId#,GETDATE(),0)
+    </insert>
+    
+    <select id="getInfoForUpdateSuplPledge" parameterClass="map" resultClass="hashMap">
+    	select pc.CREDIT_RUNCODE, pc.LEASE_CODE
+		, cu.CUST_NAME, su.supl_name
+		, ps.SUPL_TRUE, pc.ID
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		left join T_CUST_CUSTOMER cu on cu.CUST_ID = pc.CUST_ID
+		left join (
+		  select pe.CREDIT_ID, max(sp.[NAME]) as supl_name 
+		  from T_PRJT_CREDITEQUIPMENT pe
+		  left join T_SUPL_EQUIPMENT se on se.SUEQ_ID = pe.SUEQ_ID
+		  left join T_SUPL_SUPPLIER sp on se.SUPPLIER_ID = sp.ID
+		  where pe.EQMT_STATUS = 0
+		  group by pe.CREDIT_ID
+		) su on su.CREDIT_ID = pc.ID
+		where pc.status = 0
+		<isNotEmpty property="lease_code">
+			and pc.LEASE_CODE = #lease_code#
+		</isNotEmpty>
+		<isNotEmpty property="credit_runcode">
+			and pc.CREDIT_RUNCODE = #credit_runcode#
+		</isNotEmpty>
+		
+    </select>
+    
+    <update id="doUpdateSuplPledge" parameterClass="map">
+    	update T_PRJT_CREDITSCHEME
+		set SUPL_TRUE = #SUPL_TRUE#
+		where CREDIT_ID = #ID#
+		and STATUS = 0
+    </update>
+    
+    <update id="doUpdateSuplPledgeForRect" parameterClass="map">
+    	update T_RENT_CONTRACTSCHEMA
+		set SUPL_TRUE = #SUPL_TRUE#
+		where RECT_ID = #rectId#
+    </update>
+    
+    <update id="doUpdateSuplPledgeForRecp" parameterClass="map">
+    	update T_RENT_COLLECTIONPLAN
+		set SUPL_TRUE = #SUPL_TRUE#
+		where RECT_ID = #rectId#
+    </update>
+    
+    <select id="showUpdateEqmt" parameterClass="map" resultClass="hashMap">
+    	select pc.ID, pc.CREDIT_RUNCODE
+		, pc.LEASE_CODE, cu.CUST_NAME
+		, sp.[NAME] as SUPL_NAME
+		, dc.[NAME] as MODEL_SPEC
+		, dk.[NAME] as THING_NAME
+		, dt.[NAME] as THING_TYPE
+		, dt.MANUFACTURER
+		, pe.PRCE_ID
+		, pe.SUEQ_ID
+		from T_PRJT_CREDIT pc
+		left join T_CUST_CUSTOMER cu on cu.CUST_ID = pc.CUST_ID
+		left join T_PRJT_CREDITEQUIPMENT pe on pe.CREDIT_ID = pc.ID
+		left join T_SUPL_EQUIPMENT se on se.SUEQ_ID = pe.SUEQ_ID
+		left join T_SUPL_SUPPLIER sp on se.SUPPLIER_ID = sp.ID
+		left join T_PRDC_PRODUCT dc on dc.ID = se.PRODUCT_ID
+		left join T_PRDC_KIND dk on dc.KIND_ID = dk.ID
+		left join T_PRDC_TYPE dt on dk.[TYPE_ID] = dt.ID
+		where pc.STATUS = 0
+		<isNotEmpty property="lease_code">
+			and pc.LEASE_CODE = #lease_code#
+		</isNotEmpty>
+		<isNotEmpty property="credit_runcode">
+			and pc.CREDIT_RUNCODE = #credit_runcode#
+		</isNotEmpty>
+    </select>
+    
+    <select id="getNeedUpdateForRect" parameterClass="map" resultClass="hashMap">
+    	select ee.SUEQ_ID, cd.RECD_ID, ee.EQMT_ID
+		from T_RENT_CONTRACTDETAIL cd
+		left join T_EQMT_EQUIPMENT ee on ee.EQMT_ID = cd.EQMT_ID
+		where cd.RECT_ID = #rectId#
+		and ee.SUEQ_ID = #SUEQ_ID#
+    	
+    </select>
+    
+    <update id="updateRectDetailInfo" parameterClass="map">
+    	update T_RENT_CONTRACTDETAIL
+		set THING_NAME = #THING_NAME#
+		, MODEL_SPEC = #MODEL_SPEC#
+		, THING_KIND = #THING_TYPE#
+		where RECD_ID = #RECD_ID#
+    </update>
+    
+    <update id="updateRectEqmt" parameterClass="map">
+    	update T_EQMT_EQUIPMENT 
+		set SUEQ_ID = #sueq#
+		where EQMT_ID = #EQMT_ID#
+    </update>
+    
+    <select id="getTypeByName" parameterClass="map" resultClass="java.lang.String">
+    	select ID from T_PRDC_TYPE
+		where [NAME] = #THING_TYPE#
+		and Manufacturer = #MANUFACTURER#
+		and PRDC_TYPE_STATUS = 0
+    </select>
+    
+    <select id="getKindByNameAndType" parameterClass="map" resultClass="java.lang.String">
+    	select ID from T_PRDC_KIND
+		where PRDC_KIND_STATUS = 0
+		and [NAME] = #THING_NAME#
+		and [TYPE_ID] = #type_id#
+    </select>
+    
+    <select id="getProductByNameAndKind" parameterClass="map" resultClass="java.lang.String">
+    	select ID from T_PRDC_PRODUCT
+		where STATUS = 0
+		and [NAME] = #MODEL_SPEC#
+		and KIND_ID = #kind_id#
+    </select>
+    
+    <select id="getSueqBySuplAndProduct" parameterClass="map" resultClass="java.lang.String">
+    	select SUEQ_ID from T_SUPL_EQUIPMENT
+		where STATUS = 0
+		and SUPPLIER_ID = #supl_id#
+		and PRODUCT_ID = #product_id#
+    </select>
+    
+    <insert id="insertType" parameterClass="map">
+    	insert into T_PRDC_TYPE (
+		   [NAME]
+		  ,CREATE_DATE
+		  ,MODIFY_DATE
+		  ,PRDC_TYPE_STATUS
+		  ,Manufacturer
+		) VALUES (
+		   #THING_TYPE#
+		  ,getdate()
+		  ,getdate()
+		  ,0
+		  ,#MANUFACTURER#
+		)
+		<selectKey resultClass="java.lang.String" keyProperty="id">
+			<![CDATA[	select @@IDENTITY as id  ]]>
+		</selectKey>
+    </insert>
+    
+    <insert id="insertKind" parameterClass="map">
+    	insert into T_PRDC_KIND (
+		   [NAME]
+		  ,[TYPE_ID]
+		  ,[TYPE]
+		  ,CREATE_DATE
+		  ,MODIFY_DATE
+		  ,PRDC_KIND_STATUS
+		) VALUES (
+		   #THING_NAME#
+		  ,#type_id#
+		  ,1
+		  ,getdate()
+		  ,getdate()
+		  ,0
+		)
+		<selectKey resultClass="java.lang.String" keyProperty="id">
+			<![CDATA[	select @@IDENTITY as id  ]]>
+		</selectKey>
+    </insert>
+    
+    <insert id="insertProduct" parameterClass="map">
+    	insert into T_PRDC_PRODUCT (
+		   [NAME]
+		  ,KIND_ID
+		  ,STATUS
+		  ,CREATE_DATE
+		  ,MODIFY_DATE
+		) VALUES (
+		   #MODEL_SPEC#
+		  ,#kind_id#
+		  ,0
+		  ,getdate()
+		  ,getdate()
+		)
+		<selectKey resultClass="java.lang.String" keyProperty="id">
+			<![CDATA[	select @@IDENTITY as id  ]]>
+		</selectKey>
+    </insert>
+    
+    <insert id="insertSueq" parameterClass="map">
+    	insert into T_SUPL_EQUIPMENT (
+		   PRODUCT_ID
+		  ,SUPPLIER_ID
+		  ,STATUS
+		  ,CREATE_DATE
+		  ,MODIFY_DATE
+		  ,CREATE_USER_ID
+		  ,MODIFY_USER_ID
+		) VALUES (
+		   #product_id#
+		  ,#supl_id#
+		  ,0
+		  ,getdate()
+		  ,getdate()
+		  ,184
+		  ,184
+		)
+		<selectKey resultClass="java.lang.String" keyProperty="id">
+			<![CDATA[	select @@IDENTITY as id  ]]>
+		</selectKey>
+    </insert>
+    
+    <update id="updateCreditEquipment" parameterClass="map">
+    	update T_PRJT_CREDITEQUIPMENT
+		set SUEQ_ID = #sueq#
+		, THING_NAME = #THING_NAME#
+		, MODEL_SPEC = #MODEL_SPEC#
+		, THING_KIND = #THING_TYPE#
+		where PRCE_ID = #PRCE_ID#
+    </update>
+    
+    <select id="getCreditBaseInfo" parameterClass="map" resultClass="hashMap">
+    	select pc.CREDIT_RUNCODE, pc.LEASE_CODE
+		, cu.CUST_NAME, su.supl_name
+		, pc.ID
+		from T_PRJT_CREDIT pc
+		left join T_CUST_CUSTOMER cu on cu.CUST_ID = pc.CUST_ID
+		left join (
+		  select pe.CREDIT_ID, max(sp.[NAME]) as supl_name 
+		  from T_PRJT_CREDITEQUIPMENT pe
+		  left join T_SUPL_EQUIPMENT se on se.SUEQ_ID = pe.SUEQ_ID
+		  left join T_SUPL_SUPPLIER sp on se.SUPPLIER_ID = sp.ID
+		  where pe.EQMT_STATUS = 0
+		  group by pe.CREDIT_ID
+		) su on su.CREDIT_ID = pc.ID
+		where pc.status = 0
+		<isNotEmpty property="lease_code">
+			and pc.LEASE_CODE = #lease_code#
+		</isNotEmpty>
+		<isNotEmpty property="credit_runcode">
+			and pc.CREDIT_RUNCODE = #credit_runcode#
+		</isNotEmpty>
+		
+    </select>
+    
+    <select id="getRiskMemoForUpdate" parameterClass="map" resultClass="hashMap">
+    	select rm.PRCM_ID
+		, rm.PRCM_CONTEXT
+		, rm.PRCM_USER_LEVEL
+		, u.[NAME]
+		, rm.CREATE_TIME
+		from T_PRJT_RISK_CONTROL rc
+		left join T_PRJT_RISK_CONTROLMEMO rm on rm.PRC_ID = rc.PRC_ID
+		left join T_USER_USER u on rm.CREATE_USER_ID = u.ID
+		where rc.CREDIT_ID = #credit_id#
+    </select>
+    
+    <select id="getRiskMemoById" parameterClass="map" resultClass="java.lang.String">
+    	select PRCM_CONTEXT
+		from T_PRJT_RISK_CONTROLMEMO
+		where PRCM_ID = #prcm_id#
+    </select>
+    
+    <update id="updateRiskMemo" parameterClass="map">
+    	update T_PRJT_RISK_CONTROLMEMO
+    	set PRCM_CONTEXT = #newRiskMemo#
+    	where PRCM_ID = #prcm_id#
+    </update>
+    
+    <select id="getAllCust" resultClass="com.brick.base.to.SelectionTo">
+    	select CUST_ID as option_value
+		, CUST_NAME as display_name
+		from T_CUST_CUSTOMER
+		where STATUS = 0
+		order by CUST_NAME
+	</select>
+    
+    <select id="getCustCountByName" parameterClass="map" resultClass="java.lang.Integer">
+    	select count(0)
+		from T_CUST_CUSTOMER
+		where status = 0
+		and CUST_NAME = #cust_name#
+		and CUST_ID != #cust_id#
+    </select>
+    
+    <update id="updateCustNameById" parameterClass="map">
+    	update T_CUST_CUSTOMER
+		set CUST_NAME = #cust_name#
+		where CUST_ID = #cust_id#
+    </update>
+    
+    <select id="getProjectForUpdateCust" parameterClass="map" resultClass="hashMap">
+    	select pc.ID, pcu.PJCCC_ID, pcu.CORP_NAME_CN 
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_CREDITCUSTOMERCORP pcu on pcu.CREDIT_ID = pc.ID
+		where pcu.STATUS = 0
+		and pc.STATUS = 0
+		and pc.CUST_ID = #cust_id#
+    </select>
+    
+    <update id="updateProjectCust" parameterClass="map">
+    	update T_PRJT_CREDITCUSTOMERCORP
+		set CORP_NAME_CN = #newName#
+		where PJCCC_ID = #PJCCC_ID#
+    </update>
+    
+    <update id="updateProjectCustByCreditId" parameterClass="map">
+    	update T_PRJT_CREDITCUSTOMERCORP
+		set CORP_NAME_CN = #newName#
+		where CREDIT_ID = #creditId#
+    </update>
+    
+    <update id="updateRectCust" parameterClass="map">
+    	update T_RENT_CONTRACT
+		set LESSEE = #newName#
+		, CUST_NAME = #newName#
+		where PRCD_ID = #ID#
+    </update>
+    
+    <update id="updateCustIdForProject" parameterClass="map">
+    	update T_PRJT_CREDIT
+		set CUST_ID = #cust_id#
+		where ID = #creditId#
+    </update>
+    
+    <select id="getAllSupl" resultClass="com.brick.base.to.SelectionTo">
+    	select ID as option_value
+		, [NAME] as display_name
+		from T_SUPL_SUPPLIER
+		where STATUS = 0
+	</select>
+    
+    <select id="getSuplCountByName" parameterClass="map" resultClass="java.lang.Integer">
+    	select count(0)
+		from T_SUPL_SUPPLIER
+		where status = 0
+		and [NAME] = #supl_name#
+		and ID != #supl_id#
+    </select>
+    
+    <update id="updateSuplNameById" parameterClass="map">
+    	update T_SUPL_SUPPLIER
+		set [NAME] = #supl_name#
+		where ID = #supl_id#
+    </update>
+    
+    <update id="updateCreditEqmtBrand" parameterClass="map">
+    	update T_PRJT_CREDITEQUIPMENT
+		set BRAND = #supl_name#
+		where BRAND = #old_supl_name#
+		and EQMT_STATUS = 0
+    </update>
+    
+    <update id="updateRentEqmtBrand" parameterClass="map">
+    	update T_RENT_CONTRACTDETAIL
+		set BRAND = #supl_name#
+		where BRAND = #old_supl_name#
+		and STATUS = 0
+    </update>
+    
+    <update id="updateEqmtBrand" parameterClass="map">
+    	update T_EQMT_EQUIPMENT
+		set BRAND = #supl_name#
+		where BRAND = #old_supl_name#
+		and STATUS = 0
+    </update>
+    
+    <select id="getSuplById" parameterClass="map" resultClass="hashMap">
+    	select ID, [NAME] 
+		from T_SUPL_SUPPLIER
+		where ID = #new_supl_id#
+    </select>
+    
+    <select id="getDataForUpdateSupl" parameterClass="map" resultClass="hashMap">
+    	select distinct pc.ID, se.PRODUCT_ID, se.SUEQ_ID
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_CREDITEQUIPMENT pe on pe.CREDIT_ID = pc.ID
+		left join T_SUPL_EQUIPMENT se on se.SUEQ_ID = pe.SUEQ_ID
+		where se.SUPPLIER_ID = #supl_id#
+		and pc.ID = #creditId#
+		and pc.STATUS = 0
+		and pe.EQMT_STATUS = 0
+		and se.STATUS = 0
+    </select>
+    
+    <select id="getSuplEqmtIdBySuplAndProduct" parameterClass="map" resultClass="java.lang.String">
+    	select SUEQ_ID from T_SUPL_EQUIPMENT
+		where SUPPLIER_ID = #supl_id#
+		and PRODUCT_ID = #PRODUCT_ID#
+		and STATUS = 0
+    </select>
+    
+    <update id="updateCreditEqmtBySueq" parameterClass="map">
+    	update T_PRJT_CREDITEQUIPMENT
+		set BRAND = #supl_name#
+		, SUEQ_ID = #new_sueq#
+		where EQMT_STATUS = 0
+		and BRAND = #old_supl_name#
+		and SUEQ_ID = #old_sueq#
+		and CREDIT_ID = #creditId#
+    </update>
+    
+    <select id="getRentEqmtByRent" parameterClass="map" resultClass="java.lang.String">
+    	select rd.EQMT_ID
+		from T_RENT_CONTRACTDETAIL rd
+		left join T_EQMT_EQUIPMENT ee on rd.EQMT_ID = ee.EQMT_ID
+		where rd.STATUS = 0
+		and ee.STATUS = 0
+		and rd.RECT_ID = #rect_id#
+		and ee.SUEQ_ID = #old_sueq#
+    </select>
+    
+    <update id="updateRentEqmtByEqmt" parameterClass="map">
+	    update T_RENT_CONTRACTDETAIL
+		set BRAND = #supl_name#
+		where STATUS = 0
+		and EQMT_ID = #emtId#
+	</update>
+	<update id="updateEqmtByEqmt" parameterClass="map">	
+		update T_EQMT_EQUIPMENT
+		set BRAND = #supl_name#
+		, SUEQ_ID = #new_sueq#
+		where STATUS = 0
+		and EQMT_ID = #emtId#
+    </update>
+    
+    <select id="getInvoiceInfoForCustInfo" parameterClass="map" resultClass="hashMap">
+    	select pc.ID , pc.CREDIT_RUNCODE, pc.LEASE_CODE
+    	, isnull(pcu.CORP_NAME_CN, vn.NATU_NAME) as NAME
+		, isnull(pcu.TAX_REGISTRATION_NUMBER, vn.NATU_IDCARD) as CODE
+		, isnull(pcu.TELEPHONE, vn.MOBILE_PHONE) as PHONE
+		, isnull(pcu.REGISTERED_OFFICE_ADDRESS, vn.HOME_ADDR) as ADDRESS
+		, pcu.PJCCC_ID, vn.NATU_ID
+		from T_PRJT_CREDIT pc 
+		left join T_PRJT_CREDITCUSTOMERCORP pcu on pcu.CREDIT_ID = pc.ID
+			and pcu.STATUS = 0
+		left join T_PRJT_NATUNAL vn on vn.CREDIT_ID = pc.ID
+			and vn.STATUS = 0
+		where pc.STATUS = 0
+    	<isNotEmpty property="lease_code">
+			and pc.LEASE_CODE = #lease_code#
+		</isNotEmpty>
+		<isNotEmpty property="credit_runcode">
+			and pc.CREDIT_RUNCODE = #credit_runcode#
+		</isNotEmpty>
+    </select>
+    
+    <select id="getInvoiceInfoForBankInfo" parameterClass="map" resultClass="hashMap">
+    	select pa.PCCBA_ID
+		, pa.BANK_NAME, pa.BANK_ACCOUNT, pa.STATE
+		from T_PRJT_CREDIT pc 
+		left join T_PRJT_CREDITCORPBANKACCOUNT pa on pa.CREDIT_ID = pc.ID
+		where pc.STATUS = 0
+		and pa.STATUS = 0
+		<isNotEmpty property="lease_code">
+			and pc.LEASE_CODE = #lease_code#
+		</isNotEmpty>
+		<isNotEmpty property="credit_runcode">
+			and pc.CREDIT_RUNCODE = #credit_runcode#
+		</isNotEmpty>
+		order by pa.STATE
+    </select>
+    
+    <update id="updateInvoiceInfoForCustInfo" parameterClass="map">
+    	update T_PRJT_CREDITCUSTOMERCORP
+		set TAX_REGISTRATION_NUMBER = #TAX_REGISTRATION_NUMBER#
+		, TELEPHONE = #TELEPHONE#
+		, REGISTERED_OFFICE_ADDRESS = #REGISTERED_OFFICE_ADDRESS#
+		, MODIFY_USER_ID = #user_id#
+		, MODIFY_DATE = getdate()
+		where CREDIT_ID = #creditId#
+		and STATUS = 0
+    </update>
+    
+    <update id="updateNatuInfo" parameterClass="map">
+    	update T_PRJT_NATUNAL
+		set NATU_IDCARD = #CODE#
+		, MOBILE_PHONE = #PHONE#
+		, HOME_ADDR = #ADDRESS#
+		, MODIFY_USER_ID = #user_id#
+		, MODIFY_DATE = getdate()
+		where NATU_ID = #NATU_ID#
+    </update>
+    
+    <insert id="addBankInfo" parameterClass="map">
+    	insert into T_PRJT_CREDITCORPBANKACCOUNT (
+		   BANK_NAME
+		  ,BANK_ACCOUNT
+		  ,STATE
+		  ,STATUS
+		  ,CREDIT_ID
+		  ,CREATE_DATE
+		  ,MODIFY_DATE
+		) VALUES (
+		   #bank_name#
+		  ,#bank_acc#
+		  ,0
+		  ,0
+		  ,#creditId#
+		  ,getdate()
+		  ,getdate()
+		)
+    </insert>
+    
+    <update id="updateBankInfo" parameterClass="map">
+    	update T_PRJT_CREDITCORPBANKACCOUNT
+		set BANK_NAME = #bank_name#
+		, BANK_ACCOUNT = #bank_acc#
+		, MODIFY_DATE = getdate()
+		where PCCBA_ID = #bankId#
+    </update>
+    
+    <delete id="deleteDataSessionByUserId" parameterClass="com.brick.base.to.DataSession">
+    	delete from T_DATA_SESSION
+		where USER_ID = #user_id#
+		and PAGE_CODE = #page_code#
+		and CODE_ID = #code_id#
+		<isNotEmpty property="item_id">
+			and ITEM_ID = #item_id#
+		</isNotEmpty>
+		<isNotEmpty property="item_key">
+			and ITEM_KEY = #item_key#
+		</isNotEmpty>
+    </delete>
+    
+    <insert id="insertDataSessionByUserId" parameterClass="com.brick.base.to.DataSession">
+    	insert into T_DATA_SESSION (
+		   [USER_ID]
+		  ,PAGE_CODE
+		  ,CODE_ID
+		  ,ITEM_ID
+		  ,ITEM_KEY
+  		  ,ITEM_VALUE
+		  ,STATUS
+		  ,CREATE_TIME
+		) VALUES (
+		   #user_id#
+		  ,#page_code#
+		  ,#code_id#
+		  ,#item_id#
+		  ,#item_key#
+		  ,#item_value#
+		  ,0
+		  ,getdate()
+		)
+    </insert>
+    
+    <select id="getDataSessionByUserId" parameterClass="com.brick.base.to.DataSession" resultClass="hashMap">
+    	select * From T_DATA_SESSION
+    	where STATUS = 0
+    	and USER_ID = #user_id#
+    	and PAGE_CODE = #page_code#
+    	and CODE_ID = #code_id#
+    </select>
+    
+    <select id="showUpdatePayWay" parameterClass="map" resultClass="hashMap">
+    	select CREDIT_ID
+			, PAYPERCENT
+			, APPRORIATEMON
+			, [TYPE]
+			, APPRORIATENAME
+		from T_PRJT_CREDITAPPROPIATE
+		where CREDIT_ID = #ID#
+		and STATUS = 0
+    </select>
+    
+    <select id="getScInfoForUpdatePayWay" parameterClass="map" resultClass="hashMap" >
+    	select SPONSOR, INVOICE_PERSON
+		from T_PRJT_CREDITSCHEME
+		where CREDIT_ID = #ID#
+    </select>
+    
+    <update id="updateScInfoForUpdatePayWay" parameterClass="map">
+    	update T_PRJT_CREDITSCHEME
+		set CREDIT_ID = #CREDIT_ID#
+		<isNotEmpty property="SPONSOR">
+			, SPONSOR = #SPONSOR#
+		</isNotEmpty>
+		<isNotEmpty property="INVOICE_PERSON">
+			, INVOICE_PERSON = #INVOICE_PERSON#
+		</isNotEmpty>
+		where CREDIT_ID = #CREDIT_ID#
+    </update>
+    
+</sqlMap>

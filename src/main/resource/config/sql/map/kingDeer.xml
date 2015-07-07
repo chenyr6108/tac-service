@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+ "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="kingDeer">
+	<select id="paymentQueryForCar" resultClass="java.util.HashMap">
+	      SELECT TPC.CREDIT_RUNCODE,TDC.DECP_NAME_CN,TKPC.*,
+	      		 TUU.NAME,TUU1.NAME OPERATE_NAME,TCC.CUST_NAME,
+	      		 TPC.CONTRACT_TYPE
+	        FROM T_KINGDEER_PAY_CAR TKPC
+	   LEFT JOIN T_RENT_COLLECTIONPLAN TRCP ON TRCP.STATUS=0 AND TRCP.RECP_STATUS=0 AND TKPC.RECP_ID=TRCP.RECP_ID
+	   LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TRCP.RECT_ID=TRC.RECT_ID
+	   LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TRC.CUST_ID=TCC.CUST_ID
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TRC.PRCD_ID=TPC.ID
+	   LEFT JOIN T_USER_USER TUU ON TUU.ID=TKPC.SALES_ID
+	   LEFT JOIN T_USER_USER TUU1 ON TUU1.ID=TKPC.OPERATE_ID
+	   LEFT JOIN T_DEPT_DEPARTMENT TDD ON TDD.STATUS=0 AND TUU.DEPT_ID=TDD.ID
+ 	   LEFT JOIN T_DEPT_COMPANY TDC ON TDC.STATUS=0 AND TDD.DECP_ID=TDC.DECP_ID
+	       WHERE TKPC.STATUS=0
+	   <isNotEmpty property="content">
+	   		 AND (TPC.CREDIT_RUNCODE LIKE '%$content$%' OR TRC.LEASE_CODE LIKE '%$content$%')
+	   </isNotEmpty>    
+	   <isNotEqual property="contractType" compareValue="-1">
+	   		 AND TPC.CONTRACT_TYPE=#contractType#
+	   </isNotEqual>
+	   <isNotEmpty property="payDate">
+	   		 AND CONVERT(DATE,TKPC.PAY_DATE)=CONVERT(DATE,#payDate#)
+	   </isNotEmpty>
+	   <isEmpty property="id">
+	   		 AND TPC.COMPANY_CODE=#companyCode#
+	   </isEmpty>
+	   <isNotEmpty property="id">
+	   	     AND TKPC.ID=#id#
+	   </isNotEmpty>
+	   <isNotEmpty property="idsForBatchQuery">
+	   		 AND TKPC.ID
+		   <iterate property="idsForBatchQuery" conjunction="," open="(" close=")">
+		      #idsForBatchQuery[]#
+	       </iterate>
+       </isNotEmpty>
+	</select>
+	<select id="batchQueryForCar" resultClass="java.util.HashMap">
+	      SELECT TPC.CREDIT_RUNCODE,TDC.DECP_NAME_CN,TKPC.*,
+	      		 TUU.NAME,TUU1.NAME OPERATE_NAME,TCC.CUST_NAME,
+	      		 TPC.CONTRACT_TYPE,'CAR' FLAG
+	        FROM T_KINGDEER_PAY_CAR TKPC
+	   LEFT JOIN T_RENT_COLLECTIONPLAN TRCP ON TRCP.STATUS=0 AND TRCP.RECP_STATUS=0 AND TKPC.RECP_ID=TRCP.RECP_ID
+	   LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TRCP.RECT_ID=TRC.RECT_ID
+	   LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TRC.CUST_ID=TCC.CUST_ID
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TRC.PRCD_ID=TPC.ID
+	   LEFT JOIN T_USER_USER TUU ON TUU.ID=TKPC.SALES_ID
+	   LEFT JOIN T_USER_USER TUU1 ON TUU1.ID=TKPC.OPERATE_ID
+	   LEFT JOIN T_DEPT_DEPARTMENT TDD ON TDD.STATUS=0 AND TUU.DEPT_ID=TDD.ID
+ 	   LEFT JOIN T_DEPT_COMPANY TDC ON TDC.STATUS=0 AND TDD.DECP_ID=TDC.DECP_ID
+	       WHERE TKPC.STATUS=0	   
+	   <isNotEmpty property="idsForBatchQuery">
+	   		 AND TKPC.ID IN
+		   <iterate property="idsForBatchQuery" conjunction="," open="(" close=")">
+		      #idsForBatchQuery[]#
+	       </iterate>
+       </isNotEmpty>
+	</select>
+	
+	<update id="updateBatchNum">
+		UPDATE T_KINGDEER_PAY_CAR SET BATCH_NUM=#BATCH_NUM#,OPERATE_RESULT=1,OPERATE_ID=#s_employeeId#,OPERATE_TIME=GETDATE(),SETTLE_DATE=#SETTLE_DATE# 
+		 WHERE ID=#id#
+	</update>
+	<select id="paymentQueryForEqu" resultClass="java.util.HashMap">
+		SELECT 1
+	</select>
+	<select id="paymentQueryForMotor" resultClass="java.util.HashMap">
+		SELECT 2
+	</select>
+	
+	<insert id="insertPayForCar">
+		INSERT INTO T_KINGDEER_PAY_CAR 
+		(RECP_ID,PAY_TYPE,PAY_ORDER,SYSTEM_CODE,COMPANY_CODE,CUST_CODE,LEASE_CODE,BANK_ACCOUNT,
+		 SUPL_CODE,SALES_ID,PAY_MONEY,PAY_DATE,OPERATE_RESULT,OPERATE_TIME,STATUS,CREATE_TIME)
+		VALUES 
+		(#RECP_ID#,#PAY_TYPE#,#PAY_ORDER#,#SYSTEM_CODE#,#COMPANY_CODE#,#CUST_CODE#,#LEASE_CODE#,#BANK_ACCOUNT#,
+		 #SUPL_CODE#,#SALES_ID#,#PAY_MONEY#,#PAY_DATE#,0,#OPERATE_TIME#,0,GETDATE())
+	</insert>
+	
+	<insert id="insertPayForEqu">
+	
+	</insert>
+	
+	<select id="checkResult" resultClass="java.lang.String">
+		SELECT CASE WHEN OPERATE_RESULT=0 THEN 'N' ELSE 'Y' END FROM T_KINGDEER_PAY_CAR WHERE ID=#id#
+	</select>
+	
+	<!-- 获得科目代码 -->
+	<select id="getKingDeerBaseSubject" resultClass="java.lang.String">
+		SELECT FNumber FROM kingdeer_srv_lnk.k303001.dbo.t_account WHERE FHelperCode=#tacCode#
+	</select>
+	<!-- 获得客户编码 -->
+	<select id="getKingDeerBaseCustomer" resultClass="java.lang.String">
+		SELECT FItemId FROM kingdeer_srv_lnk.k303001.dbo.t_Item WHERE FNumber=#tacCode# AND FItemClassID=1
+	</select>
+	<!-- 获得合同编码 -->
+	<select id="getKingDeerBaseLease" resultClass="java.lang.String">
+		SELECT FItemId FROM kingdeer_srv_lnk.k303001.dbo.t_Item WHERE FNumber=#tacCode# AND FItemClassID=3001
+	</select>
+	<!-- 获得供应商编码 -->
+	<select id="getKingDeerBaseSupplier" resultClass="java.lang.String">
+		SELECT FItemId FROM kingdeer_srv_lnk.k303001.dbo.t_Item WHERE FNumber=#tacCode# AND FItemClassID=8
+	</select>
+	
+	<parameterMap class="java.util.Map" id="paymentForCarParam">
+		<parameter property="ACCOUNT_TYPE" javaType="java.lang.Integer" jdbcType="int" mode="IN"/><!-- 帐套别,1是正式账套,2是测试账套 -->
+		<parameter property="LOGIN_NAME" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/><!-- 金蝶使用者 -->
+		<parameter property="BATCH_NUM" javaType="java.lang.String" jdbcType="bigint" mode="IN"/><!-- 批号 -->
+		<parameter property="REMARK" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/><!-- 传票备注 -->
+		<parameter property="SETTLE_DATE" javaType="java.lang.String" jdbcType="date" mode="IN"/><!-- 传票日期 -->
+		<parameter property="PAY_DATE" javaType="java.lang.String" jdbcType="date" mode="IN"/><!-- 拨款日 -->
+		<parameter property="CODE_NAME" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/><!-- CODE_NAME -->
+		<parameter property="B" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/><!-- 科目代码 -->
+		<parameter property="C" javaType="java.lang.Integer" jdbcType="int" mode="IN"/><!-- 借贷 -->
+		<parameter property="D" javaType="java.math.BigDecimal" jdbcType="MONEY" mode="IN"/><!-- 金额 -->
+		<parameter property="E" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/><!-- 客户编号 -->
+		<parameter property="F" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/><!-- 合同号 -->
+		<parameter property="G" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/><!-- 银行帐号 -->
+		<parameter property="H" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="I" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="J" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="B1" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/><!-- 科目代码 -->
+		<parameter property="C1" javaType="java.lang.Integer" jdbcType="int" mode="IN"/><!-- 借贷 -->
+		<parameter property="D1" javaType="java.math.BigDecimal" jdbcType="MONEY" mode="IN"/><!-- 金额 -->
+	</parameterMap>
+	<procedure id="paymentForCarI" parameterMap="paymentForCarParam"><!-- 乘用车委贷拨款 -->
+		EXEC kingDeer_srv_lnk.k3.[dbo].s_KDTrn ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?
+	</procedure>
+	
+	<!-- 执行生成传票 -->
+	<parameterMap class="java.util.Map" id="k3TransferParam">
+		<parameter property="BATCH_NUM" javaType="java.lang.String" jdbcType="bigint" mode="IN"/>
+	</parameterMap>
+	<procedure id="k3Transfer" parameterMap="k3TransferParam">
+		EXEC kingDeer_srv_lnk.k3.[dbo].s_K3Trn ?
+	</procedure>
+	
+	<!-- 金蝶基本档抛转 AIS20130506101203是测试数据库,k303001是正式数据库 -->
+	<!-- 获得客户基本档 -->
+	<select id="getKingDeerBaseCustInfo" resultClass="java.util.HashMap">
+		    SELECT DISTINCT TCC.CUST_CODE TAC_CODE,
+		    				TCC.CUST_NAME FNAME,
+		    				TCC.CUST_NAME FFULLNAME,
+		    				'1' FITEMCLASSID
+		      FROM T_RENT_CONTRACT TRC
+		 LEFT JOIN T_CUST_CUSTOMER TCC ON TRC.CUST_ID=TCC.CUST_ID
+		     WHERE TRC.STATUS=0
+		       AND TCC.STATUS=0
+		       AND NOT EXISTS (SELECT 1 
+		                         FROM kingDeer_srv_lnk.k303001.dbo.t_Item t_Item 
+		                        WHERE t_Item.FNumber=TCC.CUST_CODE
+		                          AND t_Item.FItemClassID=1)
+		       AND NOT EXISTS (SELECT 1 FROM T_CUST_CUSTOMER T WHERE T.STATUS=0 AND T.CUST_CODE=TCC.CUST_CODE GROUP BY T.CUST_CODE HAVING COUNT(T.CUST_CODE)>1)
+	</select>
+	<!-- 获得合同基本档 -->
+	<select id="getKingDeerBaseLeaseInfo" resultClass="java.util.HashMap">
+			SELECT DISTINCT TCC.CUST_CODE,
+							TCC.CUST_NAME FNAME,
+							TCC.CUST_NAME FFULLNAME,
+							TRC.LEASE_CODE TAC_CODE,
+							'3001' FITEMCLASSID
+		      FROM T_RENT_CONTRACT TRC
+		 LEFT JOIN T_CUST_CUSTOMER TCC ON TRC.CUST_ID=TCC.CUST_ID
+		     WHERE TRC.STATUS=0
+		       AND TCC.STATUS=0          
+		       AND NOT EXISTS (SELECT 1 
+		                         FROM kingDeer_srv_lnk.k303001.dbo.t_Item t_Item 
+		                        WHERE t_Item.FNumber=TRC.LEASE_CODE
+		                          AND t_Item.FItemClassID=3001)
+		       AND NOT EXISTS (SELECT 1 FROM T_RENT_CONTRACT T WHERE T.STATUS=0 AND T.LEASE_CODE=TRC.LEASE_CODE GROUP BY T.LEASE_CODE HAVING COUNT(T.LEASE_CODE)>1)
+	</select>
+	<!-- 获得供应商基本档 -->
+	<select id="getKingDeerBaseSuplInfo" resultClass="java.util.HashMap">
+		    SELECT DISTINCT TSS.CODE TAC_CODE,
+		    				TSS.[NAME] FNAME,
+		    				TSS.[NAME] FFULLNAME,
+		    				'8' FITEMCLASSID
+		      FROM T_SUPL_PLAYDETIL TSP
+		 LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.[NAME]=TSP.BACKCOMP
+		     WHERE TSP.BACKSTATE=0
+		       AND TSP.STATE=3
+		       AND TSP.STATUS=0
+		       AND TSS.STATUS=0
+		       AND NOT EXISTS (SELECT 1 
+		                         FROM kingDeer_srv_lnk.k303001.dbo.t_Item t_Item 
+		                        WHERE t_Item.FNumber=TSS.CODE
+		                          AND t_Item.FItemClassID=8)
+		       AND NOT EXISTS (SELECT 1 FROM T_SUPL_SUPPLIER T WHERE T.STATUS=0 AND T.CODE=TSS.CODE GROUP BY T.CODE HAVING COUNT(T.CODE)>1)
+	</select>
+	<!-- 获得职员基本档 -->
+	<select id="getKingDeerBaseUserInfo" resultClass="java.util.HashMap">
+			SELECT TUU.ID TAC_CODE,
+				   TUU.NAME FNAME,
+				   TUU.NAME FFULLNAME,
+				   '3' FITEMCLASSID
+			  FROM T_USER_USER TUU 
+			 WHERE TUU.STATUS=0
+			   AND TUU.ID>514
+			   AND NOT EXISTS (SELECT 1 FROM kingDeer_srv_lnk.k303001.dbo.t_Item t_Item 
+		                        WHERE t_Item.FNumber=CONVERT(VARCHAR,TUU.ID)
+		                          AND t_Item.FItemClassID=3)
+	</select>
+	<!-- 获得国别地区 -->
+	<select id="getKingDeerBaseCmpyInfo" resultClass="java.util.HashMap">
+			SELECT DECP_ID TAC_CODE,
+				   DECP_NAME_CN FNAME,
+				   DECP_NAME_CN FFULLNAME,
+				   '2026' FITEMCLASSID
+			  FROM T_DEPT_COMPANY
+			 WHERE DECP_ID>28
+			   AND STATUS=0
+			   AND NOT EXISTS (SELECT 1 FROM kingDeer_srv_lnk.k303001.dbo.t_Item t_Item 
+		                        WHERE t_Item.FNumber=DECP_ID
+		                          AND t_Item.FItemClassID=2026)
+	</select>
+	
+	<insert id="insertKingDeerBaseInfoForTac">
+		INSERT INTO T_KINGDEER_ITEM
+		(TAC_CODE,FItemClassID,FName,FFullName,STATUS,CREATE_BY,CREATE_TIME)
+		VALUES
+		(#TAC_CODE#,#FITEMCLASSID#,#FNAME#,#FFULLNAME#,0,184,GETDATE())
+		<selectKey resultClass="java.lang.Long" keyProperty="pk_id">
+		SELECT @@IDENTITY as pk_id
+		</selectKey>
+	</insert>
+	<update id="updateKingDeerBaseInfoForTac">
+		UPDATE T_KINGDEER_ITEM SET FItemID=#fItemID# WHERE ID=#pkId# AND STATUS=0
+	</update>
+	
+	<insert id="insertKingDeerBaseInfoForKingDeer">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.t_Item
+		(FBrNo,FDeleted,FDetail,FExternID,FFullName,FFullNumber,FGrControl,FItemClassID,FItemID,FLevel,FName,FNumber,FParentID,FShortNumber)
+		VALUES
+		(0,0,1,-1,#FFULLNAME#,#TAC_CODE#,-1,#FITEMCLASSID#,#FITEMID#,1,#FNAME#,#TAC_CODE#,0,#TAC_CODE#)
+	</insert>
+	
+	<insert id="insertKingDeerOrganization">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.t_Organization
+		(FItemID,FStatus,FRegionID,FTrade,FCyID,FSetID,FName,FNumber,FShortNumber,FValueAddRate,FSaleID,FRegion,FPayCondition,FManageType,FCoSupplierID,FShortName)
+		VALUES
+		(#FITEMID#,1072,0,0,0,0,#FNAME#,#TAC_CODE#,#TAC_CODE#,5,0,0,0,0,0,#FNAME#)
+	</insert>
+	
+	<insert id="insertKingDeerSupplier">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.t_Supplier
+		(FItemID,FStatus,FRegionID,FTrade,FCyID,FSetID,FName,FNumber,FShortNumber,FValueAddRate,FRegion,FManageType,FAbateDate,FShortName)
+		VALUES
+		(#FITEMID#,1072,0,0,0,0,#FNAME#,#TAC_CODE#,#TAC_CODE#,5,0,0,'2100/1/1',#FNAME#)		
+	</insert>
+	
+	<parameterMap class="java.util.Map" id="empParam">
+		<parameter property="FITEMID" javaType="java.lang.Long" jdbcType="int" mode="IN"/>
+		<parameter property="FNAME" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="TAC_CODE" javaType="java.lang.Integer" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+	<procedure id="insertKingDeerEmp" parameterMap="empParam">
+		EXEC kingDeer_srv_lnk.k303001.dbo.P_EMP ?,?,?
+	</procedure>
+	<!-- 下面直接插入此表系统报错,所以改用调用P_EMP存储过程 -->
+	<!-- <insert id="insertKingDeerEmp">
+		INSERT INTO kingDeer_srv_lnk.AIS20130506101203.dbo.t_Emp
+		(FItemID,FItemDepID,FName,FNumber,FParentID)
+		VALUES
+		(#FITEMID#,0,#FNAME#,#TAC_CODE#,0)
+	</insert> -->
+	
+	<select id="queryPayDetail" resultClass="java.util.HashMap">
+		SELECT TSP.PAY_MONEY,CONVERT(DATE,TSP.PAY_DATE) PAY_DATE,TSP.PAY_WAY,TRCN.RECP_ID,
+			   TPC.PRODUCTION_TYPE,TSP.COMPANY_PAY_ACCOUNT BANK_ACCOUNT,TRC.LEASE_CODE,
+			   TCC.CUST_CODE,TRC.SENSOR_ID SALES_ID,TPC.COMPANY_CODE,'ONLINE_BANK' PAY_TYPE,
+			   TSS.CODE SUPL_CODE,TPC.CONTRACT_TYPE,TSP.PAY_ORDER
+		  FROM T_SUPL_PLAYDETIL TSP
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TSP.CREDIT_ID=TPC.ID AND TPC.STATUS=0
+	 LEFT JOIN T_RENT_CONTRACT TRC ON TPC.ID=TRC.PRCD_ID AND TRC.STATUS=0
+	 LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRC.RECT_ID=TRCN.RECT_ID
+	 LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.CUST_ID=TRC.CUST_ID AND TCC.STATUS=0
+	 LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.[NAME]=TSP.BACKCOMP AND TSS.STATUS=0
+	     WHERE TSP.CREDIT_ID=#CREDIT_ID#
+	       <!-- 由于系统数据库中有重复供应商,CODE没做验证 -->
+	       AND NOT EXISTS (SELECT 1 FROM T_CUST_CUSTOMER T WHERE T.STATUS=0 AND T.CUST_CODE=TCC.CUST_CODE GROUP BY T.CUST_CODE HAVING COUNT(T.CUST_CODE)>1)
+	       AND NOT EXISTS (SELECT 1 FROM T_SUPL_SUPPLIER T WHERE T.STATUS=0 AND T.CODE=TSS.CODE GROUP BY T.CODE HAVING COUNT(T.CODE)>1)
+	       AND NOT EXISTS (SELECT 1 FROM T_RENT_CONTRACT T WHERE T.STATUS=0 AND T.LEASE_CODE=TRC.LEASE_CODE GROUP BY T.LEASE_CODE HAVING COUNT(T.LEASE_CODE)>1)
+	       AND NOT EXISTS (SELECT 1 FROM T_KINGDEER_PAY_CAR T WHERE T.STATUS=0 AND T.RECP_ID=TRCN.RECP_ID AND T.PAY_ORDER=TSP.PAY_ORDER)
+	       AND TSP.STATUS=0
+	       AND TSP.PAY_WAY=2
+	</select>
+</sqlMap>

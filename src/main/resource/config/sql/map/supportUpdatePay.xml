@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="supportUpdatePay">	
+	<!-- 查看合同号是否存在 -->
+	<select id="checkRent" parameterClass="map" resultClass="hashmap"> 
+       select count(t.rect_id) CNT from t_rent_contract t where t.lease_code=#LEA_CODE# and t.status=0
+	</select>
+	<!-- 修改合同号 -->
+	<update id="updateRent" parameterClass="map">
+		update t_rent_contract  set lease_code=#newRent#  where lease_code=#oldRent#
+	</update>
+	<!-- 根据合同号查找合同ID -->
+	<select id="checkRentById" parameterClass="map" resultClass="hashmap"> 
+       select rect_id RECT_ID from t_rent_contract where lease_code=#newRent# and status=0
+	</select>	
+	<!-- 修改支付表号 -->
+	<update id="updatePay2" parameterClass="map">
+		update t_rent_collectionplan set  recp_code =#newRent#+substring(recp_code,CHARINDEX('-',recp_code),len(recp_code))  where rect_id =#RECT_ID#
+	</update>
+	
+	
+	
+	<!-- 查看支付表号是否存在 -->
+	<select id="checkPay" parameterClass="map" resultClass="hashmap"> 
+       select count(t.recp_id) CNT from t_rent_collectionplan t where t.recp_code=#REC_CODE# and t.status=0
+	</select>
+	<!-- 修改支付表号 -->
+	<update id="updatePay" parameterClass="map">
+		update t_rent_collectionplan set recp_code = #newPay# where recp_code =#oldPay#
+	</update>	
+		
+	
+
+	<!-- 调用存储过程 -->
+	<procedure id="DunUpdatePro">
+		exec proc_dun_daily
+	</procedure>
+	
+	<!-- 调用存储过程(活动日报表) -->
+	<procedure id="LogDayUpdatePro">
+		exec proc_activites_statistics
+	</procedure>
+	
+	<!-- 根据合同ID查询资信ID -->
+	<select id="checkCreditID" parameterClass="map" resultClass="hashmap"> 
+      	select prcd_id from T_RENT_CONTRACT where rect_id=#RECT_ID#	
+	</select>	
+	<!-- 修改资信里面的合同号 -->
+	<update id="updateCreditId" parameterClass="map">
+		update t_prjt_credit set lease_code = #newRent# where id =#PRCD_ID#
+	</update>			
+	
+	
+	<!-- 删除合同 (使用存储过程)-->
+	<delete id="deleteRent" parameterClass="map">
+		exec delete_contract #rect_code#
+	</delete>		
+</sqlMap>

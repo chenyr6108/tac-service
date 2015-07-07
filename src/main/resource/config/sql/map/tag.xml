@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="tag">
+	<typeAlias alias="tagTo" type="com.brick.project.to.TagTo"/>
+	<select id="getTags" parameterClass="map" resultClass="tagTo">
+		select 
+			T.ID as id,
+			T.TAG_NAME as tagName,
+			T.TAG_CODE as tagCode,
+			T.TAG_TYPE as tagType,
+			T.TAG_COLOR as tagColor,
+			T.STATUS as status,
+			T1.[NAME] as create_by,
+			T.CREATE_DATE as create_date,
+			T2.[NAME] as modify_by,
+			T.MODIFY_DATE as modify_date,
+			T.COMMENTS as comments
+		FROM T_TAG T
+    	LEFT JOIN T_USER_USER T1 ON T1.ID = T.CREATE_BY
+    	LEFT JOIN T_USER_USER T2 ON T2.ID = T.MODIFY_BY
+		WHERE 1=1
+		<isNotEmpty prepend="AND" property="status">
+			T.STATUS  = #status#
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="tagName">
+			T.TAG_NAME like '%'+ #tagName# + '%'
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="id">
+			T.ID = #id#
+		</isNotEmpty>
+		<isNotEmpty prepend="AND" property="tagType">
+			T.TAG_TYPE = #tagType#
+		</isNotEmpty>
+	</select>
+	
+	<select id="getTagCount" parameterClass="map" resultClass="int">
+		select count(0) from T_TAG 
+		where 1=1
+		<isNotEmpty prepend="and" property="tagName">
+			TAG_NAME = #tagName#
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="tagType">
+			TAG_TYPE = #tagType#
+		</isNotEmpty>
+	</select>
+	
+	<insert id ="insertTag" parameterClass="tagTo">
+		INSERT INTO T_TAG(TAG_NAME,TAG_CODE,TAG_TYPE,TAG_COLOR,CREATE_BY,CREATE_DATE,STATUS,COMMENTS)
+		VALUES(#tagName#,#tagCode#,#tagType#,#tagColor#,#create_by#,getDate(),0,#comments#);	
+	</insert>
+	
+	<update id="updateTag" parameterClass="tagTo">
+		UPDATE T_TAG
+		SET TAG_NAME = #tagName#,
+			TAG_CODE = #tagCode#,
+			TAG_TYPE = #tagType#,
+			TAG_COLOR = #tagColor#,
+			MODIFY_BY = #modify_by#,
+			MODIFY_DATE = getDate(),
+			COMMENTS = #comments#
+		where ID = #id#	
+	</update>
+	
+	<update id="updateTagStatus" parameterClass="map">
+		UPDATE T_TAG
+		SET STATUS = #status#,
+			MODIFY_BY = #modify_by#,
+			MODIFY_DATE = getDate()
+		where ID = #id#	
+	</update>
+	
+	<select id="getProjectTags" parameterClass="map" resultClass="tagTo">
+		SELECT 
+		  T.TAG_ID as id,
+		  T.PRJT_CREDIT_ID as projectId,
+		  T.ID as tag2project,
+		  tag.TAG_NAME as tagName,
+		  tag.TAG_CODE as tagCode,
+		  tag.TAG_TYPE as tagType,
+		  tag.TAG_COLOR as tagColor,
+		  tag.COMMENTS as comments
+		FROM T_TAG2PRJT_CREDIT T
+		left join T_TAG  tag on T.TAG_ID = tag.ID
+		where T.PRJT_CREDIT_ID = #projectId# AND T.STATUS = 0 AND tag.STATUS = 0
+		<isNotEmpty prepend="and" property="tagType">
+		tag.TAG_TYPE = #tagType#
+		</isNotEmpty>
+		order by T.TAG_ID
+	
+	</select>
+	
+	<insert id="insertTag2Prjt_Credit" parameterClass="map">
+		INSERT INTO T_TAG2PRJT_CREDIT(TAG_ID,PRJT_CREDIT_ID,STATUS)
+		VALUES(#tagId#,#projectId#,0)
+	</insert>
+	
+	<update id="deleteTag2Prjt_Credit" parameterClass="map">
+		UPDATE T_TAG2PRJT_CREDIT SET STATUS = 1
+		WHERE ID = #id#
+	</update>
+	
+	
+</sqlMap>

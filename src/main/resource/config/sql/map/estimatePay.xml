@@ -1,0 +1,649 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+ "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="estimatePay">
+
+
+	<select resultClass="java.util.HashMap" id="getAllWorkDay">
+		select top 30 a.DATE
+		from T_DAY_TYPE a
+		where a.DAY_TYPE='wd'
+		and
+		convert(date,a.date)>=convert(date,#jobDay#)
+		order by date
+	</select>
+
+
+	<!-- <select id="getDataList" resultClass="java.util.HashMap"> SELECT C.DECP_ID, 
+		C.DECP_NAME_CN, sum(case when convert(date,#d0#)=convert(date,expecteddate) 
+		then 1 else 0 end) 'd0', sum(case when convert(date,#d0#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s0' <isNotEmpty property="d1"> , sum(case when 
+		convert(date,#d1#)=convert(date,expecteddate) then 1 else 0 end) 'd1', sum(case 
+		when convert(date,#d1#)=convert(date,expecteddate) then paycount else 0 end)'s1' 
+		</isNotEmpty> <isNotEmpty property="d2"> , sum(case when convert(date,#d2#)=convert(date,expecteddate) 
+		then 1 else 0 end) 'd2', sum(case when convert(date,#d2#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s2' </isNotEmpty> <isNotEmpty property="d3"> , 
+		sum(case when convert(date,#d3#)=convert(date,expecteddate) then 1 else 0 
+		end) 'd3', sum(case when convert(date,#d3#)=convert(date,expecteddate) then 
+		paycount else 0 end)'s3' </isNotEmpty> <isNotEmpty property="d4"> , sum(case 
+		when convert(date,#d4#)=convert(date,expecteddate) then 1 else 0 end) 'd4', 
+		sum(case when convert(date,#d4#)=convert(date,expecteddate) then paycount 
+		else 0 end)'s4' </isNotEmpty> <isNotEmpty property="d5"> , sum(case when 
+		convert(date,#d5#)=convert(date,expecteddate) then 1 else 0 end) 'd5', sum(case 
+		when convert(date,#d5#)=convert(date,expecteddate) then paycount else 0 end)'s5' 
+		</isNotEmpty> <isNotEmpty property="d6"> , sum(case when convert(date,#d6#)=convert(date,expecteddate) 
+		then 1 else 0 end) 'd6', sum(case when convert(date,#d6#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s6' </isNotEmpty> <isNotEmpty property="d7"> , 
+		sum(case when convert(date,#d7#)=convert(date,expecteddate) then 1 else 0 
+		end) 'd7', sum(case when convert(date,#d7#)=convert(date,expecteddate) then 
+		paycount else 0 end)'s7' </isNotEmpty> <isNotEmpty property="d8"> , sum(case 
+		when convert(date,#d8#)=convert(date,expecteddate) then 1 else 0 end) 'd8', 
+		sum(case when convert(date,#d8#)=convert(date,expecteddate) then paycount 
+		else 0 end)'s8' </isNotEmpty> <isNotEmpty property="d9"> , sum(case when 
+		convert(date,#d9#)=convert(date,expecteddate) then 1 else 0 end) 'd9', sum(case 
+		when convert(date,#d9#)=convert(date,expecteddate) then paycount else 0 end)'s9' 
+		</isNotEmpty> <isNotEmpty property="d10"> , sum(case when convert(date,#d10#)=convert(date,expecteddate) 
+		then 1 else 0 end) 'd10', sum(case when convert(date,#d10#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s10' </isNotEmpty> <isNotEmpty property="d11"> 
+		, sum(case when convert(date,#d11#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd11', sum(case when convert(date,#d11#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s11' </isNotEmpty> <isNotEmpty property="d12"> 
+		, sum(case when convert(date,#d12#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd12', sum(case when convert(date,#d12#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s12' </isNotEmpty> <isNotEmpty property="d13"> 
+		, sum(case when convert(date,#d13#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd13', sum(case when convert(date,#d13#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s13' </isNotEmpty> <isNotEmpty property="d14"> 
+		, sum(case when convert(date,#d14#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd14', sum(case when convert(date,#d14#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s14' </isNotEmpty> <isNotEmpty property="d15"> 
+		, sum(case when convert(date,#d15#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd15', sum(case when convert(date,#d15#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s15' </isNotEmpty> <isNotEmpty property="d16"> 
+		, sum(case when convert(date,#d16#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd16', sum(case when convert(date,#d16#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s16' </isNotEmpty> <isNotEmpty property="d17"> 
+		, sum(case when convert(date,#d17#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd17', sum(case when convert(date,#d17#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s17' </isNotEmpty> <isNotEmpty property="d18"> 
+		, sum(case when convert(date,#d18#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd18', sum(case when convert(date,#d18#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s18' </isNotEmpty> <isNotEmpty property="d19"> 
+		, sum(case when convert(date,#d19#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd19', sum(case when convert(date,#d19#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s19' </isNotEmpty> <isNotEmpty property="d20"> 
+		, sum(case when convert(date,#d20#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd20', sum(case when convert(date,#d20#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s20' </isNotEmpty> <isNotEmpty property="d21"> 
+		, sum(case when convert(date,#d21#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd21', sum(case when convert(date,#d21#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s21' </isNotEmpty> <isNotEmpty property="d22"> 
+		, sum(case when convert(date,#d22#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd22', sum(case when convert(date,#d22#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s22' </isNotEmpty> <isNotEmpty property="d23"> 
+		, sum(case when convert(date,#d23#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd23', sum(case when convert(date,#d23#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s23' </isNotEmpty> <isNotEmpty property="d24"> 
+		, sum(case when convert(date,#d24#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd24', sum(case when convert(date,#d24#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s24' </isNotEmpty> <isNotEmpty property="d25"> 
+		, sum(case when convert(date,#d25#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd25', sum(case when convert(date,#d25#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s25' </isNotEmpty> <isNotEmpty property="d26"> 
+		, sum(case when convert(date,#d26#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd26', sum(case when convert(date,#d26#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s26' </isNotEmpty> <isNotEmpty property="d27"> 
+		, sum(case when convert(date,#d27#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd27', sum(case when convert(date,#d27#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s27' </isNotEmpty> <isNotEmpty property="d28"> 
+		, sum(case when convert(date,#d28#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd28', sum(case when convert(date,#d28#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s28' </isNotEmpty> <isNotEmpty property="d29"> 
+		, sum(case when convert(date,#d29#)=convert(date,expecteddate) then 1 else 
+		0 end) 'd29', sum(case when convert(date,#d29#)=convert(date,expecteddate) 
+		then paycount else 0 end)'s29' </isNotEmpty> FROM T_SUPL_PLAYDETIL PD LEFT 
+		JOIN T_PRJT_CREDIT TPC ON TPC.ID = PD.CREDIT_ID AND TPC.STATUS= 0 LEFT JOIN 
+		T_USER_USER U ON U.ID = TPC.SENSOR_ID AND U.STATUS = 0 LEFT JOIN T_DEPT_DEPARTMENT 
+		TDD ON TDD.ID = U.DEPT_ID AND TDD.STATUS = 0 LEFT JOIN T_DEPT_COMPANY C ON 
+		C.DECP_ID = TDD.DECP_ID AND C.STATUS = 0 where C.DECP_ID is not null and 
+		pd.status=0 and pd.state=3 group by c.decp_id,C.DECP_NAME_CN </select> -->
+		
+		
+	<select id="getDataList" resultClass="java.util.HashMap">
+		SELECT
+		C.DECP_ID,
+		C.DECP_NAME_CN,
+		sum(case when
+		convert(date,#d0#)=convert(date,expecteddate) then 1 else 0 end)
+		'd0',
+		sum(case when convert(date,#d0#)=convert(date,expecteddate) then
+		pay_money else
+		0 end)'s0'
+		,
+		sum(case when
+		convert(date,#d1#)=convert(date,expecteddate) then 1 else 0 end)
+		'd1',
+		sum(case when convert(date,#d1#)=convert(date,expecteddate) then
+		pay_money else
+		0 end)'s1'
+
+		,
+		sum(case when
+		convert(date,#d2#)=convert(date,expecteddate) then 1 else 0 end)
+		'd2',
+		sum(case when convert(date,#d2#)=convert(date,expecteddate) then
+		pay_money else
+		0 end)'s2'
+
+		,
+		sum(case when
+		convert(date,#d3#)=convert(date,expecteddate) then 1 else 0 end)
+		'd3',
+		sum(case when convert(date,#d3#)=convert(date,expecteddate) then
+		pay_money else
+		0 end)'s3'
+
+		,
+		sum(case when
+		convert(date,#d4#)=convert(date,expecteddate) then 1 else 0 end)
+		'd4',
+		sum(case when convert(date,#d4#)=convert(date,expecteddate) then
+		pay_money else
+		0 end)'s4'
+
+		,
+		sum(case when
+		convert(date,#d5#)=convert(date,expecteddate) then 1 else 0 end)
+		'd5',
+		sum(case when convert(date,#d5#)=convert(date,expecteddate) then
+		pay_money else
+		0 end)'s5'
+
+		,
+		sum(case when
+		convert(date,#d6#)=convert(date,expecteddate) then 1 else 0 end)
+		'd6',
+		sum(case when convert(date,#d6#)=convert(date,expecteddate) then
+		pay_money else
+		0 end)'s6'
+
+		,
+		sum(case when
+		convert(date,#d7#)=convert(date,expecteddate) then 1 else 0 end)
+		'd7',
+		sum(case when convert(date,#d7#)=convert(date,expecteddate) then
+		pay_money else
+		0 end)'s7'
+		,
+		sum(case when
+		convert(date,#d8#)=convert(date,expecteddate) then 1 else 0 end)
+		'd8',
+		sum(case when convert(date,#d8#)=convert(date,expecteddate) then
+		pay_money else
+		0 end)'s8'
+		,
+		sum(case when
+		convert(date,#d9#)=convert(date,expecteddate) then 1 else 0 end)
+		'd9',
+		sum(case when convert(date,#d9#)=convert(date,expecteddate) then
+		pay_money else
+		0 end)'s9'
+		,
+		sum(case when
+		convert(date,#d10#)=convert(date,expecteddate) then 1 else 0 end)
+		'd10',
+		sum(case when convert(date,#d10#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s10'
+		,
+		sum(case when
+		convert(date,#d11#)=convert(date,expecteddate) then 1 else 0 end)
+		'd11',
+		sum(case when convert(date,#d11#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s11'
+
+		,
+		sum(case when
+		convert(date,#d12#)=convert(date,expecteddate) then 1 else 0 end)
+		'd12',
+		sum(case when convert(date,#d12#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s12'
+
+		,
+		sum(case when
+		convert(date,#d13#)=convert(date,expecteddate) then 1 else 0 end)
+		'd13',
+		sum(case when convert(date,#d13#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s13'
+		,
+		sum(case when
+		convert(date,#d14#)=convert(date,expecteddate) then 1 else 0 end)
+		'd14',
+		sum(case when convert(date,#d14#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s14'
+		,
+		sum(case when
+		convert(date,#d15#)=convert(date,expecteddate) then 1 else 0 end)
+		'd15',
+		sum(case when convert(date,#d15#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s15'
+		,
+		sum(case when
+		convert(date,#d16#)=convert(date,expecteddate) then 1 else 0 end)
+		'd16',
+		sum(case when convert(date,#d16#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s16'
+		,
+		sum(case when
+		convert(date,#d17#)=convert(date,expecteddate) then 1 else 0 end)
+		'd17',
+		sum(case when convert(date,#d17#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s17'
+
+		,
+		sum(case when
+		convert(date,#d18#)=convert(date,expecteddate) then 1 else 0 end)
+		'd18',
+		sum(case when convert(date,#d18#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s18'
+
+		,
+		sum(case when
+		convert(date,#d19#)=convert(date,expecteddate) then 1 else 0 end)
+		'd19',
+		sum(case when convert(date,#d19#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s19'
+
+		,
+		sum(case when
+		convert(date,#d20#)=convert(date,expecteddate) then 1 else 0 end)
+		'd20',
+		sum(case when convert(date,#d20#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s20'
+
+		,
+		sum(case when
+		convert(date,#d21#)=convert(date,expecteddate) then 1 else 0 end)
+		'd21',
+		sum(case when convert(date,#d21#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s21'
+
+		,
+		sum(case when
+		convert(date,#d22#)=convert(date,expecteddate) then 1 else 0 end)
+		'd22',
+		sum(case when convert(date,#d22#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s22'
+
+		,
+		sum(case when
+		convert(date,#d23#)=convert(date,expecteddate) then 1 else 0 end)
+		'd23',
+		sum(case when convert(date,#d23#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s23'
+
+		,
+		sum(case when
+		convert(date,#d24#)=convert(date,expecteddate) then 1 else 0 end)
+		'd24',
+		sum(case when convert(date,#d24#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s24'
+
+		,
+		sum(case when
+		convert(date,#d25#)=convert(date,expecteddate) then 1 else 0 end)
+		'd25',
+		sum(case when convert(date,#d25#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s25'
+
+		,
+		sum(case when
+		convert(date,#d26#)=convert(date,expecteddate) then 1 else 0 end)
+		'd26',
+		sum(case when convert(date,#d26#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s26'
+
+		,
+		sum(case when
+		convert(date,#d27#)=convert(date,expecteddate) then 1 else 0 end)
+		'd27',
+		sum(case when convert(date,#d27#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s27'
+
+		,
+		sum(case when
+		convert(date,#d28#)=convert(date,expecteddate) then 1 else 0 end)
+		'd28',
+		sum(case when convert(date,#d28#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s28'
+
+		,
+		sum(case when
+		convert(date,#d29#)=convert(date,expecteddate) then 1 else 0 end)
+		'd29',
+		sum(case when convert(date,#d29#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'s29'
+
+		FROM T_SUPL_PLAYDETIL PD
+		LEFT JOIN
+		T_PRJT_CREDIT TPC ON TPC.ID
+		=
+		PD.CREDIT_ID AND TPC.STATUS= 0
+		LEFT JOIN
+		T_USER_USER U ON U.ID =
+		TPC.SENSOR_ID AND U.STATUS = 0
+		LEFT JOIN
+		T_DEPT_DEPARTMENT TDD ON TDD.ID
+		= U.DEPT_ID AND TDD.STATUS = 0
+		LEFT
+		JOIN T_DEPT_COMPANY C ON C.DECP_ID =
+		TDD.DECP_ID AND C.STATUS = 0
+		where C.DECP_ID is not null and
+		pd.status=0 
+		group by
+		c.decp_id,C.DECP_NAME_CN
+	</select>
+
+
+	<!-- 每天的总数和总金额 -->
+	<select id="getEveryDayTotal" resultClass="java.util.HashMap">
+		SELECT
+		sum(case when
+		convert(date,#d0#)=convert(date,expecteddate) then 1 else 0 end)
+		'nop0',
+		sum(case when convert(date,#d0#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'sop0',
+		sum(case when
+		convert(date,#d1#)=convert(date,expecteddate) then 1 else 0 end)
+		'nop1',
+		sum(case when convert(date,#d1#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'sop1',
+		sum(case when
+		convert(date,#d2#)=convert(date,expecteddate) then 1 else 0 end)
+		'nop2',
+		sum(case when convert(date,#d2#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'sop2',
+		sum(case when
+		convert(date,#d3#)=convert(date,expecteddate) then 1 else 0 end)
+		'nop3',
+		sum(case when convert(date,#d3#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'sop3',
+		sum(case when
+		convert(date,#d4#)=convert(date,expecteddate) then 1 else 0 end)
+		'nop4',
+		sum(case when convert(date,#d4#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'sop4',
+		sum(case when
+		convert(date,#d5#)=convert(date,expecteddate) then 1 else 0 end)
+		'nop5',
+		sum(case when convert(date,#d5#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'sop5',
+		sum(case when
+		convert(date,#d6#)=convert(date,expecteddate) then 1 else 0 end)
+		'nop6',
+		sum(case when convert(date,#d6#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'sop6',
+		sum(case when
+		convert(date,#d7#)=convert(date,expecteddate) then 1 else 0 end)
+		'nop7',
+		sum(case when convert(date,#d7#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'sop7',
+		sum(case when
+		convert(date,#d8#)=convert(date,expecteddate) then 1 else 0 end)
+		'nop8',
+		sum(case when convert(date,#d8#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'sop8',
+		sum(case when
+		convert(date,#d9#)=convert(date,expecteddate) then 1 else 0 end)
+		'nop9',
+		sum(case when convert(date,#d9#)=convert(date,expecteddate)
+		then
+		pay_money else
+		0 end)'sop9',
+		sum(case when
+		convert(date,#d10#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop10',
+		sum(case when convert(date,#d10#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop10',
+		sum(case when
+		convert(date,#d11#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop11',
+		sum(case when convert(date,#d11#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop11',
+		sum(case when
+		convert(date,#d12#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop12',
+		sum(case when convert(date,#d12#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop12',
+		sum(case when
+		convert(date,#d13#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop13',
+		sum(case when convert(date,#d13#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop13',
+		sum(case when
+		convert(date,#d14#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop14',
+		sum(case when convert(date,#d14#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop14',
+		sum(case when
+		convert(date,#d15#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop15',
+		sum(case when convert(date,#d15#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop15',
+		sum(case when
+		convert(date,#d16#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop16',
+		sum(case when convert(date,#d16#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop16',
+		sum(case when
+		convert(date,#d17#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop17',
+		sum(case when convert(date,#d17#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop17',
+		sum(case when
+		convert(date,#d18#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop18',
+		sum(case when convert(date,#d18#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop18',
+		sum(case when
+		convert(date,#d19#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop19',
+		sum(case when convert(date,#d19#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop19',
+		sum(case when
+		convert(date,#d20#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop20',
+		sum(case when convert(date,#d20#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop20',
+		sum(case when
+		convert(date,#d21#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop21',
+		sum(case when convert(date,#d21#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop21',
+		sum(case when
+		convert(date,#d22#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop22',
+		sum(case when convert(date,#d22#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop22',
+		sum(case when
+		convert(date,#d23#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop23',
+		sum(case when convert(date,#d23#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop23',
+		sum(case when
+		convert(date,#d24#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop24',
+		sum(case when convert(date,#d24#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop24',
+		sum(case when
+		convert(date,#d25#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop25',
+		sum(case when convert(date,#d25#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop25',
+		sum(case when
+		convert(date,#d26#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop26',
+		sum(case when convert(date,#d26#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop26',
+		sum(case when
+		convert(date,#d27#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop27',
+		sum(case when convert(date,#d27#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop27',
+		sum(case when
+		convert(date,#d28#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop28',
+		sum(case when convert(date,#d28#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop28',
+		sum(case when
+		convert(date,#d29#)=convert(date,expecteddate) then 1 else 0
+		end)
+		'nop29',
+		sum(case when convert(date,#d29#)=convert(date,expecteddate)
+		then pay_money
+		else 0 end)'sop29'
+		FROM T_SUPL_PLAYDETIL PD
+		LEFT JOIN
+		T_PRJT_CREDIT TPC ON TPC.ID = PD.CREDIT_ID AND TPC.STATUS= 0
+		LEFT JOIN
+		T_USER_USER U ON U.ID = TPC.SENSOR_ID AND U.STATUS = 0
+		LEFT JOIN
+		T_DEPT_DEPARTMENT TDD ON TDD.ID = U.DEPT_ID AND TDD.STATUS = 0
+		LEFT
+		JOIN T_DEPT_COMPANY C ON C.DECP_ID = TDD.DECP_ID AND C.STATUS = 0
+		where C.DECP_ID is not null and pd.status=0 
+	</select>
+
+	<select id="getDataOfJob" resultClass="com.brick.estimatePay.to.EstimatePayJobTo">
+		SELECT
+		C.DECP_ID as
+		dept_id, C.DECP_NAME_CN as dept_name,
+		sum(case when
+		convert(date,getdate())=convert(date,expecteddate) then 1 else 0
+		end)
+		as pay_count,
+		sum(case when
+		convert(date,getdate())=convert(date,expecteddate) then
+		pay_money else
+		0
+		end) as pay_total
+		FROM T_SUPL_PLAYDETIL PD
+		LEFT JOIN
+		T_PRJT_CREDIT TPC ON
+		TPC.ID =
+		PD.CREDIT_ID AND TPC.STATUS= 0
+		LEFT JOIN
+		T_USER_USER U ON U.ID =
+		TPC.SENSOR_ID AND U.STATUS = 0
+		LEFT JOIN
+		T_DEPT_DEPARTMENT TDD ON TDD.ID
+		= U.DEPT_ID AND TDD.STATUS = 0
+		LEFT
+		JOIN T_DEPT_COMPANY C ON C.DECP_ID =
+		TDD.DECP_ID AND C.STATUS = 0
+		where C.DECP_ID is not null and
+		pd.status=0 and pd.state=0
+		group by C.DECP_ID,C.DECP_NAME_CN
+	</select>
+
+	<insert id="addLog" parameterClass="com.brick.estimatePay.to.EstimatePayJobTo">
+		insert into t_estimatepay
+		values(#id#,#dept_id#,#dept_name#,#pay_count#,#pay_total#,getDate())
+	</insert>
+</sqlMap>

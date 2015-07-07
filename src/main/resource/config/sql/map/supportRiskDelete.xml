@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="supportRiskDelete">	
+
+	<!-- 查看风控是否生成合同 -->
+	<select id="checkRent" parameterClass="map" resultClass="hashmap"> 
+		select  count(t.prc_id) CNT from t_prjt_risk_control t
+		  left join t_rent_contract trc on trc.prcd_id=t.credit_id
+		  where t.status=0 and trc.status=0 and t.prc_id=#prc_id#
+	</select>
+	<!-- 查看该风控是否生成结果 -->
+	<select id="checkResult" parameterClass="map" resultClass="hashmap"> 
+		select  state STATE  from t_prjt_risk_control  where prc_id=#prc_id#
+	</select>
+	<!-- 删除风控 -->	
+	<update id="deleteRisk" parameterClass="map">
+		update t_prjt_risk_control  set status =-2  where prc_id =#prc_id#
+	</update>
+	<!-- 查看该风控的资信 -->
+	<select id="checkCredit" parameterClass="map" resultClass="hashmap"> 
+		select  credit_id CREDIT_ID from t_prjt_risk_control  where prc_id=#prc_id#
+	</select>	
+	<!-- 打回资信 -->
+	<update id="updateCredit" parameterClass="map">
+		update t_prjt_credit set state =0 , WIND_STATE = 0 where id =#CREDIT_ID#
+	</update>
+	<!-- 查看该风控所属资信共生成几条风控 -->
+	<select id="countRisk" parameterClass="map" resultClass="hashmap"> 
+		select count(prc_id) CNTTT from t_prjt_risk_control where credit_id=#CREDIT_ID#
+	</select>
+	<!-- 用风控所属资信查询所有风控 -->
+	<select id="allRisk" parameterClass="map" resultClass="hashmap"> 
+		select state STATE from t_prjt_risk_control where credit_id=#CREDIT_ID#
+	</select>
+
+	<!-- 修改审核意见表状态 -->
+	<update id="updateCreditMemo" parameterClass="map">
+		update t_prjt_creditmemo set status=-2 where tprc_id=#prc_id#
+	</update>				
+	<!-- 去掉报告中的合同号 -->
+	<update id="deleteCreditLeaseCode" parameterClass="map">
+		UPDATE T_PRJT_CREDIT SET LEASE_CODE = NULL WHERE ID = #CREDIT_ID#
+	</update>				
+</sqlMap>

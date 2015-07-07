@@ -1,0 +1,3876 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="settleManage">
+	<!-- 查询是否提前结清 -->
+	<select id="querySettle" parameterClass="map" resultClass="java.lang.Integer">
+		<!-- 按支付表与分解表查询 
+		SELECT COUNT(1) 
+		FROM
+			T_RENT_COLLECTIONDETAIL t 
+			left join T_FINA_COLLECTIONBILL t1 on t1.RECP_ID = t.RECP_ID 
+		WHERE
+		 t.RECP_ID=#RECP_ID#
+		 and t.STATUS = 0
+		 and t1.STATUS = 0
+		 and t1.REAL_PRICE = t.IRR_MONTH_PRICE
+		 and t.PERIOD_NUM = #lease_period# -1
+		 and t1.RECD_PERIOD = #lease_period# -1
+		 and (t1.RECD_TYPE = 0 OR T1.RECD_TYPE = 2)-->
+		 <!-- 按页面上支付表号查询方法查询 
+		SELECT 
+			COUNT(1) 
+		FROM
+			T_RENT_COLLECTIONDETAIL t 
+		WHERE
+			t.RECP_ID=#RECP_ID#
+			and t.STATUS = 0
+			and t.PERIOD_NUM = #lease_period# -1
+			and ((ISNULL(REDUCE_OWN_PRICE,0) + ISNULL(REDUCE_REN_PRICE,0) + ISNULL(REDUCE_OTHER_PRICE,0) + ISNULL(REDUCE_LOSS_PRICE,0) ) > 0)
+			-->
+			<![CDATA[
+			SELECT 
+				COUNT(1)
+			FROM
+				T_RENT_COLLECTIONDETAIL T
+				LEFT JOIN (
+						SELECT
+							RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+						FROM
+							T_FINA_COLLECTIONBILL t 
+						WHERE
+							t.FICB_TYPE=0 
+							AND t.FICB_ITEM= #zujin#
+							AND T.FICB_STATE = 5 
+							AND t.STATUS=0
+							AND t.RECP_ID = #RECP_ID#
+						GROUP BY 
+							RECD_PERIOD
+				) T1 ON T1.recp_id = T.recp_id AND T1.RECD_PERIOD = T.PERIOD_NUM
+			WHERE
+				((T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) <= 0.005
+				AND (T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) >= -0.005)
+				AND T.STATUS = 0 
+				AND T.RECP_ID = #RECP_ID#
+			]]>
+	</select>
+	<!-- 查询实际期数 -->
+	<select id="queryRealPeriod" parameterClass="map" resultClass="java.lang.Integer">
+		<!-- 
+		<![CDATA[ 
+		select COUNT(1) 
+			from (
+				select MAX(ficb_id ) con from T_FINA_COLLECTIONBILL
+				where RECP_ID = #RECP_ID#
+				 and status = 0
+				 and FICB_ITEM = #zujin#
+				 and (FICB_TYPE = 0 or FICB_TYPE = 2)
+				group by RECD_PERIOD
+			) t
+		]]> -->
+		<!-- 按页面上支付表号查询方法查询-->
+		SELECT 
+			MAX(PERIOD_NUM)
+		FROM
+			T_RENT_COLLECTIONDETAIL
+		WHERE 
+			STATUS = 0
+			AND REDUCE_OWN_PRICE > 0
+		 
+	</select>
+	<!-- 添加结清单 -->
+	<!-- Modify by michael 2011 12/30 增加结清单罚息等栏位 -->
+	<insert id="create" parameterClass="map">
+	INSERT INTO 
+		T_RENT_SETTLE
+		(
+			STATUS ,
+			CREATE_ID ,
+			CREATE_DATE ,
+			RECP_ID,
+			OWN_PRICE,
+			REAL_OWN_PRICE,
+			REN_PRICE,
+			REAL_REN_PRICE,
+			BREACH_PRICE,
+			REAL_BREACH_PRICE,
+			DAMAGE_PRICE,
+			REAL_DAMAGE_PRICE,
+			STAYBUY_PRICE,
+			REAL_STAYBUY_PRICE,
+			OTHER_PRICE,
+			REAL_OTHER_PRICE,
+			TOTAL,
+			REAL_TOTAL,
+			REMIT,
+			CASH,
+			NOTE,
+			OTHER,
+			BACKOUT_COUNT,
+			BACKOUT_TOTAL,
+			START_DATE,
+			END_DATE,
+			NOT_RECEIVED_PRICE,
+			HAS_PERIOD_NUM ,
+			STATE ,
+			FUND_TYPE,
+			DIFF_OWN_PRICE,
+			DIFF_REN_PRICE,
+			DIFF_BREACH_PRICE,
+			DIFF_DAMAGE_PRICE,
+			DIFF_STAYBUY_PRICE,
+			DIFF_OTHER_PRICE,
+			DIFF_TOTAL,
+			DUN_PRICE,
+			REAL_DUN_PRICE,
+			DIFF_DUN_PRICE,
+			TOTAL_LAWYFEE,
+			REAL_TOTAL_LAWYFEE,
+			DIFF_TOTAL_LAWYFEE
+		)VALUES(
+			0,
+			#s_employeeId# ,
+			getdate() ,
+			#RECP_ID#,
+			#OWN_PRICE#,
+			#REAL_OWN_PRICE#,
+			#REN_PRICE#,
+			#REAL_REN_PRICE#,
+			#BREACH_PRICE#,
+			#REAL_BREACH_PRICE#,
+			#DAMAGE_PRICE#,
+			#REAL_DAMAGE_PRICE#,
+			#STAYBUY_PRICE#,
+			#REAL_STAYBUY_PRICE#,
+			#OTHER_PRICE#,
+			#REAL_OTHER_PRICE#,
+			#TOTAL#,
+			#REAL_TOTAL#,
+			#REMIT#,
+			#CASH#,
+			#NOTE#,
+			#OTHER#,
+			#BACKOUT_COUNT#,
+			#BACKOUT_TOTAL#,
+			#START_DATE#,
+			#END_DATE#,
+			#NOT_RECEIVED_PRICE#,
+			#HAS_PERIOD_NUM# ,
+			0 ,	
+			#fund_type#,
+			#DIFF_OWN_PRICE#,
+			#DIFF_REN_PRICE#,
+			#DIFF_BREACH_PRICE#,
+			#DIFF_DAMAGE_PRICE#,
+			#DIFF_STAYBUY_PRICE#,
+			#DIFF_OTHER_PRICE#,
+			#DIFF_TOTAL#,
+			#DUN_PRICE#,
+			#REAL_DUN_PRICE#,
+			#DIFF_DUN_PRICE#,
+			#TOTAL_LAWYFEE#,
+			#REAL_TOTAL_LAWYFEE#,
+			#DIFF_TOTAL_LAWYFEE#
+		)
+		</insert>
+		<!-- 列出详细接清单 -->
+		<select id="querySettleDetail" parameterClass="map" resultClass="java.util.HashMap">
+			<![CDATA[ 
+			SELECT 
+				*
+			FROM 
+				T_RENT_SETTLE
+			WHERE 
+				RECP_ID = #recp_id#
+				AND STATUS != -2 
+			ORDER BY TRSE_ID DESC
+				]]>
+		</select>
+		<!-- 查看结清单 -->
+		<select id="showSettle" parameterClass="map" resultClass="java.util.HashMap">
+			<![CDATA[
+			SELECT 
+				*
+			FROM 
+				T_RENT_SETTLE
+			WHERE 
+				TRSE_ID = #trse_id# 
+				AND STATUS = 0
+			]]>
+		</select>
+		
+		
+		<select id="querySettleList_count" parameterClass="map" resultClass="java.lang.Integer">
+		<!--
+		<![CDATA[ 
+		SELECT count(1)
+		  FROM T_RENT_COLLECTIONPLAN T1
+		  LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = T1.RECT_ID
+		  LEFT JOIN T_USER_USER T3 ON T3.ID = T2.CLERK_ID
+		  LEFT JOIN T_USER_USER T4 ON T4.ID = T2.SENSOR_ID
+		  LEFT JOIN 
+				  (
+					SELECT RECP_ID ,COUNT(1) COU,STATE
+					FROM 
+						T_RENT_SETTLE 
+					WHERE 
+						STATUS = 0 
+						AND (STATE = 0 OR STATE = 1)
+					GROUP BY RECP_ID ,STATE
+				  ) T5 ON T5.RECP_ID = T1.RECP_ID
+		  WHERE T1.STATUS=0 
+		]]>
+		<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+				(T1.RECP_CODE LIKE '%$QSEARCH_VALUE$%' OR T2.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+			  OR T3.NAME LIKE '%$QSEARCH_VALUE$%' OR T4.NAME LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[	T1.START_DATE >= CONVERT(datetime,#QSTART_DATE#)  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[	T1.START_DATE <= CONVERT(datetime,#QEND_DATE# ) ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="" property="QSELECT_STATUS">
+			<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+				<![CDATA[ t1.RECP_STATUS = #QSELECT_STATUS# ]]>
+			</isNotEqual>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="fundStatus">
+			<![CDATA[ t1.fund_status = #fundStatus# ]]>
+		</isNotEmpty>
+		-->
+		<!--2011/12/16 Yang Yun-->
+		<![CDATA[ 
+		SELECT count(1)
+		  FROM T_RENT_COLLECTIONPLAN T1
+		  LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = T1.RECT_ID
+		  LEFT JOIN T_USER_USER T4 ON T4.ID = T2.SENSOR_ID
+		  LEFT JOIN T_USER_USER T3 ON T3.ID = T4.upper_user
+		  left join T_DEPT_DEPARTMENT dept on dept.ID = T4.DEPT_ID and dept.STATUS = 0
+		  LEFT JOIN 
+				  (
+					SELECT RECP_ID ,COUNT(1) COU,STATE
+					FROM 
+						T_RENT_SETTLE 
+					GROUP BY RECP_ID ,STATE
+				  ) T5 ON T5.RECP_ID = T1.RECP_ID
+		  WHERE T1.STATUS=0 
+		]]>
+		<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+				(T1.RECP_CODE LIKE '%$QSEARCH_VALUE$%' OR T2.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+			  OR T3.NAME LIKE '%$QSEARCH_VALUE$%' OR T4.NAME LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[	T1.START_DATE >= CONVERT(datetime,#QSTART_DATE#)  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[	T1.START_DATE <= CONVERT(datetime,#QEND_DATE# ) ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="" property="QSELECT_STATUS">
+			<isEqual prepend="and" property="QSELECT_STATUS" compareValue="0">
+				<![CDATA[ 
+					t1.RECP_STATUS = #QSELECT_STATUS# 
+					and (T5.STATE is null or T5.STATE = 0)
+				]]>
+			</isEqual>
+			<isEqual prepend="and" property="QSELECT_STATUS" compareValue="1">
+				<![CDATA[ t1.RECP_STATUS = #QSELECT_STATUS# ]]>
+			</isEqual>
+			<isEqual prepend="and" property="QSELECT_STATUS" compareValue="3">
+				<![CDATA[ t1.RECP_STATUS = #QSELECT_STATUS# ]]>
+			</isEqual>
+			<isEqual prepend="and" property="QSELECT_STATUS" compareValue="4">
+				<![CDATA[ t1.RECP_STATUS = #QSELECT_STATUS# ]]>
+			</isEqual>
+			<isEqual prepend="and" property="QSELECT_STATUS" compareValue="5">
+				<![CDATA[ T5.STATE = 0 ]]>
+			</isEqual>
+			<isEqual prepend="and" property="QSELECT_STATUS" compareValue="6">
+				<![CDATA[ T5.STATE = 1 ]]>
+			</isEqual>
+			<isEqual prepend="and" property="QSELECT_STATUS" compareValue="7">
+				<![CDATA[ T5.STATE = 2 ]]>
+			</isEqual>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="fundStatus">
+			<![CDATA[ t1.fund_status = #fundStatus# ]]>
+		</isNotEmpty>
+		
+			 <!-- 2013/04/07 Add By Michael  增加区域筛选功能 -->
+		<isEqual prepend="and" property="p_usernode" compareValue="1">
+	  	 	<![CDATA[ 
+	  	 	(T2.SENSOR_ID = #s_employeeId#
+	  	 	or t3.ID = #s_employeeId#)
+	  	 	]]>
+	  	</isEqual>
+	  	
+		<isEqual prepend="and" property="p_usernode" compareValue="2">
+			<![CDATA[
+				exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+				where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+			]]>
+		</isEqual>
+	</select>
+	
+	
+	
+	<select id="querySettleList" parameterClass="map" resultClass="java.util.HashMap">
+		<!--
+		<![CDATA[ 
+		SELECT T1.RECP_ID,
+		       T1.RECP_STATUS,
+		       T1.CREATE_TIME,
+		       T1.RECP_CODE,
+		       T1.VERSION_CODE,
+		       T1.START_DATE,
+		       T1.PAYDATE_FLAG,
+		       T2.RECT_ID,
+		       T2.CUST_NAME,
+		       T3.NAME CLERKNAME,
+		       T4.NAME SENSORNAME ,
+		       T1.LEASE_PERIOD ,
+		       t2.CORP_ORAGNIZATION_CODE,
+		       t5.COU,
+		       T5.STATE
+		  FROM T_RENT_COLLECTIONPLAN T1
+		  LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = T1.RECT_ID
+		  LEFT JOIN T_USER_USER T3 ON T3.ID = T2.CLERK_ID
+		  LEFT JOIN T_USER_USER T4 ON T4.ID = T2.SENSOR_ID
+		  LEFT JOIN 
+				  (
+					SELECT RECP_ID ,COUNT(1) COU,STATE
+					FROM 
+						T_RENT_SETTLE 
+					WHERE 
+						STATUS = 0 
+						AND (STATE = 0 OR STATE = 1)
+					GROUP BY RECP_ID,STATE
+				  )
+			T5 ON T5.RECP_ID = T1.RECP_ID
+		  WHERE T1.STATUS=0 
+		]]>
+		<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+				(T1.RECP_CODE LIKE '%$QSEARCH_VALUE$%' OR T2.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+			  OR T3.NAME LIKE '%$QSEARCH_VALUE$%' OR T4.NAME LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[	 T1.START_DATE >=  CONVERT(datetime,#QSTART_DATE#) ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[	 T1.START_DATE <= CONVERT(datetime,#QEND_DATE# )]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="" property="QSELECT_STATUS">
+			<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+				<![CDATA[ t1.RECP_STATUS = #QSELECT_STATUS# ]]>
+			</isNotEqual>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="fundStatus">
+			<![CDATA[ t1.fund_status = #fundStatus# ]]>
+		</isNotEmpty>
+		<![CDATA[ 
+			    ORDER BY  T1.RECP_ID DESC
+		]]>
+		-->
+		<!--2011/12/16 Yang Yun-->
+		<![CDATA[ 
+		SELECT T1.RECP_ID,
+		       T1.RECP_STATUS,
+		       T1.CREATE_TIME,
+		       T1.RECP_CODE,
+		       T1.VERSION_CODE,
+		       T1.START_DATE,
+		       T1.PAYDATE_FLAG,
+		       T2.RECT_ID,
+		       T2.CUST_NAME,
+		       T3.NAME CLERKNAME,
+		       T4.NAME SENSORNAME ,
+		       T1.LEASE_PERIOD ,
+		       t2.CORP_ORAGNIZATION_CODE,
+		       t5.COU,
+		       T5.STATE
+		  FROM T_RENT_COLLECTIONPLAN T1
+		  LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = T1.RECT_ID
+		  LEFT JOIN T_USER_USER T4 ON T4.ID = T2.SENSOR_ID
+		  LEFT JOIN T_USER_USER T3 ON T3.ID = T4.upper_user
+		  left join T_DEPT_DEPARTMENT dept on dept.ID = T4.DEPT_ID and dept.STATUS = 0
+		  LEFT JOIN 
+				  (
+					SELECT RECP_ID ,COUNT(1) COU,STATE
+					FROM 
+						T_RENT_SETTLE 
+					GROUP BY RECP_ID,STATE
+				  )
+			T5 ON T5.RECP_ID = T1.RECP_ID
+		  WHERE T1.STATUS=0 
+		]]>
+		<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+				(T1.RECP_CODE LIKE '%$QSEARCH_VALUE$%' OR T2.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+			  OR T3.NAME LIKE '%$QSEARCH_VALUE$%' OR T4.NAME LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[	 T1.START_DATE >=  CONVERT(datetime,#QSTART_DATE#) ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[	 T1.START_DATE <= CONVERT(datetime,#QEND_DATE# )]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="" property="QSELECT_STATUS">
+			<isEqual prepend="and" property="QSELECT_STATUS" compareValue="0">
+				<![CDATA[ 
+					t1.RECP_STATUS = #QSELECT_STATUS# 
+					and (T5.STATE is null or T5.STATE = 0)
+				]]>
+			</isEqual>
+			<isEqual prepend="and" property="QSELECT_STATUS" compareValue="1">
+				<![CDATA[ t1.RECP_STATUS = #QSELECT_STATUS# ]]>
+			</isEqual>
+			<isEqual prepend="and" property="QSELECT_STATUS" compareValue="3">
+				<![CDATA[ t1.RECP_STATUS = #QSELECT_STATUS# ]]>
+			</isEqual>
+			<isEqual prepend="and" property="QSELECT_STATUS" compareValue="4">
+				<![CDATA[ t1.RECP_STATUS = #QSELECT_STATUS# ]]>
+			</isEqual>
+			<isEqual prepend="and" property="QSELECT_STATUS" compareValue="5">
+				<![CDATA[ T5.STATE = 0 ]]>
+			</isEqual>
+			<isEqual prepend="and" property="QSELECT_STATUS" compareValue="6">
+				<![CDATA[ T5.STATE = 1 ]]>
+			</isEqual>
+			<isEqual prepend="and" property="QSELECT_STATUS" compareValue="7">
+				<![CDATA[ T5.STATE = 2 ]]>
+			</isEqual>
+		</isNotEmpty>
+		<!-- 
+		<isNotEmpty prepend="and" property="fundStatus">
+			<![CDATA[ t1.fund_status = #fundStatus# ]]>
+		</isNotEmpty>
+		 -->
+		 <!-- 2013/04/07 Add By Michael  增加区域筛选功能 -->
+ 			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T2.SENSOR_ID = #s_employeeId#
+		  	 	or t3.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+		  	
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+		<![CDATA[ 
+			    ORDER BY  T1.RECP_ID DESC
+		]]>
+	</select>
+	
+	
+		<select id="queryCheckSettleList_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ 
+		SELECT count(1)
+		  FROM T_RENT_COLLECTIONPLAN T1
+		  LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = T1.RECT_ID
+		  LEFT JOIN T_USER_USER T3 ON T3.ID = T2.CLERK_ID
+		  LEFT JOIN T_USER_USER T4 ON T4.ID = T2.SENSOR_ID
+		  LEFT JOIN T_RENT_SETTLE T5 ON T5.RECP_ID = T1.RECP_ID AND T5.STATUS != -2
+		  WHERE T1.STATUS=0 
+		  AND T1.RECP_ID IN (
+				SELECT 
+					RECP_ID
+				FROM 
+					T_RENT_SETTLE
+				WHERE 
+				 STATUS != -2
+				)
+		]]>
+		<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+				(T1.RECP_CODE LIKE '%$QSEARCH_VALUE$%' OR T2.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+			  OR T3.NAME LIKE '%$QSEARCH_VALUE$%' OR T4.NAME LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[	T1.START_DATE >= CONVERT(datetime,#QSTART_DATE#)  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[	T1.START_DATE <= CONVERT(datetime,#QEND_DATE# ) ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="" property="QSELECT_STATUS">
+			<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+				<![CDATA[ T5.STATE = #QSELECT_STATUS# ]]>
+			</isNotEqual>
+		</isNotEmpty>
+	</select>
+	
+	
+	
+	<select id="queryCheckSettleList" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+		SELECT T1.RECP_ID,
+		       T1.RECP_STATUS,
+		       T1.CREATE_TIME,
+		       T1.RECP_CODE,
+		       T1.VERSION_CODE,
+		       T1.START_DATE,
+		       T1.PAYDATE_FLAG,
+		       T2.RECT_ID,
+		       T2.CUST_NAME,
+		       T3.NAME CLERKNAME,
+		       T4.NAME SENSORNAME ,
+		       T1.LEASE_PERIOD ,
+		       t2.CORP_ORAGNIZATION_CODE ,
+		       T5.OWN_PRICE,
+		       T5.REN_PRICE,
+		       T5.BREACH_PRICE ,
+		       T5.DAMAGE_PRICE ,
+		       T5.STAYBUY_PRICE ,
+		       T5.STATE ,
+		       T5.TRSE_ID ,
+		       t1.FUND_STATUS
+		  FROM T_RENT_COLLECTIONPLAN T1
+		  LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = T1.RECT_ID
+		  LEFT JOIN T_USER_USER T3 ON T3.ID = T2.CLERK_ID
+		  LEFT JOIN T_USER_USER T4 ON T4.ID = T2.SENSOR_ID
+		  LEFT JOIN T_RENT_SETTLE T5 ON T5.RECP_ID = T1.RECP_ID AND T5.STATUS != -2 
+		  WHERE T1.STATUS=0 
+		  AND T1.RECP_ID IN (
+				SELECT 
+					RECP_ID
+				FROM 
+					T_RENT_SETTLE
+				WHERE 
+				  STATUS != -2
+				)
+		]]>
+		<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+				(T1.RECP_CODE LIKE '%$QSEARCH_VALUE$%' OR T2.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+			  OR T3.NAME LIKE '%$QSEARCH_VALUE$%' OR T4.NAME LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[	 T1.START_DATE >=  CONVERT(datetime,#QSTART_DATE#) ]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[	 T1.START_DATE <= CONVERT(datetime,#QEND_DATE# )]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="" property="QSELECT_STATUS">
+			<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+				<![CDATA[ t5.STATE = #QSELECT_STATUS# ]]>
+			</isNotEqual>
+		</isNotEmpty>
+		<![CDATA[ 
+			    ORDER BY  T5.TRSE_ID DESC
+		]]>
+	</select>
+	<update id="updateState" parameterClass="map">
+			UPDATE 
+				T_RENT_SETTLE
+			SET 
+				STATE = #state# ,
+				MODIFY_ID = #s_employeeId# ,
+				MODIFY_DATE = getdate() 
+			<isEqual property="state" compareValue="1">
+				, SETTLE_DATE = getdate() 
+			</isEqual>
+			WHERE 
+				TRSE_ID = #trse_id#
+	</update>
+	<select id="selectSettleMoney" resultClass="java.lang.Double" parameterClass="map">
+		SELECT 
+			ISNULL(SUM(t.REAL_PRICE),0)
+		FROM
+			T_FINA_COLLECTIONBILL t 
+		WHERE
+			t.STATUS = 0
+			AND FICB_STATE = 5
+			AND t.RECP_ID=#RECP_ID#
+			AND FICB_ITEM = #zujin#
+	</select>
+	<!-- 查询申请结清所要的数据 出剩余的    利息总和、 租金总和、已缴期数、本金总额 -->
+	<!-- Modify By Michael 2011 12/30增加罚息的计算，修改留购款的计算 -->
+	<select id="selectSettlePrice" parameterClass="map" resultClass="java.util.HashMap">
+		<!-- Modify by Michael 2012 3-30 修正实际剩余本来计算公式错误 -->
+		<![CDATA[
+			SELECT 
+				*
+			FROM  (
+				SELECT
+					(
+					select SUM(loss_ren_price) loss_ren_price from(
+					select 
+						case when isnull(recd.REDUCE_OWN_PRICE, 0) >= isnull(recd.REN_PRICE, 0)
+					  then 0
+					  else isnull(recd.REN_PRICE, 0) - isnull(recd.REDUCE_OWN_PRICE, 0) end
+					  as loss_ren_price
+					  from T_RENT_COLLECTIONDETAIL recd
+					  where recd.status = 0
+					  and recd.RECP_ID = #RECP_ID#
+					  and (recd.REDUCE_OWN_PRICE is null or recd.REDUCE_OWN_PRICE < (recd.IRR_MONTH_PRICE+isnull(recd.VALUE_ADDED_TAX,0)))
+					)t)  SUM_REN_PRICE ,
+					( 
+					select SUM(loss_own_price) loss_ren_price from(
+					select 
+						case when convert(decimal,isnull(recd.REDUCE_OWN_PRICE, 0)) >= convert(decimal,isnull(recd.REN_PRICE, 0))
+					  then isnull(recd.IRR_MONTH_PRICE, 0) - (isnull(recd.REDUCE_OWN_PRICE, 0)-isnull(recd.VALUE_ADDED_TAX, 0))
+					  else isnull(recd.IRR_MONTH_PRICE, 0) - isnull(recd.REN_PRICE, 0) end 
+					  as loss_own_price
+					  from T_RENT_COLLECTIONDETAIL recd
+					  where recd.status = 0
+					  and recd.RECP_ID = #RECP_ID#
+					  and (recd.REDUCE_OWN_PRICE is null or recd.REDUCE_OWN_PRICE < (recd.IRR_MONTH_PRICE+isnull(recd.VALUE_ADDED_TAX, 0)))
+					) t) SUM_OWN_PRICE ,
+					 sum(IRR_MONTH_PRICE+(isnull(VALUE_ADDED_TAX,0)) - isnull(REDUCE_OWN_PRICE,0)) as SUM_MONTH_PRICE,	
+					 (SELECT SUM(loss_VALUE_ADDED_TAX) SUM_VALUE_ADDED_TAX
+							FROM (
+								SELECT CASE 
+										WHEN convert(DECIMAL, isnull(recd.REDUCE_OWN_PRICE, 0)) >= convert(DECIMAL, isnull(recd.VALUE_ADDED_TAX, 0))
+											THEN 0
+										ELSE (isnull(recd.VALUE_ADDED_TAX, 0) -isnull(recd.REDUCE_OWN_PRICE, 0))
+										END AS loss_VALUE_ADDED_TAX
+								FROM T_RENT_COLLECTIONDETAIL recd
+								WHERE recd.STATUS = 0
+									AND recd.RECP_ID =#RECP_ID#
+									AND (
+										recd.REDUCE_OWN_PRICE IS NULL
+										OR recd.REDUCE_OWN_PRICE < (recd.IRR_MONTH_PRICE + isnull(recd.VALUE_ADDED_TAX, 0))
+										)
+								) t
+							) SUM_VALUE_ADDED_TAX,		
+				(select 
+						rectd.staybuy_price - 
+						(select isnull(sum(ficb.real_price),0)
+						from t_fina_collectionbill ficb
+						where ficb.ficb_item = #sblgj#
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						and ficb.recp_code = recp.recp_code)
+						  as sprice
+						from t_rent_contract rect, t_rent_collectionplan recp,
+						(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+						where recp.rect_id = rect.rect_id
+						and recp.RECP_ID=#RECP_ID#
+						and recp.status = 0 
+						and rectd.RECT_ID=rect.RECT_ID
+			       )  LGJ ,
+			       (select 
+					lawfee.sum_lawyfee - (
+					(select isnull(sum(ficb.real_price),0)
+					from t_fina_collectionbill ficb
+					where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = #lawyfee#) 
+					and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+					and ficb.status = 0
+					and ficb.recp_id = recp.recp_id)
+			    ) as sprice
+				from t_rent_collectionplan recp,
+				(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+				where recp.recp_id = lawfee.recp_id
+				and recp.RECP_ID=#RECP_ID#
+				and recp.status = 0 
+				) TOTAL_LAWYFEE,
+			       (
+		              select COUNT(*) from T_RENT_COLLECTIONDETAIL T  
+		              where T.STATUS=0 
+		              and( (T.IRR_MONTH_PRICE+isnull(T.VALUE_ADDED_TAX,0))- T.REDUCE_OWN_PRICE)<= 0.005
+					AND T.RECP_ID = #RECP_ID#
+			       ) REAL_PERIOD,(select trcpd.fine-
+			  isnull((select sum(ficb.real_price)
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = #zujinfaxi#
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.recp_id = trcpd.recp_id 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = #zujinfaxi#
+			        ),0)- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(
+select SUM(fine) fine,RECP_ID
+				 from
+				(    
+select tfcbd.recd_period as period_num,convert(varchar,tfcbd.pay_date, 23) pay_date,convert(varchar,tfcbd.opposing_date, 23) opposing_date,dun_day,should_price as dun_price, trcd.irr_month_price + ISNULL(trcd.VALUE_ADDED_TAX,0) as month_price,convert(decimal(18,2),tfcbd.real_price) real_price,
+			(case when trcp.fine_type = 2 then
+			round(real_price *
+			     power(1 + trcp.fine_rate / 100, dun_day) -
+			     real_price,2)
+			else
+			 round(real_price * dun_day * fine_rate / 100,2)
+			end) fine,trcp.recp_id,trc.CUST_NAME
+			from              
+			(select tfcb.RECP_ID,tfcb.pay_date,tfcb.recd_period,max(tfcb.should_price) should_price ,
+			sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+			from t_fina_collectionbill tfcb
+			left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+			where
+			 (tfcb.ficb_state=4 or tfcb.ficb_state=5) 
+			and tfi.red_type is null and tfcb.FICB_type='0'
+			and (tfcb.FICB_ITEM='租金' or tfcb.FICB_ITEM='增值税')
+			and datediff(d,tfcb.pay_date,opposing_date)>0 
+			group by RECP_ID,pay_date,recd_period,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+			left join
+			t_rent_collectionplan  trcp
+			on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+			left join t_rent_contract trc 
+			on trcp.rect_id =trc.rect_id and trc.status=0
+			left join
+			t_rent_collectiondetail trcd
+			on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+			where trcp.RECP_ID=#RECP_ID#
+			union all
+			select 
+			trcp.period_num,
+			convert(varchar,trcp.pay_date, 23) pay_date,
+			null as opposing_date ,
+			datediff(d,trcp.pay_date,getdate())  dun_day,
+			trcp.month_price-reduce_price as dun_price,
+			month_price, convert(decimal(18,2),reduce_price) as real_price,
+			(case when trcp.fine_type = 2 then
+			round((trcp.month_price-reduce_price) *
+			     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+			     (trcp.month_price-reduce_price),2)
+			else
+			 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+			end) fine,trcp.recp_id,cust_name
+			from (          
+			 select 
+			     trcp.recp_id,
+			     trcp.rect_id,
+			     trcp.warn_status,
+			     trcd.pay_date,
+			     trcd.period_num, 
+			     trcp.fine_type,
+			     trcp.fine_rate,
+			     isnull(trcd.IRR_MONTH_PRICE, 0)+isnull(trcd.VALUE_ADDED_TAX, 0) month_price,  
+			     isnull(trcd.reduce_own_price, 0) reduce_price,trc.CUST_NAME
+			from t_rent_collectionplan trcp
+			left join t_rent_contract trc on trcp.rect_id =
+			trc.rect_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id =
+			trcd.recp_id
+			where trcp.status = 0 and trc.status=0
+			  and (trcp.fund_status=0 or trcp.fund_status=1)
+			 and  trcd.pay_date < = cast(getdate() as datetime)-1
+			and isnull(trcd.IRR_MONTH_PRICE, 0)+isnull(trcd.VALUE_ADDED_TAX, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+			left join  
+			(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+			  from t_fina_collectionbill tfcb
+			  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+			 where tfi.opposing_date <= cast(getdate() as datetime)
+			 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+			 and tfi.red_type is null 
+			 group by recp_id
+			 ) tfcd 
+			on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+			where (case when tfcd.opposing_date is null or
+			tfcd.opposing_date <= trcp.pay_date then
+			datediff(d,trcp.pay_date,getdate()) else
+			datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+			and trcp.RECP_ID=#RECP_ID#
+			)TT
+			group by RECP_ID) trcpd
+				left join
+				T_RENT_SETTLE tdfdr
+				on trcpd.RECP_ID=tdfdr.RECP_ID
+				and tdfdr.status = 0 and tdfdr.state = 1 ) dun_price
+			FROM 
+				T_RENT_COLLECTIONDETAIL T
+			WHERE
+				T.STATUS = 0
+				AND T.RECP_ID =  #RECP_ID#
+				AND T.PERIOD_NUM NOT IN 
+					(
+						SELECT 
+							RECD_PERIOD
+						FROM
+							T_RENT_COLLECTIONDETAIL T
+							LEFT JOIN (
+									SELECT
+										RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+									FROM
+										T_FINA_COLLECTIONBILL t 
+									WHERE
+										t.FICB_TYPE=0 
+										AND t.FICB_ITEM= #zujin#
+										AND T.FICB_STATE = 5 
+										AND t.STATUS=0
+										AND t.RECP_ID = #RECP_ID#
+									GROUP BY 
+										RECD_PERIOD
+							) T1 ON T1.recp_id = T.recp_id AND T1.RECD_PERIOD = T.PERIOD_NUM
+						WHERE
+							((T1.REAL_PRICEcount - (T.IRR_MONTH_PRICE+isnull(T.VALUE_ADDED_TAX,0))) <= 0.005
+							AND (T1.REAL_PRICEcount - (T.IRR_MONTH_PRICE+isnull(T.VALUE_ADDED_TAX,0))) >= -0.005)
+							AND T.STATUS = 0 
+							AND T.RECP_ID = #RECP_ID#
+					)
+			) t
+		]]> 
+		<!-- Modify by Michael 2012-3-30 当其中一个栏位为空的时候，整条记录就不出来 -->
+		<!-- 
+		<![CDATA[
+			select * from 
+			(select 
+			  sum(t.IRR_MONTH_PRICE - isnull(t.REDUCE_OWN_PRICE,0)) as SUM_MONTH_PRICE,
+			  sum(isnull(t.loss_own_price,0)) as SUM_OWN_PRICE,
+			  sum(isnull(t.loss_ren_price,0)) as SUM_REN_PRICE
+			  from (
+			  select recd.RECP_ID, recd.OWN_PRICE, recd.REN_PRICE, recd.IRR_MONTH_PRICE, recd.REDUCE_OWN_PRICE,
+			  case when convert(decimal,isnull(recd.REDUCE_OWN_PRICE, 0)) >= convert(decimal,isnull(recd.REN_PRICE, 0))
+			  then isnull(recd.IRR_MONTH_PRICE, 0) - isnull(recd.REDUCE_OWN_PRICE, 0)
+			  else isnull(recd.IRR_MONTH_PRICE, 0) - isnull(recd.REN_PRICE, 0) end 
+			  as loss_own_price,
+			  case when isnull(recd.REDUCE_OWN_PRICE, 0) >= isnull(recd.REN_PRICE, 0)
+			  then 0
+			  else isnull(recd.REN_PRICE, 0) - isnull(recd.REDUCE_OWN_PRICE, 0) end
+			  as loss_ren_price
+			  from T_RENT_COLLECTIONDETAIL recd
+			  where recd.status = 0
+			  and recd.RECP_ID = #RECP_ID#
+			  and (recd.REDUCE_OWN_PRICE is null or recd.REDUCE_OWN_PRICE < recd.IRR_MONTH_PRICE)
+			)t) t1,(select 
+			  rectd.staybuy_price - (case
+			  when exists (select ficb.ficb_item, sum(ficb.real_price)
+			  from t_fina_collectionbill ficb
+			  where ficb.recp_code = recp.recp_code
+			  and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			  and ficb.status = 0
+			  group by ficb.ficb_item
+			  having ficb.ficb_item = #sblgj#) then
+			  (select sum(ficb.real_price)
+			  from t_fina_collectionbill ficb
+			  where ficb.ficb_item = #sblgj#
+			  and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			  and ficb.status = 0
+			  and ficb.recp_code = recp.recp_code)
+			  else 0 end) as LGJ
+			  from t_rent_contract rect, t_rent_collectionplan recp,
+			  (select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+			  where recp.rect_id = rect.rect_id
+			  and recp.RECP_ID=#RECP_ID#
+			  and recp.status = 0 
+			  and recp.version_code =
+			  (select max(version_code)
+			  from t_rent_collectionplan recp2
+			  where recp2.recp_code = recp.recp_code)
+			  and rectd.RECT_ID=rect.RECT_ID
+			)t2, (SELECT 
+			  COUNT(1) as REAL_PERIOD
+			  FROM
+			  T_RENT_COLLECTIONDETAIL T
+			  LEFT JOIN (	
+			  SELECT
+			  RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+			  FROM
+			  T_FINA_COLLECTIONBILL t 
+			  WHERE
+			  t.FICB_TYPE=0 
+			  AND t.FICB_ITEM= #zujin#
+			  AND T.FICB_STATE = 5 
+			  AND t.STATUS=0
+			  AND t.RECP_ID = #RECP_ID#
+			  GROUP BY 
+			  RECD_PERIOD
+			  ) T1 ON T1.recp_id = T.recp_id AND T1.RECD_PERIOD = T.PERIOD_NUM
+			  WHERE
+			  ((T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) <= 0.005
+			  AND (T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) >= -0.005)
+			  AND T.STATUS = 0 
+			  AND T.RECP_ID = #RECP_ID#)t3,
+			  (select trcpd.fine-(
+			  case when exists
+			  (select ficb.ficb_item, sum(ficb.real_price)
+			  from t_fina_collectionbill ficb
+			  where ficb.recp_code = trcpd.recp_code
+			  and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			  and ficb.status = 0 
+			  group by ficb.ficb_item
+			  having ficb.ficb_item = #zujinfaxi#) then
+			  (select sum(ficb.real_price)
+			  from t_fina_collectionbill ficb
+			  where ficb.ficb_item = #zujinfaxi#
+			  and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			  and ficb.status = 0
+			  and ficb.recp_code = trcpd.recp_code 
+			  group by ficb.ficb_item
+			  having ficb.ficb_item = #zujinfaxi#
+			  )else 0 end )- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as dun_price 
+			  from (
+			  select SUM(fine) fine,RECP_CODE,RECP_ID,RECT_ID ,lease_code,min(PAY_DATE) PAY_DATE
+			  from (select trc.CUST_ID,trcp.recp_id,trcp.rect_id,trcp.RECP_CODE,trc.lease_code,
+			  (case when trcp.fine_type = 2 then
+			  round(should_price *
+			  power(1 + trcp.fine_rate / 100, dun_day) -
+			  should_price,2)
+			  else
+			  round(should_price * dun_day * fine_rate / 100,2)
+			  end) fine,trcd.PAY_DATE
+			  from              
+			  (select tfcb.RECP_ID,tfcb.recp_code,tfcb.pay_date,tfcb.recd_period,tfcb.ficb_item,max(tfcb.should_price) should_price ,
+			  sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+			  from t_fina_collectionbill tfcb
+			  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+			  where  (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+			  and tfi.red_type is null and tfcb.FICB_type='0'
+			  and tfcb.FICB_ITEM=#zujin# 
+			  and datediff(d,tfcb.pay_date,opposing_date)>0 
+			  group by RECP_ID,recp_code,pay_date,recd_period,ficb_item,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+			  left join
+			  t_rent_collectionplan  trcp
+			  on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+			  left join t_rent_contract trc 
+			  on trcp.rect_id =trc.rect_id and trc.status=0
+			  left join
+			  t_rent_collectiondetail trcd
+			  on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+			  where 1=1 
+			  and trcp.RECP_ID = #RECP_ID#
+			  union all
+			  select trcp.cust_id,
+			  trcp.recp_id,
+			  trcp.rect_id,
+			  trcp.RECP_CODE,
+			  trcp.lease_code,
+			  (case when trcp.fine_type = 2 then
+			  round((trcp.month_price-reduce_price) *
+			  power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+			  (trcp.month_price-reduce_price),2)
+			  else
+			  round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+			  end) fine,trcp.PAY_DATE
+			  from (          
+			  select trc.cust_id,trc.cust_code,
+			  trcp.recp_id,
+			  trcp.rect_id,
+			  trcp.RECP_CODE,
+			  trc.lease_code,
+			  trcp.FUND_STATUS,
+			  trcd.pay_date,
+			  trcd.period_num, 
+			  trcp.fine_type,
+			  trcp.fine_rate,
+			  isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+			  isnull(trcd.reduce_own_price, 0) reduce_price
+			  from t_rent_collectionplan trcp
+			  left join t_rent_contract trc on trcp.rect_id =
+			  trc.rect_id
+			  left join t_rent_collectiondetail trcd on trcp.recp_id =
+			  trcd.recp_id
+			  where trcp.status = 0 and trc.status=0
+			  and (trcp.fund_status=0 or trcp.fund_status=1)
+			  and  trcd.pay_date < = cast(getdate() as datetime)-1
+			  and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+			  left join  
+			  (select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+			  from t_fina_collectionbill tfcb
+			  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+			  where tfi.opposing_date <= cast(getdate() as datetime)
+			  and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+			  and tfi.red_type is null 
+			  group by recp_id
+			  ) tfcd 
+			  on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+			  where (case when tfcd.opposing_date is null or
+			  tfcd.opposing_date <= trcp.pay_date then
+			  datediff(d,trcp.pay_date,getdate()) else
+			  datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+			  and trcp.RECP_ID = #RECP_ID#		
+			  )t1
+			  group by t1.CUST_ID,t1.recp_id,t1.rect_id,t1.RECP_CODE,t1.lease_code) trcpd
+			  left join
+			  T_RENT_SETTLE tdfdr
+			  on trcpd.RECP_ID=tdfdr.RECP_ID
+			  and tdfdr.status = 0 and tdfdr.state = 1 
+			)t4
+		]]>
+	 -->
+	</select>
+	
+	<!-- Add by Michael 2012 12-21 增加预测结清日期结清金额计算  -->
+	<select id="selectForcastSettlePrice" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT 
+				*
+			FROM  (
+				SELECT
+					(
+					select SUM(loss_ren_price) loss_ren_price from(
+					select 
+						case when isnull(recd.REDUCE_OWN_PRICE, 0) >= isnull(recd.REN_PRICE, 0)
+					  then 0
+					  else isnull(recd.REN_PRICE, 0) - isnull(recd.REDUCE_OWN_PRICE, 0) end
+					  as loss_ren_price
+					  from T_RENT_COLLECTIONDETAIL recd
+					  where recd.status = 0
+					  and recd.RECP_ID = #RECP_ID#
+					  and (recd.REDUCE_OWN_PRICE is null or recd.REDUCE_OWN_PRICE < (recd.IRR_MONTH_PRICE+isnull(recd.VALUE_ADDED_TAX,0)))
+					)t)  SUM_REN_PRICE ,
+					( 
+					select SUM(loss_own_price) loss_ren_price from(
+					select 
+						case when convert(decimal,isnull(recd.REDUCE_OWN_PRICE, 0)) >= convert(decimal,isnull(recd.REN_PRICE, 0))
+					  then isnull(recd.IRR_MONTH_PRICE, 0) - (isnull(recd.REDUCE_OWN_PRICE, 0)-isnull(recd.VALUE_ADDED_TAX, 0))
+					  else isnull(recd.IRR_MONTH_PRICE, 0) - isnull(recd.REN_PRICE, 0) end 
+					  as loss_own_price
+					  from T_RENT_COLLECTIONDETAIL recd
+					  where recd.status = 0
+					  and recd.RECP_ID = #RECP_ID#
+					  and (recd.REDUCE_OWN_PRICE is null or recd.REDUCE_OWN_PRICE < (recd.IRR_MONTH_PRICE+isnull(recd.VALUE_ADDED_TAX, 0)))
+					) t) SUM_OWN_PRICE ,
+					 sum(IRR_MONTH_PRICE+(isnull(VALUE_ADDED_TAX,0)) - isnull(REDUCE_OWN_PRICE,0)) as SUM_MONTH_PRICE	
+					  ,(SELECT SUM(loss_VALUE_ADDED_TAX) SUM_VALUE_ADDED_TAX
+							FROM (
+								SELECT CASE 
+										WHEN convert(DECIMAL, isnull(recd.REDUCE_OWN_PRICE, 0)) >= convert(DECIMAL, isnull(recd.VALUE_ADDED_TAX, 0))
+											THEN 0
+										ELSE (isnull(recd.VALUE_ADDED_TAX, 0) -isnull(recd.REDUCE_OWN_PRICE, 0))
+										END AS loss_VALUE_ADDED_TAX
+								FROM T_RENT_COLLECTIONDETAIL recd
+								WHERE recd.STATUS = 0
+									AND recd.RECP_ID =#RECP_ID#
+									AND (
+										recd.REDUCE_OWN_PRICE IS NULL
+										OR recd.REDUCE_OWN_PRICE < (recd.IRR_MONTH_PRICE + isnull(recd.VALUE_ADDED_TAX, 0))
+										)
+								) t
+							) SUM_VALUE_ADDED_TAX,			
+				(select 
+						rectd.staybuy_price - 
+						(select isnull(sum(ficb.real_price),0)
+						from t_fina_collectionbill ficb
+						where ficb.ficb_item = #sblgj#
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						and ficb.recp_code = recp.recp_code)
+						  as sprice
+						from t_rent_contract rect, t_rent_collectionplan recp,
+						(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+						where recp.rect_id = rect.rect_id
+						and recp.RECP_ID=#RECP_ID#
+						and recp.status = 0 
+						and rectd.RECT_ID=rect.RECT_ID
+			       )  LGJ ,
+			       (select 
+					lawfee.sum_lawyfee - (
+					(select isnull(sum(ficb.real_price),0)
+					from t_fina_collectionbill ficb
+					where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = #lawyfee#) 
+					and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+					and ficb.status = 0
+					and ficb.recp_id = recp.recp_id)
+			    ) as sprice
+				from t_rent_collectionplan recp,
+				(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+				where recp.recp_id = lawfee.recp_id
+				and recp.RECP_ID=#RECP_ID#
+				and recp.status = 0 
+				) TOTAL_LAWYFEE,
+			      (
+		              select COUNT(*) from T_RENT_COLLECTIONDETAIL T  
+		              where T.STATUS=0 
+		              and( (T.IRR_MONTH_PRICE+isnull(T.VALUE_ADDED_TAX,0))- T.REDUCE_OWN_PRICE)<= 0.005
+					AND T.RECP_ID = #RECP_ID#
+			       ) REAL_PERIOD,
+			       (select trcpd.fine-			       
+			  isnull((select sum(ficb.real_price)
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = #zujinfaxi#
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.recp_id = trcpd.recp_id 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = #zujinfaxi#
+			        ),0)- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(select SUM(fine) fine,RECP_ID
+				 from
+				(    
+			select tfcbd.recd_period as period_num,convert(varchar,tfcbd.pay_date, 23) pay_date,convert(varchar,tfcbd.opposing_date, 23) opposing_date,dun_day,should_price as dun_price, trcd.irr_month_price + ISNULL(trcd.VALUE_ADDED_TAX,0) as month_price,convert(decimal(18,2),tfcbd.real_price) real_price,
+			(case when trcp.fine_type = 2 then
+             round(real_price *
+             power(1 + trcp.fine_rate / 100, dun_day) - real_price,2)
+              else
+              round(real_price * dun_day * fine_rate / 100,2)
+               end) fine,
+			
+			trcp.recp_id,trc.CUST_NAME
+			from              
+			(select tfcb.RECP_ID,tfcb.pay_date,tfcb.recd_period,max(tfcb.should_price) should_price ,
+			sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+			from t_fina_collectionbill tfcb
+			left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+			where
+			 (tfcb.ficb_state=4 or tfcb.ficb_state=5) 
+			and tfi.red_type is null and tfcb.FICB_type='0'
+			and (tfcb.FICB_ITEM='租金' or tfcb.FICB_ITEM='增值税')
+			and datediff(d,tfcb.pay_date,opposing_date)>0 
+			group by RECP_ID,pay_date,recd_period,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+			left join
+			t_rent_collectionplan  trcp
+			on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+			left join t_rent_contract trc 
+			on trcp.rect_id =trc.rect_id and trc.status=0
+			left join
+			t_rent_collectiondetail trcd
+			on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+			where trcp.RECP_ID=#RECP_ID#
+			union all
+			select 
+			trcp.period_num,
+			convert(varchar,trcp.pay_date, 23) pay_date,
+			null as opposing_date ,
+			datediff(d,trcp.pay_date,getdate())  dun_day,
+			trcp.month_price-reduce_price as dun_price,
+			month_price, convert(decimal(18,2),reduce_price) as real_price,
+			(case when trcp.fine_type = 2 then
+			round((trcp.month_price-reduce_price) *
+			     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,#QUERY_DATE#)) -
+			     (trcp.month_price-reduce_price),2)
+			else
+			 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,#QUERY_DATE#) * fine_rate / 100,2)
+			end) fine,trcp.recp_id,cust_name
+			from (          
+			 select 
+			     trcp.recp_id,
+			     trcp.rect_id,
+			     trcp.warn_status,
+			     trcd.pay_date,
+			     trcd.period_num, 
+			     trcp.fine_type,
+			     trcp.fine_rate,
+			     isnull(trcd.IRR_MONTH_PRICE, 0)+isnull(trcd.VALUE_ADDED_TAX, 0) month_price,  
+			     isnull(trcd.reduce_own_price, 0) reduce_price,trc.CUST_NAME
+			from t_rent_collectionplan trcp
+			left join t_rent_contract trc on trcp.rect_id =
+			trc.rect_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id =
+			trcd.recp_id
+			where trcp.status = 0 and trc.status=0
+			  and (trcp.fund_status=0 or trcp.fund_status=1)
+			  and  trcd.pay_date < = cast(#QUERY_DATE# as datetime)-1
+			and isnull(trcd.IRR_MONTH_PRICE, 0)+isnull(trcd.VALUE_ADDED_TAX, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+			left join  
+			(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+			  from t_fina_collectionbill tfcb
+			  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+ 			where tfi.opposing_date <= cast(#QUERY_DATE# as datetime)
+			 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+			 and tfi.red_type is null 
+			 group by recp_id
+			 ) tfcd 
+			on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+			where (case when tfcd.opposing_date is null or
+			tfcd.opposing_date <= trcp.pay_date then
+			datediff(d,trcp.pay_date,#QUERY_DATE#) else
+			datediff(d,tfcd.opposing_date,#QUERY_DATE#) end) > 0 
+			and trcp.RECP_ID=#RECP_ID#
+			)TT
+			group by RECP_ID) trcpd
+				left join
+				T_RENT_SETTLE tdfdr
+				on trcpd.RECP_ID=tdfdr.RECP_ID
+				and tdfdr.status = 0 and tdfdr.state = 1 ) dun_price
+			FROM 
+				T_RENT_COLLECTIONDETAIL T
+			WHERE
+				T.STATUS = 0
+				AND T.RECP_ID =  #RECP_ID#
+				AND T.PERIOD_NUM NOT IN 
+					(
+						SELECT 
+							RECD_PERIOD
+						FROM
+							T_RENT_COLLECTIONDETAIL T
+							LEFT JOIN (
+									SELECT
+										RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+									FROM
+										T_FINA_COLLECTIONBILL t 
+									WHERE
+										t.FICB_TYPE=0 
+										AND t.FICB_ITEM= #zujin#
+										AND T.FICB_STATE = 5 
+										AND t.STATUS=0
+										AND t.RECP_ID = #RECP_ID#
+									GROUP BY 
+										RECD_PERIOD
+							) T1 ON T1.recp_id = T.recp_id AND T1.RECD_PERIOD = T.PERIOD_NUM
+						WHERE
+							((T1.REAL_PRICEcount - (T.IRR_MONTH_PRICE+isnull(T.VALUE_ADDED_TAX,0))) <= 0.005
+							AND (T1.REAL_PRICEcount - (T.IRR_MONTH_PRICE+isnull(T.VALUE_ADDED_TAX,0))) >= -0.005)
+							AND T.STATUS = 0 
+							AND T.RECP_ID = #RECP_ID#
+					)
+			) t
+		]]> 
+	</select>
+	
+	<update id="decomposeRebutRemoveSettle" parameterClass="map" >
+		UPDATE 
+			T_RENT_SETTLE
+		SET
+			STATUS = -1 
+		WHERE
+			TRSE_ID = #trse_id#
+	</update>
+	<!-- 是否存在结清分解单 1存在 2不存在 -->
+	<select id="existSettleDecompose" parameterClass="map" resultClass="java.lang.Integer">
+	<![CDATA[
+		SELECT 
+			CASE
+			WHEN SUM(REAL_PRICE) > 0.005
+			THEN 1
+			ELSE 2
+			END 
+		FROM
+			T_FINA_COLLECTIONBILL T
+		WHERE	
+			T.STATUS = 0 
+			AND FICB_ITEM LIKE '$jieqing$%'
+			AND RECP_ID = #RECP_ID#
+			AND ( FICB_STATE = 5 OR FICB_STATE = 4 OR FICB_STATE = 3)
+			AND FICB_TYPE = 0
+			]]>
+	</select>
+	<select id="expSettleDetailExcel" parameterClass="map" resultClass="java.util.HashMap">
+		<!-- 
+		<![CDATA[
+			SELECT 
+				T2.LEASE_CODE,
+				T2.CUST_NAME,
+				T3.DECP_NAME_CN,
+				T.REAL_TOTAL,
+				(	SELECT CONVERT(VARCHAR(10),MAX(CHECK_DATE),23) FROM
+						T_FINA_COLLECTIONBILL TFCB
+					WHERE
+						TFCB.STATUS = 0
+						AND TFCB.FICB_STATE = 5
+						AND TFCB.FICB_TYPE = 0
+						AND TFCB.RECP_ID = T.RECP_ID
+						AND TFCB.FICB_ITEM LIKE '$jieqing$%') SETTLE_DATE ,
+				T1.RECP_STATUS
+			FROM
+				T_RENT_SETTLE T
+				LEFT JOIN T_RENT_COLLECTIONPLAN T1 ON T1.RECP_ID = T.RECP_ID AND T1.STATUS = 0
+				LEFT JOIN T_RENT_CONTRACT T2 ON T1.RECT_ID = T2.RECT_ID AND T2.STATUS = 0
+				LEFT JOIN T_DEPT_COMPANY T3 ON T3.DECP_ID = T2.DECP_ID AND T3.STATUS = 0
+			WHERE
+				T.STATUS = 0
+				AND T.STATE = 1
+				AND T.RECP_ID IN 
+		]]>
+		-->
+		<![CDATA[
+			SELECT 
+				T2.LEASE_CODE,
+				T2.CUST_NAME,
+				T3.DECP_NAME_CN,
+				(
+					SELECT 
+						ISNULL(SUM(IRR_MONTH_PRICE),0)
+					FROM
+						T_RENT_COLLECTIONDETAIL TRCD
+					WHERE
+						TRCD.STATUS = 0
+						AND TRCD.RECP_ID = T1.RECP_ID
+				) REAL_TOTAL,
+				(	SELECT CONVERT(VARCHAR(10),MAX(CHECK_DATE),23) FROM
+						T_FINA_COLLECTIONBILL TFCB
+					WHERE
+						TFCB.STATUS = 0
+						AND TFCB.FICB_STATE = 5
+						AND TFCB.FICB_TYPE = 0
+						AND TFCB.RECP_ID = T1.RECP_ID
+						) SETTLE_DATE ,
+				T1.RECP_STATUS
+			FROM
+				T_RENT_COLLECTIONPLAN T1
+				LEFT JOIN T_RENT_CONTRACT T2 ON T1.RECT_ID = T2.RECT_ID AND T2.STATUS = 0
+				LEFT JOIN T_DEPT_COMPANY T3 ON T3.DECP_ID = T2.DECP_ID AND T3.STATUS = 0
+			WHERE
+				T1.STATUS = 0
+				AND ( T1.RECP_STATUS = 1 OR T1.RECP_STATUS = 3 )
+				AND T1.RECP_ID IN
+		]]>
+		<iterate property="ids" open="(" close=")" conjunction=",">
+				#ids[]#
+		</iterate>
+	</select>
+	
+	<!-- 查询合同ID Add by Michael 2012 02/22 增加合同ID -->
+	<select id="queryRECTID" parameterClass="map" resultClass="java.lang.Long">
+		<![CDATA[
+		SELECT 
+			RECT_ID
+		FROM 
+			T_RENT_COLLECTIONPLAN
+		where RECP_ID=#recp_id#
+		]]>
+	</select>	
+	
+	<!-- Add by Michael 2012-3-7 For 申请暂停发票开具 -->
+	<select id="queryAllRenList" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		SELECT T1.RECP_ID,
+		   T1.RECP_STATUS,
+		   T1.CREATE_TIME,
+		   T1.RECP_CODE,
+		   T1.START_DATE,
+		   T1.PAYDATE_FLAG,
+		   T2.RECT_ID,
+		   T2.CUST_NAME,
+		   T3.NAME CLERKNAME,
+		   T4.NAME SENSORNAME ,
+		   T1.LEASE_PERIOD ,
+		   t2.CORP_ORAGNIZATION_CODE,
+		   t1.INVOICE_STATUS
+		FROM T_RENT_COLLECTIONPLAN T1
+		LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = T1.RECT_ID and t2.STATUS=0
+		LEFT JOIN T_USER_USER T3 ON T3.ID = T2.CLERK_ID 
+		LEFT JOIN T_USER_USER T4 ON T4.ID = T2.SENSOR_ID		  
+		WHERE T1.STATUS=0 and t1.RECP_STATUS=0	
+		]]>
+		<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+				(T1.RECP_CODE LIKE '%$QSEARCH_VALUE$%' OR T2.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+			  OR T3.NAME LIKE '%$QSEARCH_VALUE$%' OR T4.NAME LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+		</isNotEmpty>
+	</select>
+	
+	<select id="queryAllRenList_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[
+		SELECT count(*)
+		FROM T_RENT_COLLECTIONPLAN T1
+		LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = T1.RECT_ID and t2.STATUS=0
+		LEFT JOIN T_USER_USER T3 ON T3.ID = T2.CLERK_ID 
+		LEFT JOIN T_USER_USER T4 ON T4.ID = T2.SENSOR_ID		  
+		WHERE T1.STATUS=0 and t1.RECP_STATUS=0	
+		]]>
+		<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+				(T1.RECP_CODE LIKE '%$QSEARCH_VALUE$%' OR T2.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+			  OR T3.NAME LIKE '%$QSEARCH_VALUE$%' OR T4.NAME LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+		</isNotEmpty>
+	</select>
+	
+	<!-- Add by michael 2012 3/7 暂停发票开具申请 -->
+	<insert id="createInvoiceSuspen" parameterClass="map">
+	INSERT INTO 
+		t_invoice_Suspen
+		(
+			MEMO ,
+			INVOICE_STATUS ,
+			RECP_ID ,
+			CREATE_USER,
+			CREATE_TIME,
+			invoice_type
+		)VALUES(
+			#MEMO#,
+			0,
+			#RECP_ID#,
+			#s_employeeId# ,
+			getdate(),
+			0
+		)
+	</insert>
+	
+	<!-- 查询是否有申请暂停开发票 -->
+	<select id="queryInvoiceSuspenID" parameterClass="map" resultClass="java.lang.Long">
+		<![CDATA[
+		SELECT 
+			count(*) num
+		FROM 
+			t_invoice_Suspen
+		where RECP_ID=#RECP_ID# and INVOICE_STATUS='0' and invoice_type='0'
+		]]>
+	</select>	
+	<!-- 查询是否有申请续开发票 -->
+	<select id="queryApplyInvoiceSuspenID" parameterClass="map" resultClass="java.lang.Long">
+		<![CDATA[
+		SELECT 
+			count(*) num
+		FROM 
+			t_invoice_Suspen
+		where RECP_ID=#RECP_ID# and INVOICE_STATUS='0' and invoice_type='1'
+		]]>
+	</select>	
+	<!-- Add by michael 2012 3/7 续发票开具申请 -->
+	<insert id="createApplyInvoiceSuspen" parameterClass="map">
+	INSERT INTO 
+		t_invoice_Suspen
+		(
+			MEMO ,
+			INVOICE_STATUS ,
+			RECP_ID ,
+			CREATE_USER,
+			CREATE_TIME,
+			invoice_type
+		)VALUES(
+			#MEMO#,
+			0,
+			#RECP_ID#,
+			#s_employeeId# ,
+			getdate(),
+			1
+		)
+	</insert>
+	
+
+	<select id="queryAllInvoiceSuspen_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[
+			select count(*) 
+			from t_invoice_Suspen t1
+			left join
+			T_RENT_COLLECTIONPLAN t2
+			on t1.recp_id=t2.RECP_ID and t2.STATUS=0
+			left join
+			t_rent_contract t3
+			on t2.RECT_ID=t3.RECT_ID and t3.STATUS=0
+			left join t_prjt_credit tpc on tpc.id = t3.prcd_id and tpc.status = 0
+			where 1=1
+		]]>
+		<isNotEmpty prepend="and" property="companyCode">
+			tpc.company_code = #companyCode#
+		</isNotEmpty>	
+		<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+				(T2.RECP_CODE LIKE '%$QSEARCH_VALUE$%' OR T3.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+			  OR T3.LEASE_CODE LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+		</isNotEmpty>		
+	</select>				
+
+	<select id="queryAllInvoiceSuspen" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t1.ID,t2.RECP_CODE,t3.CUST_NAME,t1.INVOICE_STATUS,t1.INVOICE_TYPE 
+			from t_invoice_Suspen t1
+			left join
+			T_RENT_COLLECTIONPLAN t2
+			on t1.recp_id=t2.RECP_ID and t2.STATUS=0
+			left join
+			t_rent_contract t3
+			on t2.RECT_ID=t3.RECT_ID and t3.STATUS=0
+			left join t_prjt_credit tpc on tpc.id = t3.prcd_id and tpc.status = 0
+			where 1=1
+		]]>
+		<isNotEmpty prepend="and" property="companyCode">
+			tpc.company_code = #companyCode#
+		</isNotEmpty>	
+		<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+			<![CDATA[
+				(T2.RECP_CODE LIKE '%$QSEARCH_VALUE$%' OR T3.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+			  OR T3.LEASE_CODE LIKE '%$QSEARCH_VALUE$%')
+			  ]]>
+		</isNotEmpty>		
+	</select>	
+	<select id="queryInvoiceSuspenDetail" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select * 
+			from t_invoice_Suspen 
+			where id=#ID#
+		]]>	
+	</select>
+	
+	<update id="updateInvoiceSuspenPass" parameterClass="map">
+		update t_invoice_Suspen
+		set Confirm_time=getdate(),Confirm_id=#s_employeeId#,INVOICE_STATUS='1'
+		where id=#ID#
+	</update>
+	<update id="updateInvoiceSuspenBack" parameterClass="map">
+		update t_invoice_Suspen
+		set Confirm_time=getdate(),Confirm_id=#s_employeeId#,INVOICE_STATUS='2'
+		where id=#ID#
+	</update>
+
+	<update id="updateRECPInvoiceSuspen" parameterClass="map">
+		update T_RENT_COLLECTIONPLAN
+		set INVOICE_STATUS='1'
+		where RECP_ID=#RECP_ID#
+	</update>
+	
+	<update id="updateRECPApplyInvoiceSuspen" parameterClass="map">
+		update T_RENT_COLLECTIONPLAN
+		set INVOICE_STATUS='0'
+		where RECP_ID=#RECP_ID#
+	</update>
+	
+	<select id="showInvoiceSuspenDetail" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select convert(varchar,tis.create_time,23)create_time,tis.INVOICE_STATUS,tis.invoice_type,t2.LEASE_CODE,t2.CUST_NAME,t3.NAME 
+			from t_invoice_Suspen tis
+			left join T_RENT_COLLECTIONPLAN T1
+			on tis.recp_id=t1.RECP_ID and t1.STATUS=0
+			LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = T1.RECT_ID and t2.STATUS=0
+			LEFT JOIN T_USER_USER T3 ON T3.ID = tis.create_user 	  
+			WHERE tis.recp_id=#RECP_ID#
+		]]>	
+	</select>
+	
+	<!-- Add by Michael 2012 08-31 增加可结清案件明细报表 -->
+	<select id="queryAbleSettleRentList" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+	 	 select trct.lease_code,trct.cust_name,tuu.name,tuu.id as USERID,TTT.RECT_ID,TTT.RECP_CODE,TTT.LEASE_PERIOD,
+   		isnull((select convert(decimal(18,2),trcpd.fine)-(
+			        case 
+			        when exists
+			        (select ficb.ficb_item, sum(ficb.real_price)
+			         from t_fina_collectionbill ficb
+			        where ficb.recp_code = trcpd.recp_code
+			          and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			          and ficb.status = 0 
+			        group by ficb.ficb_item
+			       having ficb.ficb_item = '租金罚息') then
+			  (select convert(decimal(18,2),sum(ficb.real_price))
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = '租金罚息'
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.recp_code = trcpd.recp_code 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = '租金罚息'
+			        )else 0 end )- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(select SUM(fine) fine,RECP_CODE,RECP_ID,RECT_ID ,lease_code,min(PAY_DATE) PAY_DATE
+				 from
+				(    
+				select trc.CUST_ID,trcp.recp_id,trcp.rect_id,trcp.RECP_CODE,trc.lease_code,
+				(case when trcp.fine_type = 2 then
+				round(should_price *
+				     power(1 + trcp.fine_rate / 100, dun_day) -
+				     should_price,2)
+				else
+				 round(should_price * dun_day * fine_rate / 100,2)
+				end) fine,trcd.PAY_DATE
+				from              
+				(select tfcb.RECP_ID,tfcb.recp_code,tfcb.pay_date,tfcb.recd_period,tfcb.ficb_item,max(tfcb.should_price) should_price ,
+				sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+				from t_fina_collectionbill tfcb
+				left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				where  (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				and tfi.red_type is null and tfcb.FICB_type='0'
+				and tfcb.FICB_ITEM='租金' 
+				and datediff(d,tfcb.pay_date,opposing_date)>0 
+				group by RECP_ID,recp_code,pay_date,recd_period,ficb_item,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+				left join
+				t_rent_collectionplan  trcp
+				on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+				left join t_rent_contract trc 
+				on trcp.rect_id =trc.rect_id and trc.status=0
+				left join
+				t_rent_collectiondetail trcd
+				on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+				where 1=1 
+				and trcp.RECP_ID = TTT.RECP_ID
+				union all
+				select trcp.cust_id,
+				trcp.recp_id,
+				trcp.rect_id,
+				trcp.RECP_CODE,
+				trcp.lease_code,
+				(case when trcp.fine_type = 2 then
+				round((trcp.month_price-reduce_price) *
+				     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+				     (trcp.month_price-reduce_price),2)
+				else
+				 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+				end) fine,trcp.PAY_DATE
+				from (          
+				 select trc.cust_id,trc.cust_code,
+				     trcp.recp_id,
+				     trcp.rect_id,
+				     trcp.RECP_CODE,
+				     trc.lease_code,
+				     trcp.FUND_STATUS,
+				     trcd.pay_date,
+				     trcd.period_num, 
+				     trcp.fine_type,
+				     trcp.fine_rate,
+				     isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+				     isnull(trcd.reduce_own_price, 0) reduce_price
+				from t_rent_collectionplan trcp
+				left join t_rent_contract trc on trcp.rect_id =
+				trc.rect_id
+				left join t_rent_collectiondetail trcd on trcp.recp_id =
+				trcd.recp_id
+				where trcp.status = 0 and trc.status=0
+				  and (trcp.fund_status=0 or trcp.fund_status=1)
+				 and  trcd.pay_date < = cast(getdate() as datetime)-1
+				and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+				left join  
+				(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+				  from t_fina_collectionbill tfcb
+				  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				 where tfi.opposing_date <= cast(getdate() as datetime)
+				 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				 and tfi.red_type is null 
+				 group by recp_id
+				 ) tfcd 
+				on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+				where (case when tfcd.opposing_date is null or
+				tfcd.opposing_date <= trcp.pay_date then
+				datediff(d,trcp.pay_date,getdate()) else
+				datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+				and trcp.RECP_ID = TTT.RECP_ID		
+				)t1
+				group by t1.CUST_ID,t1.recp_id,t1.rect_id,t1.RECP_CODE,t1.lease_code) trcpd
+				left join
+				T_RENT_SETTLE tdfdr
+				on trcpd.RECP_ID=tdfdr.RECP_ID
+				and tdfdr.status = 0 and tdfdr.state = 1 ),0) dun_price,
+        (select 
+						rectd.staybuy_price - (case
+						 when exists (select ficb.ficb_item, sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.recp_code = recp.recp_code
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						group by ficb.ficb_item
+						having ficb.ficb_item = '设备留购价') then
+						(select sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.ficb_item = '设备留购价'
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						and ficb.recp_code = recp.recp_code)
+						 else
+						  0
+						end) as sprice						
+            from t_rent_contract rect, t_rent_collectionplan recp,
+						(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+						where recp.rect_id = rect.rect_id
+						and recp.RECP_ID=TTT.RECP_ID
+						and recp.status = 0 
+						and rectd.RECT_ID=rect.RECT_ID
+			       )  LGJ ,convert(varchar,trcd.LAST_PAY_DATE,23)LAST_PAY_DATE,DATEDIFF(DAY,comeDate.OPPOSINGDATE,GETDATE()) DIFF_DAY,tdc.DECP_NAME_CN,tdc.DECP_ID
+       ,comeDate.OPPOSINGDATE as OPPOSINGDATE
+       , isnull(lawyfeeT.sprice,0) as TOTALLAWYFEE
+        from T_RENT_COLLECTIONPLAN  TTT
+   left join (select sum( IRR_MONTH_PRICE) SUM_MONTH_PRICE,sum(REDUCE_OWN_PRICE) SUM_OWN_PRICE,RECP_ID,MAX(PAY_DATE)LAST_PAY_DATE from T_RENT_COLLECTIONDETAIL where status=0 group by recp_id) trcd
+   on TTT.RECP_ID = trcd.RECP_ID
+   left join T_RENT_CONTRACT trct on trct.RECT_ID = TTT.RECT_ID 
+   left join T_user_user tuu on trct.SENSOR_ID = tuu.ID
+   left join T_DEPT_DEPARTMENT tddp on tuu.DEPT_ID=tddp.ID
+   left join T_DEPT_COMPANY tdc on tddp.DECP_ID=tdc.DECP_ID
+   left join ( select distinct TTT.RECP_ID as recpId,Max(convert(varchar,tfi.OPPOSING_DATE,23))as OPPOSINGDATE
+        from T_RENT_COLLECTIONPLAN  TTT
+		left join T_FINA_COLLECTIONBILL tfc on ttt.RECP_ID=tfc.recp_id
+		left join T_FINA_INCOME tfi on tfi.FIIN_ID=tfc.fiin_id
+   group by TTT.RECP_ID) comeDate on comeDate.recpId =TTT.RECP_ID
+   left join ( select 
+					lawfee.sum_lawyfee - (
+					(select isnull(sum(ficb.real_price),0)
+					from t_fina_collectionbill ficb
+					where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = '法务费用') 
+					and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+					and ficb.status = 0
+					and ficb.recp_id = recp.recp_id)
+			    ) as sprice,recp.RECP_ID as RecpId
+				from t_rent_collectionplan recp,
+				(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+				where recp.recp_id = lawfee.recp_id
+				and recp.status = 0  ) lawyfeeT on lawyfeeT.RecpId = ttt.recp_id
+   where TTT.status=0 and TTT.RECP_STATUS=0 and trcd.SUM_OWN_PRICE>=trcd.SUM_MONTH_PRICE
+   and trct.STATUS=0 and DATEDIFF(DAY,comeDate.OPPOSINGDATE,GETDATE()) <90
+   order by DIFF_DAY desc
+		]]>	
+	</select>
+	
+		<!-- Add by Michael 2012 08-31 增加可结清案件明细报表For发送个人 -->
+	<select id="queryAbleSettleRentListSelf" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+	   select trct.lease_code,trct.cust_name,tuu.name,TTT.RECT_ID,TTT.RECP_CODE,TTT.LEASE_PERIOD
+,comeDate.OPPOSINGDATE as OPPOSINGDATE
+       , isnull(lawyfeeT.sprice,0) as TOTALLAWYFEE,
+   		isnull((select convert(decimal(18,2),trcpd.fine)-(
+			        case 
+			        when exists
+			        (select ficb.ficb_item, sum(ficb.real_price)
+			         from t_fina_collectionbill ficb
+			        where ficb.recp_code = trcpd.recp_code
+			          and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			          and ficb.status = 0 
+			        group by ficb.ficb_item
+			       having ficb.ficb_item = '租金罚息') then
+			  (select convert(decimal(18,2),sum(ficb.real_price))
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = '租金罚息'
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.recp_code = trcpd.recp_code 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = '租金罚息'
+			        )else 0 end )- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(select SUM(fine) fine,RECP_CODE,RECP_ID,RECT_ID ,lease_code,min(PAY_DATE) PAY_DATE
+				 from
+				(    
+				select trc.CUST_ID,trcp.recp_id,trcp.rect_id,trcp.RECP_CODE,trc.lease_code,
+				(case when trcp.fine_type = 2 then
+				round(should_price *
+				     power(1 + trcp.fine_rate / 100, dun_day) -
+				     should_price,2)
+				else
+				 round(should_price * dun_day * fine_rate / 100,2)
+				end) fine,trcd.PAY_DATE
+				from              
+				(select tfcb.RECP_ID,tfcb.recp_code,tfcb.pay_date,tfcb.recd_period,tfcb.ficb_item,max(tfcb.should_price) should_price ,
+				sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+				from t_fina_collectionbill tfcb
+				left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				where  (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				and tfi.red_type is null and tfcb.FICB_type='0'
+				and tfcb.FICB_ITEM='租金' 
+				and datediff(d,tfcb.pay_date,opposing_date)>0 
+				group by RECP_ID,recp_code,pay_date,recd_period,ficb_item,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+				left join
+				t_rent_collectionplan  trcp
+				on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+				left join t_rent_contract trc 
+				on trcp.rect_id =trc.rect_id and trc.status=0
+				left join
+				t_rent_collectiondetail trcd
+				on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+				where 1=1 
+				and trcp.RECP_ID = TTT.RECP_ID
+				union all
+				select trcp.cust_id,
+				trcp.recp_id,
+				trcp.rect_id,
+				trcp.RECP_CODE,
+				trcp.lease_code,
+				(case when trcp.fine_type = 2 then
+				round((trcp.month_price-reduce_price) *
+				     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+				     (trcp.month_price-reduce_price),2)
+				else
+				 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+				end) fine,trcp.PAY_DATE
+				from (          
+				 select trc.cust_id,trc.cust_code,
+				     trcp.recp_id,
+				     trcp.rect_id,
+				     trcp.RECP_CODE,
+				     trc.lease_code,
+				     trcp.FUND_STATUS,
+				     trcd.pay_date,
+				     trcd.period_num, 
+				     trcp.fine_type,
+				     trcp.fine_rate,
+				     isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+				     isnull(trcd.reduce_own_price, 0) reduce_price
+				from t_rent_collectionplan trcp
+				left join t_rent_contract trc on trcp.rect_id =
+				trc.rect_id
+				left join t_rent_collectiondetail trcd on trcp.recp_id =
+				trcd.recp_id
+				where trcp.status = 0 and trc.status=0
+				  and (trcp.fund_status=0 or trcp.fund_status=1)
+				 and  trcd.pay_date < = cast(getdate() as datetime)-1
+				and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+				left join  
+				(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+				  from t_fina_collectionbill tfcb
+				  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				 where tfi.opposing_date <= cast(getdate() as datetime)
+				 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				 and tfi.red_type is null 
+				 group by recp_id
+				 ) tfcd 
+				on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+				where (case when tfcd.opposing_date is null or
+				tfcd.opposing_date <= trcp.pay_date then
+				datediff(d,trcp.pay_date,getdate()) else
+				datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+				and trcp.RECP_ID = TTT.RECP_ID		
+				)t1
+				group by t1.CUST_ID,t1.recp_id,t1.rect_id,t1.RECP_CODE,t1.lease_code) trcpd
+				left join
+				T_RENT_SETTLE tdfdr
+				on trcpd.RECP_ID=tdfdr.RECP_ID
+				and tdfdr.status = 0 and tdfdr.state = 1 ),0) dun_price,
+        		(select 
+						rectd.staybuy_price - (case
+						 when exists (select ficb.ficb_item, sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.recp_code = recp.recp_code
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						group by ficb.ficb_item
+						having ficb.ficb_item = '设备留购价') then
+						(select sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.ficb_item = '设备留购价'
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						and ficb.recp_code = recp.recp_code)
+						 else
+						  0
+						end) as sprice						
+            from t_rent_contract rect, t_rent_collectionplan recp,
+						(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+						where recp.rect_id = rect.rect_id
+						and recp.RECP_ID=TTT.RECP_ID
+						and recp.status = 0 
+						and rectd.RECT_ID=rect.RECT_ID
+			       )  LGJ ,convert(varchar,trcd.LAST_PAY_DATE,23)LAST_PAY_DATE,DATEDIFF(DAY,comeDate.OPPOSINGDATE,GETDATE()) DIFF_DAY
+        from T_RENT_COLLECTIONPLAN  TTT
+   left join (select sum( IRR_MONTH_PRICE) SUM_MONTH_PRICE,sum(REDUCE_OWN_PRICE) SUM_OWN_PRICE,RECP_ID,MAX(PAY_DATE)LAST_PAY_DATE from T_RENT_COLLECTIONDETAIL where status=0 group by recp_id) trcd
+   on TTT.RECP_ID = trcd.RECP_ID
+   left join T_RENT_CONTRACT trct on trct.RECT_ID = TTT.RECT_ID 
+   left join T_user_user tuu on trct.SENSOR_ID = tuu.ID
+     left join ( select distinct TTT.RECP_ID as recpId,Max(convert(varchar,tfi.OPPOSING_DATE,23))as OPPOSINGDATE
+        from T_RENT_COLLECTIONPLAN  TTT
+		left join T_FINA_COLLECTIONBILL tfc on ttt.RECP_ID=tfc.recp_id
+		left join T_FINA_INCOME tfi on tfi.FIIN_ID=tfc.fiin_id
+   group by TTT.RECP_ID) comeDate on comeDate.recpId =TTT.RECP_ID
+   left join (  select 
+					lawfee.sum_lawyfee - (
+					(select isnull(sum(ficb.real_price),0)
+					from t_fina_collectionbill ficb
+					where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = '法务费用') 
+					and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+					and ficb.status = 0
+					and ficb.recp_id = recp.recp_id)
+			    ) as sprice,recp.RECP_ID as RecpId
+				from t_rent_collectionplan recp,
+				(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+				where recp.recp_id = lawfee.recp_id
+				
+				and recp.status = 0  ) lawyfeeT on lawyfeeT.RecpId = ttt.recp_id
+   where TTT.status=0 and TTT.RECP_STATUS=0 and trcd.SUM_OWN_PRICE>=trcd.SUM_MONTH_PRICE
+   and trct.STATUS=0 
+   and trct.SENSOR_ID=#ID#
+   order by DIFF_DAY desc 
+		]]>	
+	</select>
+	
+	
+<select id="queryAbleSettleEmailBySelf" parameterClass="map" resultClass="java.util.HashMap">	
+   <![CDATA[
+	   select tuu.EMAIL,tuu.ID,upp.EMAIL UP_EMAIL  from T_RENT_COLLECTIONPLAN  TTT
+	   left join (select sum( IRR_MONTH_PRICE) SUM_MONTH_PRICE,sum(REDUCE_OWN_PRICE) SUM_OWN_PRICE,RECP_ID from T_RENT_COLLECTIONDETAIL where status=0 group by recp_id) trcd
+	   on TTT.RECP_ID = trcd.RECP_ID
+	   left join T_RENT_CONTRACT trct on trct.RECT_ID = TTT.RECT_ID 
+	   left join T_user_user tuu on trct.SENSOR_ID = tuu.ID
+	   left join T_USER_USER upp on tuu.upper_user = upp.id
+	   where TTT.status=0 and TTT.RECP_STATUS=0 and trcd.SUM_OWN_PRICE>=trcd.SUM_MONTH_PRICE
+	   and trct.STATUS=0
+	   group by tuu.EMAIL,tuu.ID,upp.EMAIL
+	]]>	
+</select>	
+
+		<!-- Add by Michael 2012 08-31 增加可结清案件明细报表For苏州设备 -->
+	<select id="queryAbleSettleRentListSuzhou" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+	   select trct.lease_code,trct.cust_name,tuu.name,TTT.RECT_ID,TTT.RECP_CODE,TTT.LEASE_PERIOD
+    ,comeDate.OPPOSINGDATE as OPPOSINGDATE,  isnull(lawyfeeT.sprice,0) as TOTALLAWYFEE  
+       , 
+   		isnull((select convert(decimal(18,2),trcpd.fine)-(
+			        case 
+			        when exists
+			        (select ficb.ficb_item, sum(ficb.real_price)
+			         from t_fina_collectionbill ficb
+			        where ficb.recp_code = trcpd.recp_code
+			          and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			          and ficb.status = 0 
+			        group by ficb.ficb_item
+			       having ficb.ficb_item = '租金罚息') then
+			  (select convert(decimal(18,2),sum(ficb.real_price))
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = '租金罚息'
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.recp_code = trcpd.recp_code 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = '租金罚息'
+			        )else 0 end )- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(select SUM(fine) fine,RECP_CODE,RECP_ID,RECT_ID ,lease_code,min(PAY_DATE) PAY_DATE
+				 from
+				(    
+				select trc.CUST_ID,trcp.recp_id,trcp.rect_id,trcp.RECP_CODE,trc.lease_code,
+				(case when trcp.fine_type = 2 then
+				round(should_price *
+				     power(1 + trcp.fine_rate / 100, dun_day) -
+				     should_price,2)
+				else
+				 round(should_price * dun_day * fine_rate / 100,2)
+				end) fine,trcd.PAY_DATE
+				from              
+				(select tfcb.RECP_ID,tfcb.recp_code,tfcb.pay_date,tfcb.recd_period,tfcb.ficb_item,max(tfcb.should_price) should_price ,
+				sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+				from t_fina_collectionbill tfcb
+				left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				where  (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				and tfi.red_type is null and tfcb.FICB_type='0'
+				and tfcb.FICB_ITEM='租金' 
+				and datediff(d,tfcb.pay_date,opposing_date)>0 
+				group by RECP_ID,recp_code,pay_date,recd_period,ficb_item,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+				left join
+				t_rent_collectionplan  trcp
+				on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+				left join t_rent_contract trc 
+				on trcp.rect_id =trc.rect_id and trc.status=0
+				left join
+				t_rent_collectiondetail trcd
+				on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+				where 1=1 
+				and trcp.RECP_ID = TTT.RECP_ID
+				union all
+				select trcp.cust_id,
+				trcp.recp_id,
+				trcp.rect_id,
+				trcp.RECP_CODE,
+				trcp.lease_code,
+				(case when trcp.fine_type = 2 then
+				round((trcp.month_price-reduce_price) *
+				     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+				     (trcp.month_price-reduce_price),2)
+				else
+				 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+				end) fine,trcp.PAY_DATE
+				from (          
+				 select trc.cust_id,trc.cust_code,
+				     trcp.recp_id,
+				     trcp.rect_id,
+				     trcp.RECP_CODE,
+				     trc.lease_code,
+				     trcp.FUND_STATUS,
+				     trcd.pay_date,
+				     trcd.period_num, 
+				     trcp.fine_type,
+				     trcp.fine_rate,
+				     isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+				     isnull(trcd.reduce_own_price, 0) reduce_price
+          
+				from t_rent_collectionplan trcp
+				left join t_rent_contract trc on trcp.rect_id =
+				trc.rect_id
+				left join t_rent_collectiondetail trcd on trcp.recp_id =
+				trcd.recp_id
+				where trcp.status = 0 and trc.status=0
+				  and (trcp.fund_status=0 or trcp.fund_status=1)
+				 and  trcd.pay_date < = cast(getdate() as datetime)-1
+				and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+				left join  
+				(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+				  from t_fina_collectionbill tfcb
+				  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				 where tfi.opposing_date <= cast(getdate() as datetime)
+				 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				 and tfi.red_type is null 
+				 group by recp_id
+				 ) tfcd 
+				on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+				where (case when tfcd.opposing_date is null or
+				tfcd.opposing_date <= trcp.pay_date then
+				datediff(d,trcp.pay_date,getdate()) else
+				datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+				and trcp.RECP_ID = TTT.RECP_ID		
+				)t1
+				group by t1.CUST_ID,t1.recp_id,t1.rect_id,t1.RECP_CODE,t1.lease_code) trcpd
+				left join
+				T_RENT_SETTLE tdfdr
+				on trcpd.RECP_ID=tdfdr.RECP_ID
+				and tdfdr.status = 0 and tdfdr.state = 1 ),0) dun_price,
+        		(select 
+						rectd.staybuy_price - (case
+						 when exists (select ficb.ficb_item, sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.recp_code = recp.recp_code
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						group by ficb.ficb_item
+						having ficb.ficb_item = '设备留购价') then
+						(select sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.ficb_item = '设备留购价'
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						and ficb.recp_code = recp.recp_code)
+						 else
+						  0
+						end) as sprice						
+            from t_rent_contract rect, t_rent_collectionplan recp,
+						(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+						where recp.rect_id = rect.rect_id
+						and recp.RECP_ID=TTT.RECP_ID
+						and recp.status = 0 
+						and rectd.RECT_ID=rect.RECT_ID
+			       )  LGJ ,convert(varchar,trcd.LAST_PAY_DATE,23)LAST_PAY_DATE,DATEDIFF(DAY,comeDate.OPPOSINGDATE,GETDATE()) DIFF_DAY
+        from T_RENT_COLLECTIONPLAN  TTT
+   left join (select sum( IRR_MONTH_PRICE) SUM_MONTH_PRICE,sum(REDUCE_OWN_PRICE) SUM_OWN_PRICE,RECP_ID,MAX(PAY_DATE)LAST_PAY_DATE from T_RENT_COLLECTIONDETAIL where status=0 group by recp_id) trcd
+   on TTT.RECP_ID = trcd.RECP_ID
+   left join T_RENT_CONTRACT trct on trct.RECT_ID = TTT.RECT_ID 
+   left join T_user_user tuu on trct.SENSOR_ID = tuu.ID
+  left join ( select distinct TTT.RECP_ID as recpId,Max(convert(varchar,tfi.OPPOSING_DATE,23))as OPPOSINGDATE
+        from T_RENT_COLLECTIONPLAN  TTT
+		left join T_FINA_COLLECTIONBILL tfc on ttt.RECP_ID=tfc.recp_id
+		left join T_FINA_INCOME tfi on tfi.FIIN_ID=tfc.fiin_id
+   group by TTT.RECP_ID) comeDate on comeDate.recpId =TTT.RECP_ID
+   left join (  select 
+					lawfee.sum_lawyfee - (
+					(select isnull(sum(ficb.real_price),0)
+					from t_fina_collectionbill ficb
+					where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = '法务费用') 
+					and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+					and ficb.status = 0
+					and ficb.recp_id = recp.recp_id)
+			    ) as sprice,recp.RECP_ID as RecpId
+				from t_rent_collectionplan recp,
+				(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+				where recp.recp_id = lawfee.recp_id
+				
+				and recp.status = 0  ) lawyfeeT on lawyfeeT.RecpId = ttt.recp_id
+   where TTT.status=0 and TTT.RECP_STATUS=0 and trcd.SUM_OWN_PRICE>=trcd.SUM_MONTH_PRICE
+   and trct.STATUS=0 and tuu.dept_id='25'
+    order by DIFF_DAY desc 
+		]]>	
+	</select>	
+
+		<!-- Add by Michael 2012 08-31 增加可结清案件明细报表For苏州重车 -->
+	<select id="queryAbleSettleRentListSuzhouCar" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+	   select trct.lease_code,trct.cust_name,tuu.name,TTT.RECT_ID,TTT.RECP_CODE,TTT.LEASE_PERIOD
+ ,comeDate.OPPOSINGDATE as OPPOSINGDATE,  isnull(lawyfeeT.sprice,0) as TOTALLAWYFEE,
+   		isnull((select convert(decimal(18,2),trcpd.fine)-(
+			        case 
+			        when exists
+			        (select ficb.ficb_item, sum(ficb.real_price)
+			         from t_fina_collectionbill ficb
+			        where ficb.recp_code = trcpd.recp_code
+			          and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			          and ficb.status = 0 
+			        group by ficb.ficb_item
+			       having ficb.ficb_item = '租金罚息') then
+			  (select convert(decimal(18,2),sum(ficb.real_price))
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = '租金罚息'
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.recp_code = trcpd.recp_code 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = '租金罚息'
+			        )else 0 end )- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(select SUM(fine) fine,RECP_CODE,RECP_ID,RECT_ID ,lease_code,min(PAY_DATE) PAY_DATE
+				 from
+				(    
+				select trc.CUST_ID,trcp.recp_id,trcp.rect_id,trcp.RECP_CODE,trc.lease_code,
+				(case when trcp.fine_type = 2 then
+				round(should_price *
+				     power(1 + trcp.fine_rate / 100, dun_day) -
+				     should_price,2)
+				else
+				 round(should_price * dun_day * fine_rate / 100,2)
+				end) fine,trcd.PAY_DATE
+				from              
+				(select tfcb.RECP_ID,tfcb.recp_code,tfcb.pay_date,tfcb.recd_period,tfcb.ficb_item,max(tfcb.should_price) should_price ,
+				sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+				from t_fina_collectionbill tfcb
+				left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				where  (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				and tfi.red_type is null and tfcb.FICB_type='0'
+				and tfcb.FICB_ITEM='租金' 
+				and datediff(d,tfcb.pay_date,opposing_date)>0 
+				group by RECP_ID,recp_code,pay_date,recd_period,ficb_item,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+				left join
+				t_rent_collectionplan  trcp
+				on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+				left join t_rent_contract trc 
+				on trcp.rect_id =trc.rect_id and trc.status=0
+				left join
+				t_rent_collectiondetail trcd
+				on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+				where 1=1 
+				and trcp.RECP_ID = TTT.RECP_ID
+				union all
+				select trcp.cust_id,
+				trcp.recp_id,
+				trcp.rect_id,
+				trcp.RECP_CODE,
+				trcp.lease_code,
+				(case when trcp.fine_type = 2 then
+				round((trcp.month_price-reduce_price) *
+				     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+				     (trcp.month_price-reduce_price),2)
+				else
+				 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+				end) fine,trcp.PAY_DATE
+				from (          
+				 select trc.cust_id,trc.cust_code,
+				     trcp.recp_id,
+				     trcp.rect_id,
+				     trcp.RECP_CODE,
+				     trc.lease_code,
+				     trcp.FUND_STATUS,
+				     trcd.pay_date,
+				     trcd.period_num, 
+				     trcp.fine_type,
+				     trcp.fine_rate,
+				     isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+				     isnull(trcd.reduce_own_price, 0) reduce_price
+				from t_rent_collectionplan trcp
+				left join t_rent_contract trc on trcp.rect_id =
+				trc.rect_id
+				left join t_rent_collectiondetail trcd on trcp.recp_id =
+				trcd.recp_id
+				where trcp.status = 0 and trc.status=0
+				  and (trcp.fund_status=0 or trcp.fund_status=1)
+				 and  trcd.pay_date < = cast(getdate() as datetime)-1
+				and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+				left join  
+				(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+				  from t_fina_collectionbill tfcb
+				  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				 where tfi.opposing_date <= cast(getdate() as datetime)
+				 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				 and tfi.red_type is null 
+				 group by recp_id
+				 ) tfcd 
+				on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+				where (case when tfcd.opposing_date is null or
+				tfcd.opposing_date <= trcp.pay_date then
+				datediff(d,trcp.pay_date,getdate()) else
+				datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+				and trcp.RECP_ID = TTT.RECP_ID		
+				)t1
+				group by t1.CUST_ID,t1.recp_id,t1.rect_id,t1.RECP_CODE,t1.lease_code) trcpd
+				left join
+				T_RENT_SETTLE tdfdr
+				on trcpd.RECP_ID=tdfdr.RECP_ID
+				and tdfdr.status = 0 and tdfdr.state = 1 ),0) dun_price,
+        		(select 
+						rectd.staybuy_price - (case
+						 when exists (select ficb.ficb_item, sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.recp_code = recp.recp_code
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						group by ficb.ficb_item
+						having ficb.ficb_item = '设备留购价') then
+						(select sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.ficb_item = '设备留购价'
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						and ficb.recp_code = recp.recp_code)
+						 else
+						  0
+						end) as sprice						
+            from t_rent_contract rect, t_rent_collectionplan recp,
+						(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+						where recp.rect_id = rect.rect_id
+						and recp.RECP_ID=TTT.RECP_ID
+						and recp.status = 0 
+						and rectd.RECT_ID=rect.RECT_ID
+			       )  LGJ,convert(varchar,trcd.LAST_PAY_DATE,23)LAST_PAY_DATE,DATEDIFF(DAY,comeDate.OPPOSINGDATE,GETDATE()) DIFF_DAY 
+        from T_RENT_COLLECTIONPLAN  TTT
+   left join (select sum( IRR_MONTH_PRICE) SUM_MONTH_PRICE,sum(REDUCE_OWN_PRICE) SUM_OWN_PRICE,RECP_ID,MAX(PAY_DATE)LAST_PAY_DATE from T_RENT_COLLECTIONDETAIL where status=0 group by recp_id) trcd
+   on TTT.RECP_ID = trcd.RECP_ID
+   left join T_RENT_CONTRACT trct on trct.RECT_ID = TTT.RECT_ID 
+   left join T_user_user tuu on trct.SENSOR_ID = tuu.ID
+ left join ( select distinct TTT.RECP_ID as recpId,Max(convert(varchar,tfi.OPPOSING_DATE,23))as OPPOSINGDATE
+        from T_RENT_COLLECTIONPLAN  TTT
+		left join T_FINA_COLLECTIONBILL tfc on ttt.RECP_ID=tfc.recp_id
+		left join T_FINA_INCOME tfi on tfi.FIIN_ID=tfc.fiin_id
+   group by TTT.RECP_ID) comeDate on comeDate.recpId =TTT.RECP_ID
+   left join (  select 
+					lawfee.sum_lawyfee - (
+					(select isnull(sum(ficb.real_price),0)
+					from t_fina_collectionbill ficb
+					where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = '法务费用') 
+					and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+					and ficb.status = 0
+					and ficb.recp_id = recp.recp_id)
+			    ) as sprice,recp.RECP_ID as RecpId
+				from t_rent_collectionplan recp,
+				(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+				where recp.recp_id = lawfee.recp_id
+				
+				and recp.status = 0  ) lawyfeeT on lawyfeeT.RecpId = ttt.recp_id
+
+   
+   where TTT.status=0 and TTT.RECP_STATUS=0 and trcd.SUM_OWN_PRICE>=trcd.SUM_MONTH_PRICE
+   and trct.STATUS=0 and tuu.dept_id='24'
+    order by DIFF_DAY desc 
+		]]>	
+	</select>	
+		<!-- Add by Michael 2012 08-31 增加可结清案件明细报表For昆山 -->
+	<select id="queryAbleSettleRentListKunshan" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+	   select trct.lease_code,trct.cust_name,tuu.name,TTT.RECT_ID,TTT.RECP_CODE,TTT.LEASE_PERIOD
+  ,comeDate.OPPOSINGDATE as OPPOSINGDATE,  isnull(lawyfeeT.sprice,0) as TOTALLAWYFEE  
+       , 
+   		isnull((select convert(decimal(18,2),trcpd.fine)-(
+			        case 
+			        when exists
+			        (select ficb.ficb_item, sum(ficb.real_price)
+			         from t_fina_collectionbill ficb
+			        where ficb.recp_code = trcpd.recp_code
+			          and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			          and ficb.status = 0 
+			        group by ficb.ficb_item
+			       having ficb.ficb_item = '租金罚息') then
+			  (select convert(decimal(18,2),sum(ficb.real_price))
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = '租金罚息'
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.recp_code = trcpd.recp_code 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = '租金罚息'
+			        )else 0 end )- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(select SUM(fine) fine,RECP_CODE,RECP_ID,RECT_ID ,lease_code,min(PAY_DATE) PAY_DATE
+				 from
+				(    
+				select trc.CUST_ID,trcp.recp_id,trcp.rect_id,trcp.RECP_CODE,trc.lease_code,
+				(case when trcp.fine_type = 2 then
+				round(should_price *
+				     power(1 + trcp.fine_rate / 100, dun_day) -
+				     should_price,2)
+				else
+				 round(should_price * dun_day * fine_rate / 100,2)
+				end) fine,trcd.PAY_DATE
+				from              
+				(select tfcb.RECP_ID,tfcb.recp_code,tfcb.pay_date,tfcb.recd_period,tfcb.ficb_item,max(tfcb.should_price) should_price ,
+				sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+				from t_fina_collectionbill tfcb
+				left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				where  (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				and tfi.red_type is null and tfcb.FICB_type='0'
+				and tfcb.FICB_ITEM='租金' 
+				and datediff(d,tfcb.pay_date,opposing_date)>0 
+				group by RECP_ID,recp_code,pay_date,recd_period,ficb_item,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+				left join
+				t_rent_collectionplan  trcp
+				on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+				left join t_rent_contract trc 
+				on trcp.rect_id =trc.rect_id and trc.status=0
+				left join
+				t_rent_collectiondetail trcd
+				on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+				where 1=1 
+				and trcp.RECP_ID = TTT.RECP_ID
+				union all
+				select trcp.cust_id,
+				trcp.recp_id,
+				trcp.rect_id,
+				trcp.RECP_CODE,
+				trcp.lease_code,
+				(case when trcp.fine_type = 2 then
+				round((trcp.month_price-reduce_price) *
+				     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+				     (trcp.month_price-reduce_price),2)
+				else
+				 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+				end) fine,trcp.PAY_DATE
+				from (          
+				 select trc.cust_id,trc.cust_code,
+				     trcp.recp_id,
+				     trcp.rect_id,
+				     trcp.RECP_CODE,
+				     trc.lease_code,
+				     trcp.FUND_STATUS,
+				     trcd.pay_date,
+				     trcd.period_num, 
+				     trcp.fine_type,
+				     trcp.fine_rate,
+				     isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+				     isnull(trcd.reduce_own_price, 0) reduce_price
+				from t_rent_collectionplan trcp
+				left join t_rent_contract trc on trcp.rect_id =
+				trc.rect_id
+				left join t_rent_collectiondetail trcd on trcp.recp_id =
+				trcd.recp_id
+				where trcp.status = 0 and trc.status=0
+				  and (trcp.fund_status=0 or trcp.fund_status=1)
+				 and  trcd.pay_date < = cast(getdate() as datetime)-1
+				and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+				left join  
+				(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+				  from t_fina_collectionbill tfcb
+				  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				 where tfi.opposing_date <= cast(getdate() as datetime)
+				 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				 and tfi.red_type is null 
+				 group by recp_id
+				 ) tfcd 
+				on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+				where (case when tfcd.opposing_date is null or
+				tfcd.opposing_date <= trcp.pay_date then
+				datediff(d,trcp.pay_date,getdate()) else
+				datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+				and trcp.RECP_ID = TTT.RECP_ID		
+				)t1
+				group by t1.CUST_ID,t1.recp_id,t1.rect_id,t1.RECP_CODE,t1.lease_code) trcpd
+				left join
+				T_RENT_SETTLE tdfdr
+				on trcpd.RECP_ID=tdfdr.RECP_ID
+				and tdfdr.status = 0 and tdfdr.state = 1 ),0) dun_price,
+        		(select 
+						rectd.staybuy_price - (case
+						 when exists (select ficb.ficb_item, sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.recp_code = recp.recp_code
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						group by ficb.ficb_item
+						having ficb.ficb_item = '设备留购价') then
+						(select sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.ficb_item = '设备留购价'
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						and ficb.recp_code = recp.recp_code)
+						 else
+						  0
+						end) as sprice						
+            from t_rent_contract rect, t_rent_collectionplan recp,
+						(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+						where recp.rect_id = rect.rect_id
+						and recp.RECP_ID=TTT.RECP_ID
+						and recp.status = 0 
+						and rectd.RECT_ID=rect.RECT_ID
+			       )  LGJ,convert(varchar,trcd.LAST_PAY_DATE,23)LAST_PAY_DATE,DATEDIFF(DAY,comeDate.OPPOSINGDATE,GETDATE()) DIFF_DAY  
+        from T_RENT_COLLECTIONPLAN  TTT
+   left join (select sum( IRR_MONTH_PRICE) SUM_MONTH_PRICE,sum(REDUCE_OWN_PRICE) SUM_OWN_PRICE,RECP_ID,MAX(PAY_DATE)LAST_PAY_DATE from T_RENT_COLLECTIONDETAIL where status=0 group by recp_id) trcd
+   on TTT.RECP_ID = trcd.RECP_ID
+   left join T_RENT_CONTRACT trct on trct.RECT_ID = TTT.RECT_ID 
+   left join T_user_user tuu on trct.SENSOR_ID = tuu.ID
+ left join ( select distinct TTT.RECP_ID as recpId,Max(convert(varchar,tfi.OPPOSING_DATE,23))as OPPOSINGDATE
+        from T_RENT_COLLECTIONPLAN  TTT
+		left join T_FINA_COLLECTIONBILL tfc on ttt.RECP_ID=tfc.recp_id
+		left join T_FINA_INCOME tfi on tfi.FIIN_ID=tfc.fiin_id
+   group by TTT.RECP_ID) comeDate on comeDate.recpId =TTT.RECP_ID
+   left join (  select 
+					lawfee.sum_lawyfee - (
+					(select isnull(sum(ficb.real_price),0)
+					from t_fina_collectionbill ficb
+					where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = '法务费用') 
+					and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+					and ficb.status = 0
+					and ficb.recp_id = recp.recp_id)
+			    ) as sprice,recp.RECP_ID as RecpId
+				from t_rent_collectionplan recp,
+				(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+				where recp.recp_id = lawfee.recp_id
+				
+				and recp.status = 0  ) lawyfeeT on lawyfeeT.RecpId = ttt.recp_id
+  
+   where TTT.status=0 and TTT.RECP_STATUS=0 and trcd.SUM_OWN_PRICE>=trcd.SUM_MONTH_PRICE
+   and trct.STATUS=0 and tuu.dept_id='9'
+   order by DIFF_DAY desc 
+		]]>	
+	</select>						
+<!-- Add by Michael 2012 08-31 增加可结清案件明细报表For上海 -->
+	<select id="queryAbleSettleRentListShanghai" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+	   select trct.lease_code,trct.cust_name,tuu.name,TTT.RECT_ID,TTT.RECP_CODE,TTT.LEASE_PERIOD
+ ,comeDate.OPPOSINGDATE as OPPOSINGDATE,  isnull(lawyfeeT.sprice,0) as TOTALLAWYFEE  
+       , 
+   		isnull((select convert(decimal(18,2),trcpd.fine)-(
+			        case 
+			        when exists
+			        (select ficb.ficb_item, sum(ficb.real_price)
+			         from t_fina_collectionbill ficb
+			        where ficb.recp_code = trcpd.recp_code
+			          and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			          and ficb.status = 0 
+			        group by ficb.ficb_item
+			       having ficb.ficb_item = '租金罚息') then
+			  (select convert(decimal(18,2),sum(ficb.real_price))
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = '租金罚息'
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.recp_code = trcpd.recp_code 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = '租金罚息'
+			        )else 0 end )- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(select SUM(fine) fine,RECP_CODE,RECP_ID,RECT_ID ,lease_code,min(PAY_DATE) PAY_DATE
+				 from
+				(    
+				select trc.CUST_ID,trcp.recp_id,trcp.rect_id,trcp.RECP_CODE,trc.lease_code,
+				(case when trcp.fine_type = 2 then
+				round(should_price *
+				     power(1 + trcp.fine_rate / 100, dun_day) -
+				     should_price,2)
+				else
+				 round(should_price * dun_day * fine_rate / 100,2)
+				end) fine,trcd.PAY_DATE
+				from              
+				(select tfcb.RECP_ID,tfcb.recp_code,tfcb.pay_date,tfcb.recd_period,tfcb.ficb_item,max(tfcb.should_price) should_price ,
+				sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+				from t_fina_collectionbill tfcb
+				left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				where  (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				and tfi.red_type is null and tfcb.FICB_type='0'
+				and tfcb.FICB_ITEM='租金' 
+				and datediff(d,tfcb.pay_date,opposing_date)>0 
+				group by RECP_ID,recp_code,pay_date,recd_period,ficb_item,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+				left join
+				t_rent_collectionplan  trcp
+				on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+				left join t_rent_contract trc 
+				on trcp.rect_id =trc.rect_id and trc.status=0
+				left join
+				t_rent_collectiondetail trcd
+				on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+				where 1=1 
+				and trcp.RECP_ID = TTT.RECP_ID
+				union all
+				select trcp.cust_id,
+				trcp.recp_id,
+				trcp.rect_id,
+				trcp.RECP_CODE,
+				trcp.lease_code,
+				(case when trcp.fine_type = 2 then
+				round((trcp.month_price-reduce_price) *
+				     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+				     (trcp.month_price-reduce_price),2)
+				else
+				 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+				end) fine,trcp.PAY_DATE
+				from (          
+				 select trc.cust_id,trc.cust_code,
+				     trcp.recp_id,
+				     trcp.rect_id,
+				     trcp.RECP_CODE,
+				     trc.lease_code,
+				     trcp.FUND_STATUS,
+				     trcd.pay_date,
+				     trcd.period_num, 
+				     trcp.fine_type,
+				     trcp.fine_rate,
+				     isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+				     isnull(trcd.reduce_own_price, 0) reduce_price
+				from t_rent_collectionplan trcp
+				left join t_rent_contract trc on trcp.rect_id =
+				trc.rect_id
+				left join t_rent_collectiondetail trcd on trcp.recp_id =
+				trcd.recp_id
+				where trcp.status = 0 and trc.status=0
+				  and (trcp.fund_status=0 or trcp.fund_status=1)
+				 and  trcd.pay_date < = cast(getdate() as datetime)-1
+				and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+				left join  
+				(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+				  from t_fina_collectionbill tfcb
+				  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				 where tfi.opposing_date <= cast(getdate() as datetime)
+				 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				 and tfi.red_type is null 
+				 group by recp_id
+				 ) tfcd 
+				on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+				where (case when tfcd.opposing_date is null or
+				tfcd.opposing_date <= trcp.pay_date then
+				datediff(d,trcp.pay_date,getdate()) else
+				datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+				and trcp.RECP_ID = TTT.RECP_ID		
+				)t1
+				group by t1.CUST_ID,t1.recp_id,t1.rect_id,t1.RECP_CODE,t1.lease_code) trcpd
+				left join
+				T_RENT_SETTLE tdfdr
+				on trcpd.RECP_ID=tdfdr.RECP_ID
+				and tdfdr.status = 0 and tdfdr.state = 1 ),0) dun_price,
+        		(select 
+						rectd.staybuy_price - (case
+						 when exists (select ficb.ficb_item, sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.recp_code = recp.recp_code
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						group by ficb.ficb_item
+						having ficb.ficb_item = '设备留购价') then
+						(select sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.ficb_item = '设备留购价'
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						and ficb.recp_code = recp.recp_code)
+						 else
+						  0
+						end) as sprice						
+            from t_rent_contract rect, t_rent_collectionplan recp,
+						(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+						where recp.rect_id = rect.rect_id
+						and recp.RECP_ID=TTT.RECP_ID
+						and recp.status = 0 
+						and rectd.RECT_ID=rect.RECT_ID
+			       )  LGJ ,convert(varchar,trcd.LAST_PAY_DATE,23)LAST_PAY_DATE,DATEDIFF(DAY,comeDate.OPPOSINGDATE,GETDATE()) DIFF_DAY 
+        from T_RENT_COLLECTIONPLAN  TTT
+   left join (select sum( IRR_MONTH_PRICE) SUM_MONTH_PRICE,sum(REDUCE_OWN_PRICE) SUM_OWN_PRICE,RECP_ID,MAX(PAY_DATE)LAST_PAY_DATE from T_RENT_COLLECTIONDETAIL where status=0 group by recp_id) trcd
+   on TTT.RECP_ID = trcd.RECP_ID
+   left join T_RENT_CONTRACT trct on trct.RECT_ID = TTT.RECT_ID 
+   left join T_user_user tuu on trct.SENSOR_ID = tuu.ID
+   left join ( select distinct TTT.RECP_ID as recpId,Max(convert(varchar,tfi.OPPOSING_DATE,23))as OPPOSINGDATE
+        from T_RENT_COLLECTIONPLAN  TTT
+		left join T_FINA_COLLECTIONBILL tfc on ttt.RECP_ID=tfc.recp_id
+		left join T_FINA_INCOME tfi on tfi.FIIN_ID=tfc.fiin_id
+   group by TTT.RECP_ID) comeDate on comeDate.recpId =TTT.RECP_ID
+   left join (  select 
+					lawfee.sum_lawyfee - (
+					(select isnull(sum(ficb.real_price),0)
+					from t_fina_collectionbill ficb
+					where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = '法务费用') 
+					and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+					and ficb.status = 0
+					and ficb.recp_id = recp.recp_id)
+			    ) as sprice,recp.RECP_ID as RecpId
+				from t_rent_collectionplan recp,
+				(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+				where recp.recp_id = lawfee.recp_id
+				
+				and recp.status = 0  ) lawyfeeT on lawyfeeT.RecpId = ttt.recp_id
+  
+   
+   where TTT.status=0 and TTT.RECP_STATUS=0 and trcd.SUM_OWN_PRICE>=trcd.SUM_MONTH_PRICE
+   and trct.STATUS=0 and tuu.dept_id='19'
+   order by DIFF_DAY desc 
+		]]>	
+	</select>						
+<!-- Add by Michael 2012 08-31 增加可结清案件明细报表For南京 -->
+	<select id="queryAbleSettleRentListNanjing" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+	   select trct.lease_code,trct.cust_name,tuu.name,TTT.RECT_ID,TTT.RECP_CODE,TTT.LEASE_PERIOD
+ ,comeDate.OPPOSINGDATE as OPPOSINGDATE,  isnull(lawyfeeT.sprice,0) as TOTALLAWYFEE  
+ ,isnull((select convert(decimal(18,2),trcpd.fine)-(
+			        case 
+			        when exists
+			        (select ficb.ficb_item, sum(ficb.real_price)
+			         from t_fina_collectionbill ficb
+			        where ficb.recp_code = trcpd.recp_code
+			          and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			          and ficb.status = 0 
+			        group by ficb.ficb_item
+			       having ficb.ficb_item = '租金罚息') then
+			  (select convert(decimal(18,2),sum(ficb.real_price))
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = '租金罚息'
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.recp_code = trcpd.recp_code 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = '租金罚息'
+			        )else 0 end )- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(select SUM(fine) fine,RECP_CODE,RECP_ID,RECT_ID ,lease_code,min(PAY_DATE) PAY_DATE
+				 from
+				(    
+				select trc.CUST_ID,trcp.recp_id,trcp.rect_id,trcp.RECP_CODE,trc.lease_code,
+				(case when trcp.fine_type = 2 then
+				round(should_price *
+				     power(1 + trcp.fine_rate / 100, dun_day) -
+				     should_price,2)
+				else
+				 round(should_price * dun_day * fine_rate / 100,2)
+				end) fine,trcd.PAY_DATE
+				from              
+				(select tfcb.RECP_ID,tfcb.recp_code,tfcb.pay_date,tfcb.recd_period,tfcb.ficb_item,max(tfcb.should_price) should_price ,
+				sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+				from t_fina_collectionbill tfcb
+				left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				where  (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				and tfi.red_type is null and tfcb.FICB_type='0'
+				and tfcb.FICB_ITEM='租金' 
+				and datediff(d,tfcb.pay_date,opposing_date)>0 
+				group by RECP_ID,recp_code,pay_date,recd_period,ficb_item,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+				left join
+				t_rent_collectionplan  trcp
+				on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+				left join t_rent_contract trc 
+				on trcp.rect_id =trc.rect_id and trc.status=0
+				left join
+				t_rent_collectiondetail trcd
+				on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+				where 1=1 
+				and trcp.RECP_ID = TTT.RECP_ID
+				union all
+				select trcp.cust_id,
+				trcp.recp_id,
+				trcp.rect_id,
+				trcp.RECP_CODE,
+				trcp.lease_code,
+				(case when trcp.fine_type = 2 then
+				round((trcp.month_price-reduce_price) *
+				     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+				     (trcp.month_price-reduce_price),2)
+				else
+				 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+				end) fine,trcp.PAY_DATE
+				from (          
+				 select trc.cust_id,trc.cust_code,
+				     trcp.recp_id,
+				     trcp.rect_id,
+				     trcp.RECP_CODE,
+				     trc.lease_code,
+				     trcp.FUND_STATUS,
+				     trcd.pay_date,
+				     trcd.period_num, 
+				     trcp.fine_type,
+				     trcp.fine_rate,
+				     isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+				     isnull(trcd.reduce_own_price, 0) reduce_price
+				from t_rent_collectionplan trcp
+				left join t_rent_contract trc on trcp.rect_id =
+				trc.rect_id
+				left join t_rent_collectiondetail trcd on trcp.recp_id =
+				trcd.recp_id
+				where trcp.status = 0 and trc.status=0
+				  and (trcp.fund_status=0 or trcp.fund_status=1)
+				 and  trcd.pay_date < = cast(getdate() as datetime)-1
+				and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+				left join  
+				(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+				  from t_fina_collectionbill tfcb
+				  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				 where tfi.opposing_date <= cast(getdate() as datetime)
+				 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				 and tfi.red_type is null 
+				 group by recp_id
+				 ) tfcd 
+				on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+				where (case when tfcd.opposing_date is null or
+				tfcd.opposing_date <= trcp.pay_date then
+				datediff(d,trcp.pay_date,getdate()) else
+				datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+				and trcp.RECP_ID = TTT.RECP_ID		
+				)t1
+				group by t1.CUST_ID,t1.recp_id,t1.rect_id,t1.RECP_CODE,t1.lease_code) trcpd
+				left join
+				T_RENT_SETTLE tdfdr
+				on trcpd.RECP_ID=tdfdr.RECP_ID
+				and tdfdr.status = 0 and tdfdr.state = 1 ),0) dun_price,
+        		(select 
+						rectd.staybuy_price - (case
+						 when exists (select ficb.ficb_item, sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.recp_code = recp.recp_code
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						group by ficb.ficb_item
+						having ficb.ficb_item = '设备留购价') then
+						(select sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.ficb_item = '设备留购价'
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						and ficb.recp_code = recp.recp_code)
+						 else
+						  0
+						end) as sprice						
+            from t_rent_contract rect, t_rent_collectionplan recp,
+						(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+						where recp.rect_id = rect.rect_id
+						and recp.RECP_ID=TTT.RECP_ID
+						and recp.status = 0 
+						and rectd.RECT_ID=rect.RECT_ID
+			       )  LGJ ,convert(varchar,trcd.LAST_PAY_DATE,23)LAST_PAY_DATE,DATEDIFF(DAY,comeDate.OPPOSINGDATE,GETDATE()) DIFF_DAY
+        from T_RENT_COLLECTIONPLAN  TTT
+   left join (select sum( IRR_MONTH_PRICE) SUM_MONTH_PRICE,sum(REDUCE_OWN_PRICE) SUM_OWN_PRICE,RECP_ID,MAX(PAY_DATE)LAST_PAY_DATE from T_RENT_COLLECTIONDETAIL where status=0 group by recp_id) trcd
+   on TTT.RECP_ID = trcd.RECP_ID
+   left join T_RENT_CONTRACT trct on trct.RECT_ID = TTT.RECT_ID 
+   left join T_user_user tuu on trct.SENSOR_ID = tuu.ID
+     left join ( select distinct TTT.RECP_ID as recpId,Max(convert(varchar,tfi.OPPOSING_DATE,23))as OPPOSINGDATE
+        from T_RENT_COLLECTIONPLAN  TTT
+		left join T_FINA_COLLECTIONBILL tfc on ttt.RECP_ID=tfc.recp_id
+		left join T_FINA_INCOME tfi on tfi.FIIN_ID=tfc.fiin_id
+   group by TTT.RECP_ID) comeDate on comeDate.recpId =TTT.RECP_ID
+   left join (  select 
+					lawfee.sum_lawyfee - (
+					(select isnull(sum(ficb.real_price),0)
+					from t_fina_collectionbill ficb
+					where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = '法务费用') 
+					and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+					and ficb.status = 0
+					and ficb.recp_id = recp.recp_id)
+			    ) as sprice,recp.RECP_ID as RecpId
+				from t_rent_collectionplan recp,
+				(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+				where recp.recp_id = lawfee.recp_id
+				
+				and recp.status = 0  ) lawyfeeT on lawyfeeT.RecpId = ttt.recp_id
+ 
+   
+   where TTT.status=0 and TTT.RECP_STATUS=0 and trcd.SUM_OWN_PRICE>=trcd.SUM_MONTH_PRICE
+   and trct.STATUS=0 and tuu.dept_id='11'
+     order by DIFF_DAY desc 
+		]]>	
+	</select>						
+<!-- Add by Michael 2012 08-31 增加可结清案件明细报表For重庆 -->
+	<select id="queryAbleSettleRentListChongqing" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+	   select trct.lease_code,trct.cust_name,tuu.name,TTT.RECT_ID,TTT.RECP_CODE,TTT.LEASE_PERIOD
+ ,comeDate.OPPOSINGDATE as OPPOSINGDATE,  isnull(lawyfeeT.sprice,0) as TOTALLAWYFEE  
+       , 
+   		isnull((select convert(decimal(18,2),trcpd.fine)-(
+			        case 
+			        when exists
+			        (select ficb.ficb_item, sum(ficb.real_price)
+			         from t_fina_collectionbill ficb
+			        where ficb.recp_code = trcpd.recp_code
+			          and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			          and ficb.status = 0 
+			        group by ficb.ficb_item
+			       having ficb.ficb_item = '租金罚息') then
+			  (select convert(decimal(18,2),sum(ficb.real_price))
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = '租金罚息'
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.recp_code = trcpd.recp_code 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = '租金罚息'
+			        )else 0 end )- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(select SUM(fine) fine,RECP_CODE,RECP_ID,RECT_ID ,lease_code,min(PAY_DATE) PAY_DATE
+				 from
+				(    
+				select trc.CUST_ID,trcp.recp_id,trcp.rect_id,trcp.RECP_CODE,trc.lease_code,
+				(case when trcp.fine_type = 2 then
+				round(should_price *
+				     power(1 + trcp.fine_rate / 100, dun_day) -
+				     should_price,2)
+				else
+				 round(should_price * dun_day * fine_rate / 100,2)
+				end) fine,trcd.PAY_DATE
+				from              
+				(select tfcb.RECP_ID,tfcb.recp_code,tfcb.pay_date,tfcb.recd_period,tfcb.ficb_item,max(tfcb.should_price) should_price ,
+				sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+				from t_fina_collectionbill tfcb
+				left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				where  (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				and tfi.red_type is null and tfcb.FICB_type='0'
+				and tfcb.FICB_ITEM='租金' 
+				and datediff(d,tfcb.pay_date,opposing_date)>0 
+				group by RECP_ID,recp_code,pay_date,recd_period,ficb_item,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+				left join
+				t_rent_collectionplan  trcp
+				on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+				left join t_rent_contract trc 
+				on trcp.rect_id =trc.rect_id and trc.status=0
+				left join
+				t_rent_collectiondetail trcd
+				on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+				where 1=1 
+				and trcp.RECP_ID = TTT.RECP_ID
+				union all
+				select trcp.cust_id,
+				trcp.recp_id,
+				trcp.rect_id,
+				trcp.RECP_CODE,
+				trcp.lease_code,
+				(case when trcp.fine_type = 2 then
+				round((trcp.month_price-reduce_price) *
+				     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+				     (trcp.month_price-reduce_price),2)
+				else
+				 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+				end) fine,trcp.PAY_DATE
+				from (          
+				 select trc.cust_id,trc.cust_code,
+				     trcp.recp_id,
+				     trcp.rect_id,
+				     trcp.RECP_CODE,
+				     trc.lease_code,
+				     trcp.FUND_STATUS,
+				     trcd.pay_date,
+				     trcd.period_num, 
+				     trcp.fine_type,
+				     trcp.fine_rate,
+				     isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+				     isnull(trcd.reduce_own_price, 0) reduce_price
+				from t_rent_collectionplan trcp
+				left join t_rent_contract trc on trcp.rect_id =
+				trc.rect_id
+				left join t_rent_collectiondetail trcd on trcp.recp_id =
+				trcd.recp_id
+				where trcp.status = 0 and trc.status=0
+				  and (trcp.fund_status=0 or trcp.fund_status=1)
+				 and  trcd.pay_date < = cast(getdate() as datetime)-1
+				and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+				left join  
+				(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+				  from t_fina_collectionbill tfcb
+				  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				 where tfi.opposing_date <= cast(getdate() as datetime)
+				 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				 and tfi.red_type is null 
+				 group by recp_id
+				 ) tfcd 
+				on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+				where (case when tfcd.opposing_date is null or
+				tfcd.opposing_date <= trcp.pay_date then
+				datediff(d,trcp.pay_date,getdate()) else
+				datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+				and trcp.RECP_ID = TTT.RECP_ID		
+				)t1
+				group by t1.CUST_ID,t1.recp_id,t1.rect_id,t1.RECP_CODE,t1.lease_code) trcpd
+				left join
+				T_RENT_SETTLE tdfdr
+				on trcpd.RECP_ID=tdfdr.RECP_ID
+				and tdfdr.status = 0 and tdfdr.state = 1 ),0) dun_price,
+        		(select 
+						rectd.staybuy_price - (case
+						 when exists (select ficb.ficb_item, sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.recp_code = recp.recp_code
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						group by ficb.ficb_item
+						having ficb.ficb_item = '设备留购价') then
+						(select sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.ficb_item = '设备留购价'
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						and ficb.recp_code = recp.recp_code)
+						 else
+						  0
+						end) as sprice						
+            from t_rent_contract rect, t_rent_collectionplan recp,
+						(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+						where recp.rect_id = rect.rect_id
+						and recp.RECP_ID=TTT.RECP_ID
+						and recp.status = 0 
+						and rectd.RECT_ID=rect.RECT_ID
+			       )  LGJ ,convert(varchar,trcd.LAST_PAY_DATE,23)LAST_PAY_DATE,DATEDIFF(DAY,comeDate.OPPOSINGDATE,GETDATE()) DIFF_DAY
+        from T_RENT_COLLECTIONPLAN  TTT
+   left join (select sum( IRR_MONTH_PRICE) SUM_MONTH_PRICE,sum(REDUCE_OWN_PRICE) SUM_OWN_PRICE,RECP_ID,MAX(PAY_DATE)LAST_PAY_DATE from T_RENT_COLLECTIONDETAIL where status=0 group by recp_id) trcd
+   on TTT.RECP_ID = trcd.RECP_ID
+   left join T_RENT_CONTRACT trct on trct.RECT_ID = TTT.RECT_ID 
+   left join T_user_user tuu on trct.SENSOR_ID = tuu.ID
+ left join ( select distinct TTT.RECP_ID as recpId,Max(convert(varchar,tfi.OPPOSING_DATE,23))as OPPOSINGDATE
+        from T_RENT_COLLECTIONPLAN  TTT
+		left join T_FINA_COLLECTIONBILL tfc on ttt.RECP_ID=tfc.recp_id
+		left join T_FINA_INCOME tfi on tfi.FIIN_ID=tfc.fiin_id
+   group by TTT.RECP_ID) comeDate on comeDate.recpId =TTT.RECP_ID
+   left join (  select 
+					lawfee.sum_lawyfee - (
+					(select isnull(sum(ficb.real_price),0)
+					from t_fina_collectionbill ficb
+					where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = '法务费用') 
+					and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+					and ficb.status = 0
+					and ficb.recp_id = recp.recp_id)
+			    ) as sprice,recp.RECP_ID as RecpId
+				from t_rent_collectionplan recp,
+				(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+				where recp.recp_id = lawfee.recp_id
+				
+				and recp.status = 0  ) lawyfeeT on lawyfeeT.RecpId = ttt.recp_id
+ 
+   where TTT.status=0 and TTT.RECP_STATUS=0 and trcd.SUM_OWN_PRICE>=trcd.SUM_MONTH_PRICE
+   and trct.STATUS=0 and tuu.dept_id='13'
+     order by DIFF_DAY desc 
+		]]>	
+	</select>	
+<!-- Add by Michael 2012 08-31 增加可结清案件明细报表For成都 -->
+	<select id="queryAbleSettleRentListChengdu" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+	   select trct.lease_code,trct.cust_name,tuu.name,TTT.RECT_ID,TTT.RECP_CODE,TTT.LEASE_PERIOD
+ ,comeDate.OPPOSINGDATE as OPPOSINGDATE,  isnull(lawyfeeT.sprice,0) as TOTALLAWYFEE,
+   		isnull((select convert(decimal(18,2),trcpd.fine)-(
+			        case 
+			        when exists
+			        (select ficb.ficb_item, sum(ficb.real_price)
+			         from t_fina_collectionbill ficb
+			        where ficb.recp_code = trcpd.recp_code
+			          and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			          and ficb.status = 0 
+			        group by ficb.ficb_item
+			       having ficb.ficb_item = '租金罚息') then
+			  (select convert(decimal(18,2),sum(ficb.real_price))
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = '租金罚息'
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.recp_code = trcpd.recp_code 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = '租金罚息'
+			        )else 0 end )- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(select SUM(fine) fine,RECP_CODE,RECP_ID,RECT_ID ,lease_code,min(PAY_DATE) PAY_DATE
+				 from
+				(    
+				select trc.CUST_ID,trcp.recp_id,trcp.rect_id,trcp.RECP_CODE,trc.lease_code,
+				(case when trcp.fine_type = 2 then
+				round(should_price *
+				     power(1 + trcp.fine_rate / 100, dun_day) -
+				     should_price,2)
+				else
+				 round(should_price * dun_day * fine_rate / 100,2)
+				end) fine,trcd.PAY_DATE
+				from              
+				(select tfcb.RECP_ID,tfcb.recp_code,tfcb.pay_date,tfcb.recd_period,tfcb.ficb_item,max(tfcb.should_price) should_price ,
+				sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+				from t_fina_collectionbill tfcb
+				left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				where  (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				and tfi.red_type is null and tfcb.FICB_type='0'
+				and tfcb.FICB_ITEM='租金' 
+				and datediff(d,tfcb.pay_date,opposing_date)>0 
+				group by RECP_ID,recp_code,pay_date,recd_period,ficb_item,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+				left join
+				t_rent_collectionplan  trcp
+				on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+				left join t_rent_contract trc 
+				on trcp.rect_id =trc.rect_id and trc.status=0
+				left join
+				t_rent_collectiondetail trcd
+				on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+				where 1=1 
+				and trcp.RECP_ID = TTT.RECP_ID
+				union all
+				select trcp.cust_id,
+				trcp.recp_id,
+				trcp.rect_id,
+				trcp.RECP_CODE,
+				trcp.lease_code,
+				(case when trcp.fine_type = 2 then
+				round((trcp.month_price-reduce_price) *
+				     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+				     (trcp.month_price-reduce_price),2)
+				else
+				 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+				end) fine,trcp.PAY_DATE
+				from (          
+				 select trc.cust_id,trc.cust_code,
+				     trcp.recp_id,
+				     trcp.rect_id,
+				     trcp.RECP_CODE,
+				     trc.lease_code,
+				     trcp.FUND_STATUS,
+				     trcd.pay_date,
+				     trcd.period_num, 
+				     trcp.fine_type,
+				     trcp.fine_rate,
+				     isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+				     isnull(trcd.reduce_own_price, 0) reduce_price
+				from t_rent_collectionplan trcp
+				left join t_rent_contract trc on trcp.rect_id =
+				trc.rect_id
+				left join t_rent_collectiondetail trcd on trcp.recp_id =
+				trcd.recp_id
+				where trcp.status = 0 and trc.status=0
+				  and (trcp.fund_status=0 or trcp.fund_status=1)
+				 and  trcd.pay_date < = cast(getdate() as datetime)-1
+				and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+				left join  
+				(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+				  from t_fina_collectionbill tfcb
+				  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				 where tfi.opposing_date <= cast(getdate() as datetime)
+				 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				 and tfi.red_type is null 
+				 group by recp_id
+				 ) tfcd 
+				on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+				where (case when tfcd.opposing_date is null or
+				tfcd.opposing_date <= trcp.pay_date then
+				datediff(d,trcp.pay_date,getdate()) else
+				datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+				and trcp.RECP_ID = TTT.RECP_ID		
+				)t1
+				group by t1.CUST_ID,t1.recp_id,t1.rect_id,t1.RECP_CODE,t1.lease_code) trcpd
+				left join
+				T_RENT_SETTLE tdfdr
+				on trcpd.RECP_ID=tdfdr.RECP_ID
+				and tdfdr.status = 0 and tdfdr.state = 1 ),0) dun_price,
+        		(select 
+						rectd.staybuy_price - (case
+						 when exists (select ficb.ficb_item, sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.recp_code = recp.recp_code
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						group by ficb.ficb_item
+						having ficb.ficb_item = '设备留购价') then
+						(select sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.ficb_item = '设备留购价'
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						and ficb.recp_code = recp.recp_code)
+						 else
+						  0
+						end) as sprice						
+            from t_rent_contract rect, t_rent_collectionplan recp,
+						(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+						where recp.rect_id = rect.rect_id
+						and recp.RECP_ID=TTT.RECP_ID
+						and recp.status = 0 
+						and rectd.RECT_ID=rect.RECT_ID
+			       )  LGJ ,convert(varchar,trcd.LAST_PAY_DATE,23)LAST_PAY_DATE,DATEDIFF(DAY,comeDate.OPPOSINGDATE,GETDATE()) DIFF_DAY
+        from T_RENT_COLLECTIONPLAN  TTT
+   left join (select sum( IRR_MONTH_PRICE) SUM_MONTH_PRICE,sum(REDUCE_OWN_PRICE) SUM_OWN_PRICE,RECP_ID,MAX(PAY_DATE)LAST_PAY_DATE from T_RENT_COLLECTIONDETAIL where status=0 group by recp_id) trcd
+   on TTT.RECP_ID = trcd.RECP_ID
+   left join T_RENT_CONTRACT trct on trct.RECT_ID = TTT.RECT_ID 
+   left join T_user_user tuu on trct.SENSOR_ID = tuu.ID
+ left join ( select distinct TTT.RECP_ID as recpId,Max(convert(varchar,tfi.OPPOSING_DATE,23))as OPPOSINGDATE
+        from T_RENT_COLLECTIONPLAN  TTT
+		left join T_FINA_COLLECTIONBILL tfc on ttt.RECP_ID=tfc.recp_id
+		left join T_FINA_INCOME tfi on tfi.FIIN_ID=tfc.fiin_id
+   group by TTT.RECP_ID) comeDate on comeDate.recpId =TTT.RECP_ID
+   left join (  select 
+					lawfee.sum_lawyfee - (
+					(select isnull(sum(ficb.real_price),0)
+					from t_fina_collectionbill ficb
+					where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = '法务费用') 
+					and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+					and ficb.status = 0
+					and ficb.recp_id = recp.recp_id)
+			    ) as sprice,recp.RECP_ID as RecpId
+				from t_rent_collectionplan recp,
+				(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+				where recp.recp_id = lawfee.recp_id
+				
+				and recp.status = 0  ) lawyfeeT on lawyfeeT.RecpId = ttt.recp_id
+  
+   where TTT.status=0 and TTT.RECP_STATUS=0 and trcd.SUM_OWN_PRICE>=trcd.SUM_MONTH_PRICE
+   and trct.STATUS=0 and tuu.dept_id='21'
+   order by DIFF_DAY desc 
+		]]>	
+	</select>	
+<!-- Add by Michael 2012 08-31 增加可结清案件明细报表For东莞 -->
+	<select id="queryAbleSettleRentListDongguan" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+	   select trct.lease_code,trct.cust_name,tuu.name,TTT.RECT_ID,TTT.RECP_CODE,TTT.LEASE_PERIOD
+,comeDate.OPPOSINGDATE as OPPOSINGDATE,  isnull(lawyfeeT.sprice,0) as TOTALLAWYFEE  
+       ,
+   		isnull((select convert(decimal(18,2),trcpd.fine)-(
+			        case 
+			        when exists
+			        (select ficb.ficb_item, sum(ficb.real_price)
+			         from t_fina_collectionbill ficb
+			        where ficb.recp_code = trcpd.recp_code
+			          and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			          and ficb.status = 0 
+			        group by ficb.ficb_item
+			       having ficb.ficb_item = '租金罚息') then
+			  (select convert(decimal(18,2),sum(ficb.real_price))
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = '租金罚息'
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.recp_code = trcpd.recp_code 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = '租金罚息'
+			        )else 0 end )- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(select SUM(fine) fine,RECP_CODE,RECP_ID,RECT_ID ,lease_code,min(PAY_DATE) PAY_DATE
+				 from
+				(    
+				select trc.CUST_ID,trcp.recp_id,trcp.rect_id,trcp.RECP_CODE,trc.lease_code,
+				(case when trcp.fine_type = 2 then
+				round(should_price *
+				     power(1 + trcp.fine_rate / 100, dun_day) -
+				     should_price,2)
+				else
+				 round(should_price * dun_day * fine_rate / 100,2)
+				end) fine,trcd.PAY_DATE
+				from              
+				(select tfcb.RECP_ID,tfcb.recp_code,tfcb.pay_date,tfcb.recd_period,tfcb.ficb_item,max(tfcb.should_price) should_price ,
+				sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+				from t_fina_collectionbill tfcb
+				left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				where  (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				and tfi.red_type is null and tfcb.FICB_type='0'
+				and tfcb.FICB_ITEM='租金' 
+				and datediff(d,tfcb.pay_date,opposing_date)>0 
+				group by RECP_ID,recp_code,pay_date,recd_period,ficb_item,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+				left join
+				t_rent_collectionplan  trcp
+				on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+				left join t_rent_contract trc 
+				on trcp.rect_id =trc.rect_id and trc.status=0
+				left join
+				t_rent_collectiondetail trcd
+				on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+				where 1=1 
+				and trcp.RECP_ID = TTT.RECP_ID
+				union all
+				select trcp.cust_id,
+				trcp.recp_id,
+				trcp.rect_id,
+				trcp.RECP_CODE,
+				trcp.lease_code,
+				(case when trcp.fine_type = 2 then
+				round((trcp.month_price-reduce_price) *
+				     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+				     (trcp.month_price-reduce_price),2)
+				else
+				 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+				end) fine,trcp.PAY_DATE
+				from (          
+				 select trc.cust_id,trc.cust_code,
+				     trcp.recp_id,
+				     trcp.rect_id,
+				     trcp.RECP_CODE,
+				     trc.lease_code,
+				     trcp.FUND_STATUS,
+				     trcd.pay_date,
+				     trcd.period_num, 
+				     trcp.fine_type,
+				     trcp.fine_rate,
+				     isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+				     isnull(trcd.reduce_own_price, 0) reduce_price
+				from t_rent_collectionplan trcp
+				left join t_rent_contract trc on trcp.rect_id =
+				trc.rect_id
+				left join t_rent_collectiondetail trcd on trcp.recp_id =
+				trcd.recp_id
+				where trcp.status = 0 and trc.status=0
+				  and (trcp.fund_status=0 or trcp.fund_status=1)
+				 and  trcd.pay_date < = cast(getdate() as datetime)-1
+				and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+				left join  
+				(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+				  from t_fina_collectionbill tfcb
+				  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				 where tfi.opposing_date <= cast(getdate() as datetime)
+				 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				 and tfi.red_type is null 
+				 group by recp_id
+				 ) tfcd 
+				on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+				where (case when tfcd.opposing_date is null or
+				tfcd.opposing_date <= trcp.pay_date then
+				datediff(d,trcp.pay_date,getdate()) else
+				datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+				and trcp.RECP_ID = TTT.RECP_ID		
+				)t1
+				group by t1.CUST_ID,t1.recp_id,t1.rect_id,t1.RECP_CODE,t1.lease_code) trcpd
+				left join
+				T_RENT_SETTLE tdfdr
+				on trcpd.RECP_ID=tdfdr.RECP_ID
+				and tdfdr.status = 0 and tdfdr.state = 1 ),0) dun_price,
+        		(select 
+						rectd.staybuy_price - (case
+						 when exists (select ficb.ficb_item, sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.recp_code = recp.recp_code
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						group by ficb.ficb_item
+						having ficb.ficb_item = '设备留购价') then
+						(select sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.ficb_item = '设备留购价'
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						and ficb.recp_code = recp.recp_code)
+						 else
+						  0
+						end) as sprice						
+            from t_rent_contract rect, t_rent_collectionplan recp,
+						(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+						where recp.rect_id = rect.rect_id
+						and recp.RECP_ID=TTT.RECP_ID
+						and recp.status = 0 
+						and rectd.RECT_ID=rect.RECT_ID
+			       )  LGJ  ,convert(varchar,trcd.LAST_PAY_DATE,23)LAST_PAY_DATE,DATEDIFF(DAY,comeDate.OPPOSINGDATE,GETDATE()) DIFF_DAY
+        from T_RENT_COLLECTIONPLAN  TTT
+   left join (select sum( IRR_MONTH_PRICE) SUM_MONTH_PRICE,sum(REDUCE_OWN_PRICE) SUM_OWN_PRICE,RECP_ID,MAX(PAY_DATE)LAST_PAY_DATE from T_RENT_COLLECTIONDETAIL where status=0 group by recp_id) trcd
+   on TTT.RECP_ID = trcd.RECP_ID
+   left join T_RENT_CONTRACT trct on trct.RECT_ID = TTT.RECT_ID 
+   left join T_user_user tuu on trct.SENSOR_ID = tuu.ID
+ left join ( select distinct TTT.RECP_ID as recpId,Max(convert(varchar,tfi.OPPOSING_DATE,23))as OPPOSINGDATE
+        from T_RENT_COLLECTIONPLAN  TTT
+		left join T_FINA_COLLECTIONBILL tfc on ttt.RECP_ID=tfc.recp_id
+		left join T_FINA_INCOME tfi on tfi.FIIN_ID=tfc.fiin_id
+   group by TTT.RECP_ID) comeDate on comeDate.recpId =TTT.RECP_ID
+   left join (  select 
+					lawfee.sum_lawyfee - (
+					(select isnull(sum(ficb.real_price),0)
+					from t_fina_collectionbill ficb
+					where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = '法务费用') 
+					and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+					and ficb.status = 0
+					and ficb.recp_id = recp.recp_id)
+			    ) as sprice,recp.RECP_ID as RecpId
+				from t_rent_collectionplan recp,
+				(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+				where recp.recp_id = lawfee.recp_id
+				
+				and recp.status = 0  ) lawyfeeT on lawyfeeT.RecpId = ttt.recp_id
+
+   
+   where TTT.status=0 and TTT.RECP_STATUS=0 and trcd.SUM_OWN_PRICE>=trcd.SUM_MONTH_PRICE
+   and trct.STATUS=0 and tuu.dept_id='10'
+    order by DIFF_DAY desc 
+		]]>	
+	</select>	
+<!-- Add by Michael 2012 08-31 增加可结清案件明细报表For佛山 -->
+	<select id="queryAbleSettleRentListFoshan" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+	   select trct.lease_code,trct.cust_name,tuu.name,TTT.RECT_ID,TTT.RECP_CODE,TTT.LEASE_PERIOD,
+comeDate.OPPOSINGDATE as OPPOSINGDATE,  isnull(lawyfeeT.sprice,0) as TOTALLAWYFEE,
+   		isnull((select convert(decimal(18,2),trcpd.fine)-(
+			        case 
+			        when exists
+			        (select ficb.ficb_item, sum(ficb.real_price)
+			         from t_fina_collectionbill ficb
+			        where ficb.recp_code = trcpd.recp_code
+			          and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			          and ficb.status = 0 
+			        group by ficb.ficb_item
+			       having ficb.ficb_item = '租金罚息') then
+			  (select convert(decimal(18,2),sum(ficb.real_price))
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = '租金罚息'
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.recp_code = trcpd.recp_code 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = '租金罚息'
+			        )else 0 end )- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(select SUM(fine) fine,RECP_CODE,RECP_ID,RECT_ID ,lease_code,min(PAY_DATE) PAY_DATE
+				 from
+				(    
+				select trc.CUST_ID,trcp.recp_id,trcp.rect_id,trcp.RECP_CODE,trc.lease_code,
+				(case when trcp.fine_type = 2 then
+				round(should_price *
+				     power(1 + trcp.fine_rate / 100, dun_day) -
+				     should_price,2)
+				else
+				 round(should_price * dun_day * fine_rate / 100,2)
+				end) fine,trcd.PAY_DATE
+				from              
+				(select tfcb.RECP_ID,tfcb.recp_code,tfcb.pay_date,tfcb.recd_period,tfcb.ficb_item,max(tfcb.should_price) should_price ,
+				sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+				from t_fina_collectionbill tfcb
+				left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				where  (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				and tfi.red_type is null and tfcb.FICB_type='0'
+				and tfcb.FICB_ITEM='租金' 
+				and datediff(d,tfcb.pay_date,opposing_date)>0 
+				group by RECP_ID,recp_code,pay_date,recd_period,ficb_item,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+				left join
+				t_rent_collectionplan  trcp
+				on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+				left join t_rent_contract trc 
+				on trcp.rect_id =trc.rect_id and trc.status=0
+				left join
+				t_rent_collectiondetail trcd
+				on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+				where 1=1 
+				and trcp.RECP_ID = TTT.RECP_ID
+				union all
+				select trcp.cust_id,
+				trcp.recp_id,
+				trcp.rect_id,
+				trcp.RECP_CODE,
+				trcp.lease_code,
+				(case when trcp.fine_type = 2 then
+				round((trcp.month_price-reduce_price) *
+				     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+				     (trcp.month_price-reduce_price),2)
+				else
+				 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+				end) fine,trcp.PAY_DATE
+				from (          
+				 select trc.cust_id,trc.cust_code,
+				     trcp.recp_id,
+				     trcp.rect_id,
+				     trcp.RECP_CODE,
+				     trc.lease_code,
+				     trcp.FUND_STATUS,
+				     trcd.pay_date,
+				     trcd.period_num, 
+				     trcp.fine_type,
+				     trcp.fine_rate,
+				     isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+				     isnull(trcd.reduce_own_price, 0) reduce_price
+				from t_rent_collectionplan trcp
+				left join t_rent_contract trc on trcp.rect_id =
+				trc.rect_id
+				left join t_rent_collectiondetail trcd on trcp.recp_id =
+				trcd.recp_id
+				where trcp.status = 0 and trc.status=0
+				  and (trcp.fund_status=0 or trcp.fund_status=1)
+				 and  trcd.pay_date < = cast(getdate() as datetime)-1
+				and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+				left join  
+				(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+				  from t_fina_collectionbill tfcb
+				  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				 where tfi.opposing_date <= cast(getdate() as datetime)
+				 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				 and tfi.red_type is null 
+				 group by recp_id
+				 ) tfcd 
+				on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+				where (case when tfcd.opposing_date is null or
+				tfcd.opposing_date <= trcp.pay_date then
+				datediff(d,trcp.pay_date,getdate()) else
+				datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+				and trcp.RECP_ID = TTT.RECP_ID		
+				)t1
+				group by t1.CUST_ID,t1.recp_id,t1.rect_id,t1.RECP_CODE,t1.lease_code) trcpd
+				left join
+				T_RENT_SETTLE tdfdr
+				on trcpd.RECP_ID=tdfdr.RECP_ID
+				and tdfdr.status = 0 and tdfdr.state = 1 ),0) dun_price,
+        		(select 
+						rectd.staybuy_price - (case
+						 when exists (select ficb.ficb_item, sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.recp_code = recp.recp_code
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						group by ficb.ficb_item
+						having ficb.ficb_item = '设备留购价') then
+						(select sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.ficb_item = '设备留购价'
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						and ficb.recp_code = recp.recp_code)
+						 else
+						  0
+						end) as sprice						
+            from t_rent_contract rect, t_rent_collectionplan recp,
+						(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+						where recp.rect_id = rect.rect_id
+						and recp.RECP_ID=TTT.RECP_ID
+						and recp.status = 0 
+						and rectd.RECT_ID=rect.RECT_ID
+			       )  LGJ ,convert(varchar,trcd.LAST_PAY_DATE,23)LAST_PAY_DATE,DATEDIFF(DAY,comeDate.OPPOSINGDATE,GETDATE()) DIFF_DAY
+        from T_RENT_COLLECTIONPLAN  TTT
+   left join (select sum( IRR_MONTH_PRICE) SUM_MONTH_PRICE,sum(REDUCE_OWN_PRICE) SUM_OWN_PRICE,RECP_ID,MAX(PAY_DATE)LAST_PAY_DATE from T_RENT_COLLECTIONDETAIL where status=0 group by recp_id) trcd
+   on TTT.RECP_ID = trcd.RECP_ID
+   left join T_RENT_CONTRACT trct on trct.RECT_ID = TTT.RECT_ID 
+   left join T_user_user tuu on trct.SENSOR_ID = tuu.ID
+    left join ( select distinct TTT.RECP_ID as recpId,Max(convert(varchar,tfi.OPPOSING_DATE,23))as OPPOSINGDATE
+        from T_RENT_COLLECTIONPLAN  TTT
+		left join T_FINA_COLLECTIONBILL tfc on ttt.RECP_ID=tfc.recp_id
+		left join T_FINA_INCOME tfi on tfi.FIIN_ID=tfc.fiin_id
+   group by TTT.RECP_ID) comeDate on comeDate.recpId =TTT.RECP_ID
+   left join (  select 
+					lawfee.sum_lawyfee - (
+					(select isnull(sum(ficb.real_price),0)
+					from t_fina_collectionbill ficb
+					where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = '法务费用') 
+					and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+					and ficb.status = 0
+					and ficb.recp_id = recp.recp_id)
+			    ) as sprice,recp.RECP_ID as RecpId
+				from t_rent_collectionplan recp,
+				(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+				where recp.recp_id = lawfee.recp_id
+				
+				and recp.status = 0  ) lawyfeeT on lawyfeeT.RecpId = ttt.recp_id
+   where TTT.status=0 and TTT.RECP_STATUS=0 and trcd.SUM_OWN_PRICE>=trcd.SUM_MONTH_PRICE
+   and trct.STATUS=0 and tuu.dept_id='12'
+      order by DIFF_DAY desc 
+		]]>	
+	</select>
+<!-- Add by Michael 2012 08-31 增加可结清案件明细报表For厦门 -->
+	<select id="queryAbleSettleRentListXiamen" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+	   select trct.lease_code,trct.cust_name,tuu.name,TTT.RECT_ID,TTT.RECP_CODE,TTT.LEASE_PERIOD
+,comeDate.OPPOSINGDATE as OPPOSINGDATE,  isnull(lawyfeeT.sprice,0) as TOTALLAWYFEE,
+   		isnull((select convert(decimal(18,2),trcpd.fine)-(
+			        case 
+			        when exists
+			        (select ficb.ficb_item, sum(ficb.real_price)
+			         from t_fina_collectionbill ficb
+			        where ficb.recp_code = trcpd.recp_code
+			          and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			          and ficb.status = 0 
+			        group by ficb.ficb_item
+			       having ficb.ficb_item = '租金罚息') then
+			  (select convert(decimal(18,2),sum(ficb.real_price))
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = '租金罚息'
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.recp_code = trcpd.recp_code 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = '租金罚息'
+			        )else 0 end )- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(select SUM(fine) fine,RECP_CODE,RECP_ID,RECT_ID ,lease_code,min(PAY_DATE) PAY_DATE
+				 from
+				(    
+				select trc.CUST_ID,trcp.recp_id,trcp.rect_id,trcp.RECP_CODE,trc.lease_code,
+				(case when trcp.fine_type = 2 then
+				round(should_price *
+				     power(1 + trcp.fine_rate / 100, dun_day) -
+				     should_price,2)
+				else
+				 round(should_price * dun_day * fine_rate / 100,2)
+				end) fine,trcd.PAY_DATE
+				from              
+				(select tfcb.RECP_ID,tfcb.recp_code,tfcb.pay_date,tfcb.recd_period,tfcb.ficb_item,max(tfcb.should_price) should_price ,
+				sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+				from t_fina_collectionbill tfcb
+				left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				where  (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				and tfi.red_type is null and tfcb.FICB_type='0'
+				and tfcb.FICB_ITEM='租金' 
+				and datediff(d,tfcb.pay_date,opposing_date)>0 
+				group by RECP_ID,recp_code,pay_date,recd_period,ficb_item,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+				left join
+				t_rent_collectionplan  trcp
+				on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+				left join t_rent_contract trc 
+				on trcp.rect_id =trc.rect_id and trc.status=0
+				left join
+				t_rent_collectiondetail trcd
+				on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+				where 1=1 
+				and trcp.RECP_ID = TTT.RECP_ID
+				union all
+				select trcp.cust_id,
+				trcp.recp_id,
+				trcp.rect_id,
+				trcp.RECP_CODE,
+				trcp.lease_code,
+				(case when trcp.fine_type = 2 then
+				round((trcp.month_price-reduce_price) *
+				     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+				     (trcp.month_price-reduce_price),2)
+				else
+				 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+				end) fine,trcp.PAY_DATE
+				from (          
+				 select trc.cust_id,trc.cust_code,
+				     trcp.recp_id,
+				     trcp.rect_id,
+				     trcp.RECP_CODE,
+				     trc.lease_code,
+				     trcp.FUND_STATUS,
+				     trcd.pay_date,
+				     trcd.period_num, 
+				     trcp.fine_type,
+				     trcp.fine_rate,
+				     isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+				     isnull(trcd.reduce_own_price, 0) reduce_price
+				from t_rent_collectionplan trcp
+				left join t_rent_contract trc on trcp.rect_id =
+				trc.rect_id
+				left join t_rent_collectiondetail trcd on trcp.recp_id =
+				trcd.recp_id
+				where trcp.status = 0 and trc.status=0
+				  and (trcp.fund_status=0 or trcp.fund_status=1)
+				 and  trcd.pay_date < = cast(getdate() as datetime)-1
+				and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+				left join  
+				(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+				  from t_fina_collectionbill tfcb
+				  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				 where tfi.opposing_date <= cast(getdate() as datetime)
+				 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				 and tfi.red_type is null 
+				 group by recp_id
+				 ) tfcd 
+				on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+				where (case when tfcd.opposing_date is null or
+				tfcd.opposing_date <= trcp.pay_date then
+				datediff(d,trcp.pay_date,getdate()) else
+				datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+				and trcp.RECP_ID = TTT.RECP_ID		
+				)t1
+				group by t1.CUST_ID,t1.recp_id,t1.rect_id,t1.RECP_CODE,t1.lease_code) trcpd
+				left join
+				T_RENT_SETTLE tdfdr
+				on trcpd.RECP_ID=tdfdr.RECP_ID
+				and tdfdr.status = 0 and tdfdr.state = 1 ),0) dun_price,
+        		(select 
+						rectd.staybuy_price - (case
+						 when exists (select ficb.ficb_item, sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.recp_code = recp.recp_code
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						group by ficb.ficb_item
+						having ficb.ficb_item = '设备留购价') then
+						(select sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.ficb_item = '设备留购价'
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						and ficb.recp_code = recp.recp_code)
+						 else
+						  0
+						end) as sprice						
+            from t_rent_contract rect, t_rent_collectionplan recp,
+						(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+						where recp.rect_id = rect.rect_id
+						and recp.RECP_ID=TTT.RECP_ID
+						and recp.status = 0 
+						and rectd.RECT_ID=rect.RECT_ID
+			       )  LGJ ,convert(varchar,trcd.LAST_PAY_DATE,23)LAST_PAY_DATE,DATEDIFF(DAY,comeDate.OPPOSINGDATE,GETDATE()) DIFF_DAY 
+        from T_RENT_COLLECTIONPLAN  TTT
+   left join (select sum( IRR_MONTH_PRICE) SUM_MONTH_PRICE,sum(REDUCE_OWN_PRICE) SUM_OWN_PRICE,RECP_ID,MAX(PAY_DATE)LAST_PAY_DATE from T_RENT_COLLECTIONDETAIL where status=0 group by recp_id) trcd
+   on TTT.RECP_ID = trcd.RECP_ID
+   left join T_RENT_CONTRACT trct on trct.RECT_ID = TTT.RECT_ID 
+   left join T_user_user tuu on trct.SENSOR_ID = tuu.ID
+    left join ( select distinct TTT.RECP_ID as recpId,Max(convert(varchar,tfi.OPPOSING_DATE,23))as OPPOSINGDATE
+        from T_RENT_COLLECTIONPLAN  TTT
+		left join T_FINA_COLLECTIONBILL tfc on ttt.RECP_ID=tfc.recp_id
+		left join T_FINA_INCOME tfi on tfi.FIIN_ID=tfc.fiin_id
+   group by TTT.RECP_ID) comeDate on comeDate.recpId =TTT.RECP_ID
+   left join (  select 
+					lawfee.sum_lawyfee - (
+					(select isnull(sum(ficb.real_price),0)
+					from t_fina_collectionbill ficb
+					where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = '法务费用') 
+					and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+					and ficb.status = 0
+					and ficb.recp_id = recp.recp_id)
+			    ) as sprice,recp.RECP_ID as RecpId
+				from t_rent_collectionplan recp,
+				(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+				where recp.recp_id = lawfee.recp_id
+				
+				and recp.status = 0  ) lawyfeeT on lawyfeeT.RecpId = ttt.recp_id
+ 
+   
+   where TTT.status=0 and TTT.RECP_STATUS=0 and trcd.SUM_OWN_PRICE>=trcd.SUM_MONTH_PRICE
+   and trct.STATUS=0 and tuu.dept_id='17'
+    order by DIFF_DAY desc 
+		]]>	
+	</select>
+	<insert id="insertCompletedFileLog" parameterClass="map">
+		insert into T_COMPLETED_FILE_LOG
+		(
+			LEASE_CODE,
+			CUST_NAME,
+			DECP_NAME_CN,
+			DECP_ID,
+			LEASE_PERIOD,
+			DUN_PRICE,
+			DEBT,
+			OPPOSING_DATE,
+			TOTALLAWYFEE,
+			DIFF_DAY,
+			LOG_DATE,
+			USER_NAME,
+			RECT_ID,
+			RECP_CODE,
+			USER_ID
+			
+        )
+		values
+		(
+			#LEASE_CODE#,
+			#CUST_NAME#,
+			#DECP_NAME_CN#,
+			#DECP_ID#,
+			#LEASE_PERIOD#,
+			#DUN_PRICE#,
+			#LGJ#,
+			#OPPOSINGDATE#,
+			#TOTALLAWYFEE#,
+			#DIFF_DAY#,
+			getdate(),
+			#NAME#,
+			#RECT_ID#,
+			#RECP_CODE#,
+			#USERID#
+		)
+	
+	</insert>
+	<!-- 以下查询可结清案件的时间列表 zhangbo-->
+	<select id="getCFDateList" resultClass="java.util.HashMap">
+		<isEqual property="fileType" compareValue="01">
+			SELECT DISTINCT CONVERT(VARCHAR,LOG_DATE,23) LOGDATE,
+       			   CASE WHEN CONVERT(DATE,LOG_DATE,23)=CONVERT(DATE,GETDATE(),23)
+		           THEN '1'
+		           ELSE '0'
+		            END FILETYPE
+			  FROM T_COMPLETED_FILE_LOG
+			 
+		  ORDER BY LOGDATE desc
+		</isEqual>
+	</select>
+	<!-- 以上查询可结清案件的时间列表zhangbo -->
+	<!-- 以下查询可结清案件记录zhangbo -->
+	<select id="getCompletedFileLog" parameterClass="map" resultClass="java.util.HashMap">
+		 select  LEASE_CODE,CUST_NAME,DECP_NAME_CN,LEASE_PERIOD,DUN_PRICE,DEBT,TOTALLAWYFEE,DIFF_DAY,LOG_DATE,USER_NAME,RECT_ID,RECP_CODE,
+				OPPOSING_DATE,USER_ID,DECP_ID
+				from T_COMPLETED_FILE_LOG
+			<dynamic prepend="where">
+			    <isEmpty property="DATE" prepend="and">
+			        CONVERT(DATE,LOG_DATE)=CONVERT(DATE,#getTime#)
+			    </isEmpty>
+			    <isNotEmpty property="DATE" prepend="and">
+			        CONVERT(DATE,LOG_DATE)=CONVERT(DATE,#DATE#)
+			    </isNotEmpty>
+			
+			    <isNotEmpty property="DEPT_ID"  prepend="and">
+			            DECP_ID=#DEPT_ID#
+			    </isNotEmpty>
+				<isNotEmpty prepend="" property="DIFF">
+					<isEqual prepend="and" property="DIFF" compareValue="0">
+						<![CDATA[  DIFF_DAY >=6  and DIFF_DAY < 90]]>
+					</isEqual>
+				</isNotEmpty>
+				<isNotEmpty prepend="" property="DIFF">
+					<isEqual prepend="and" property="DIFF" compareValue="1">
+						<![CDATA[  DIFF_DAY >=90]]>
+					</isEqual>
+				</isNotEmpty>
+				<isEmpty property="DIFF" prepend="and">
+			      <![CDATA[  DIFF_DAY >=6  and DIFF_DAY < 90]]>
+			    </isEmpty>
+			    
+			    <isNotEmpty property="CONTENT"  prepend="and">
+			            (LEASE_CODE LIKE '%$CONTENT$%' OR CUST_NAME LIKE '%$CONTENT$%' OR USER_NAME LIKE '%$CONTENT$%')
+			    </isNotEmpty>
+			    </dynamic>
+	</select>
+	<!-- 以上查询可结清案件记录zhangbo -->
+	
+	
+	<!-- 以下超过90天以上可结清案件明细报表 zhangbo -->
+	<select id="queryAbleSettleRentListOverThreeM" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+	 	 select trct.lease_code,trct.cust_name,tuu.name,tuu.id as USERID,TTT.RECT_ID,TTT.RECP_CODE,TTT.LEASE_PERIOD,
+   		isnull((select convert(decimal(18,2),trcpd.fine)-(
+			        case 
+			        when exists
+			        (select ficb.ficb_item, sum(ficb.real_price)
+			         from t_fina_collectionbill ficb
+			        where ficb.recp_code = trcpd.recp_code
+			          and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			          and ficb.status = 0 
+			        group by ficb.ficb_item
+			       having ficb.ficb_item = '租金罚息') then
+			  (select convert(decimal(18,2),sum(ficb.real_price))
+			     from t_fina_collectionbill ficb
+			    where ficb.ficb_item = '租金罚息'
+			      and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+			      and ficb.status = 0
+			      and ficb.recp_code = trcpd.recp_code 
+			      group by ficb.ficb_item
+			      having ficb.ficb_item = '租金罚息'
+			        )else 0 end )- isnull(tdfdr.DIFF_DUN_PRICE, 0)  as sprice 
+				  from
+				(select SUM(fine) fine,RECP_CODE,RECP_ID,RECT_ID ,lease_code,min(PAY_DATE) PAY_DATE
+				 from
+				(    
+				select trc.CUST_ID,trcp.recp_id,trcp.rect_id,trcp.RECP_CODE,trc.lease_code,
+				(case when trcp.fine_type = 2 then
+				round(should_price *
+				     power(1 + trcp.fine_rate / 100, dun_day) -
+				     should_price,2)
+				else
+				 round(should_price * dun_day * fine_rate / 100,2)
+				end) fine,trcd.PAY_DATE
+				from              
+				(select tfcb.RECP_ID,tfcb.recp_code,tfcb.pay_date,tfcb.recd_period,tfcb.ficb_item,max(tfcb.should_price) should_price ,
+				sum(tfcb.real_price) real_price,tfcb.cust_code,tfi.opposing_date opposing_date,datediff(d,tfcb.pay_date,opposing_date)  dun_day
+				from t_fina_collectionbill tfcb
+				left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				where  (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				and tfi.red_type is null and tfcb.FICB_type='0'
+				and tfcb.FICB_ITEM='租金' 
+				and datediff(d,tfcb.pay_date,opposing_date)>0 
+				group by RECP_ID,recp_code,pay_date,recd_period,ficb_item,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+				left join
+				t_rent_collectionplan  trcp
+				on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+				left join t_rent_contract trc 
+				on trcp.rect_id =trc.rect_id and trc.status=0
+				left join
+				t_rent_collectiondetail trcd
+				on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+				where 1=1 
+				and trcp.RECP_ID = TTT.RECP_ID
+				union all
+				select trcp.cust_id,
+				trcp.recp_id,
+				trcp.rect_id,
+				trcp.RECP_CODE,
+				trcp.lease_code,
+				(case when trcp.fine_type = 2 then
+				round((trcp.month_price-reduce_price) *
+				     power(1 + trcp.fine_rate / 100, datediff(d,trcp.pay_date,getdate())) -
+				     (trcp.month_price-reduce_price),2)
+				else
+				 round((trcp.month_price-reduce_price) * datediff(d,trcp.pay_date,getdate()) * fine_rate / 100,2)
+				end) fine,trcp.PAY_DATE
+				from (          
+				 select trc.cust_id,trc.cust_code,
+				     trcp.recp_id,
+				     trcp.rect_id,
+				     trcp.RECP_CODE,
+				     trc.lease_code,
+				     trcp.FUND_STATUS,
+				     trcd.pay_date,
+				     trcd.period_num, 
+				     trcp.fine_type,
+				     trcp.fine_rate,
+				     isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+				     isnull(trcd.reduce_own_price, 0) reduce_price
+				from t_rent_collectionplan trcp
+				left join t_rent_contract trc on trcp.rect_id =
+				trc.rect_id
+				left join t_rent_collectiondetail trcd on trcp.recp_id =
+				trcd.recp_id
+				where trcp.status = 0 and trc.status=0
+				  and (trcp.fund_status=0 or trcp.fund_status=1)
+				 and  trcd.pay_date < = cast(getdate() as datetime)-1
+				and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+				left join  
+				(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+				  from t_fina_collectionbill tfcb
+				  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+				 where tfi.opposing_date <= cast(getdate() as datetime)
+				 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+				 and tfi.red_type is null 
+				 group by recp_id
+				 ) tfcd 
+				on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+				where (case when tfcd.opposing_date is null or
+				tfcd.opposing_date <= trcp.pay_date then
+				datediff(d,trcp.pay_date,getdate()) else
+				datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+				and trcp.RECP_ID = TTT.RECP_ID		
+				)t1
+				group by t1.CUST_ID,t1.recp_id,t1.rect_id,t1.RECP_CODE,t1.lease_code) trcpd
+				left join
+				T_RENT_SETTLE tdfdr
+				on trcpd.RECP_ID=tdfdr.RECP_ID
+				and tdfdr.status = 0 and tdfdr.state = 1 ),0) dun_price,
+        (select 
+						rectd.staybuy_price - (case
+						 when exists (select ficb.ficb_item, sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.recp_code = recp.recp_code
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						group by ficb.ficb_item
+						having ficb.ficb_item = '设备留购价') then
+						(select sum(ficb.real_price)
+						from t_fina_collectionbill ficb
+						where ficb.ficb_item = '设备留购价'
+						and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+						and ficb.status = 0
+						and ficb.recp_code = recp.recp_code)
+						 else
+						  0
+						end) as sprice						
+            from t_rent_contract rect, t_rent_collectionplan recp,
+						(select RECT_ID,SUM(isnull(staybuy_price,0)) staybuy_price from T_RENT_CONTRACTDETAIL where STATUS=0 group by RECT_ID) rectd
+						where recp.rect_id = rect.rect_id
+						and recp.RECP_ID=TTT.RECP_ID
+						and recp.status = 0 
+						and rectd.RECT_ID=rect.RECT_ID
+			       )  LGJ ,convert(varchar,trcd.LAST_PAY_DATE,23)LAST_PAY_DATE,DATEDIFF(DAY,comeDate.OPPOSINGDATE,GETDATE()) DIFF_DAY,tdc.DECP_NAME_CN,tdc.DECP_ID
+       ,comeDate.OPPOSINGDATE as OPPOSINGDATE
+       , isnull(lawyfeeT.sprice,0) as TOTALLAWYFEE
+        from T_RENT_COLLECTIONPLAN  TTT
+   left join (select sum( IRR_MONTH_PRICE) SUM_MONTH_PRICE,sum(REDUCE_OWN_PRICE) SUM_OWN_PRICE,RECP_ID,MAX(PAY_DATE)LAST_PAY_DATE from T_RENT_COLLECTIONDETAIL where status=0 group by recp_id) trcd
+   on TTT.RECP_ID = trcd.RECP_ID
+   left join T_RENT_CONTRACT trct on trct.RECT_ID = TTT.RECT_ID 
+   left join T_user_user tuu on trct.SENSOR_ID = tuu.ID
+   left join T_DEPT_DEPARTMENT tddp on tuu.DEPT_ID=tddp.ID
+   left join T_DEPT_COMPANY tdc on tddp.DECP_ID=tdc.DECP_ID
+   left join ( select distinct TTT.RECP_ID as recpId,Max(convert(varchar,tfi.OPPOSING_DATE,23))as OPPOSINGDATE
+        from T_RENT_COLLECTIONPLAN  TTT
+		left join T_FINA_COLLECTIONBILL tfc on ttt.RECP_ID=tfc.recp_id
+		left join T_FINA_INCOME tfi on tfi.FIIN_ID=tfc.fiin_id
+   group by TTT.RECP_ID) comeDate on comeDate.recpId =TTT.RECP_ID
+   left join ( select 
+					lawfee.sum_lawyfee - (
+					(select isnull(sum(ficb.real_price),0)
+					from t_fina_collectionbill ficb
+					where ficb.ficb_item in (select FLAG from T_DATA_DICTIONARY where type = '法务费用') 
+					and (ficb.ficb_state = 4 or ficb.ficb_state = 5)
+					and ficb.status = 0
+					and ficb.recp_id = recp.recp_id)
+			    ) as sprice,recp.RECP_ID as RecpId
+				from t_rent_collectionplan recp,
+				(select recp_id,SUM(fee_value) sum_lawyfee from T_LAWY_FEELIST where STATUS=0 group by RECP_ID) lawfee
+				where recp.recp_id = lawfee.recp_id
+				and recp.status = 0  ) lawyfeeT on lawyfeeT.RecpId = ttt.recp_id
+   where TTT.status=0 and TTT.RECP_STATUS=0 and trcd.SUM_OWN_PRICE>=trcd.SUM_MONTH_PRICE
+   and trct.STATUS=0 and DATEDIFF(DAY,comeDate.OPPOSINGDATE,GETDATE()) >=90
+   order by DIFF_DAY desc
+		]]>	
+	</select>
+	<!-- 以上超过90天以上可结清案件明细报表 zhangbo -->
+	
+	<!-- 获得实际剩余本金 -->
+	<!-- 直租类型 -->
+	<select id="getRealOwnPriceForDirect" resultClass="java.lang.Double">
+	   SELECT CONVERT(DECIMAL(10,2),SUM(O.OWN_PRICE)) FROM (
+              SELECT OWN_PRICE-CASE WHEN PERIOD_NUM=1 
+                                    THEN (SELECT PLEDGE_AVE_PRICE 
+                                            FROM T_RENT_COLLECTIONPLAN 
+                                           WHERE RECP_ID=#RECP_ID#)
+                                    ELSE 0 
+                                     END OWN_PRICE
+                FROM T_RENT_COLLECTIONDETAIL 
+               WHERE RECP_ID=#RECP_ID#
+                 AND STATUS=0
+                 AND (REDUCE_OWN_PRICE IS NULL OR REDUCE_OWN_PRICE=0)
+                 UNION ALL
+              SELECT CASE WHEN CONVERT(DECIMAL(10,2),REDUCE_OWN_PRICE)-CONVERT(DECIMAL(10,2),(IRR_MONTH_PRICE+ISNULL(VALUE_ADDED_TAX,0)))&lt;0 
+                          THEN (OWN_PRICE-CASE WHEN PERIOD_NUM=1 
+                                               THEN (SELECT PLEDGE_AVE_PRICE 
+                                                       FROM T_RENT_COLLECTIONPLAN 
+                                                      WHERE RECP_ID=#RECP_ID#)
+                                               ELSE 0 
+                                                END)
+                          ELSE (OWN_PRICE-CASE WHEN PERIOD_NUM=1 
+                                               THEN (SELECT PLEDGE_AVE_PRICE 
+                                                       FROM T_RENT_COLLECTIONPLAN 
+                                                      WHERE RECP_ID=#RECP_ID#)
+                                               ELSE 0 
+                                                END)-(CONVERT(DECIMAL(10,2),REDUCE_OWN_PRICE)-CONVERT(DECIMAL(10,2),(REN_PRICE+ISNULL(VALUE_ADDED_TAX,0))))
+                           END OWN_PRICE
+                FROM T_RENT_COLLECTIONDETAIL 
+               WHERE RECP_ID=#RECP_ID#
+                 AND STATUS=0
+                 AND REDUCE_OWN_PRICE IS NOT NULL
+                 AND REDUCE_OWN_PRICE!=0
+                 AND CONVERT(DECIMAL(10,2),REDUCE_OWN_PRICE)!=CONVERT(DECIMAL(10,2),(IRR_MONTH_PRICE+ISNULL(VALUE_ADDED_TAX,0)))
+		) O
+	</select>
+	<!-- 非直租类型 -->
+	<select id="getRealOwnPriceForNotDirect" resultClass="java.lang.Double">
+		SELECT CONVERT(DECIMAL(10,2),SUM(O.OWN_PRICE)) FROM (
+				  SELECT OWN_PRICE-(SELECT PLEDGE_AVE_PRICE/(SELECT COUNT(RECP_ID) FROM T_RENT_COLLECTIONDETAIL WHERE STATUS=0 AND RECP_ID=#RECP_ID#) FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=#RECP_ID#) OWN_PRICE 
+				    FROM T_RENT_COLLECTIONDETAIL 
+				   WHERE RECP_ID=#RECP_ID#
+				     AND STATUS=0
+				     AND (REDUCE_OWN_PRICE IS NULL OR REDUCE_OWN_PRICE=0)
+				     UNION ALL
+				  SELECT OWN_PRICE-(SELECT PLEDGE_AVE_PRICE/(SELECT COUNT(RECP_ID) FROM T_RENT_COLLECTIONDETAIL WHERE STATUS=0 AND RECP_ID=#RECP_ID#) FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=#RECP_ID#)-
+				         CASE WHEN CONVERT(DECIMAL(10,2),REDUCE_OWN_PRICE)-CONVERT(DECIMAL(10,2),(IRR_MONTH_PRICE+ISNULL(VALUE_ADDED_TAX,0)))&lt;0
+				              THEN 0
+				              ELSE (CONVERT(DECIMAL(10,2),REDUCE_OWN_PRICE)-CONVERT(DECIMAL(10,2),(REN_PRICE+ISNULL(VALUE_ADDED_TAX,0))))
+				               END OWN_PRICE
+				    FROM T_RENT_COLLECTIONDETAIL 
+				   WHERE RECP_ID=#RECP_ID#
+				     AND STATUS=0
+				     AND REDUCE_OWN_PRICE IS NOT NULL
+				     AND REDUCE_OWN_PRICE!=0
+				     AND CONVERT(DECIMAL(10,2),REDUCE_OWN_PRICE)!=CONVERT(DECIMAL(10,2),(IRR_MONTH_PRICE+ISNULL(VALUE_ADDED_TAX,0)))
+				) O
+	</select>
+	<select id="getContractPlan" resultClass="java.util.HashMap">
+		SELECT RECP_STATUS,TAX_PLAN_CODE FROM T_RENT_COLLECTIONPLAN WHERE STATUS=0 AND RECP_ID=#RECP_ID#
+	</select>
+	
+</sqlMap>

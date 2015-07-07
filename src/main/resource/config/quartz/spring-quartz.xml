@@ -1,0 +1,1865 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	     http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+	     http://www.springframework.org/schema/context
+	     http://www.springframework.org/schema/context/spring-context-3.2.xsd
+	     http://www.springframework.org/schema/tx
+	     http://www.springframework.org/schema/tx/spring-tx-3.2.xsd">
+    
+	<!-- 定义调用对象和调用对象的方法 -->
+    <bean id="bonusJobBean" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="bonusManage"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>bonusJob</value>
+        </property>
+    </bean>
+    <!-- 定义触发时间 -->
+    <bean id="bonusJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+        <property name="jobDetail">
+            <ref bean="bonusJobBean"/>
+        </property>
+        <property name="group">
+        	<value>DAILY_GROUP</value>
+        </property>
+        <property name="cronExpression">
+            <!-- 每天20点触发 -->
+            <value>0 0 20 * * ? *</value>
+        </property>
+        <property name="description" value="奖金月报表-YangYun"/>
+    </bean>
+    
+    <bean id="empBonusJobBean" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <ref bean="bonusManage"/>
+        </property>
+        <property name="targetMethod">
+            <value>doBonusReportByEmpJob</value>
+        </property>
+    </bean>
+    <bean id="empBonusJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+        <property name="jobDetail">
+            <ref bean="empBonusJobBean"/>
+        </property>
+        <property name="group">
+        	<value>DAILY_GROUP</value>
+        </property>
+        <property name="description" value="年度人员奖金统计报表-YangYun"/>
+        <property name="cronExpression">
+            <value>0 0 20 * * ? *</value>
+        </property>
+    </bean>
+    
+    <!-- 定义调用对象和调用对象的方法 -->
+    <bean id="smsJobBean" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <!-- 调用的类 -->
+        <property name="targetObject">
+            <ref bean="lockManagement"/>
+        </property>
+        <!-- 调用类中的方法 -->
+        <property name="targetMethod">
+            <value>sendSmsDailyForDun</value>
+        </property>
+    </bean>
+    
+    <!-- 定义触发时间 -->
+    <bean id="smsJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+        <property name="jobDetail">
+            <ref bean="smsJobBean"/>
+        </property>
+        <property name="group">
+        	<value>DAILY_GROUP</value>
+        </property>
+        <property name="cronExpression">
+            <!-- 每天20点触发 -->
+            <value>0 0 12 * * ? *</value>
+        </property>
+        <property name="description" value="发送催收短信-YangYun"/>
+    </bean>
+    
+    <bean id="sendMessageJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <ref bean="sendMessage"/>
+        </property>
+        <property name="targetMethod">
+            <value>run</value>
+        </property>
+    </bean>
+    <bean id="sendMessageTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+        <property name="jobDetail">
+            <ref bean="sendMessageJob"/>
+        </property>
+        <property name="group">
+        	<value>MINUTE_GROUP</value>
+        </property>
+        <property name="cronExpression">
+            <value>0 0/5 * * * ? *</value>
+        </property>
+        <property name="description" value="发送短信-YangYun"/>
+    </bean>
+    
+    <!-- 每年的1月1号凌晨0点跑 -->
+    <bean id="dateInitializeConfigJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="dateInitializeConfig" />
+    	<property name="targetMethod" value="dateInitialize" />
+    </bean>
+    
+    <bean id="dateInitializeConfigJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="dateInitializeConfigJob"/>
+    	<property name="group" value="YEAR_GROUP" />
+    	<property name="description" value="每年工作日休假日初始化Job"/>
+    	<property name="cronExpression" value="0 5 0 1 1 ? *" />
+    </bean>
+    
+    <!-- 每天晚上17点25跑 各区案况表 batch job -->
+    <bean id="caseReportJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="caseReportService" />
+    	<property name="targetMethod" value="batchJob" />
+    </bean>
+    
+    <bean id="caseReportJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="caseReportJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="各区案况表总的-ShenQi"/>
+    	<property name="cronExpression" value="0 25 17 * * ? *" />
+    </bean>
+    
+    <!-- 每天晚上17点25跑 各区案况表设备 batch job -->
+    <bean id="caseReportJobEqu" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="caseReportService" />
+    	<property name="targetMethod" value="batchJobForEqu" />
+    </bean>
+    
+    <bean id="caseReportJobEquTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="caseReportJobEqu"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="各区案况表设备-ShenQi"/>
+    	<property name="cronExpression" value="0 25 17 * * ? *" />
+    </bean>
+    
+    <!-- 每天晚上17点25跑 各区案况表重车 batch job -->
+    <bean id="caseReportJobMotor" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="caseReportService" />
+    	<property name="targetMethod" value="batchJobForMotor" />
+    </bean>
+    
+    <bean id="caseReportJobMotorTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="caseReportJobMotor"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="各区案况表重车-ShenQi"/>
+    	<property name="cronExpression" value="0 25 17 * * ? *" />
+    </bean>
+    
+    <!-- 每天晚上17点25跑 各区案况表乘用车batch job -->
+    <bean id="caseReportJobCar" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="caseReportService" />
+    	<property name="targetMethod" value="batchJobForCar" />
+    </bean>
+    
+    <bean id="caseReportJobCarTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="caseReportJobCar"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="各区案况表乘用车-YangYun"/>
+    	<property name="cronExpression" value="0 25 17 * * ? *" />
+    </bean>
+    
+        <!-- Add By Michael 2012 4-19 每天晚上10点 45跑备份销账日报表 -->
+    <bean id="financeDecomposeReportJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="financeDecomposeReport" />
+    	<property name="targetMethod" value="dailyFinaDecomposeReportDetail" />
+    </bean>
+    
+    <bean id="financeDecomposeReportJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="financeDecomposeReportJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="cronExpression" value="0 5 22 * * ? *" />
+    	<property name="description" value="备份销账日报表——胡天书"/>
+    </bean>
+    
+            <!-- Add By Michael 2012 4-27 每月备份营业税报表 每月最后一天晚上10点10分跑 -->
+    <bean id="monthBusinessTaxReportJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="financeDecomposeReport" />
+    	<property name="targetMethod" value="monthBusinessTaxReport" />
+    </bean>
+    
+    <bean id="monthBusinessTaxReportJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="monthBusinessTaxReportJob"/>
+    	<property name="group" value="MONTH_GROUP" />
+    	<property name="description" value="每月备份营业税报表——胡天书"/>
+    	<property name="cronExpression" value="0 10 22 L * ? *" />
+    </bean>
+          <!-- Add By Michael 2012 4-27 每月备份留购款营业税报表 每月最后一天晚上10点20分跑 -->
+    <bean id="monthStayPriceTaxReportJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="financeDecomposeReport" />
+    	<property name="targetMethod" value="monthStayPriceTaxReport" />
+    </bean>
+    
+    <bean id="monthStayPriceTaxReportJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="monthStayPriceTaxReportJob"/>
+    	<property name="group" value="MONTH_GROUP" />
+    	<property name="description" value="留购款营业税报表——胡天书"/>
+    	<property name="cronExpression" value="0 20 22 L * ? *" />
+    </bean>  
+    
+    <!-- Add By Michael 2012 4-27 备份每月开票资料 每月最后一天晚上10点30分跑 -->
+    <bean id="monthOpenInvoiceJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="financeDecomposeReport" />
+    	<property name="targetMethod" value="openInvoiceByMonth" />
+    </bean>
+    
+    <bean id="monthOpenInvoiceJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="monthOpenInvoiceJob"/>
+    	<property name="group" value="MONTH_GROUP" />
+    	<property name="description" value="每月开票资料——胡天书"/>
+    	<property name="cronExpression" value="0 30 22 L * ? *" />
+    </bean>
+    
+    <!-- 员工业绩进度 add by ShenQi -->
+    <bean id="achievementJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="achievementBatchJobService" />
+    	<property name="targetMethod" value="batchJob" />
+    </bean>
+    
+    <bean id="achievementJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="achievementJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="员工业绩进度表-ShenQi"/>
+    	<property name="cronExpression" value="0 0 20 * * ? *" />
+    </bean>
+    
+<!--         Add By Michael 2012 4-27 获取每天发送间接锁码信息
+    <bean id="getIndirectLockInfoJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="financeDecomposeReport" />
+    	<property name="targetMethod" value="getAllLockMsgAndMail" />
+    </bean>
+    
+    <bean id="getIndirectLockInfoJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getIndirectLockInfoJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="cronExpression" value="0 0 19 * * ? *" />
+    </bean> -->
+    
+    <!-- 报告撤销add by ShenQi -->
+    <bean id="reportCancelJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="reportCancelBatchJobService" />
+    	<property name="targetMethod" value="batchJob" />
+    </bean>
+    
+    <bean id="reportCancelJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="reportCancelJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="报告撤销Job-ShenQi"/>
+    	<property name="cronExpression" value="0 0 23 * * ? *" />
+    </bean>
+    
+    <!-- Add By Michael 2012 5-3 每天早上4点跑整理每天的销账日报表汇总到一个财务月里 -->
+    <bean id="getArrangementDecomposeByMonth" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="financeDecomposeReport" />
+    	<property name="targetMethod" value="arrangementDecomposeByMonth" />
+    </bean>
+    
+    <bean id="getArrangementDecomposeByMonthTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getArrangementDecomposeByMonth"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="整理每天的销账日报表——胡天书"/>
+    	<property name="cronExpression" value="0 20 4 * * ? *" />
+    	
+    </bean> 
+    
+     <!-- Add By Michael 2012 5-3 备份每月财务、税务利息资料 每月最后一天晚上10点30分跑 -->
+    <bean id="monthInterestDetailByMonthJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="financeDecomposeReport" />
+    	<property name="targetMethod" value="getInterestDetailByMonth" />
+    </bean>
+    
+    <bean id="monthInterestDetailByMonthTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="monthInterestDetailByMonthJob"/>
+    	<property name="group" value="MONTH_GROUP" />
+    	<property name="description" value="备份每月财务、税务利息资料——胡天书"/>
+    	<property name="cronExpression" value="0 45 6 * * ? *" />
+    </bean>
+    
+        <!-- Add By Michael 2012 5-7 发送间接锁码Email -->
+    <bean id="sendDirectLockEmailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="sendDirectLockEmail" />
+    </bean>
+    
+    <bean id="sendDirectLockEmailTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendDirectLockEmailJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<!-- 
+    	<property name="cronExpression" value="0 30 22 L * ? *" />
+    	 -->
+    	<!-- <property name="cronExpression" value="0 0/5 * * * ? *" /> -->
+    	<property name="description" value="发送间接锁码Email——胡天书"/>
+    	<property name="cronExpression" value="0 5 15 * * ? *" />
+    </bean> 
+    
+        <!-- 当日拨款总表 add by ShenQi -->
+    <bean id="achievementCase" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="achievementCaseCommand" />
+    	<property name="targetMethod" value="batchJob" />
+    </bean>
+    
+    <bean id="achievementCaseTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="achievementCase"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="当日各办事处业绩进度一览表-ShenQi"/>
+    	<property name="cronExpression" value="0 30 17 * * ? *"/>
+    </bean>
+    
+    	<!-- 各区平均单价 add by ShenQi 每月1号1点跑-->
+    <bean id="avgPayMoneyBatchJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="avgPayMoneyBatchJobService" />
+    	<property name="targetMethod" value="batchJob"/>
+    </bean>
+    
+    <bean id="avgPayMoneyBatchJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="avgPayMoneyBatchJob"/>
+    	<property name="group" value="MONTH_GROUP" />
+    	<property name="description" value="各区平均单价表-ShenQi"/>
+    	<property name="cronExpression" value="0 0 1 1 * ? *"/>
+    </bean>
+    <!-- 上月拨款的供应商评级情况表 -->
+    <bean id="supplierLevelPayBatchJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="supplierLevelBatchJobService"/>
+    	<property name="targetMethod" value="sendSupplierLevelMailForPayMoneyByMonth"/>
+    </bean>
+    
+    <bean id="supplierLevelPayBatchJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="supplierLevelPayBatchJob"/>
+    	<property name="group" value="MONTH_GROUP" />
+    	<property name="description" value="上月拨款的供应商评级情况表-ShenQi"/>
+    	<property name="cronExpression" value="0 0 1 1 * ? *"/>
+    </bean>
+    
+    	<!-- 预估来款金额件数 add by ShenQi 每月1号1点跑-->
+    <bean id="computeMoneyCountBatchJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="avgPayMoneyBatchJobService" />
+    	<property name="targetMethod" value="computeMoneyCount"/>
+    </bean>
+    
+    <bean id="computeMoneyCountBatchJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="computeMoneyCountBatchJob"/>
+    	<property name="group" value="MONTH_GROUP" />
+    	<property name="description" value="预估来款金额件数表-ShenQi"/>
+    	<property name="cronExpression" value="0 0 1 1 * ? *"/>
+    </bean>
+    
+    <!-- 案件进度时间比较add by ShenQi 每天20点跑-->
+    <bean id="caseCompareDayJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="caseCompareDayService" />
+    	<property name="targetMethod" value="batchJob" />
+    </bean>
+    
+    <bean id="caseCompareDayJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="caseCompareDayJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<!-- <property name="cronExpression" value="0 00 22 L * ? *" /> -->
+    	<property name="description" value="案件进度时间比较表-ShenQi"/>
+    	<property name="cronExpression" value="0 00 20 * * ? *" />
+    </bean>
+    
+    <!-- 供应商贡献度 add by ShenQi 每天22点跑 -->
+    <bean id="supplerContributeJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="supplerContributeService" />
+    	<property name="targetMethod" value="batchJob" />
+    </bean>
+    
+    <bean id="supplerContributeJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="supplerContributeJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="供应商贡献度-ShenQi"/>
+    	<property name="cronExpression" value="0 0 22 * * ? *" />
+    </bean>
+    
+    <!-- 客户案况 add by ShenQi 每天17 30点跑 -->
+    <bean id="customerCaseJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="customerCaseBatchJobService" />
+    	<property name="targetMethod" value="batchJob" />
+    </bean>
+    
+    <bean id="customerCaseJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="customerCaseJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="客户案况表-ShenQi"/>
+    	<property name="cronExpression" value="0 30 17 * * ? *" />
+    </bean>
+    
+        <!-- Add By Michael 2012 6-16 每天14:30跑销账后间接锁码 -->
+    <bean id="getAllLockMsgAndMailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="financeDecomposeReport" />
+    	<property name="targetMethod" value="getAllLockMsgAndMail" />
+    </bean>
+    
+    <bean id="getAllLockMsgAndMailJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getAllLockMsgAndMailJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="跑销账后间接锁码资料——胡天书"/>
+    	<property name="cronExpression" value="0 30 14 * * ? *" />
+    </bean>
+    
+    <!-- 供应商,客户案况进度 add by ShenQi 每天20 00点跑 -->
+    <bean id="supplerCustomerCaseBatchJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="supplerCustomerCaseBatchJobService" />
+    	<property name="targetMethod" value="batchJob" />
+    </bean>
+    
+    <bean id="supplerCustomerCaseBatchJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="supplerCustomerCaseBatchJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="供应商客户案况进度表-ShenQi"/>
+    	<property name="cronExpression" value="0 00 20 * * ? *" />
+    </bean>
+    
+    <!-- 每天下午5点发送Email，异常案件 -->
+    <bean id="sendEmailForAnomalyJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="sendEmailForNotApproved" />
+    	<property name="targetMethod" value="doService" />
+    </bean>
+    <bean id="sendEmailForAnomalyJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendEmailForAnomalyJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="cronExpression" value="0 0 17 * * ? *" />
+    	<property name="description" value="异常案件发送EmailJob-YangYun"/>
+    </bean>
+    
+    <!-- 每天下午5点发送Email，理赔异常案件  -->
+    <bean id="sendEmailForSatisfactionJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="sendEmailForSatisfaction" />
+    	<property name="targetMethod" value="doService" />
+    </bean>
+    <bean id="sendEmailForSatisfactionJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendEmailForSatisfactionJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="cronExpression" value="0 0 17 * * ? *" />
+    	<property name="description" value="理赔异常发送EmailJob-YangYun"/>
+    </bean>
+    
+    <bean id="sendCommonMailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="mailCommonService" />
+    	<property name="targetMethod" value="sendMail" />
+    	<property name="concurrent" value="false"/>
+    </bean>
+        <bean id="sendCommonMailJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendCommonMailJob"/>
+    	<property name="group" value="MINUTE_GROUP" />
+    	<property name="description" value="公共邮件发送Job-ShenQi"/>
+    	<property name="cronExpression" value="0 2/5 * * * ? *" />
+    </bean>
+    
+    <bean id="sendCommonMailForQQJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="mailCommonService" />
+    	<property name="targetMethod" value="sendMailForQQ" />
+    	<property name="concurrent" value="false"/>
+    </bean>
+        <bean id="sendCommonMailForQQJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendCommonMailForQQJob"/>
+    	<property name="group" value="MINUTE_GROUP" />
+    	<property name="description" value="公共邮件发送(QQ)Job-YangYun"/>
+    	<property name="cronExpression" value="0 0/1 * * * ? *" />
+    </bean>
+    
+    <!-- 每天下午1点发送Email，委贷状态更新提醒 -->
+    <bean id="loanReminderBatchJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="loanReminderBatchJobService" />
+    	<property name="targetMethod" value="batchJob" />
+    </bean>
+    <bean id="loanReminderBatchJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="loanReminderBatchJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="委贷状态提醒Job-ShenQi"/>
+    	<property name="cronExpression" value="0 0 13 * * ? *" />
+    </bean>
+    
+            <!-- Add By Michael 2012 8-2 每天14:30跑销账后直接锁码 -->
+    <bean id="getAllDirectLockMsgAndMailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="financeDecomposeReport" />
+    	<property name="targetMethod" value="getDirectLockMsgAndMail" />
+    </bean>
+    
+    <bean id="getAllDirectLockMsgAndMailJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getAllDirectLockMsgAndMailJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="跑销账后直接锁码资料——胡天书"/>
+    	<property name="cronExpression" value="0 30 14 * * ? *" />
+    </bean>
+    
+     <!-- Add By Michael 2012 8-2 发送直接锁码Email -->
+    <bean id="sendDirectLockCodeEmailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="sendAllDirectLockCodeEmail" />
+    </bean>
+    
+    <bean id="sendDirectLockCodeEmailTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendDirectLockCodeEmailJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<!-- 
+    	<property name="cronExpression" value="0 30 22 L * ? *" />
+    	 -->
+    	<!-- <property name="cronExpression" value="0 0/5 * * * ? *" /> -->
+    	<property name="description" value="发送直接锁码Email——胡天书"/>
+    	<property name="cronExpression" value="0 0 15 * * ? *" />
+    </bean>
+    
+         <!-- Add By Michael 2012 8-2 发送直接锁码密码为空且没有密码附件的邮件发送给晶晶 -->
+    <bean id="sendAllDirectLockCodeNoPassworsEmail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="sendAllDirectLockCodeNoPassworsEmail" />
+    </bean>
+    
+    <bean id="sendAllDirectLockCodeNoPassworsTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendAllDirectLockCodeNoPassworsEmail"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<!-- 
+    	<property name="cronExpression" value="0 30 22 L * ? *" />
+    	 -->
+    	<!-- <property name="cronExpression" value="0 0/5 * * * ? *" /> -->
+    	<property name="description" value="发送直接锁码密码为空且没有密码附件的邮件——胡天书"/>
+    	<property name="cronExpression" value="0 0 15 * * ? *" />
+    </bean>
+    
+    <!-- 案件状态更新 每分钟 -->
+    <bean id="creditStatusJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <ref bean="creditStatusUpdateJob"/>
+        </property>
+        <property name="targetMethod">
+            <value>doService</value>
+        </property>
+    </bean>
+    <bean id="creditStatusJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+        <property name="jobDetail">
+            <ref bean="creditStatusJob"/>
+        </property>
+        <property name="group">
+        	<value>MINUTE_GROUP</value>
+        </property>
+        <property name="cronExpression">
+            <value>0 0/10 * * * ? *</value>
+        </property>
+        <property name="description" value="案件状态更新Job-YangYun"/>
+    </bean>
+    
+         <!-- Add By Michael 2012 8-08 发送已拨款且缺件的案件List -->
+    <bean id="sendAllUnCompletedFileList" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="sendAllUnCompletedFileList" />
+    </bean>
+    
+    <bean id="sendAllUnCompletedFileListTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendAllUnCompletedFileList"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="cronExpression" value="0 30 17 * * ? *" />
+    </bean>
+    
+    <!-- Add by Michael 2012 08-13 将缺发票的合同保存起来 每5分钟跑一次 -->
+    <bean id="insertRentFileLossInvoice" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="financeDecomposeReport" />
+    	<property name="targetMethod" value="getInsertFileLossInvoice" />
+    </bean>
+    <bean id="insertRentFileLossInvoiceTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="insertRentFileLossInvoice"/>
+    	<property name="group" value="MINUTE_GROUP" />
+    	<property name="description" value="将缺发票的合同保存起来——胡天书"/>
+    	<property name="cronExpression" value="0 0/5 * * * ? *" />
+    </bean>
+   
+     <!-- Add By Michael 2012 8-16 每天08:30发送重车扣款提醒List -->
+    <bean id="sendCarApplyInfoList" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="queryCarPayAccountDetailForSendMail" />
+    </bean>
+    <bean id="sendCarApplyInfoListTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendCarApplyInfoList"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="发送扣款提醒——杨赟"/>
+    	<property name="cronExpression" value="0 30 8 * * ? *" />
+    </bean>
+    
+        <!-- Add By Michael 2012 8-27 每天早上6点整理汇总长期应收款报表（税务） -->
+    <bean id="getArrangementFinanceRealPriceByMonth" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="financeDecomposeReport" />
+    	<property name="targetMethod" value="arrangementFinanceRealPriceByMonth" />
+    </bean>
+    
+    <bean id="getArrangementFinanceRealPriceByMonthTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getArrangementFinanceRealPriceByMonth"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="整理汇总长期应收款报表——胡天书"/>
+    	<property name="cronExpression" value="0 15 6 * * ? *" />
+    </bean>
+    
+       <!-- 可结清案件报表 add by Michael 每天14 30点跑 -->
+    <bean id="sendAbleSettleRentListJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="sendAbleSettleRentList" />
+    </bean>
+    
+    <bean id="sendAbleSettleRentListJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendAbleSettleRentListJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="可结清案件报表——胡天书"/>
+    	<property name="cronExpression" value="0 30 14 * * ? *" />
+    </bean> 
+           <!-- 可结清案件报表 add by Michael 每天14 30点跑 -->
+    <bean id="sendAbleSettleRentListForSelfJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="sendAbleSettleRentListByPerson" />
+    </bean>
+    
+    <bean id="sendAbleSettleRentListForSelfJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendAbleSettleRentListForSelfJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="可结清案件报表（个人）——胡天书"/>
+    	<property name="cronExpression" value="0 30 14 * * ? *" />
+    </bean> 
+ 
+            <!-- 可结清案件报表 add by Michael 发送给每个办事处每天14 30点跑 -->
+    <bean id="sendAllDeptAbleSettleRentListJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="sendAllDeptAbleSettleRentList" />
+    </bean>
+    
+    <bean id="sendAllDeptAbleSettleRentListJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendAllDeptAbleSettleRentListJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="可结清案件报表（各个办事处）——胡天书"/>
+    	<property name="cronExpression" value="0 30 14 * * ? *" />
+    </bean>    
+    
+	<bean id="accessCustomerPlanJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="accessCustomerPlanReportService" />
+    	<property name="targetMethod" value="createReport" />
+    </bean>
+    
+    <!-- 客户拜访计划报表发送  每周一9点发送 -->
+    <bean id="accessCustomerPlanJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="accessCustomerPlanJob"/>
+    	<property name="group" value="WEEK_GROUP" />
+    	<property name="description" value="客户拜访计划表-ShenQi"/>
+    	<property name="cronExpression" value="0 00 9 ? * 2 *" />
+    </bean>
+    
+    <!-- 审查日报表每天 23点跑 -->
+    <bean id="auditReportJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="auditReportService" />
+    	<property name="targetMethod" value="doAuditReportDailyJob" />
+    </bean>
+    
+    <bean id="auditReportTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="auditReportJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="审查日报表-YangYun"/>
+    	<property name="cronExpression" value="0 0 23 * * ? *" />
+    </bean>
+
+      <!-- Add BY Michael 2012 09-21 假日间接锁码信息发送Email -->
+    <bean id="sendUnDirectLockForHolidayJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="sendUnDirectLockForHoliday" />
+    </bean>
+    
+    <bean id="sendUnDirectLockForHolidayJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendUnDirectLockForHolidayJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="假日间接锁码信息发送——胡天书"/>
+    	<property name="cronExpression" value="0 30 12 * * ? *" />
+    </bean> 
+    
+          <!-- Add BY Michael 2012 09-21 假日直接接锁码信息发送Email -->
+    <bean id="sendDirectLockForHolidayJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="sendDirectLockForHoliday" />
+    </bean>
+    
+    <bean id="sendDirectLockForHolidayJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendDirectLockForHolidayJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="假日直接锁码信息发送——胡天书"/>
+    	<property name="cronExpression" value="0 30 12 * * ? *" />
+    </bean>  
+    
+            <!-- Add By Michael 2012 8-27 每天晚上19保险费余额变动表 -->
+    <bean id="queryInsuranceDynamicForJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="financeDecomposeReport" />
+    	<property name="targetMethod" value="queryInsuranceDynamicForJob" />
+    </bean>
+    
+    <bean id="queryInsuranceDynamicForJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="queryInsuranceDynamicForJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="保险费余额变动表——胡天书"/>
+    	<property name="cronExpression" value="0 10 22 L * ? *" />
+    </bean>
+    
+    <!-- 发送待补文件给各个办事处 add by Michael 发送给各个办事处每天17 30点跑 -->
+    <bean id="sendAllUnCompletedFileListByDeptJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="sendAllUnCompletedFileListByDept" />
+    </bean>
+    
+    <bean id="sendAllUnCompletedFileListByDeptJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendAllUnCompletedFileListByDeptJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="待补文件（各个办事处）——张逸舟"/>
+    	<property name="cronExpression" value="0 00 17 * * ? *" />
+    </bean>
+    
+     <!-- (乘用车用)发送待补文件给各个办事处 add by Michael 发送给各个办事处每周一17 30点跑 -->
+    <bean id="sendAllUnCompletedFileListByDeptForCarJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="sendAllUnCompletedFileListByDeptForCar" />
+    </bean> 
+    
+    <bean id="sendAllUnCompletedFileListByDeptForCarJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendAllUnCompletedFileListByDeptForCarJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="待补文件(乘用车专用)（各个办事处）——张逸舟"/>
+    	<property name="cronExpression" value="0 00 17 ? * 2 *" />
+    </bean>
+    
+         <!-- Add By Michael 2012 10-23 每月最后一天跑供应商到期提醒 -->
+    <bean id="sendAllSupplierGrantPriceExpireeList" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="sendAllSupplierGrantPriceExpireeList" />
+    </bean>
+    
+    <bean id="sendAllSupplierGrantPriceExpireeListTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendAllSupplierGrantPriceExpireeList"/>
+    	<property name="group" value="MONTH_GROUP" />
+    	<property name="description" value="供应商到期提醒——胡天书"/>
+    	<property name="cronExpression" value="0 30 10 L * ? *" />
+    </bean> 
+    
+    <!-- Yang Yun 2012/12/3 保险管理模块 ****************************************************** --> 
+    <!-- 投保 -->
+    <bean id="insuranceJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="insuranceService" />
+    	<property name="targetMethod" value="doInsurance" />
+    </bean>
+    
+    <bean id="insuranceJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="insuranceJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="投保-YangYun"/>
+    	<property name="cronExpression" value="0 0 14 * * ? *" />
+    </bean>
+    
+    <!-- 续保 -->
+    <!-- <bean id="insuranceRenewalJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="insuranceService" />
+    	<property name="targetMethod" value="doRenewalInsuranceService" />
+    </bean>
+    
+    <bean id="insuranceRenewalJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="insuranceRenewalJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="续保-YangYun"/>
+    	<property name="cronExpression" value="0 30 14 * * ? *" />
+    </bean> -->
+    
+    <!-- 提前结清待退保 -->
+    <bean id="waitingForSurrenderJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="insuranceService" />
+    	<property name="targetMethod" value="doWaitingForSurrender" />
+    </bean>
+    
+    <bean id="waitingForSurrenderJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="waitingForSurrenderJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="提前结清待退保-YangYun"/>
+    	<property name="cronExpression" value="0 0 15 * * ? *" />
+    </bean>
+    
+    <!-- 保单追踪 -->
+    <bean id="insuTraceJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="insuranceService" />
+    	<property name="targetMethod" value="doTrace" />
+    </bean>
+    
+    <bean id="insuTraceJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="insuTraceJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="保单追踪-YangYun"/>
+    	<property name="cronExpression" value="0 30 15 * * ? *" />
+    </bean>
+    <!-- ************************************************************************************* -->
+    
+    <!-- 每天晚上20点10分跑案件进度异常 -->
+    <bean id="unnaturalCaseCompareJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="unnaturalCaseService" />
+    	<property name="targetMethod" value="batchJobCaseCompare" />
+    </bean>
+    
+    <bean id="unnaturalCaseCompareJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="unnaturalCaseCompareJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="已拨款案件进度异常-ShenQi"/>
+    	<property name="cronExpression" value="0 10 20 * * ? *" />
+    </bean>
+    
+    <!-- 每天凌晨2点跑逾期25天,前3期逾期未回访报表 -->
+    <bean id="unnaturalDunCaseJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="unnaturalCaseService" />
+    	<property name="targetMethod" value="batchJobDunCase" />
+    </bean>
+    
+    <bean id="unnaturalDunCaseJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="unnaturalDunCaseJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="逾期25天,前3期逾期未回访-ShenQi"/>
+    	<property name="cronExpression" value="0 3 2 * * ? *" />
+    </bean>
+    
+        <!-- 每天凌晨1点跑拨款后待补文件 -->
+    <bean id="unnaturalUncompletedFileCaseJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="unnaturalCaseService" />
+    	<property name="targetMethod" value="batchJobUncompletedFileCase" />
+    </bean>
+    
+    <bean id="unnaturalUncompletedFileCaseJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="unnaturalUncompletedFileCaseJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="拨款后待补文件-ShenQi"/>
+    	<property name="cronExpression" value="0 2 1 * * ? *" />
+    </bean>
+    
+        <!-- 每天下午5点2分跑出险逾期60天未理赔结案Job-->
+    <bean id="unnaturalOnGoingInsuranceCaseJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="unnaturalCaseService" />
+    	<property name="targetMethod" value="batchJobOnGoingInsuranceCase" />
+    </bean>
+    <bean id="unnaturalOnGoingInsuranceCaseJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="unnaturalOnGoingInsuranceCaseJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="cronExpression" value="0 2 17 * * ? *" />
+    	<property name="description" value="出险逾期60天未理赔结案-ShenQi"/>
+    </bean>
+    
+        	<!-- 客户拜访计划外出时间batch job每月1号1点跑-->
+    <bean id="customerVisitJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="customerVisitReportService"/>
+    	<property name="targetMethod" value="batchJobForCustomerVisitReport"/>
+    </bean>
+    
+    <bean id="customerVisitJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="customerVisitJob"/>
+    	<property name="group" value="MONTH_GROUP"/>
+    	<property name="description" value="客户拜访计划外出时间-ShenQi"/>
+    	<property name="cronExpression" value="0 0 1 1 * ? *" />
+    </bean>
+    
+            <!-- 每天下午5点30分跑提交审查逾期10天未核准,访厂逾期12天未提交审查Job-->
+    <bean id="batchJobPendingApproveOrCommitCaseJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="unnaturalCaseService" />
+    	<property name="targetMethod" value="batchJobPendingApproveOrCommitCase" />
+    </bean>
+    <bean id="batchJobPendingApproveOrCommitCaseJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="batchJobPendingApproveOrCommitCaseJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="cronExpression" value="0 30 17 * * ? *" />
+    	<property name="description" value="提交审查逾期10天未核准,访厂逾期12天未提交审查-ShenQi"/>
+    </bean>
+    
+        <!-- 每天晚上1点跑未拨款案件进度异常 -->
+    <bean id="unnaturalDynamicCaseCompareJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="unnaturalCaseService" />
+    	<property name="targetMethod" value="batchJobDynamicCase" />
+    </bean>
+    
+    <bean id="unnaturalDynamicCaseCompareJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="unnaturalDynamicCaseCompareJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="未拨款案件进度异常-ShenQi"/>
+    	<property name="cronExpression" value="0 02 01 * * ? *" />
+    </bean>
+    
+    <!-- 每天晚上1点跑访厂报告逾11天未提交异常 -->
+    <bean id="unnaturalDunVisitCaseJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="unnaturalCaseService" />
+    	<property name="targetMethod" value="batchJobDunVisitCase" />
+    </bean>
+    
+    <bean id="unnaturalDunVisitCaseJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="unnaturalDunVisitCaseJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="访厂报告生成逾11天未提交-ShenQi"/>
+    	<property name="cronExpression" value="0 02 01 * * ? *" />
+    </bean>
+    
+    <!-- 逾期报表(by user)每天20天跑 -->
+    <bean id="dunCaseByUserJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="dunCaseService" />
+    	<property name="targetMethod" value="batchJobByUser" />
+    </bean>
+    
+    <bean id="dunCaseByUserJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="dunCaseByUserJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="逾期报表(按照业务员分组)-ShenQi"/>
+    	<property name="cronExpression" value="0 01 20 * * ? *" />
+    </bean>
+    
+        <!-- 逾期报表(by money)每天20天跑 -->
+    <bean id="dunCaseByMoneyJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="dunCaseService" />
+    	<property name="targetMethod" value="batchJobByMoney" />
+    </bean>
+    
+    <bean id="dunCaseByMoneyJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="dunCaseByMoneyJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="逾期报表(按照融资金额分组)-ShenQi"/>
+    	<property name="cronExpression" value="0 01 20 * * ? *" />
+    </bean>
+    
+    <bean id="leaseRzeJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="dunCaseService" />
+    	<property name="targetMethod" value="batchJobLeaseRzeByMoney" />
+    </bean>
+    
+    <bean id="leaseRzeJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="leaseRzeJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="融资金额,租金比-ShenQi"/>
+    	<property name="cronExpression" value="0 00 20 * * ? *" />
+    </bean>
+    
+    <bean id="rentCheckDeliveryJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="queryRentCheckForDelivery" />
+    </bean>
+    
+    <bean id="rentCheckDeliveryJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="rentCheckDeliveryJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="支票投递提醒——胡天书"/>
+    	<property name="cronExpression" value="0 00 8 * * ? *" />
+    </bean>
+    
+    <bean id="rentCheckReturnForAllJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="queryRentCheckReturnForAll" />
+    </bean>
+    
+    <bean id="rentCheckReturnForAllJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="rentCheckReturnForAllJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="支票退票通知For业管财务人员——胡天书"/>
+    	<property name="cronExpression" value="0 05 17 * * ? *" />
+    </bean>
+    
+   	<bean id="rentCheckReturnForSalesJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="queryRentCheckReturnForSales" />
+    </bean>
+    
+    <bean id="rentCheckReturnForSalesJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="rentCheckReturnForSalesJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="支票退票通知For业务人员 ——胡天书"/>
+    	<property name="cronExpression" value="0 05 17 * * ? *" />
+    </bean>
+    
+       <bean id="prcDecomposePledgeBJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="financeDecomposeReport" />
+    	<property name="targetMethod" value="prcDecomposePledgeB" />
+    </bean>
+    
+    <bean id="prcDecomposePledgeBJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="prcDecomposePledgeBJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="保证金B自动分解销账——胡天书"/>
+    	<property name="cronExpression" value="0 25 7 * * ? *" />
+    </bean>
+    
+    <!-- 当日解码邮件未成功发送通知 -->
+   <bean id="dayNoSendLockEmailInfoJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="dayNoSendLockEmailInfo" />
+    </bean>
+    
+    <bean id="dayNoSendLockEmailInfoJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="dayNoSendLockEmailInfoJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="当日解码邮件未成功发送通知——胡天书"/>
+    	<property name="cronExpression" value="0 25 15 * * ? *" />
+    </bean>
+    
+    <bean id="vipReportJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="vipReportService" />
+    	<property name="targetMethod" value="doService" />
+    </bean>
+    
+    <bean id="vipReportJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="vipReportJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="绿色通道案件分析报表-YangYun"/>
+    	<property name="cronExpression" value="0 33 20 * * ? *" />
+    </bean>
+    
+    <!-- 每月捞数据 -->
+    <bean id="getData4Job" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="getData4Table" />
+    	<property name="targetMethod" value="doService" />
+    </bean>
+    
+    <bean id="getData4JobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getData4Job"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="每月第一个工作日捞数据-YangYun"/>
+    	<property name="cronExpression" value="0 20 8 * * ? *" />
+    </bean>
+    
+    <bean id="getData2Job" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="getData2Table" />
+    	<property name="targetMethod" value="doService" />
+    </bean>
+    
+    <bean id="getData2JobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getData2Job"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="每月第二个工作日捞数据-YangYun"/>
+    	<property name="cronExpression" value="0 25 8 * * ? *" />
+    </bean>
+    
+    <!-- 访厂提案统计表 -->
+    <bean id="getDataForCommittedProjectJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="getDataForCommittedProject" />
+    	<property name="targetMethod" value="doService" />
+    </bean>
+    
+    <bean id="getDataForCommittedProjectJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getDataForCommittedProjectJob"/>
+    	<property name="group" value="MONTH_GROUP" />
+    	<property name="description" value="每月访厂提案统计表-YangYun"/>
+    	<property name="cronExpression" value="0 10 8 3 * ? *" />
+    </bean>
+    
+    <!-- 每月起租案件统计汇总 -->
+    <bean id="getDataForSendJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="getDataForSend" />
+    	<property name="targetMethod" value="doService" />
+    </bean>
+    
+    <bean id="getDataForSendJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getDataForSendJob"/>
+    	<property name="group" value="MONTH_GROUP" />
+    	<property name="description" value="每月起租案件统计汇总-YangYun"/>
+    	<property name="cronExpression" value="0 10 8 3 * ? *" />
+    </bean>
+    
+     <!-- 以下Add By zhang 20130204 催办更改单发Email -->
+    <bean id="unEedOrderJobEmailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="modifyOrderCommand" />
+    	<property name="targetMethod" value="getUnendOrderList" />
+    </bean>
+    
+    <bean id="unEedOrderJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="unEedOrderJobEmailJob"/>
+    	<property name="cronExpression" value="0 45 08 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="催办更改单-zhang"/>
+    </bean>
+    <!-- 以上Add By zhang 20130204 催办更改单Email -->
+    
+         <!-- 以下Add By Michael 20130228 支票换票提醒发Email For 业务 -->
+    <bean id="rentCheckChangeTicketForSalesJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="queryRentCheckChangeTicketForSales" />
+    </bean>
+    
+    <bean id="rentCheckChangeTicketForSalesJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="rentCheckChangeTicketForSalesJob"/>
+    	<property name="cronExpression" value="0 00 17 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="支票换票提醒For业务-胡天书"/>
+    </bean>
+    <!-- 以上Add By Michael 20130228 支票换票提醒发Email For 业务 -->
+    
+             <!-- 以下Add By Michael 20130228 支票换票提醒发Email For 财务、业管 -->
+    <bean id="rentCheckChangeTicketForAllJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="queryRentCheckChangeTicketForAll" />
+    </bean>
+    
+    <bean id="rentCheckChangeTicketForAllJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="rentCheckChangeTicketForAllJob"/>
+    	<property name="cronExpression" value="0 00 17 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="支票换票提醒For财务、业管-胡天书"/>
+    </bean>
+    <!-- 以上Add By Michael 20130228 支票换票提醒发Email For 财务、业管 -->
+    
+        <!-- 逾期报表(by user)每天20天跑 -->
+    <bean id="dunCaseChartJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="dunCaseService" />
+    	<property name="targetMethod" value="batchJob" />
+    </bean>
+    
+    <bean id="dunCaseChartJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="dunCaseChartJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="31,91,181逾期图表数据Job-ShenQi"/>
+    	<property name="cronExpression" value="0 01 01 * * ? *" />
+    </bean>
+ 
+   <!-- Add By Michael 2013 3-20 每天晚上21点产生保险费明细表 -->
+   <!--  <bean id="getInsuranceDynamicDetailByDay" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="financeDecomposeReport" />
+    	<property name="targetMethod" value="batchDualInsuranceDynamicDetailByDay" />
+    </bean>
+    
+    <bean id="getInsuranceDynamicDetailByDayTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getInsuranceDynamicDetailByDay"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="保险费明细表——胡天书"/>
+    	<property name="cronExpression" value="0 50 20 * * ? *" />
+    </bean>  -->
+    
+    <bean id="sendHRMailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="mailCommonService" />
+    	<property name="targetMethod" value="sendHRMail" />
+    </bean>
+    <bean id="sendHRMailJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendHRMailJob"/>
+    	<property name="group" value="MINUTE_GROUP" />
+    	<property name="description" value="发送HrEmailJob-Michael"/>
+    	<property name="cronExpression" value="0 2/5 * * * ? *" />
+    </bean> 
+    
+    <bean id="getHRMailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="springSendEmail" />
+    	<property name="targetMethod" value="getHRSendEmailInfo" />
+    </bean>
+    <bean id="getHRMailJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getHRMailJob"/>
+    	<property name="group" value="MINUTE_GROUP" />
+    	<property name="description" value="获取HREmailJob-Michael"/>
+    	<property name="cronExpression" value="0 2/5 * * * ? *" />
+    </bean>  
+  
+  <!-- 抛转金蝶基础数据 -->  
+    <bean id="getKingDeerTransferBasicDataJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="kingDeerTransferService" />
+    	<property name="targetMethod" value="getKingDeerTransferBasicData" />
+    </bean>
+    <bean id="getKingDeerTransferBasicDataJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getKingDeerTransferBasicDataJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="抛转金蝶基础数据-Michael"/>
+    	<property name="cronExpression" value="0 23 22 * * ? *" />
+    </bean> 
+  <!-- 抛转金蝶现金销账 -->
+    <bean id="getKingDeerTransferCashHookJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="kingDeerTransferService" />
+    	<property name="targetMethod" value="getKingDeerTransferCashHook" />
+    </bean>
+    <bean id="getKingDeerTransferCashHookJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getKingDeerTransferCashHookJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="抛转金蝶现金销账数据-Michael"/>
+    	<property name="cronExpression" value="0 26 22 * * ? *" />
+    </bean>  
+    <!-- 抛转金蝶不明款销账 -->
+    <bean id="getKingDeerTransferUnknownJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="kingDeerTransferService" />
+    	<property name="targetMethod" value="getKingDeerTransferLastMonthUnknown" />
+    </bean>
+    <bean id="getKingDeerTransferUnknownJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getKingDeerTransferUnknownJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="抛转金蝶不明款销账数据-Michael"/>
+    	<property name="cronExpression" value="0 29 22 * * ? *" />
+    </bean> 
+    
+  <!-- 抛转金蝶汇总当月不明款每月最后一天跑   -->
+    <bean id="getKingDeerCurrentUnknownSectionJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="kingDeerTransferService" />
+    	<property name="targetMethod" value="getKingDeerTransferCurrentUnknownSection" />
+    </bean>
+    
+    <bean id="getKingDeerCurrentUnknownSectionJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getKingDeerCurrentUnknownSectionJob"/>
+    	<property name="group" value="MONTH_GROUP" />
+    	<property name="description" value="抛转金蝶当月不明款——胡天书"/>
+    	<!-- <property name="cronExpression" value="0 26 21 L * ? *" /> -->
+    	<property name="cronExpression" value="0 32 22 * * ? *" />
+    </bean>
+    
+        <!-- 不明款认领提醒 每天14点跑 -->
+    <bean id="unknownMoneyJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="decompose" />
+    	<property name="targetMethod" value="sendUnknownMoney" />
+    </bean>
+    
+    <bean id="unknownMoneyJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="unknownMoneyJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="不明款认领提醒-ShenQi"/>
+    	<property name="cronExpression" value="0 00 14 * * ? *" />
+    </bean>
+    
+        <!-- 每天凌晨2点03分跑保险费率余额变动表 -->
+    <bean id="insuranceFeeRemainderJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="insuranceFeeRemainderReportService" />
+    	<property name="targetMethod" value="generateInsuranceFeeRemainderReport" />
+    </bean>
+    
+    <bean id="insuranceFeeRemainderJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="insuranceFeeRemainderJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="保险费率余额变动表-ShenQi"/>
+    	<property name="cronExpression" value="0 03 02 * * ? *" />
+    </bean>
+    
+        <!-- 每天凌晨2点03分跑利息收入明细表 -->
+    <bean id="interestIncomeJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="interestIncomeReportService" />
+    	<property name="targetMethod" value="generateInterestIncomeReport" />
+    </bean>
+    
+    <bean id="interestIncomeJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="interestIncomeJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="利息收入明细表-ShenQi"/>
+    	<property name="cronExpression" value="0 03 02 * * ? *" />
+    </bean>
+    
+    <!-- 每天凌晨8点00分跑昨日短信和邮件统计 -->
+    <bean id="systemMessageAndEmailReportJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="systemMessageAndEmailReportService" />
+    	<property name="targetMethod" value="messageAndEmailReport" />
+    </bean>
+    
+    <bean id="systemMessageAndEmailReportJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="systemMessageAndEmailReportJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="昨日短信和邮件发送统计-Xuwei"/>
+    	<property name="cronExpression" value="0 00 08 * * ? *" />
+    </bean>
+    
+        <!-- 每月1号 8:00 缴款正常客户名单 -->
+    <bean id="highQualityCustomerReportServiceJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="highQualityCustomerReportService" />
+    	<property name="targetMethod" value="getReport" />
+    </bean>
+    
+    <bean id="highQualityCustomerReportServiceJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="highQualityCustomerReportServiceJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="缴款正常客户名单-Xuwei"/>
+    	<property name="cronExpression" value="0 00 08 1 * ? *" />
+    </bean>
+    
+    <!-- 每天凌晨20点30分跑按季度支付表类型的合同预期租金 -->
+    <bean id="contractExceptRentJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="contractExceptRentService" />
+    	<property name="targetMethod" value="getReport" />
+    </bean>
+    
+    <bean id="contractExceptRentJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="contractExceptRentJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="按季度支付表类型的合同预期租金-Xuwei"/>
+    	<property name="cronExpression" value="0 30 20 * * ? *" />
+    </bean>
+    
+    
+    <!-- 支票退回提醒 -->
+    <bean id="backCheckJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="rentContract" />
+    	<property name="targetMethod" value="getBackCheckTowDaysForJob" />
+    </bean>
+    
+    <bean id="backCheckJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="backCheckJob"/>
+    	<property name="cronExpression" value="0 55 08 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="支票退回提醒邮件-zhangbo"/>
+    </bean>
+    <!-- 支票退回提醒 -->
+    
+    <!-- 供应商授信额度清理Job  -->
+    <bean id="creditLineCleanJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="creditLineClean" />
+    	<property name="targetMethod" value="doService" />
+    </bean>
+    
+    <bean id="creditLineCleanJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="creditLineCleanJob"/>
+    	<property name="cronExpression" value="0 31 20 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="供应商授信额度清理-YangYun"/>
+    </bean>
+    
+    <!-- 逾期报表详细统计 -->
+    <bean id="dunReportDetailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="dunCaseService" />
+    	<property name="targetMethod" value="batchJobAsDunReportDetail" />
+    </bean>
+    
+    <bean id="dunReportDetailJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="dunReportDetailJob"/>
+    	<property name="cronExpression" value="0 3 20 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="逾期报表详细统计-yangliu"/>
+    </bean>
+    <!-- 逾期报表详细统计 -->
+    
+    <!-- 资讯表单稽催通知Job 纸本转线上，作废  -->
+    <!-- <bean id="itJobServiceJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="itJobService" />
+    	<property name="targetMethod" value="doService" />
+    </bean>
+    
+    <bean id="itJobServiceJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="itJobServiceJob"/>
+    	<property name="cronExpression" value="0 30 9 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="资讯表单稽催通知-YangYun"/>
+    </bean> -->
+    
+    <!-- carService -->
+    
+   <bean id="carServiceJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="carService" />
+    	<property name="targetMethod" value="checkRentFileAfterPayMoney" />
+    </bean>
+    <bean id="carServiceJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="carServiceJob"/>
+    	<property name="cronExpression" value="0 25 08 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="小车乘用车合同拨款15日后检查待补文件-xuwei"/>
+    </bean>
+    
+    <!-- emailPlanService 
+    <bean id="projectAduitEmailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="emailPlanService" />
+    	<property name="targetMethod" value="sendProjectAduitEmail" />
+    </bean>
+    <bean id="projectAduitEmailJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="projectAduitEmailJob"/>
+    	<property name="cronExpression" value="0 55 15 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="案件文审过案提醒-xuwei"/>
+    </bean>
+    -->
+    
+    <bean id="dunDailyJobService" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="dunReportDailyJob" />
+    	<property name="targetMethod" value="doService" />
+    </bean>
+    <bean id="dunDailyJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="dunDailyJobService"/>
+    	<property name="group" value="MINUTE_GROUP" />
+    	<property name="description" value="逾期催收Job-YangYun"/>
+    	<property name="cronExpression" value="0 5/10 * * * ? *" />
+    </bean>
+    
+    <bean id="dunReportDailyJobService" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="dunReportDailyJob" />
+    	<property name="targetMethod" value="doDunReportPro" />
+    </bean>
+    <bean id="dunReportDailyJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="dunReportDailyJobService"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="逾期状况表Job-YangYun"/>
+    	<property name="cronExpression" value="0 07 20 * * ? *" />
+    </bean>
+    
+    <bean id="insuTerminateDailyJobService" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="insuranceService" />
+    	<property name="targetMethod" value="insuTerminateDaily" />
+    </bean>
+    <bean id="insuTerminateDailyJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="insuTerminateDailyJobService"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="保单自动终止Job-YangYun"/>
+    	<property name="cronExpression" value="0 03 21 * * ? *" />
+    </bean>
+    
+    
+    <!-- 数据库Job 迁移过来的 -->
+    <bean id="prcCreateDispatchUserByDayJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="itJobService" />
+    	<property name="targetMethod" value="prc_CreateDispatchUserByDay" />
+    </bean>
+    <bean id="prcCreateDispatchUserByDayJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="prcCreateDispatchUserByDayJob"/>
+    	<property name="cronExpression" value="0 0 1 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="prc_CreateDispatchUserByDay"/>
+    </bean>
+    <bean id="prcLatestPaydetailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="itJobService" />
+    	<property name="targetMethod" value="prc_latest_paydetail" />
+    </bean>
+    <bean id="prcLatestPaydetailJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="prcLatestPaydetailJob"/>
+    	<property name="cronExpression" value="0 5 0/2 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="prc_latest_paydetail"/>
+    </bean>
+    <bean id="procActivitesStatisticsJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="itJobService" />
+    	<property name="targetMethod" value="proc_activites_statistics" />
+    </bean>
+    <bean id="procActivitesStatisticsJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="procActivitesStatisticsJob"/>
+    	<property name="cronExpression" value="0 3/10 * * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="proc_activites_statistics"/>
+    </bean>
+    <bean id="procDunReportEquJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="itJobService" />
+    	<property name="targetMethod" value="proc_dun_report_equ" />
+    </bean>
+    <bean id="procDunReportEquJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="procDunReportEquJob"/>
+    	<property name="cronExpression" value="0 06 20 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="proc_dun_report_equ"/>
+    </bean>
+    <bean id="procDunReportMotorJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="itJobService" />
+    	<property name="targetMethod" value="proc_dun_report_motor" />
+    </bean>
+    <bean id="procDunReportMotorJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="procDunReportMotorJob"/>
+    	<property name="cronExpression" value="0 06 20 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="proc_dun_report_motor"/>
+    </bean>
+    <bean id="prcRentSettleJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="itJobService" />
+    	<property name="targetMethod" value="prc_rent_settle" />
+    </bean>
+    <bean id="prcRentSettleJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="prcRentSettleJob"/>
+    	<property name="cronExpression" value="0 3 0 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="prc_rent_settle"/>
+    </bean>
+    
+    
+   	<bean id="unnaturalFilesAfterPayMoneyJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="unnaturalCaseService" />
+    	<property name="targetMethod" value="getFilesAfterPayMoney" />
+    </bean>
+    <bean id="unnaturalFilesAfterPayMoneyJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="unnaturalFilesAfterPayMoneyJob"/>
+    	<property name="cronExpression" value="0 00 08 11 * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="unnaturalFilesAfterPayMoneyJob"/>
+    </bean>
+    
+    <bean id="unnaturalCaseExcelEmailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="unnaturalCaseService" />
+    	<property name="targetMethod" value="sendUnnaturalCaseBirtReport" />
+    </bean>
+    <bean id="unnaturalCaseExcelEmailJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="unnaturalCaseExcelEmailJob"/>
+    	<property name="cronExpression" value="0 00 17 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="待补文件（购置凭证）"/>
+    </bean>
+    
+    <bean id="unnaturalCaseBeforePayExcelEmailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="unnaturalCaseService" />
+    	<property name="targetMethod" value="sendUnnaturalCaseBeforePayBirtReport" />
+    </bean>
+    <bean id="unnaturalCaseBeforePayExcelEmailJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="unnaturalCaseBeforePayExcelEmailJob"/>
+    	<property name="cronExpression" value="0 00 9 ? * 2 *" />
+    	<property name="group" value="WEEK_GROUP" />
+    	<property name="description" value="待补文件（交机前拨款）"/>
+    </bean>
+    
+        <bean id="caseAuditSituationJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="caseAuditSituationService" />
+    	<property name="targetMethod" value="createReport" />
+    </bean>
+    
+    <bean id="caseAuditSituationJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="caseAuditSituationJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="案件审核状态-ShenQi"/>
+    	<property name="cronExpression" value="0 00 16 * * ? *" />
+    </bean>
+    
+    
+    <bean id="getDataForHrJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="getDataForHr" />
+    	<property name="targetMethod" value="doService" />
+    </bean>
+    <bean id="getDataForHrJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="getDataForHrJob"/>
+    	<property name="cronExpression" value="0 31 17 10 * ? *" />
+    	<property name="group" value="MONTH_GROUP" />
+    	<property name="description" value="待补、首次逾期表（人事用）-yangyun"/>
+    </bean>
+    
+    <bean id="firstDunJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="firstDunService" />
+    	<property name="targetMethod" value="doService" />
+    </bean>
+    <bean id="firstDunJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="firstDunJob"/>
+    	<property name="cronExpression" value="0 43 23 * * ? *" />
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="首次逾期Job-yangyun"/>
+    </bean> 
+    
+    <!-- 每天22点跑销帐日报表Job,节假日除外 -->
+    <bean id="decomposeDailyReportJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="rentFinanceService" />
+    	<property name="targetMethod" value="batchJobForCashFund" />
+    </bean>
+    
+    <bean id="decomposeDailyReportJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="decomposeDailyReportJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="cronExpression" value="0 0 22 * * ? *" />
+    	<property name="description" value="销帐日报表-ShenQi"/>
+    </bean>
+    
+    <bean id="decomposeDailyDynamicReportJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="rentFinanceService" />
+    	<property name="targetMethod" value="batchJobForBalance" />
+    </bean>
+    
+    <bean id="decomposeDailyDynamicReportJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="decomposeDailyDynamicReportJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="cronExpression" value="0 0 22 * * ? *" />
+    	<property name="description" value="销帐日报表-ShenQi"/>
+    </bean>
+    
+    <!-- 保证金B自动销帐 -->
+    <bean id="pledgeBAutoDecomposeJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="rentFinanceService" />
+    	<property name="targetMethod" value="autoDecomposePledgeB" />
+    </bean>
+    
+    <bean id="pledgeBAutoDecomposeJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="pledgeBAutoDecomposeJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="cronExpression" value="0 0 2 * * ? *" />
+    	<property name="description" value="保证金B自动销帐-ShenQi"/>
+    </bean>
+    
+    <bean id="sendSettlementMailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	   	<property name="targetObject" ref="rentFinanceService" />
+	   	<property name="targetMethod" value="sendSettlementMail" />
+    </bean>
+    
+    <bean id="sendSettlementMailJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendSettlementMailJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="可结清案件90天以上和以下发送给领导的邮件-ShenQi"/>
+    	<property name="cronExpression" value="0 30 14 * * ? *" />
+    </bean>
+    
+    <bean id="sendSettlementMailForEveryCmpyJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	   	<property name="targetObject" ref="rentFinanceService" />
+	   	<property name="targetMethod" value="sendSettlementMailForEveryCmpy" />
+    </bean>
+     
+    <bean id="sendSettlementMailForEveryCmpyJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendSettlementMailForEveryCmpyJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="可结清案件发送给办事处的邮件-ShenQi"/>
+    	<property name="cronExpression" value="0 30 14 * * ? *" />
+    </bean> 
+    
+    <bean id="sendSettlementMailForEverySalesJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	   	<property name="targetObject" ref="rentFinanceService" />
+	   	<property name="targetMethod" value="sendSettlementMailForEverySales" />
+    </bean>
+     
+    <bean id="sendSettlementMailForEverySalesJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="sendSettlementMailForEverySalesJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="可结清案件发送给每个业务员的邮件-ShenQi"/>
+    	<property name="cronExpression" value="0 30 14 * * ? *" />
+    </bean>
+    
+    
+    <bean id="applyVirtualAccountJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="customerService" />
+    	<property name="targetMethod" value="doApplyVirtualAccount" />
+    </bean>
+    
+    <bean id="applyVirtualAccountJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="applyVirtualAccountJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="客户虚拟账号申请-YangYun"/>
+    	<property name="cronExpression" value="0 15 14 * * ? *" />
+    </bean>
+    <!-- 乘用车委贷新增案件备案资料回传 -->
+    <bean id="carRentFileJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="rentFile" />
+    	<property name="targetMethod" value="sendCarRentFileEmail" />
+    </bean>
+    
+    <bean id="carRentFileJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="carRentFileJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="乘用车委贷新增案件备案资料回传--xuwei"/>
+    	<property name="cronExpression" value="0 20 8 * * ? *" />
+    </bean>
+    
+    <!-- 合同档案借出逾期通知 -->
+    <bean id="recordEmailJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="recordService" />
+    	<property name="targetMethod" value="sendEmailForOverdueRecord" />
+    </bean>
+    
+    <bean id="recordEmailJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="recordEmailJob"/>
+    	<property name="group" value="DAILY_GROUP" />
+    	<property name="description" value="合同档案借出逾期通知--xuwei"/>
+    	<property name="cronExpression" value="0 30 8 * * ? *" />
+    </bean>
+    
+    	<!--每天20点跑预估拨款job -->
+	<bean id="estimatePayJob"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="estimatePayService"></property>
+		<property name="targetMethod" value="getPreFundingFor_30day"></property>
+	</bean>
+
+	<bean id="estimatePayJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="estimatePayJob"></property>
+		<property name="group" value="DAILY_GROUP"></property>
+		<property name="description" value="预估拨款统计"></property>
+		<property name="cronExpression" value="0 0 20 * * ? *"></property>
+	</bean>
+
+	<!-- 20点跑供应商交机前拨款统计job -->
+	<bean id="prePayStaticForSupplierJob" 
+	class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="prePayStaticForSupplier"></property>
+		<property name="targetMethod" value="addLog"></property>
+	</bean>
+
+	<bean id="prePayStaticForSupplierTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="prePayStaticForSupplierJob"></property>
+		<property name="group" value="DAILY_GROUP"></property>
+		<property name="description" value="供应商交机前拨款统计"></property>
+		<property name="cronExpression" value="0 0 20 * * ? *"></property>
+	</bean>
+	
+		<!-- 20点跑已核未拨与缓拨job -->
+	<bean id="unAllotAndDelayAllot" 
+	class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="report"></property>
+		<property name="targetMethod" value="addLog"></property>
+	</bean>
+
+	<bean id="unAllotAndDelayAllotTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="unAllotAndDelayAllot"></property>
+		<property name="group" value="DAILY_GROUP"></property>
+		<property name="description" value="已核未拨与缓拨"></property>
+		<property name="cronExpression" value="0 0 20 * * ? *"></property>
+	</bean>
+	
+			<!-- 每周五23点跑资讯单周报表job -->
+	<bean id="inforStaticOfWeek" 
+	class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="informationService"></property>
+		<property name="targetMethod" value="addLog"></property>
+	</bean>
+
+	<bean id="inforStaticOfWeekTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="inforStaticOfWeek"></property>
+		<property name="group" value="WEEK_GROUP"></property>
+		<property name="description" value="资讯单周报表"></property>
+		<property name="cronExpression" value="0 0 23 ? * FRI *"></property>
+	</bean>
+	
+	<!-- 开票资料模组job**************************************************************************************************** -->
+	<!-- 逾期45天系统自动停开发票之案件 -->
+    <bean id="stopInvoiceForDun45Days" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	   	<property name="targetObject" ref="invoiceManagementService"/>
+	   	<property name="targetMethod" value="batchjobForStopInvoice"/>
+    </bean>
+     
+    <bean id="stopInvoiceForDun45DaysTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="stopInvoiceForDun45Days"/>
+    	<property name="group" value="DAILY_GROUP"/>
+    	<property name="description" value="发票停开逾期45天之案件-ShenQi"/>
+    	<property name="cronExpression" value="0 0 1 * * ? *"/>
+    </bean>
+    
+    <!-- 逾期45天租金缴纳后不逾期系统自动复开发票之案件 -->
+    <bean id="openInvoiceForDun45Days" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	   	<property name="targetObject" ref="invoiceManagementService"/>
+	   	<property name="targetMethod" value="batchjobForOpenInvoice"/>
+    </bean>
+     
+    <bean id="openInvoiceForDun45DaysTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="openInvoiceForDun45Days"/>
+    	<property name="group" value="DAILY_GROUP"/>
+    	<property name="description" value="发票复开逾期45天之案件-ShenQi"/>
+    	<property name="cronExpression" value="0 0 2 * * ? *"/>
+    </bean>
+    
+    <!-- 每天8点30自动发送系统停开逾期45天之案件 -->
+    <bean id="emailReminderForDun45DaysCase" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	   	<property name="targetObject" ref="invoiceManagementService"/>
+	   	<property name="targetMethod" value="batchjobForSendEmailReminder"/>
+    </bean>
+     
+    <bean id="emailReminderForDun45DaysCaseTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="emailReminderForDun45DaysCase"/>
+    	<property name="group" value="DAILY_GROUP"/>
+    	<property name="description" value="逾期45天停开发票列表邮件-ShenQi"/>
+    	<property name="cronExpression" value="0 30 8 * * ? *"/>
+    </bean>
+    
+    <!-- 每天晚上18点跑 -->
+    <bean id="generateInvoiceForNewCase" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	   	<property name="targetObject" ref="invoiceManagementService"/>
+	   	<property name="targetMethod" value="batchjobForGenerateInvoiceForNewCase"/>
+    </bean>
+     
+    <bean id="generateInvoiceForNewCaseTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="generateInvoiceForNewCase"/>
+    	<property name="group" value="DAILY_GROUP"/>
+    	<property name="description" value="导出开票资料新案-ShenQi"/>
+    	<property name="cronExpression" value="0 0 18 * * ? *"/>
+    </bean>
+    
+    <!-- 每月1号的凌晨3点会跑,具体控制在java job方法中 -->
+    <bean id="generateInvoiceForOldCase" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	   	<property name="targetObject" ref="invoiceManagementService"/>
+	   	<property name="targetMethod" value="batchjobForGenerateInvoiceForOldCase"/>
+    </bean>
+     
+    <bean id="generateInvoiceForOldCaseTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="generateInvoiceForOldCase"/>
+    	<property name="group" value="DAILY_GROUP"/>
+    	<property name="description" value="导出开票资料旧案-ShenQi"/>
+    	<property name="cronExpression" value="0 0 3 * * ? *"/>
+    </bean>
+    <!-- 开票资料模组job**************************************************************************************************** -->
+    
+    <bean id="hrAttendanceEmailCase" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	   	<property name="targetObject" ref="hrAttendanceEmailService"/>
+	   	<property name="targetMethod" value="sendAttenceEmail"/>
+    </bean>
+   	<bean id="hrAttendanceEmailCaseTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="hrAttendanceEmailCase"/>
+    	<property name="group" value="DAILY_GROUP"/>
+    	<property name="description" value="xuwei 人资系统考勤异常提醒"/>
+    	<property name="cronExpression" value="0 45 08 * * ? *"/>
+    </bean>
+    
+    <bean id="updateSettlementPayment" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	   	<property name="targetObject" ref="rentFinanceService"/>
+	   	<property name="targetMethod" value="batchjobForSettlementPayment"/>
+    </bean>
+     
+    <bean id="updateSettlementPaymentTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="updateSettlementPayment"/>
+    	<property name="group" value="DAILY_GROUP"/>
+    	<property name="description" value="提前结清案件更新还款栏位-ShenQi"/>
+    	<property name="cronExpression" value="0 10 3 * * ? *"/>
+    </bean>
+    
+    <!-- 逾期180天以上案件  每天凌晨2：00跑 -->
+    <bean id="delayCase_180" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+       	<property name="targetObject" ref="dunTask"/>
+	   	<property name="targetMethod" value="markDelayCase_180"/>
+    </bean>
+    <bean id="delayCase_180Trigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="delayCase_180"/>
+    	<property name="group" value="DAILY_GROUP"/>
+    	<property name="description" value="逾期180天以上案件--XuYuefei"/>
+    	<property name="cronExpression" value="0 0 2 * * ? *"/>
+    </bean>
+    
+        <!-- 交机前拨款比例  每天晚上23：00跑 -->
+    <bean id="prepay" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+       	<property name="targetObject" ref="prePayStaticForDept"/>
+	   	<property name="targetMethod" value="addLog"/>
+    </bean>
+    <bean id="prepayTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="prepay"/>
+    	<property name="group" value="DAILY_GROUP"/>
+    	<property name="description" value="交机前拨款比例--XuYuefei"/>
+    	<property name="cronExpression" value="0 0 23 * * ? *"/>
+    </bean>
+    
+    
+    <bean id="smsMove" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject">
+            <ref bean="smsMoveJob"/>
+        </property>
+        <property name="targetMethod">
+            <value>doService</value>
+        </property>
+    </bean>
+    <bean id="smsMoveTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+        <property name="jobDetail">
+            <ref bean="smsMove"/>
+        </property>
+        <property name="group">
+        	<value>MINUTE_GROUP</value>
+        </property>
+        <property name="cronExpression">
+            <value>0 2/5 * * * ? *</value>
+        </property>
+        <property name="description" value="短信转移-YangYun"/>
+    </bean>
+    
+        <!-- 每周一8:20发送乘用车回租案件代开发票资料 -->
+     <bean id="sendEmailToPassengerVehicleSessorByWeek" 
+	    class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="springSendEmail"></property>
+		<property name="targetMethod" value="sendEmaiToSessorByWeek"></property>
+	</bean>
+
+	<bean id="sendEmailToPassengerVehicleSessorByWeekTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="sendEmailToPassengerVehicleSessorByWeek"></property>
+		<property name="group" value="WEEK_GROUP"></property>
+		<property name="description" value="乘用车回租案件代开发票资料周报表--xuyuefei"></property>
+		<property name="cronExpression" value="0 20 8 ? * MON *"></property>
+	</bean>
+	
+	        <!-- 每月26号，12月除外8:20发送乘用车回租案件代开发票资料 -->
+	        <!-- 每天8：20跑job 发送邮件日期在java代码中判断 -->
+    <bean id="sendEmailToPassengerVehicleSessorByMonth" 
+	     class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="springSendEmail"></property>
+		<property name="targetMethod" value="sendEmaiToSessorByMonth"></property>
+	</bean>
+
+	<bean id="sendEmailToPassengerVehicleSessorByMonthTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="sendEmailToPassengerVehicleSessorByMonth"></property>
+		<property name="group" value="MONTH_GROUP"></property>
+		<property name="description" value="乘用车回租案件代开发票资料月报表--xuyuefei"></property>
+		<property name="cronExpression" value="0 20 8 * * ? *"></property>
+	</bean>
+	
+	<bean id="kingDeerBaseDataJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+    	<property name="targetObject" ref="kingDeerService"/>
+    	<property name="targetMethod" value="batchJobForKingDeerBaseData"/>
+    	<property name="concurrent" value="false"/>
+    </bean>
+	<bean id="kingDeerBaseDataJobTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+    	<property name="jobDetail" ref="kingDeerBaseDataJob"/>
+    	<property name="group" value="MINUTE_GROUP" />
+    	<property name="description" value="金蝶基础档案Job-ShenQi"/>
+    	<property name="cronExpression" value="0 1/5 * * * ? *" />
+	</bean>
+</beans>

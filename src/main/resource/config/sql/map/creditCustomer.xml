@@ -1,0 +1,496 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="creditCustomer">
+	
+
+	
+	<!-- 查询数据字典某一类的所有项目 -->
+	<select id="getItems" parameterClass="map"	resultClass="java.util.HashMap">
+		<![CDATA[
+		 select T.data_id id,T.CODE,T.FLAG,T.DEFAULT_VALUE,T.SHORTNAME from t_data_dictionary t where t.type=#dictionaryType# and t.status=0 
+		 	order by t.level_num,t.code
+		]]>
+	</select> 
+	
+	
+	<!-- 根据承租人姓名和身份证，姓名和组织机构代码证验证承租人是否存在 -->
+	<!-- Modify by Michael 2012 07-30 检查是否重复只有检查名称 -->
+	<select id="validateCustomer"  parameterClass="map"	resultClass="int">
+		 <![CDATA[  select distinct(cust_id) from  t_cust_customer t WHERE T.STATUS = 0]]>
+		  	<isEqual property="cust_type" compareValue="0" prepend="and">
+		  	<!-- 
+		  		 <![CDATA[ t.cust_name=#cust_name# and t.natu_idcard=#cust_idcard#]]>
+		  		  -->
+		  		   <![CDATA[ t.cust_name=#cust_name#  and t.natu_idcard=#cust_idcard#]]>
+		  	</isEqual>
+		  	<isEqual property="cust_type" compareValue="1" prepend="and">
+		  	<!--
+		  		 <![CDATA[ t.cust_name=#cust_name# and t.corp_oragnization_code=#corp_oragnization_code#]]>
+		  		  -->
+		  		   <![CDATA[ t.cust_name=#cust_name# ]]>
+		  	</isEqual>
+	</select>
+	
+	<!-- 插入一条承租人记录 -->
+		<insert id="createCustCrop" parameterClass="map">
+			<![CDATA[	insert into t_cust_customer 
+				(
+				CREATE_USER_ID,
+				cust_code,
+				cust_type,
+				cust_name, 
+				corp_oragnization_code,
+				province_id,
+				city_id,
+				area_id,
+				virtual_code
+				)
+				values
+				(
+				#sensor_id#,
+				#cust_code#,
+				#cust_type#,
+				#cust_name#, 
+				#corp_oragnization_code#,
+				#province_id#,
+				#city_id#,
+				#area_id#,#virtual_code#) ]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="cust_id">
+			<![CDATA[	select @@IDENTITY as cust_id  ]]>
+		</selectKey> 
+	 </insert>
+	 
+	 <insert id="createCustNatu" parameterClass="map">
+   
+			<![CDATA[	insert into t_cust_customer 
+				(
+				CREATE_USER_ID,
+				cust_code,
+				cust_type,
+				cust_name, 
+				natu_idcard,
+				province_id,
+				city_id,
+				area_id,
+				id_card_type,virtual_code)
+				values
+				(
+				#sensor_id#,
+				#cust_code#,
+				#cust_type#,
+				#cust_name#,
+				#cust_idcard#,
+				#province_id#,
+				#city_id#,
+				#area_id#,
+				#id_card_type#,#virtual_code#) ]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="cust_id">
+			<![CDATA[	select @@IDENTITY as cust_id  ]]>
+		</selectKey> 
+	 </insert>
+	 
+	 <select id="getCustomersForHint"  parameterClass="map"	resultClass="java.util.HashMap">
+	 <![CDATA[
+	 		select t.cust_id id, t.cust_name name,
+	 		 (case when  t.CUST_TYPE=1 then  t.corp_oragnization_code else   t.natu_idcard end) MOBILE
+			  from t_cust_customer t where t.status=0
+			order by t.cust_id desc
+			  ]]>
+	 </select> 
+	 
+	  <insert id="addCredit" parameterClass="map">  
+		<![CDATA[
+				insert into t_prjt_credit
+				  ( cust_id,
+				   project_id,
+				   province_id,
+				   city_id,
+				   area_id,
+				   create_date,
+				   modify_date,
+				   status,
+				   state,
+				   sensor_id,
+				   PROCESSER_ID,
+				   create_persion_id,
+				   modify_persion_id,
+				   type,
+				   clerk_id,
+				   contract_type,
+				   customer_come,
+				   credit_code,
+				   decp_id,
+				   vip_flag,
+				   credit_runcode,
+				   COMPUTE_PAY_MONEY,
+				   PRODUCTION_TYPE,
+				   CREDIT_SPECIAL_CODE
+				   )
+				values  
+				(  #cust_id#,
+				   #project_id#,
+				   #province_id#,
+				   #city_id#,
+				   #area_id#,
+				   getdate(),
+				   getdate(),
+				   0,
+				   0,
+				   #sensor_id#,
+				   #processer_id#,
+				   #sensor_id#,
+				   #sensor_id#,
+				   #type#,
+				   #clerk_id#,
+				   #contract_type#,
+				   #customer_come#,
+				   #credti_code#,
+				   #decp_id#,
+				   #vip_flag#,
+				   #credit_runcode#,
+				   #COMPUTE_PAY_MONEY#,
+				   #production_type#,
+				   #creditSpecial#
+				   )
+		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="credit_id">
+			<![CDATA[	select @@IDENTITY as credit_id  ]]>
+		</selectKey>  
+	 </insert>
+	 
+	 <insert id="addCredit_vip" parameterClass="map">  
+		<![CDATA[
+				insert into t_prjt_credit
+				  ( cust_id,
+				   project_id,
+				   province_id,
+				   city_id,
+				   area_id,
+				   create_date,
+				   modify_date,
+				   status,
+				   state,
+				   PROCESSER_ID,
+				   create_persion_id,
+				   modify_persion_id,
+				   type,
+				   clerk_id,
+				   contract_type,
+				   customer_come,
+				   credit_code,
+				   decp_id,
+				   vip_flag,
+				   credit_runcode,
+				   PRODUCTION_TYPE
+				   )
+				values  
+				(  #cust_id#,
+				   #project_id#,
+				   #province_id#,
+				   #city_id#,
+				   #area_id#,
+				   getdate(),
+				   getdate(),
+				   0,
+				   0,
+				   #sensor_id#,
+				   #sensor_id#,
+				   #sensor_id#,
+				   #type#,
+				   #clerk_id#,
+				   #contract_type#,
+				   #customer_come#,
+				   #credti_code#,
+				   #decp_id#,
+				   #vip_flag#,
+				   #credit_runcode#,
+				   #production_type#
+				   )
+		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="credit_id">
+			<![CDATA[	select @@IDENTITY as credit_id  ]]>
+		</selectKey>  
+	 </insert>
+	 
+	 <!-- 更新法人客户 -->
+	 <update id="updateCustomerCorp" parameterClass="map">
+	 <![CDATA[ 
+	 		update t_cust_customer set   
+				MODIFY_TIME=getdate(),       
+				CORP_ENTERPRISES_PROPERTY=#CORP_TYPE#,
+				CORP_SETUP_DATE=#INCORPORATING_DATE#,
+				CORP_REGISTE_CAPITAL=#REGISTERED_CAPITAL#,
+				CORP_PAICLUP_CAPITAL=#CONTRIBUTED_CAPITAL#,
+				CORP_REGISTE_CAPITAL_CURRENCY=#REGISTERED_CAPITAL_CURRENCY#,
+				CORP_PAICLUP_CAPITAL_CURRENCY=#CONTRIBUTED_CAPITAL_CURRENCY#,
+				CORP_HEAD_SIGNATURE=#LEGAL_PERSON#,
+				CORP_HS_IDCARD=#LEGAL_ID_CARD#,
+				CORP_HS_LINK_MODE=#LEGAL_MOBILE_NUMBER1#,
+				CORP_HS_HOME_ADDRESS=#LEGAL_HOME_ADDRESS#,
+				CORP_BUSINESS_LICENSE=#BUSINESS_LICENCE_CODE#,
+				CORP_TAX_CODE=#TAX_REGISTRATION_NUMBER#,
+				CORP_ORAGNIZATION_CODE=#ORGANIZATION_CODE_CERTIFICATE#,
+				CORP_PERIOD_VALIDITY=#BUSINESS_TIME_LIMIT#,
+				CORP_REGISTE_ADDRESS=#REGISTERED_OFFICE_ADDRESS#,
+				CORP_BUSINESS_RANGE=#MANAGING_SCOPE#,
+				CORP_COMPANY_ZIP=#POSTCODE#,
+				CORP_COMPANY_WEBSITE=#URL#,
+				CORP_OTHER_MASSAGE=#OTHER_INFO#,
+				REMARK=#MEMO#,    
+				CORP_COMPANY_PHONE=#TELEPHONE#,  
+				CORP_COMPANY_FAX=#FAX#,  
+				BANK_ACCOUNTS=#B_BANK_ACCOUNT#,  
+				OPEN_BANK	=#B_BANK_NAME#,
+				CORP_WORK_ADDRESS=#COMMON_OFFICE_ADDRESS#,
+				TAX_CODE=#TAX_CODE#
+				where cust_id=
+				(select cust_id from t_prjt_credit where id=#credit_id#)
+		 ]]>
+	 </update>
+	 <update id="updateCustomerNatu" parameterClass="map">
+	 <![CDATA[ 
+	 		update t_cust_customer set   
+				modify_time=getdate(),       
+				natu_idcard=#natu_idcard#,
+				natu_gender=#sex#,
+				natu_age=#age#,
+				natu_mobile=#mobile_phone#,
+				natu_phone=#home_phone#,
+				natu_home_address=#home_addr#,
+				natu_work_units=#work_unit#,
+				natu_mate_name=#mate_name#,
+				natu_mate_mobile=#mobile_phone#,
+				natu_mate_idcard=#mate_idcard#,
+				natu_mate_work_units=#mate_work_unit#,
+				bank_accounts=#b_bank_account#,  
+				open_bank	=#b_bank_name#,
+				natu_zip   =#natu_zip#,
+				natu_fax =#natu_fax#
+				where cust_id=
+				(select cust_id from t_prjt_credit where id=#credit_id#)
+		 ]]>
+	 </update>
+	 
+	 <update id="updateCustLinkman" parameterClass="map">
+	 	<![CDATA[
+			update t_cust_linkman set
+			link_name=#natu_linkman#,
+			link_phone=#linkman_phone#,
+			link_mobile=#linkman_phone#,
+			modify_user_id=#s_employeeId#,
+			modify_time= getdate()
+			where culm_id =#culm_id#
+		
+		]]>
+		
+		</update>
+		
+		 <insert id="insertCorpLinkman" parameterClass="map">
+	 	<![CDATA[
+			insert into t_cust_linkman(
+			
+			cust_id,
+			link_name,
+			link_phone,
+			link_mobile,
+			create_user_id,
+			link_idcard,
+			link_zip,
+			link_type,
+			link_email
+			)
+			values(
+		
+			#cust_id#,
+			#LINK_MAN#,
+			#LINK_TELEPHONE#,
+			#LINK_MOBILE_NUMBER1#,
+			#s_employeeId#,
+			#LINK_ID_CARD#,
+			#LINK_POSTCODE#,
+			#link_type#,
+			#LINK_EMAIL#
+			)
+		
+		]]>
+		
+		</insert>
+		
+		 <update id="updateCustLinkmanBycust_id" parameterClass="map">
+	 	<![CDATA[
+			update t_cust_linkman set
+			status='1'
+			where cust_id =#cust_id#
+		
+		]]>
+		
+		</update>
+	 
+	 
+	 <update id="updateCorpLinkman" parameterClass="map">
+	 	<![CDATA[
+			update t_cust_linkman set
+			link_name=#LINK_MAN#,
+			link_phone=#LINK_TELEPHONE#,
+			link_mobile=#LINK_MOBILE_NUMBER1#,
+			modify_user_id=#s_employeeId#,
+			modify_time=getdate(),
+			link_idcard=#LINK_ID_CARD#,
+			link_zip=#LINK_POSTCODE#,
+			link_email=#LINK_EMAIL#
+			where culm_id =#culm_id#
+		
+		]]>
+		
+		</update>
+		
+	<select id="selectID" parameterClass="map" resultClass ="java.lang.Object">
+		select cust_id from t_prjt_credit where id=#credit_id# and status= 0
+		</select>
+		
+	<select id="selectLinkid" parameterClass="map" resultClass ="java.lang.Object">
+	select max(culm_id) culm_id from t_cust_linkman where cust_id=#cust_id# and link_name=#natu_linkman# and status = 0
+		
+		</select>
+		
+		<select id="selectLinkcount" parameterClass="map" resultClass="int">
+			select count(1)  from t_cust_linkman where cust_id=#cust_id# and link_name=#natu_linkman# and status = 0
+			</select>
+		
+		
+			<select id="selectCorpLinkid" parameterClass="map" resultClass ="java.lang.Object">
+	select max(culm_id) culm_id from t_cust_linkman where cust_id=#cust_id# and link_name=#LINK_MAN# and status = 0
+		
+		</select>
+		
+		<select id="selectCorpLinkidBycust_id" parameterClass="map" resultClass ="java.lang.Object">
+	select max(culm_id) culm_id from t_cust_linkman where cust_id=#cust_id# and status = 0
+		
+		</select>
+		
+		<select id="selectCorpLinkcount" parameterClass="map" resultClass="int">
+			select count(1)  from t_cust_linkman where cust_id=#cust_id# and link_name=#LINK_MAN# and status = 0
+			</select>
+		
+		<select id="selectCorpLinkcountBycust_id" parameterClass="map" resultClass="int">
+			select count(1)  from t_cust_linkman where cust_id=#cust_id# and status = 0
+			</select>
+		
+	 <insert id="insertCustLinkman" parameterClass="map">
+	 	<![CDATA[
+			insert into t_cust_linkman(
+			cust_id,
+			link_name,
+			link_phone,
+			link_mobile,
+			create_user_id
+			)
+			values(
+			#cust_id#,
+			#natu_linkman#,
+			#linkman_phone#,
+			#linkman_phone#,
+			#s_employeeId#
+			)
+		
+		]]>
+		
+		</insert>
+	 <select id="getCustomerInfoBycredit_id" parameterClass="map" resultClass="hashmap">
+	 	select  CUST_NAME                 as CORP_NAME_CN, 
+	 	        CORP_ENTERPRISES_PROPERTY as CORP_TYPE ,
+				CUST_CODE,
+				CONVERT(datetime,CORP_SETUP_DATE)  as INCORPORATING_DATE ,
+				CORP_REGISTE_CAPITAL as REGISTERED_CAPITAL ,
+				CORP_PAICLUP_CAPITAL as CONTRIBUTED_CAPITAL ,
+				CORP_HEAD_SIGNATURE as LEGAL_PERSON ,
+				CORP_HS_IDCARD as LEGAL_ID_CARD ,
+				CORP_HS_LINK_MODE as LEGAL_MOBILE_NUMBER1 ,
+				CORP_HS_HOME_ADDRESS as LEGAL_HOME_ADDRESS ,
+				CORP_BUSINESS_LICENSE as BUSINESS_LICENCE_CODE ,
+				CORP_TAX_CODE as TAX_REGISTRATION_NUMBER ,
+				CORP_ORAGNIZATION_CODE as ORGANIZATION_CODE_CERTIFICATE ,
+				CORP_PERIOD_VALIDITY as BUSINESS_TIME_LIMIT ,
+				CORP_REGISTE_ADDRESS as REGISTERED_OFFICE_ADDRESS ,
+				CORP_WORK_ADDRESS as COMMON_OFFICE_ADDRESS ,
+				CORP_BUSINESS_RANGE as MANAGING_SCOPE ,
+				CORP_COMPANY_ZIP as POSTCODE ,
+				CORP_COMPANY_WEBSITE as URL ,
+				CORP_OTHER_MASSAGE as OTHER_INFO ,
+				REMARK as MEMO ,    
+				CORP_COMPANY_PHONE as TELEPHONE ,  
+				CORP_COMPANY_FAX as FAX ,  
+				BANK_ACCOUNTS as  B_BANK_ACCOUNT,  
+				OPEN_BANK	 as B_BANK_NAME,
+				NATU_IDCARD,
+				NATU_GENDER,
+				NATU_AGE,
+				NATU_MOBILE,
+				NATU_PHONE,
+				NATU_HOME_ADDRESS,
+				NATU_ZIP,
+				NATU_WORK_UNITS,
+				NATU_WORK_ADDRESS,
+				NATU_MATE_NAME,
+				NATU_MATE_MOBILE,
+				NATU_MATE_IDCARD,
+				NATU_MATE_WORK_UNITS,
+				NATU_MATE_WORK_ADDRESS,
+				ID_CARD_TYPE,
+				tax_code TAX_CODE,
+				CORP_REGISTE_CAPITAL_CURRENCY as REGISTERED_CAPITAL_CURRENCY ,
+				CORP_PAICLUP_CAPITAL_CURRENCY as CONTRIBUTED_CAPITAL_CURRENCY 
+        from t_cust_customer
+				where cust_id=
+				(select cust_id from t_prjt_credit where id=#credit_id# )
+	 </select>
+	 
+	  <select id="custInfo" parameterClass="map" resultClass="hashmap">
+		select t1.CUST_ID,
+			   t1.CUST_LEVEL,
+		       isnull(t2.sum1,0) sum1,
+		       isnull(t3.sum2,0) sum2,
+		       isnull(t4.sum3,0) sum3
+		from T_CUST_CUSTOMER t1
+		left join
+		(
+			select COUNT(ID) sum1,CUST_ID
+			from T_PRJT_CREDIT
+			where (STATE = 0 or STATE = 2 OR STATE = -1) 
+			group by CUST_ID
+		)t2 on t2.CUST_ID = t1.CUST_ID
+		left join
+		(
+			select COUNT(ID) sum2,CUST_ID
+			from T_PRJT_CREDIT
+			where (STATE = 1 or STATE = 3) 
+			group by CUST_ID
+		)t3 on t3.CUST_ID = t1.CUST_ID
+		left join
+		(
+			select COUNT(RECT_ID) sum3,CUST_ID
+			from T_RENT_CONTRACT
+			group by CUST_ID		
+		)t4 on t4.CUST_ID = t1.CUST_ID 
+		where t1.CUST_ID = #custId#
+	 </select>	 
+	 
+	  <select id="grantcustInfo" parameterClass="map" resultClass="hashmap">
+		select t1.GRANT_PRICE GRANT_PRICE,
+	   			t1.LAST_PRICE LAST_PRICE,
+	   			t2.CUST_NAME CUST_NAME,
+	   			t1.START_DATE START_DATE,
+	   			t1.END_DATE END_DATE,
+	  		 	t2.CUST_ID CUST_ID
+		from T_CUST_GRANTPLAN t1  
+		left join T_CUST_CUSTOMER t2 on t2.CUST_ID=t1.CUST_ID
+		where t2.CUST_ID=#custId# and t1.START_DATE&lt;getdate() and t1.END_DATE&gt;getdate()  and t2.STATUS=0
+	 </select>	
+	 <update id="updatelog"  parameterClass="map"> 
+			<![CDATA[
+					update  T_LOG_ACTIVITIESLOG  set CREDIT_ID= #creditId# where   ACTILOG_ID=#ACTILOG_ID#
+			]]>
+	</update>
+</sqlMap>

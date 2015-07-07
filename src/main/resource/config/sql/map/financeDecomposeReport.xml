@@ -1,0 +1,2023 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="financeDecomposeReport">
+
+	<insert id="insertCurrencyDecomposeReport" parameterClass="map">
+		<![CDATA[
+			insert into DAILY_DECOMPOSE_REPORT
+			  (OPPOSING_DATE,CUST_NAME, CUST_CODE,LEASE_CODE,FICB_ITEM,REAL_PRICE,BANK_NAME,FINANCE_TYPE,CREATE_TIME,FIIN_ID,RECP_ID,RECD_PERIOD,FICB_ID,BANK_CODE)
+			values
+			  (#OPPOSING_DATE#,#CUST_NAME#,#CUST_CODE#,#LEASE_CODE#,#FICB_ITEM#,#REAL_PRICE#,#BANK_NAME#,0,getdate(),#FIIN_ID#,#RECP_ID#,#RECD_PERIOD#,#FICB_ID#,#RECEIPT_BANKNO#)
+		]]>		
+	</insert>
+
+	<insert id="insertTempDecomposeReport" parameterClass="map">
+		<![CDATA[
+			insert into DAILY_DECOMPOSE_REPORT
+			  (OPPOSING_DATE,CUST_NAME, CUST_CODE,LEASE_CODE,FICB_ITEM,REAL_PRICE,BANK_NAME,FINANCE_TYPE,CREATE_TIME,FIIN_ID,RECP_ID,RECD_PERIOD,FICB_ID,BANK_CODE)
+			values
+			  (#OPPOSING_DATE#,#CUST_NAME#,#CUST_CODE#,#LEASE_CODE#,#FICB_ITEM#,#REAL_PRICE#,#BANK_NAME#,1,getdate(),#FIIN_ID#,#RECP_ID#,#RECD_PERIOD#,#FICB_ID#,#RECEIPT_BANKNO#)
+		]]>		
+	</insert>	
+	
+	<insert id="insertDynamicDecomposeReport" parameterClass="map">
+		<![CDATA[
+			insert into DAILY_DYNAMICDECOMPOSE_REPORT
+			  (OPPOSING_DATE,OPPOSING_UNIT, UPLOAD_TIME,INCOME_MONEY,CURRENT_NEW,CURRENT_REDUCE,BANK_NAME,CREATE_TIME,FIIN_ID)
+			values
+			  (#OPPOSING_DATE#,#OPPOSING_UNIT#,#UPLOAD_TIME#,#INCOME_MONEY#,#CURRENT_NEW#,#CURRENT_REDUCE#,#BANK_NAME#,getdate(),#FIIN_ID#)
+		]]>		
+	</insert>	
+
+<!-- 备份营业税报表 -->
+	<insert id="insertMonthBusinessTaxReport" parameterClass="map">
+		<![CDATA[
+			insert into MONTH_BUSINESSTAX_REPORT
+			  (RECP_ID,RECP_CODE, CUST_NAME,LEASE_CODE,DECP_NAME_CN,NAME,SUPL_NAME,REN_PRICE,YYSHUIE,CJSHUIE,JYSHUIE,XIAOJI,CREATE_TIME)
+			values
+			  (#RECP_ID#,#RECP_CODE#,#CUST_NAME#,#LEASE_CODE#,#DECP_NAME_CN#,#NAME#,#SUPL_NAME#,#REN_PRICE#,#YYSHUIE#,#CJSHUIE#,#JYSHUIE#,#XIAOJI#,getdate())
+		]]>		
+	</insert>	
+	
+	<!-- 备份留购款税报表 -->
+	<insert id="insertMonthStayPriceTaxReport" parameterClass="map">
+		<![CDATA[
+			insert into MONTH_STAYPRICETAX_REPORT
+			  (RECP_ID,RECP_CODE, CUST_NAME,LEASE_CODE,DECP_NAME_CN,NAME,SUPL_NAME,REAL_PRICE,YYSHUIE,CJSHUIE,JYSHUIE,XIAOJI,FICB_ITEM,CREATE_TIME,CORP_TAX_CODE)
+			values
+			  (#RECP_ID#,#RECP_CODE#,#CUST_NAME#,#LEASE_CODE#,#DECP_NAME_CN#,#NAME#,#SUPL_NAME#,#REAL_PRICE#,#YYSHUIE#,#CJSHUIE#,#JYSHUIE#,#XIAOJI#,#FICB_ITEM#,getdate(),#CORP_TAX_CODE#)
+		]]>		
+	</insert>	
+	
+<!-- 备份每月开票资料 -->
+	<insert id="insertMonthOpenInvoice" parameterClass="map">
+		<![CDATA[
+			insert into MONTH_OPENINVOICE
+			  (RECP_ID,RECP_CODE, CUST_NAME,LEASE_CODE,DECP_NAME_CN,NAME,SUPL_NAME,REN_PRICE,MONTH_PRICE,CORP_TAX_CODE,REMARK,CREATE_TIME,RECD_ID)
+			values
+			  (#RECP_ID#,#RECP_CODE#,#CUST_NAME#,#LEASE_CODE#,#DECP_NAME_CN#,#NAME#,#SUPL_NAME#,#REN_PRICE#,#MONTH_PRICE#,#CORP_TAX_CODE#,#REMARK#,getdate(),#RECD_ID#)
+		]]>		
+	</insert>	
+	
+<!-- 查询当日租金分解的应发生信息的锁码联系人信息间接锁码 -->
+	<select id="queryAllLockMsgAndMail" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+	select t_income.*,trcd.IRR_MONTH_PRICE,trd.RENTER_NAME,trd.RENTER_EMAIL,RENTER_PHONE,trd.LOCK_CODE,trct.cust_name,
+		case 
+		when LEASE_PERIOD=RECD_PERIOD then '全解'		
+		when  DAY(trcd.PAY_DATE)<=15 then
+		convert(varchar,year(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-'+convert(varchar,month(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-25'
+		else
+		convert(varchar,year(convert(date,dateadd(MONTH,2,trcd.PAY_DATE),23)))+'-'+convert(varchar,month(convert(date,dateadd(MONTH,2,trcd.PAY_DATE),23)))+'-10'
+		end NEXT_LOCK_DATE,
+		case 		
+		when  DAY(trcd.PAY_DATE)<=15 then
+		convert(varchar,year(trcd.PAY_DATE))+'-'+convert(varchar,month(trcd.PAY_DATE))+'-25'
+		else
+		convert(varchar,year(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-'+convert(varchar,month(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-10'
+		end LOCK_DATE,
+		trd.RECT_ID,trd.MODEL_SPEC,
+		trd.THING_NUMBER,tcl.LINK_NAME,tcl.LINK_MOBILE,tcl.LINK_EMAIL,trd.BRAND 
+		from 
+		(select t1.REAL_PRICE,convert(varchar,t2.INCOME_DATE,23) OPPOSING_DATE,
+		  t1.FIIN_ID,t1.RECD_PERIOD,t1.RECP_ID,t3.RECT_ID , t3.LEASE_PERIOD
+		  from 
+		  (
+		    select SUM(-(DECOMPOSE_PRICE)) as REAL_PRICE , PERIOD_NUM as RECD_PERIOD
+		    , RECP_ID, max(AUDIT_TIME) as CHECK_DATE
+		    , max(INCOME_ID) as FIIN_ID
+		    from T_RENT_DECOMPOSE
+		    where BILL_CODE in ('RENT', 'VALUE_ADD_TAX')
+		    and DECOMPOSE_STATUS = 2
+		    and STATUS = 0
+		    group by RECP_ID, PERIOD_NUM
+		    having SUM(-(DECOMPOSE_PRICE)) > 0
+		  ) t1
+		  left join
+		  T_RENT_INCOME t2
+		  on t1.FIIN_ID = t2.INCOME_ID and t2.status=0
+		  left join
+		  t_rent_collectionplan t3
+		  on t1.RECP_ID = t3.RECP_ID and t3.status=0
+		  where 
+			convert(datetime,convert(varchar,year(convert(date,dateadd(day,-1,getDate()),23)))+'-'+convert(varchar,month(convert(date,dateadd(day,-1,getDate()),23)))+'-'+convert(varchar,day(convert(date,dateadd(day,-1,getDate()),23)))+' 14:00:00')<=t1.CHECK_DATE 
+			and 
+			t1.CHECK_DATE <convert(datetime,convert(varchar,year(GETDATE()))+'-'+convert(varchar,month(GETDATE()))+'-'+convert(varchar,day(GETDATE()))+' 14:00:00')
+			) t_income
+			left join
+			T_RENT_COLLECTIONDETAIL trcd
+			on trcd.STATUS=0 and t_income.RECP_ID=trcd.RECP_ID and t_income.RECD_PERIOD=trcd.PERIOD_NUM
+			left join
+			T_RENT_CONTRACTDETAIL trd
+			on trd.STATUS=0 and trd.RECT_ID=t_income.RECT_ID and trd.LOCK_CODE='1'
+			left join t_rent_contract trct
+			on trct.RECT_ID=trd.RECT_ID
+			left join  T_CUST_CUSTOMER tcc
+			on tcc.CUST_ID=trct.CUST_ID
+			left join T_CUST_LINKMAN tcl
+			on tcc.CUST_ID=tcl.CUST_ID and tcl.LINK_TYPE=0 and tcl.STATUS=0
+			left join T_LOCK_MANAGEMENT tlm
+			on tlm.RECP_ID=t_income.RECP_ID and tlm.PERIOD_NUM=t_income.RECD_PERIOD and tlm.EQMT_ID=trd.EQMT_ID 
+			where trd.LOCK_CODE='1' and t_income.REAL_PRICE>= (trcd.IRR_MONTH_PRICE+isnull(trcd.VALUE_ADDED_TAX,0)) and (tlm.IS_ARTIFICIAL='1' or tlm.IS_ARTIFICIAL is null) 
+		]]>
+	</select>
+	
+	<!-- 插入当日租金分解的应发生信息的锁码联系人信息（间接锁码） -->
+	<insert id="insertDailyLockManageSendInfo" parameterClass="map">
+		<![CDATA[
+			insert into DAILY_LOCKMANAGE_SENDINFO
+			  (REAL_PRICE,OPPOSING_DATE, FIIN_ID,RECD_PERIOD,RECP_ID,IRR_MONTH_PRICE,RENTER_NAME,RENTER_EMAIL,RENTER_PHONE,CREATE_TIME,LOCK_CODE,RECT_ID,LOCK_DATE,MODEL_SPEC,THING_NUMBER,NEXT_LOCK_DATE,CUST_NAME,LINK_NAME,LINK_MOBILE,LINK_EMAIL,BRAND)
+			values
+			  (#REAL_PRICE#,#OPPOSING_DATE#,#FIIN_ID#,#RECD_PERIOD#,#RECP_ID#,#IRR_MONTH_PRICE#,#RENTER_NAME#,#RENTER_EMAIL#,#RENTER_PHONE#,getDate(),#LOCK_CODE#,#RECT_ID#,#LOCK_DATE#,#MODEL_SPEC#,#THING_NUMBER#,#NEXT_LOCK_DATE#,#CUST_NAME#,#LINK_NAME#,#LINK_MOBILE#,#LINK_EMAIL#,#BRAND#)
+		]]>	
+		<selectKey resultClass="java.lang.Long" keyProperty="ID">
+			SELECT @@IDENTITY AS ID
+		</selectKey>  	
+	</insert>	
+	
+<!-- 将每天的销账日报表数据汇总到财务月份 -->
+
+<!-- 获取到当月的第二个工作日 -->
+	<select id="getSecondWDByMonth" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+		 SELECT TOP 1 A.* FROM
+		  (
+		  SELECT TOP 2 O.* FROM ( SELECT TOP 2 *
+		          FROM T_DAY_TYPE 
+		         WHERE [YEAR]=YEAR(GETDATE()) 
+		           AND MONTH([DATE])=MONTH(GETDATE())   
+		           AND DAY_TYPE='WD'
+		        ORDER BY [DATE] ASC) O 
+		   ORDER BY O.[DATE] DESC) A
+		]]>
+	</select>
+	
+	<!-- 获取上一个月的第二个工作日 -->
+	<select id="getSecondWDByLastMonth" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			 SELECT TOP 1 A.* FROM
+			  (
+			  SELECT TOP 2 O.* FROM ( SELECT TOP 2 *
+	          FROM T_DAY_TYPE 
+	         WHERE [YEAR]=YEAR(dateadd(MONTH,-1, getDate())) 
+	           AND MONTH([DATE])=MONTH(dateadd(MONTH,-1, getDate()))   
+	           AND DAY_TYPE='WD'
+	        ORDER BY [DATE] ASC) O 
+	        ORDER BY O.[DATE] DESC) A
+		]]>
+	</select>	
+	
+		<!-- 获取当月的第一个工作日 -->
+	<select id="getFirstWDByMonth" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			SELECT top 1 *  
+	          FROM T_DAY_TYPE 
+	         WHERE [YEAR]=YEAR(GETDATE()) 
+	           AND MONTH([DATE])=MONTH(GETDATE())   
+	           AND DAY_TYPE='WD'
+	        ORDER BY [DATE] ASC
+		]]>
+	</select>	
+
+		<!-- 获取财务月份的每日销账数据 -->
+	<select id="getDailyDecomposeByMonth" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select OPPOSING_DATE, CUST_NAME, CUST_CODE, LEASE_CODE, FICB_ITEM, REAL_PRICE, BANK_NAME, 
+			FINANCE_TYPE, CREATE_TIME, FIIN_ID, RECP_ID from DAILY_DECOMPOSE_REPORT
+			where convert(Date,CREATE_TIME) BETWEEN CONVERT(DATE,#startTime#) and CONVERT(DATE,#endTime#)
+		]]>
+	</select>	
+
+	<!-- 插入财务月份  -->
+	<insert id="insertDecomposeByMonthByDaily" parameterClass="map">
+		<![CDATA[
+			insert into MONTH_DECOMPOSE_REPORT
+			  (OPPOSING_DATE, CUST_NAME, CUST_CODE, LEASE_CODE, FICB_ITEM, REAL_PRICE, BANK_NAME, FINANCE_TYPE, CREATE_TIME_OLD, FIIN_ID, RECP_ID,FINANCE_DATE,CREATE_TIME)
+			values
+			  (#OPPOSING_DATE#,#CUST_NAME#,#CUST_CODE#,#LEASE_CODE#,#FICB_ITEM#,#REAL_PRICE#,#BANK_NAME#,#FINANCE_TYPE#,#CREATE_TIME#,#FIIN_ID#,#RECP_ID#,#date#,getDate())
+		]]>		
+	</insert>	
+<!-- 将每天的销账日报表数据汇总到财务月份 -->		
+
+		<!-- 备份每月的财务、税务利息收入明细 -->
+	<insert id="insertInterestDetailByMonth" parameterClass="map">
+		<![CDATA[
+			insert into MONTH_INTEREST_DETAIL
+			  (RECP_ID, RECP_CODE, CUST_NAME, LEASE_CODE, DECP_NAME_CN, NAME, SUPL_NAME, CAI, SHUI, TIME, CREATE_TIME,FINANCE_DATE)
+			values
+			  (#RECP_ID#,#RECP_CODE#,#CUST_NAME#,#LEASE_CODE#,#DECP_NAME_CN#,#NAME#,#SUPL_NAME#,#CAI#,#SHUI#,#TIME#,getDate(),CONVERT(DATE,CONVERT(VARCHAR,#TIME#)+'-01'))
+		]]>		
+	</insert>
+
+	<!-- 获取间接锁码的联系人信息 -->
+	<select id="getDirectLockRenterEmail" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select RENTER_EMAIL,RENTER_NAME,RENTER_PHONE ,max(t.RECT_ID) as RECT_ID
+			,(
+			  select top 1 u.EMAIL 
+			  from T_RENT_CONTRACT rc
+			  left join T_USER_USER u on rc.SENSOR_ID = u.ID
+			  where rc.RECT_ID = max(t.RECT_ID)
+			) as sensor_mail
+			from DAILY_LOCKMANAGE_SENDINFO t
+			where IS_SEND =0 and LOCK_CODE=1 and year(CREATE_TIME)=year(GETDATE()) and MONTH(CREATE_TIME)=MONTH(GETDATE()) and DAY(CREATE_TIME)=DAY(GETDATE())
+			group by RENTER_EMAIL,RENTER_NAME,RENTER_PHONE
+		]]>
+	</select>	
+
+	<select id="getDirectLockRenterEmailByEmail" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select * from DAILY_LOCKMANAGE_SENDINFO
+			where IS_SEND =0 and LOCK_CODE=1 and year(CREATE_TIME)=year(GETDATE()) and MONTH(CREATE_TIME)=MONTH(GETDATE()) and DAY(CREATE_TIME)=DAY(GETDATE())
+			and RENTER_EMAIL=#RENTER_EMAIL#
+		]]>
+	</select>	
+	
+		<!-- 获取间接锁码的联系人信息 -->
+	<select id="getDirectLockLinkerEmail" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select LINK_NAME,LINK_MOBILE,LINK_EMAIL ,max(t.RECT_ID) as RECT_ID
+			,(
+			  select top 1 u.EMAIL 
+			  from T_RENT_CONTRACT rc
+			  left join T_USER_USER u on rc.SENSOR_ID = u.ID
+			  where rc.RECT_ID = max(t.RECT_ID)
+			) as sensor_mail
+			from DAILY_LOCKMANAGE_SENDINFO t
+			where LINKER_SEND =0 and LOCK_CODE=1 and year(CREATE_TIME)=year(GETDATE()) and MONTH(CREATE_TIME)=MONTH(GETDATE()) and DAY(CREATE_TIME)=DAY(GETDATE())
+			group by LINK_NAME,LINK_MOBILE,LINK_EMAIL
+		]]>
+	</select>	
+
+	<select id="getDirectLockLinkerEmailByMobile" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select * from DAILY_LOCKMANAGE_SENDINFO
+			where LINKER_SEND =0 and LOCK_CODE=1 and year(CREATE_TIME)=year(GETDATE()) and MONTH(CREATE_TIME)=MONTH(GETDATE()) and DAY(CREATE_TIME)=DAY(GETDATE())
+			and LINK_MOBILE=#LINK_MOBILE#
+		]]>
+	</select>
+	
+	
+	<!-- 更新单个发送邮件的时间和Flag -->
+	<update id="updateLockMsgEmailSendFlag" parameterClass="map">
+		<![CDATA[
+			update DAILY_LOCKMANAGE_SENDINFO set IS_SEND='1',SENDTIME=getDate() where id=#ID#
+		]]>
+	</update>	
+	
+	<!-- 更新单个发送邮件的时间和Flag -->
+	<update id="updateLockMsgCustLinkerEmailSendFlag" parameterClass="map">
+		<![CDATA[
+			update DAILY_LOCKMANAGE_SENDINFO set LINKER_SEND='1',SENDTIME=getDate() where id=#ID#
+		]]>
+	</update>	
+
+	<select id="getQueryDayList" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select DATE ,DAY_TYPE from T_DAY_TYPE
+			where DATE>#query_date#
+			 order by convert(date,DATE)
+		]]>
+	</select>	
+	
+	<insert id="createSendMsg" parameterClass="map">		 
+	  <![CDATA[
+		INSERT INTO send_test (MTEL,Message,ReturnFlag,CREATETIME,SEND_MODE,SEND_TYPE,SENDTIME)
+     	VALUES  (#MTEL#,#MESSAGE#,0,GETDATE(),0,1,GETDATE())
+		]]>
+	</insert>
+	
+	<select id="getCarPayApplyInfo" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[		
+			select trct.LEASE_CODE,trct.CUST_NAME,cust.CUST_CODE,
+				trcd.PERIOD_NUM,convert(date,trcd.PAY_DATE,23) PAY_DATE,
+				(trcd.IRR_MONTH_PRICE + isnull(VALUE_ADDED_TAX,0) -isnull(REDUCE_OWN_PRICE,0))IRR_MONTH_PRICE,
+				tcpa.PAY_MAN,tcpa.ID_CAR,tcpa.BANK_NAME,
+				tcpa.BANK_ACCOUNT 
+			from T_RENT_COLLECTIONDETAIL trcd
+			left join T_RENT_COLLECTIONPLAN trcp 
+				on trcd.RECP_ID=trcp.RECP_ID and trcp.STATUS=0
+			left join t_rent_contract trct 
+				on trcp.RECT_ID=trct.RECT_ID and trct.STATUS=0
+			left join t_prjt_credit pc
+				on pc.ID = trct.prcd_id
+			left join T_CAR_PAY_APPLYINFO tcpa 
+				on trcd.RECP_ID=tcpa.RECP_ID 
+			left join T_CUST_CUSTOMER cust on cust.CUST_ID = trct.CUST_ID
+			where trcp.STATUS=0 and trcp.RECP_STATUS=0 
+				and pc.PRODUCTION_TYPE = #contract_type#
+				and tcpa.ID is not null 
+				and trcd.PAY_DATE in($DATES$)
+		]]>
+	</select>
+	
+	<select id="queryDailyLockSendInfo" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[		
+		select dlsi.ID, dlsi.CUST_NAME,dlsi.CREATE_TIME,RENTER_NAME,LINK_NAME,trct.LEASE_CODE, 
+		dlsi.RECD_PERIOD,dlsi.RENTER_EMAIL,dlsi.RENTER_PHONE,dlsi.LINK_EMAIL,dlsi.LINK_MOBILE,dlsi.IS_SEND,dlsi.SENDTIME
+		from DAILY_LOCKMANAGE_SENDINFO	 dlsi
+		left join t_rent_contract trct
+		on dlsi.rect_id=trct.RECT_ID
+		where 1=1
+		]]>
+		
+	 	 <isNotEmpty prepend="and" property="LOCK_CODE">
+			<![CDATA[ 
+		 		dlsi.LOCK_CODE=#LOCK_CODE#
+	 		]]>
+	 	</isNotEmpty>
+	 	 <isNotEmpty prepend="and" property="content">
+			<![CDATA[ 
+		 		(trct.CUST_NAME like '%$content$%' 
+		 		or trct.LEASE_CODE like '%$content$%'
+		 		or dlsi.RENTER_EMAIL like '%$content$%'
+		 		or dlsi.LINK_EMAIL like '%$content$%'
+		 		) 
+	 		]]>
+	 	</isNotEmpty>
+	</select>	
+
+		<!-- 更新单个发送邮件的时间和Flag -->
+	<update id="updateLockMsgSendTypeByID" parameterClass="map">
+		<![CDATA[
+			update DAILY_LOCKMANAGE_SENDINFO set IS_SEND='1', LINKER_SEND='1',SENDTIME=getDate() where id in
+		]]>
+		  <iterate property="ids" open="(" close=")" conjunction=",">
+			#ids[]#
+		  </iterate>
+	</update>	
+	
+	<!-- 查询当日租金分解的应发生信息的锁码联系人信息直接锁码 -->
+	<!-- IS_ARTIFICIAL=='1' 表示未手动发送 -->
+	<select id="queryDirectLockMsgAndMail" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+	select t_income.*,trcd.IRR_MONTH_PRICE,trd.RENTER_NAME,trd.RENTER_EMAIL,RENTER_PHONE,trd.LOCK_CODE,trct.cust_name,
+		case 		
+		when  DAY(trcd.PAY_DATE)<=15 then
+		convert(varchar,year(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-'+convert(varchar,month(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-25'
+		else
+		convert(varchar,year(convert(date,dateadd(MONTH,2,trcd.PAY_DATE),23)))+'-'+convert(varchar,month(convert(date,dateadd(MONTH,2,trcd.PAY_DATE),23)))+'-10'
+		end NEXT_LOCK_DATE,
+		case 		
+		when  DAY(trcd.PAY_DATE)<=15 then
+		convert(varchar,year(trcd.PAY_DATE))+'-'+convert(varchar,month(trcd.PAY_DATE))+'-25'
+		else
+		convert(varchar,year(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-'+convert(varchar,month(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-10'
+		end LOCK_DATE,
+		trd.RECT_ID,trd.MODEL_SPEC,trd.THING_NAME,
+		trd.THING_NUMBER,tcl.LINK_NAME,tcl.LINK_MOBILE,tcl.LINK_EMAIL,trd.BRAND,tlm.PASSWORDS,tlpf.PATH,right(tlpf.PATH,charindex('\',REVERSE(tlpf.PATH))-1) FILE_NAME 
+		from 
+		(select t1.REAL_PRICE,convert(varchar,t2.INCOME_DATE,23) OPPOSING_DATE,
+		  t1.FIIN_ID,t1.RECD_PERIOD,t1.RECP_ID,t3.RECT_ID 
+		  from 
+		  (
+		    select SUM(-(DECOMPOSE_PRICE)) as REAL_PRICE , PERIOD_NUM as RECD_PERIOD
+		    , RECP_ID, max(AUDIT_TIME) as CHECK_DATE
+		    , max(INCOME_ID) as FIIN_ID
+		    from T_RENT_DECOMPOSE
+		    where BILL_CODE in ('RENT', 'VALUE_ADD_TAX')
+		    and DECOMPOSE_STATUS = 2
+		    and STATUS = 0
+		    group by RECP_ID, PERIOD_NUM
+		    having SUM(-(DECOMPOSE_PRICE)) > 0
+		  ) t1
+		  left join
+		  T_RENT_INCOME t2
+		  on t1.FIIN_ID = t2.INCOME_ID and t2.status=0
+		  left join
+		  t_rent_collectionplan t3
+		  on t1.RECP_ID = t3.RECP_ID and t3.status=0
+		  where 
+			convert(datetime,convert(varchar,year(convert(date,dateadd(day,-1,getDate()),23)))+'-'+convert(varchar,month(convert(date,dateadd(day,-1,getDate()),23)))+'-'+convert(varchar,day(convert(date,dateadd(day,-1,getDate()),23)))+' 14:00:00')<=t1.CHECK_DATE 
+			and 
+			t1.CHECK_DATE <convert(datetime,convert(varchar,year(GETDATE()))+'-'+convert(varchar,month(GETDATE()))+'-'+convert(varchar,day(GETDATE()))+' 14:00:00')
+			) t_income
+			left join
+			T_RENT_COLLECTIONDETAIL trcd
+			on trcd.STATUS=0 and t_income.RECP_ID=trcd.RECP_ID and t_income.RECD_PERIOD=trcd.PERIOD_NUM
+			left join
+			T_RENT_CONTRACTDETAIL trd
+			on trd.STATUS=0 and trd.RECT_ID=t_income.RECT_ID and trd.LOCK_CODE='3'
+			left join t_rent_contract trct
+			on trct.RECT_ID=trd.RECT_ID
+			left join  T_CUST_CUSTOMER tcc
+			on tcc.CUST_ID=trct.CUST_ID
+			left join T_CUST_LINKMAN tcl
+			on tcc.CUST_ID=tcl.CUST_ID and tcl.LINK_TYPE=0 and tcl.STATUS=0
+			left join T_LOCKCODE_PASSWORD_FILE tlpf
+			on tlpf.RECP_ID=t_income.RECP_ID and tlpf.PERIOD_NUM=t_income.RECD_PERIOD and tlpf.EQMT_ID=trd.EQMT_ID and tlpf.STATUS='0'
+			left join T_LOCK_MANAGEMENT tlm
+			on tlm.RECP_ID=t_income.RECP_ID and tlm.PERIOD_NUM=t_income.RECD_PERIOD and tlm.EQMT_ID=trd.EQMT_ID 
+			where trd.LOCK_CODE='3' and t_income.REAL_PRICE>= (trcd.IRR_MONTH_PRICE+isnull(trcd.VALUE_ADDED_TAX,0)) and (tlm.IS_ARTIFICIAL='1' or tlm.IS_ARTIFICIAL is null)
+		]]>
+	</select>
+	
+		<!-- 插入当日租金分解的应发生信息的锁码联系人信息（间接锁码） -->
+	<insert id="insertDailyDirectLockManageSendInfo" parameterClass="map">
+		<![CDATA[
+			insert into DAILY_LOCKMANAGE_SENDINFO
+			  (REAL_PRICE,OPPOSING_DATE, FIIN_ID,RECD_PERIOD,RECP_ID,IRR_MONTH_PRICE,RENTER_NAME,RENTER_EMAIL,RENTER_PHONE,CREATE_TIME,LOCK_CODE,RECT_ID,LOCK_DATE,MODEL_SPEC,THING_NUMBER,NEXT_LOCK_DATE,CUST_NAME,LINK_NAME,LINK_MOBILE,LINK_EMAIL,BRAND,PASSWORDS,PATH,FILE_NAME,KIND_NAME)
+			values
+			  (#REAL_PRICE#,#OPPOSING_DATE#,#FIIN_ID#,#RECD_PERIOD#,#RECP_ID#,#IRR_MONTH_PRICE#,#RENTER_NAME#,#RENTER_EMAIL#,#RENTER_PHONE#,getDate(),#LOCK_CODE#,#RECT_ID#,#LOCK_DATE#,#MODEL_SPEC#,#THING_NUMBER#,#NEXT_LOCK_DATE#,#CUST_NAME#,#LINK_NAME#,#LINK_MOBILE#,#LINK_EMAIL#,#BRAND#,#PASSWORDS#,#PATH#,#FILE_NAME#,#THING_NAME#)
+		]]>	
+		<selectKey resultClass="java.lang.Long" keyProperty="ID">
+			SELECT @@IDENTITY AS ID
+		</selectKey>  	
+	</insert>
+	
+	
+	<!-- 获取直接锁码的联系人信息 -->
+	<select id="getDirectLockCodeCustEmail" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select RENTER_NAME,RENTER_PHONE,RENTER_EMAIL ,max(t.RECT_ID) as RECT_ID
+			,(
+			  select top 1 u.EMAIL 
+			  from T_RENT_CONTRACT rc
+			  left join T_USER_USER u on rc.SENSOR_ID = u.ID
+			  where rc.RECT_ID = max(t.RECT_ID)
+			) as sensor_mail
+			from DAILY_LOCKMANAGE_SENDINFO t
+			where IS_SEND=0 and LOCK_CODE=3 
+			and year(CREATE_TIME)=year(GETDATE()) 
+			and MONTH(CREATE_TIME)=MONTH(GETDATE()) 
+			and DAY(CREATE_TIME)=DAY(GETDATE())
+			and (PASSWORDS is not null or FILE_NAME is not null)
+			group by RENTER_NAME,RENTER_PHONE,RENTER_EMAIL
+		]]>
+	</select>
+	<!-- 获取直接锁码的联系人信息 -->	
+	<select id="getDirectLockCodeCustEmailByMobile" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select * 
+			,(
+			  select top 1 u.EMAIL 
+			  from T_RENT_CONTRACT rc
+			  left join T_USER_USER u on rc.SENSOR_ID = u.ID
+			  where rc.RECT_ID = t.RECT_ID
+			) as sensor_mail
+			from DAILY_LOCKMANAGE_SENDINFO t
+			where IS_SEND =0 and LOCK_CODE=3 
+			and year(CREATE_TIME)=year(GETDATE()) 
+			and MONTH(CREATE_TIME)=MONTH(GETDATE()) 
+			and DAY(CREATE_TIME)=DAY(GETDATE())
+			and RENTER_EMAIL=#RENTER_EMAIL#
+			and (PASSWORDS is not null or FILE_NAME is not null)
+		]]>
+	</select>
+	
+		<!-- 获取直接锁码的没有密码和密码附件的联系人信息 -->
+	<select id="getDirectLockCodeCustNoPasswordsEmail" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select RENTER_NAME,RENTER_PHONE,RENTER_EMAIL,RECD_PERIOD,dlsi.CUST_NAME,MODEL_SPEC,KIND_NAME,trct.LEASE_CODE,THING_NUMBER  from 
+			DAILY_LOCKMANAGE_SENDINFO dlsi
+			left join 
+			t_rent_contract trct 
+			on dlsi.RECT_ID=trct.RECT_ID and trct.STATUS=0
+			where IS_SEND=0 and LOCK_CODE=3 and year(dlsi.CREATE_TIME)=year(GETDATE()) and MONTH(dlsi.CREATE_TIME)=MONTH(GETDATE()) and DAY(dlsi.CREATE_TIME)=DAY(GETDATE())
+			and (PASSWORDS is null and FILE_NAME is null)
+		]]>
+	</select>
+	
+	<!--  查询今天是否是工作日 -->
+	<select id="getTodayIsWD" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			SELECT *  FROM T_DAY_TYPE 
+			where DATE=#query_date# and DAY_TYPE='WD'
+		]]>
+	</select>
+		<!--  查询今天是否是假日 -->
+	<select id="getTodayIsHD" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			SELECT *  FROM T_DAY_TYPE 
+			where DATE=#query_date# and DAY_TYPE='HD'
+		]]>
+	</select>
+	<!-- 查询每月长期应收款数据（税务）  -->
+	<select id="getFinanceRealPriceByMonth" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			insert into MONTH_LONGREALPRICE_REPORT
+			select round(SQC,2) SQC,round(SQW,2) SQW,round(SQB,2) SQB,round(YZC,2) YZC,round(YZW,2) YZW,round(YZB,2) YZB,round(YJC,2) YJC,
+			  round(YJW,2) YJW,round(YJB,2) YJB,round(SQC+YZC-YJC,2) SYC,round(SYW,2) SYW,round(SYB,2) SYB,
+			  round(QIMOJINGZHI,2) QIMOJINGZHI,
+			  PLEDGE_AVE_PRICE,PLEDGE_BACK_PRICE,PLEDGE_LAST_PRICE,CUST_NAME,SUPL_NAME,LEASE_CODE,NAME,DECP_NAME_CN,GETDATE(),CONVERT(VARCHAR,#year#)+'-'+CONVERT(VARCHAR,#month#)+'-01' FINANCE_DATE from(
+			  SELECT         *,SQW+YZW-YJW SYW,       round(SYC - (SQW+YZW-YJW) - SYB,2) QIMOJINGZHI            
+			  FROM (      
+			  SELECT        CASE        
+			  WHEN  CONVERT(DATE,FINANCECONTRACT_DATE) BETWEEN CONVERT(DATE,#startTime#) AND CONVERT(DATE,#endTime#) THEN 0       
+			  ELSE        
+			  ISNULL(T3.SUM_MONTH_PRICE - ( 
+			  SELECT               
+			  SUM(convert(decimal(18,2), 
+			(TT.MONTH_PRICE - TT.IRR_MONTH_PRICE)))              
+			  FROM T_RENT_COLLECTIONDETAIL TT             
+			  WHERE TT.STATUS = 0 AND TT.PERIOD_NUM <=T1.PERIOD_NUM-1  AND TT.RECP_ID = T1.RECP_ID )
+			 -(					
+				isnull((select sum(isnull(t1.REAL_PRICE,0))REAL_PRICE from T_FINA_COLLECTIONBILL t1
+				left join
+				T_FINA_INCOME t2
+				on t1.FIIN_ID=t2.FIIN_ID and t2.STATUS=0
+				where 
+				CONVERT(DATE,t1.CHECK_DATE)<CONVERT(DATE,#startTime#)
+				and FICB_ITEM='租金' and RECP_ID=t.RECP_ID and FICB_STATE=5
+				group by RECP_ID),0)
+			  )
+			  ,0)       
+			  END  SQC,            
+			  CASE when CONVERT(DATE,FINANCECONTRACT_DATE) BETWEEN CONVERT(DATE,#startTime#) AND CONVERT(DATE,#endTime#) THEN 0       
+  			  else   
+			  T3.SUM_REN_PRICE - ISNULL((       
+			  SELECT    SUM(REN_PRICE)        
+			  FROM        
+			  ( 
+			  select 
+			  REN_PRICE,t1.RECP_ID,open_time        
+			  from         T_RENT_COLLECTIONPLAN t1        
+			  left join        
+			  T_RENT_COLLECTIONDETAIL t2 on t1.RECP_ID=t2.RECP_ID and t2.STATUS=0        
+			  where t1.STATUS=0          ) tt        
+			  WHERE         tt.RECP_ID = T.RECP_ID         
+			  and 
+			  CONVERT(DATE,open_time)<=CONVERT(DATE,#endTime#)
+			        
+			GROUP BY          RECP_ID           ),0)      
+			END SQW,            
+			CASE when CONVERT(DATE,FINANCECONTRACT_DATE) BETWEEN CONVERT(DATE,#startTime#) AND CONVERT(DATE,#endTime#) THEN 0       
+			ELSE         
+			ISNULL(ROUND((SELECT SUM(MONTH_PRICE - IRR_MONTH_PRICE) 
+			FROM T_RENT_COLLECTIONDETAIL WHERE STATUS = 0 AND RECP_ID = T.RECP_ID AND PERIOD_NUM > T1.PERIOD_NUM -1),2),0)        
+			END SQB,            
+			CASE        WHEN CONVERT(DATE,FINANCECONTRACT_DATE) BETWEEN CONVERT(DATE,#startTime#) AND CONVERT(DATE,#endTime#) THEN T3.SUM_MONTH_PRICE       
+			
+			when RECP_STATUS = 3  AND  (SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)           
+			FROM T_RENT_SETTLE trst           
+			WHERE STATUS=0  AND RECP_ID = T1.RECP_ID GROUP BY trst.RECP_ID  ) = CONVERT(VARCHAR(7),finance_date,23)            
+			then
+	   		(SELECT sum((REAL_OWN_PRICE+REAL_REN_PRICE-isnull(ADVANCE_INVOICE_PRICE,0))-(OWN_PRICE+REN_PRICE))           
+			FROM T_RENT_SETTLE trst           
+			WHERE STATUS=0  AND RECP_ID = T1.RECP_ID GROUP BY trst.RECP_ID  )					
+			
+			ELSE 0       END YZC ,       
+			CASE       WHEN CONVERT(DATE,FINANCECONTRACT_DATE) BETWEEN CONVERT(DATE,#startTime#) AND CONVERT(DATE,#endTime#) THEN T3.SUM_REN_PRICE       
+			
+			when RECP_STATUS = 3  AND  (SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)           
+			FROM T_RENT_SETTLE trst           
+			WHERE STATUS=0  AND RECP_ID = T1.RECP_ID GROUP BY trst.RECP_ID  ) = CONVERT(VARCHAR(7),finance_date,23)            
+			then
+	   		(SELECT sum(REAL_REN_PRICE-REN_PRICE-isnull(ADVANCE_INVOICE_PRICE,0))           
+			FROM T_RENT_SETTLE trst           
+			WHERE STATUS=0  AND RECP_ID = T1.RECP_ID GROUP BY trst.RECP_ID  )	
+			
+			ELSE 0       END YZW , 
+			CASE
+			WHEN CONVERT(DATE,FINANCECONTRACT_DATE) BETWEEN CONVERT(DATE,#startTime#) AND CONVERT(DATE,#endTime#)
+				THEN T.PLEDGE_AVE_PRICE
+			ELSE 0
+			END YZB ,
+			case
+			when RECP_STATUS = 3  AND  (SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)           
+			FROM T_RENT_SETTLE trst           
+			WHERE STATUS=0  AND RECP_ID = T1.RECP_ID GROUP BY trst.RECP_ID  ) = CONVERT(VARCHAR(7),finance_date,23)            
+			then
+			ISNULL(ROUND((SELECT SUM(MONTH_PRICE - IRR_MONTH_PRICE) 
+			FROM T_RENT_COLLECTIONDETAIL WHERE STATUS = 0 AND RECP_ID = T.RECP_ID AND PERIOD_NUM > T1.PERIOD_NUM -1),2),0) +
+	   		(SELECT sum(REAL_OWN_PRICE+REAL_REN_PRICE-isnull(ADVANCE_INVOICE_PRICE,0))           
+			FROM T_RENT_SETTLE trst           
+			WHERE STATUS=0  AND RECP_ID = T1.RECP_ID GROUP BY trst.RECP_ID  )+ isnull((select sum(isnull(real_price,0)) REAL_PRICE from MONTH_DECOMPOSE_REPORT
+				where FICB_ITEM='租金' and 
+				CONVERT(DATE,FINANCE_DATE) BETWEEN CONVERT(DATE,#startTime#) AND CONVERT(DATE,#endTime#)
+				and RECP_ID=t.RECP_ID
+				group by RECP_ID),0)		
+			when CONVERT(DATE,FINANCECONTRACT_DATE) BETWEEN CONVERT(DATE,#startTime#) AND CONVERT(DATE,#endTime#) then
+			ISNULL(ROUND((SELECT SUM(MONTH_PRICE - IRR_MONTH_PRICE) 
+			FROM T_RENT_COLLECTIONDETAIL 
+			WHERE STATUS = 0 AND RECP_ID = T.RECP_ID AND PERIOD_NUM <= T1.PERIOD_NUM),2),0) + 
+			(select isnull(SUM(convert(decimal(18,2),REAL_PRICE)),0) REAL_PRICE from  T_FINA_COLLECTIONBILL tfcb
+				left join T_FINA_INCOME tfi 
+				on tfcb.FIIN_ID = tfi.FIIN_ID
+				where tfcb.RECP_ID = T1.RECP_ID and FICB_ITEM='租金'  and FICB_STATE=5 
+		        and 
+		        CONVERT(DATE,tfi.OPPOSING_DATE)<=CONVERT(DATE,#endTime#)
+			)
+			when RECP_STATUS = 1 then 
+			  ISNULL(T3.SUM_MONTH_PRICE - ( 
+			  SELECT               
+			  SUM(convert(decimal(18,2), 
+			(TT.MONTH_PRICE - TT.IRR_MONTH_PRICE)))              
+			  FROM T_RENT_COLLECTIONDETAIL TT             
+			  WHERE TT.STATUS = 0 AND TT.PERIOD_NUM <=T1.PERIOD_NUM-1  AND TT.RECP_ID = T1.RECP_ID )
+			 -(					
+				isnull((select sum(isnull(t1.REAL_PRICE,0))REAL_PRICE from T_FINA_COLLECTIONBILL t1
+				left join
+				T_FINA_INCOME t2
+				on t1.FIIN_ID=t2.FIIN_ID and t2.STATUS=0
+				where 
+				CONVERT(DATE,t1.CHECK_DATE)<CONVERT(DATE,#startTime#)
+				and FICB_ITEM='租金' and RECP_ID=t.RECP_ID and FICB_STATE=5
+				group by RECP_ID),0)
+			  )
+			  ,0)  
+			ELSE 
+				isnull((select sum(isnull(real_price,0)) REAL_PRICE from MONTH_DECOMPOSE_REPORT
+				where FICB_ITEM='租金' and 
+				CONVERT(DATE,FINANCE_DATE) BETWEEN CONVERT(DATE,#startTime#) AND CONVERT(DATE,#endTime#)
+				and RECP_ID=t.RECP_ID
+				group by RECP_ID),0)+(T1.MONTH_PRICE - T1.IRR_MONTH_PRICE)
+			END YJC,
+			
+			isnull((select sum(rent_price) from  T_RENT_INVOICEDETAIL trid
+			WHERE	
+				state = '2' 
+				and YEAR(create_time)=CASE WHEN #month#=12 THEN CONVERT(INT,#year#)+1 ELSE #year# END
+				and MONTH(create_time)=CASE WHEN #month#=12 THEN 1 ELSE #month# END
+				and trid.recp_id=T.RECP_ID
+			group by trid.recp_id),0) YJW,	
+					
+			case
+			when RECP_STATUS = 3  AND  (SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)           
+			FROM T_RENT_SETTLE trst           
+			WHERE STATUS=0  AND RECP_ID = T1.RECP_ID GROUP BY trst.RECP_ID  ) = CONVERT(VARCHAR(7),finance_date,23)            
+			then	
+			ISNULL(ROUND((SELECT SUM(MONTH_PRICE - IRR_MONTH_PRICE) 
+			FROM T_RENT_COLLECTIONDETAIL WHERE STATUS = 0 AND RECP_ID = T.RECP_ID AND PERIOD_NUM > T1.PERIOD_NUM -1),2),0) 
+			when CONVERT(DATE,FINANCECONTRACT_DATE) BETWEEN CONVERT(DATE,#startTime#) AND CONVERT(DATE,#endTime#) then
+			ISNULL(ROUND((SELECT SUM(MONTH_PRICE - IRR_MONTH_PRICE) 
+			FROM T_RENT_COLLECTIONDETAIL 
+			WHERE STATUS = 0 AND RECP_ID = T.RECP_ID AND PERIOD_NUM <= T1.PERIOD_NUM),2),0) 
+			when RECP_STATUS = 1 then
+			ISNULL(ROUND((SELECT SUM(MONTH_PRICE - IRR_MONTH_PRICE) 
+			FROM T_RENT_COLLECTIONDETAIL WHERE STATUS = 0 AND RECP_ID = T.RECP_ID AND PERIOD_NUM > T1.PERIOD_NUM -1),2),0) 
+			else		    
+			T1.MONTH_PRICE - T1.IRR_MONTH_PRICE 			
+			end YJB, 
+			
+			case
+			when RECP_STATUS = 3  AND  (SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)           
+			FROM T_RENT_SETTLE trst           
+			WHERE STATUS=0  AND RECP_ID = T1.RECP_ID GROUP BY trst.RECP_ID  ) = CONVERT(VARCHAR(7),finance_date,23)            
+			then  
+			0
+			when RECP_STATUS = 1 then
+			0
+			else   
+			T3.SUM_MONTH_PRICE - 
+			( 
+			  SELECT               
+			  SUM(convert(decimal(18,2), 
+			(TT.MONTH_PRICE - TT.IRR_MONTH_PRICE)))              
+			  FROM T_RENT_COLLECTIONDETAIL TT             
+			  WHERE TT.STATUS = 0 AND TT.PERIOD_NUM <=T1.PERIOD_NUM  AND TT.RECP_ID = T1.RECP_ID )
+			 -(			  
+				select isnull(SUM(REAL_PRICE),0) REAL_PRICE from  T_FINA_COLLECTIONBILL tfcb
+				left join T_FINA_INCOME tfi 
+				on tfcb.FIIN_ID = tfi.FIIN_ID
+				where tfcb.RECP_ID = T1.RECP_ID and FICB_ITEM='租金'  and FICB_STATE=5 
+		        and 
+		        convert(Date,tfcb.check_date)<=CONVERT(DATE,#nextStartTime#)		       
+			  ) 
+			  end SYC,
+			case
+			when RECP_STATUS = 3  AND  (SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)           
+			FROM T_RENT_SETTLE trst           
+			WHERE STATUS=0  AND RECP_ID = T1.RECP_ID GROUP BY trst.RECP_ID  ) = CONVERT(VARCHAR(7),finance_date,23)            
+			then  
+			0
+			when RECP_STATUS = 1 then
+			0
+			else       
+			ISNULL(ROUND((SELECT SUM(MONTH_PRICE - IRR_MONTH_PRICE) 
+			FROM T_RENT_COLLECTIONDETAIL 
+			WHERE STATUS = 0 AND RECP_ID = T.RECP_ID AND PERIOD_NUM > T1.PERIOD_NUM),2),0) 			
+			end SYB,       
+			PERIOD_NUM  ,       T5.CUST_NAME ,       
+			T6.DECP_NAME_CN,       T4.LEASE_CODE,       
+			T9.NAME SUPL_NAME,       tuser.NAME,       
+			t10.FINANCECONTRACT_DATE,finance_date,       
+			ISNULL(PLEDGE_AVE_PRICE,0) PLEDGE_AVE_PRICE,       
+			ISNULL(PLEDGE_BACK_PRICE,0) PLEDGE_BACK_PRICE,       
+			ISNULL(PLEDGE_LAST_PRICE,0) PLEDGE_LAST_PRICE,
+			t.STATUS     
+			FROM       T_RENT_COLLECTIONPLAN T       
+			LEFT JOIN T_RENT_COLLECTIONDETAIL T1 ON T1.RECP_ID = T.RECP_ID       
+			LEFT JOIN (SELECT RECP_ID,SUM(MONTH_PRICE) SUM_MONTH_PRICE,SUM(REN_PRICE) SUM_REN_PRICE FROM T_RENT_COLLECTIONDETAIL WHERE STATUS = 0 GROUP BY RECP_ID ) T3 ON T3.RECP_ID = T.RECP_ID       
+			LEFT JOIN T_RENT_CONTRACT T4 ON T4.RECT_ID = T.RECT_ID AND T4.STATUS = 0       
+			LEFT JOIN T_CUST_CUSTOMER T5 ON T4.CUST_ID = T5.CUST_ID       
+			LEFT JOIN T_DEPT_COMPANY T6 ON T4.DECP_ID = T6.DECP_ID       
+			LEFT JOIN T_USER_USER tuser on tuser.ID = T4.SENSOR_ID       
+			LEFT JOIN (SELECT RECP_ID,MAX(EQMT_ID) EQMT_ID FROM T_RENT_CONTRACTDETAIL WHERE STATUS = 0 GROUP BY RECP_ID) T66 ON T66.RECP_ID = t.RECP_ID       
+			LEFT JOIN T_EQMT_EQUIPMENT T7 ON T7.EQMT_ID = T66.EQMT_ID AND T7.STATUS = 0       
+			LEFT JOIN T_SUPL_EQUIPMENT T8 ON T7.SUEQ_ID = T8.SUEQ_ID AND T8.STATUS = 0       
+			LEFT JOIN T_SUPL_SUPPLIER T9 ON T9.ID = T8.SUPPLIER_ID AND T9.STATUS = 0       
+			LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = T4.PRCD_ID AND T10.STATUS = 0     
+			left join T_RENT_SETTLE trs on t.recp_id=trs.RECP_ID and trs.STATUS=0
+			WHERE  T.STATUS = 0   AND T1.STATUS = 0  
+			and CONVERT(DATE,isnull(trs.CREATE_DATE,convert(DATE,#startTime#)))>=CONVERT(DATE,convert(DATE,#startTime#))
+			) T 
+			where    
+			 t.STATUS=0 and 
+			 CONVERT(DATE,T.FINANCECONTRACT_DATE)<=CONVERT(DATE,#endTime#)                   
+			)tttt
+			where   
+			CONVERT(DATE,finance_date) BETWEEN CONVERT(DATE,#startTime#) AND CONVERT(DATE,#endTime#)  
+	union all
+	select SQC,SQW,SQB,YZC,YZW,YZB,YJC,YJW,YJB,SYC,SYW,SYB,
+	round(SYC - SYW - SYB,2) QIMOJINGZHI,
+	PLEDGE_AVE_PRICE,PLEDGE_BACK_PRICE,PLEDGE_LAST_PRICE,CUST_NAME,SUPL_NAME,LEASE_CODE,NAME,DECP_NAME_CN,GETDATE(),CONVERT(VARCHAR,#year#)+'-'+CONVERT(VARCHAR,#month#)+'-01' from(
+	select        
+	  ISNULL(T3.SUM_MONTH_PRICE - T.PLEDGE_AVE_PRICE
+	 -(					
+		isnull((select convert(decimal(18,2),sum(isnull(t1.REAL_PRICE,0)))REAL_PRICE from T_FINA_COLLECTIONBILL t1
+		left join
+		T_FINA_INCOME t2
+		on t1.FIIN_ID=t2.FIIN_ID and t2.STATUS=0
+		where 
+		CONVERT(DATE,t1.CHECK_DATE)<CONVERT(DATE,#startTime#)
+		and FICB_ITEM='租金' and RECP_ID=t.RECP_ID and FICB_STATE=5
+		group by RECP_ID),0)
+	  )
+	  ,0) SQC,   
+		0 as SQW,
+		0 as SQB,
+		0 as YZC,
+		0 as YZW,
+		0 as YZB,
+		isnull((select convert(decimal(18,2),sum(isnull(real_price,0))) REAL_PRICE from MONTH_DECOMPOSE_REPORT
+		where FICB_ITEM='租金' and 
+		CONVERT(DATE,FINANCE_DATE) BETWEEN CONVERT(DATE,#startTime#) AND CONVERT(DATE,#endTime#)
+		and RECP_ID=t.RECP_ID
+		group by RECP_ID),0)  YJC,
+		0 as YJW,
+		0 as YJB,
+		T3.SUM_MONTH_PRICE - T.PLEDGE_AVE_PRICE
+		 -(			  
+			select isnull(SUM(REAL_PRICE),0) REAL_PRICE from  T_FINA_COLLECTIONBILL tfcb
+			left join T_FINA_INCOME tfi 
+			on tfcb.FIIN_ID = tfi.FIIN_ID
+			where tfcb.RECP_ID = T1.RECP_ID and FICB_ITEM='租金'  and FICB_STATE=5 
+	        and 
+	        convert(Date,tfcb.check_date)<=CONVERT(DATE,#nextStartTime#)		       
+		  ) 
+		   SYC,
+		0 as SYW,
+		0 as SYB,
+		PERIOD_NUM  ,       T5.CUST_NAME ,       
+		T6.DECP_NAME_CN,       T4.LEASE_CODE,       
+		T9.NAME SUPL_NAME,       tuser.NAME,       
+		t10.FINANCECONTRACT_DATE,finance_date,       
+		ISNULL(PLEDGE_AVE_PRICE,0) PLEDGE_AVE_PRICE,       
+		ISNULL(PLEDGE_BACK_PRICE,0) PLEDGE_BACK_PRICE,       
+		ISNULL(PLEDGE_LAST_PRICE,0) PLEDGE_LAST_PRICE,
+		t.STATUS 
+		FROM       T_RENT_COLLECTIONPLAN T       
+		LEFT JOIN (select max(PERIOD_NUM) PERIOD_NUM,RECP_ID,MAX(finance_date) finance_date from T_RENT_COLLECTIONDETAIL where STATUS=0 group by RECP_ID) T1 ON T1.RECP_ID = T.RECP_ID       
+		LEFT JOIN (SELECT RECP_ID,convert(decimal(18,2),SUM(MONTH_PRICE)) SUM_MONTH_PRICE,SUM(REN_PRICE) SUM_REN_PRICE,SUM(IRR_MONTH_PRICE) SUM_IRR_MONTH_PRICE FROM T_RENT_COLLECTIONDETAIL WHERE STATUS = 0 GROUP BY RECP_ID ) T3 ON T3.RECP_ID = T.RECP_ID       
+		LEFT JOIN T_RENT_CONTRACT T4 ON T4.RECT_ID = T.RECT_ID AND T4.STATUS = 0       
+		LEFT JOIN T_CUST_CUSTOMER T5 ON T4.CUST_ID = T5.CUST_ID       
+		LEFT JOIN T_DEPT_COMPANY T6 ON T4.DECP_ID = T6.DECP_ID       
+		LEFT JOIN T_USER_USER tuser on tuser.ID = T4.SENSOR_ID       
+		LEFT JOIN (SELECT RECP_ID,MAX(EQMT_ID) EQMT_ID FROM T_RENT_CONTRACTDETAIL WHERE STATUS = 0 GROUP BY RECP_ID) T66 ON T66.RECP_ID = t.RECP_ID       
+		LEFT JOIN T_EQMT_EQUIPMENT T7 ON T7.EQMT_ID = T66.EQMT_ID AND T7.STATUS = 0       
+		LEFT JOIN T_SUPL_EQUIPMENT T8 ON T7.SUEQ_ID = T8.SUEQ_ID AND T8.STATUS = 0       
+		LEFT JOIN T_SUPL_SUPPLIER T9 ON T9.ID = T8.SUPPLIER_ID AND T9.STATUS = 0       
+		LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = T4.PRCD_ID AND T10.STATUS = 0  
+		left join (select RECP_ID,SUM(REAL_PRICE) SUM_REAL_PRICE from T_FINA_COLLECTIONBILL 
+		where status=0 and FICB_ITEM='租金'  and FICB_STATE=5 
+		and 
+		CONVERT(DATE,CHECK_DATE)<CONVERT(DATE,#startTime#)
+		group by RECP_ID ) tfcb 
+		on  tfcb.RECP_ID=T.RECP_ID  
+		WHERE  T.STATUS = 0   
+		and 
+		CONVERT(DATE,T10.FINANCECONTRACT_DATE)<=CONVERT(DATE,#endTime#)
+		and t.RECP_STATUS=0
+		and (year(t1.finance_date) < YEAR(dateadd(month,-1,GETDATE()))                              
+			OR        (  year(t1.finance_date) = YEAR(dateadd(month,-1,GETDATE()))        
+			AND month(t1.finance_date) < MONTH(dateadd(month,-1,GETDATE())) -1        
+			))
+		and tfcb.SUM_REAL_PRICE<T3.SUM_IRR_MONTH_PRICE
+		
+) TT
+where round(SYC - SYW - SYB,2)<>0
+	]]>
+
+	</select>
+	
+<!-- 插入每月长期应收款数据（税务） -->
+	<insert id="insertFinanceRealPriceByMonth" parameterClass="map">
+		<![CDATA[
+			insert into MONTH_LONGREALPRICE_REPORT
+			  (SQC, SQW, SQB, YZC, YZW, YZB, YJC, YJW, YJB, SYC, SYW, SYB, QIMOJINGZHI, PLEDGE_AVE_PRICE, PLEDGE_BACK_PRICE, PLEDGE_LAST_PRICE, CUST_NAME, SUPL_NAME, LEASE_CODE, NAME, DECP_NAME_CN, CREATE_TIME, FINANCE_DATE)
+			values
+			  (#SQC#,#SQW#,#SQB#,#YZC#,#YZW#,#YZB#,#YJC#,#YJW#,#YJB#,#SYC#,#SYW#,#SYB#,#QIMOJINGZHI#,#PLEDGE_AVE_PRICE#,#PLEDGE_BACK_PRICE#,#PLEDGE_LAST_PRICE#,#CUST_NAME#,#SUPL_NAME#,#LEASE_CODE#,#NAME#,#DECP_NAME_CN#,getdate(),#FINANCE_DATE#)
+		]]>		
+	</insert>
+	
+<!-- Add by Michael 2012 09-19 发送间接锁码 给杨晶晶 For假日使用  -->	
+	<select id="sendUnDirectLockForHoliday" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select *,
+			case when real_price is null or real_price=0 then '未缴租金'
+			when real_price<IRR_MONTH_PRICE then'租金未缴齐'
+			else '租金已缴'
+			end memo
+			from (
+			  select tpc.lease_code,tfcb.real_price,trcd.IRR_MONTH_PRICE,trd.RENTER_NAME,trd.RENTER_EMAIL,RENTER_PHONE,trd.LOCK_CODE,trct.cust_name,
+					case 		
+					when  DAY(trcd.PAY_DATE)<=15 then
+					convert(varchar,year(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-'+convert(varchar,month(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-25'
+					else
+					convert(varchar,year(convert(date,dateadd(MONTH,2,trcd.PAY_DATE),23)))+'-'+convert(varchar,month(convert(date,dateadd(MONTH,2,trcd.PAY_DATE),23)))+'-10'
+					end NEXT_LOCK_DATE,
+					case 		
+					when  DAY(trcd.PAY_DATE)<=15 then
+					convert(varchar,year(trcd.PAY_DATE))+'-'+convert(varchar,month(trcd.PAY_DATE))+'-25'
+					else
+					convert(varchar,year(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-'+convert(varchar,month(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-10'
+					end LOCK_DATE,
+					trd.RECT_ID,trd.MODEL_SPEC,
+					trd.THING_NUMBER,tcl.LINK_NAME,tcl.LINK_MOBILE,tcl.LINK_EMAIL,trd.BRAND
+			      from T_PRJT_CREDIT  tpc
+			      left join T_RENT_CONTRACT trct on tpc.id=trct.PRCD_ID and trct.STATUS = 0
+			      left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID = trct.RECT_ID and trcp.STATUS = 0
+			      left join T_RENT_COLLECTIONDETAIL trcd on trcp.recp_id=trcd.RECP_ID  and trcd.STATUS = 0
+			      left join  (select convert(decimal(18,2),sum(isnull(REAL_PRICE,0))) REAL_PRICE,recp_id,RECD_PERIOD from T_FINA_COLLECTIONBILL where (FICB_ITEM='租金'  or FICB_ITEM='增值税') and status=0 group by recp_id,RECD_PERIOD)  tfcb
+			       on tfcb.RECP_ID = trcd.RECP_ID and tfcb.RECD_PERIOD=trcd.PERIOD_NUM
+			      left join T_RENT_CONTRACTDETAIL trd on trd.STATUS=0 and trct.RECT_ID=trd.RECT_ID and trd.LOCK_CODE='1'
+				  left join  T_CUST_CUSTOMER tcc  on tcc.CUST_ID=trct.CUST_ID			
+				  left join T_CUST_LINKMAN tcl on tcc.CUST_ID=tcl.CUST_ID and tcl.LINK_TYPE=0 and tcl.STATUS=0
+			      where tpc.FINANCECONTRACT_DATE is not null and tpc.STATUS=0 and trct.STATUS=0 and trd.LOCK_CODE='1' and trcp.RECP_STATUS=0
+			) TT
+			where TT.LOCK_DATE in($DATES$)
+		]]>	      
+	</select>
+
+<!-- Add by Michael 2012 09-19 发送直接锁码 给杨晶晶 For假日使用  -->	
+	<select id="sendDirectLockForHoliday" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select *,
+			case when real_price is null or real_price=0 then '未缴租金'
+			when real_price<IRR_MONTH_PRICE then'租金未缴齐'
+			else '租金已缴'
+			end memo
+			from (
+			  select tpc.lease_code,tfcb.real_price,trcd.IRR_MONTH_PRICE,trd.RENTER_NAME,trd.RENTER_EMAIL,RENTER_PHONE,trd.LOCK_CODE,trct.cust_name,
+					case 		
+					when  DAY(trcd.PAY_DATE)<=15 then
+					convert(varchar,year(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-'+convert(varchar,month(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-25'
+					else
+					convert(varchar,year(convert(date,dateadd(MONTH,2,trcd.PAY_DATE),23)))+'-'+convert(varchar,month(convert(date,dateadd(MONTH,2,trcd.PAY_DATE),23)))+'-10'
+					end NEXT_LOCK_DATE,
+					case 		
+					when  DAY(trcd.PAY_DATE)<=15 then
+					convert(varchar,year(trcd.PAY_DATE))+'-'+convert(varchar,month(trcd.PAY_DATE))+'-25'
+					else
+					convert(varchar,year(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-'+convert(varchar,month(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-10'
+					end LOCK_DATE,
+					trd.RECT_ID,trd.MODEL_SPEC,
+					trd.THING_NUMBER,tcl.LINK_NAME,tcl.LINK_MOBILE,tcl.LINK_EMAIL,trd.BRAND,tlm.PASSWORDS,tlpf.PATH,right(tlpf.PATH,charindex('\',REVERSE(tlpf.PATH))-1) FILE_NAME
+			      from T_PRJT_CREDIT  tpc
+			      left join T_RENT_CONTRACT trct on tpc.id=trct.PRCD_ID and trct.STATUS = 0
+			      left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID = trct.RECT_ID and trcp.STATUS = 0
+			      left join T_RENT_COLLECTIONDETAIL trcd on trcp.recp_id=trcd.RECP_ID  and trcd.STATUS = 0
+			      left join  (select convert(decimal(18,2),sum(isnull(REAL_PRICE,0))) REAL_PRICE,recp_id,RECD_PERIOD from T_FINA_COLLECTIONBILL where (FICB_ITEM='租金'  or FICB_ITEM='增值税') and status=0 group by recp_id,RECD_PERIOD)  tfcb
+			       on tfcb.RECP_ID = trcd.RECP_ID and tfcb.RECD_PERIOD=trcd.PERIOD_NUM
+			      left join T_RENT_CONTRACTDETAIL trd on trd.STATUS=0 and trct.RECT_ID=trd.RECT_ID and trd.LOCK_CODE='3'
+						left join  T_CUST_CUSTOMER tcc  on tcc.CUST_ID=trct.CUST_ID			
+						left join T_CUST_LINKMAN tcl on tcc.CUST_ID=tcl.CUST_ID and tcl.LINK_TYPE=0 and tcl.STATUS=0
+			      left join T_LOCKCODE_PASSWORD_FILE tlpf
+						on tlpf.RECP_ID=trcp.RECP_ID and tlpf.PERIOD_NUM=trcd.PERIOD_NUM and tlpf.EQMT_ID=trd.EQMT_ID and tlpf.STATUS='0'
+						left join T_LOCK_MANAGEMENT tlm
+						on tlm.RECP_ID=trcp.RECP_ID and tlm.PERIOD_NUM=trcd.PERIOD_NUM and tlm.EQMT_ID=trd.EQMT_ID
+			      where tpc.FINANCECONTRACT_DATE is not null and tpc.STATUS=0 and trct.STATUS=0 and trd.LOCK_CODE='3' and trcp.RECP_STATUS=0
+			) TT
+			where TT.LOCK_DATE in($DATES$)
+		]]>	      
+	</select>
+		
+	<select id="sendAllDirectLockForHoliday" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[		
+			select *,
+			case when real_price is null or real_price=0 then '未缴租金'
+			when real_price<IRR_MONTH_PRICE then'租金未缴齐'
+			else '租金已缴'
+			end memo,case when lock_code='3' then '直接'
+      else '间接'
+      end lock_memo
+			from (
+			  select trcd.period_num,tpc.lease_code,tfcb.real_price,trcd.IRR_MONTH_PRICE,trd.RENTER_NAME,trd.RENTER_EMAIL,RENTER_PHONE,trd.LOCK_CODE,trct.cust_name,
+					case 		
+					when  DAY(trcd.PAY_DATE)<=15 then
+					convert(varchar,year(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-'+convert(varchar,month(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-25'
+					else
+					convert(varchar,year(convert(date,dateadd(MONTH,2,trcd.PAY_DATE),23)))+'-'+convert(varchar,month(convert(date,dateadd(MONTH,2,trcd.PAY_DATE),23)))+'-10'
+					end NEXT_LOCK_DATE,
+					case 		
+					when  DAY(trcd.PAY_DATE)<=15 then
+					convert(varchar,year(trcd.PAY_DATE))+'-'+convert(varchar,month(trcd.PAY_DATE))+'-25'
+					else
+					convert(varchar,year(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-'+convert(varchar,month(convert(date,dateadd(MONTH,1,trcd.PAY_DATE),23)))+'-10'
+					end LOCK_DATE,
+					trd.RECT_ID,trd.MODEL_SPEC,
+					trd.THING_NUMBER,tcl.LINK_NAME,tcl.LINK_MOBILE,tcl.LINK_EMAIL,trd.BRAND,tlm.PASSWORDS,tlpf.PATH,right(tlpf.PATH,charindex('\',REVERSE(tlpf.PATH))-1) FILE_NAME
+			      from T_PRJT_CREDIT  tpc
+			      left join T_RENT_CONTRACT trct on tpc.id=trct.PRCD_ID and trct.STATUS = 0
+			      left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID = trct.RECT_ID and trcp.STATUS = 0
+			      left join T_RENT_COLLECTIONDETAIL trcd on trcp.recp_id=trcd.RECP_ID  and trcd.STATUS = 0
+			      left join  (select convert(decimal(18,2),sum(isnull(REAL_PRICE,0))) REAL_PRICE,recp_id,RECD_PERIOD from T_FINA_COLLECTIONBILL where (FICB_ITEM='租金'  or FICB_ITEM='增值税') and status=0 group by recp_id,RECD_PERIOD)  tfcb
+			       on tfcb.RECP_ID = trcd.RECP_ID and tfcb.RECD_PERIOD=trcd.PERIOD_NUM
+			      left join T_RENT_CONTRACTDETAIL trd on trd.STATUS=0 and trct.RECT_ID=trd.RECT_ID and trd.LOCK_CODE='3'
+						left join  T_CUST_CUSTOMER tcc  on tcc.CUST_ID=trct.CUST_ID			
+						left join T_CUST_LINKMAN tcl on tcc.CUST_ID=tcl.CUST_ID and tcl.LINK_TYPE=0 and tcl.STATUS=0
+			      left join T_LOCKCODE_PASSWORD_FILE tlpf
+						on tlpf.RECP_ID=trcp.RECP_ID and tlpf.PERIOD_NUM=trcd.PERIOD_NUM and tlpf.EQMT_ID=trd.EQMT_ID and tlpf.STATUS='0'
+						left join T_LOCK_MANAGEMENT tlm
+						on tlm.RECP_ID=trcp.RECP_ID and tlm.PERIOD_NUM=trcd.PERIOD_NUM and tlm.EQMT_ID=trd.EQMT_ID
+			      where tpc.FINANCECONTRACT_DATE is not null and tpc.STATUS=0 and trct.STATUS=0 and trcp.RECP_STATUS=0
+            and isnull(trcd.REDUCE_OWN_PRICE,0)<trcd.irr_month_price and trd.lock_code in('1','3')
+			) TT
+    		]]>	      
+	</select>
+	
+	
+<select id="queryInsuranceDynamicForJob" parameterClass="map" resultClass="java.util.HashMap">
+insert into MONTH_INSURANCEDYNAMIC_REPORT
+<!--  
+<![CDATA[
+select CUST_NAME,SUPL_NAME,RECP_CODE,NAME,DECP_NAME_CN,LEASE_TOPRIC,FIRST_PAYDATE,LEASE_PERIOD,INSURANCE,QCYE,BQXZ,MONTHINSURANCE,convert(decimal(18,2),(qcye+bqxz-monthinsurance)) qmye,convert(Date,GETDATE(),23)FINANCE_DATE from(
+select tall.RECP_ID,tall.LEASE_PERIOD,convert(varchar,tall.FIRST_PAYDATE,23) FIRST_PAYDATE ,FINANCECONTRACT_DATE,insurance,Y,M,monthinsurance,
+case
+when CONVERT(VARCHAR(7),convert(date,convert(varchar,Y)+'-'+convert(varchar,M)+'-01'),23)=CONVERT(VARCHAR(7),FINANCECONTRACT_DATE,23)
+then
+insurance
+else
+0
+end bqxz,
+case
+when CONVERT(VARCHAR(7),convert(date,convert(varchar,Y)+'-'+convert(varchar,M)+'-01'),23)<>CONVERT(VARCHAR(7),FINANCECONTRACT_DATE,23)
+then
+round(insurance-(
+select sum(monthinsurance) monthinsurance from
+(select 
+   SUM(baoxian) monthinsurance,
+   RECP_ID,
+   MAX(insurance) insurance,
+   YEAR(DATEADD(mm, MONTH, 0)) Y,MONTH(DATEADD(mm, MONTH, 0)) M,LEASE_PERIOD,FIRST_PAYDATE ,FINANCECONTRACT_DATE
+FROM (
+select tt.RECP_ID,
+ TT.QI_DATE,DATEDIFF(mm, 0, dateadd(m, 0, QI_DATE)) MONTH,
+ CASE
+WHEN RECP_STATUS = 3  AND 
+(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+FROM T_RENT_SETTLE trst
+WHERE STATUS=0 
+AND RECP_ID = tt.RECP_ID
+GROUP BY trst.RECP_ID
+) 
+<= CONVERT(VARCHAR(7),finance_date,23)
+THEN 0	
+WHEN day(FIRST_PAYDATE)=1 then 
+round(ROUND(LEASE_TOPRIC * INSURE_BASE_RATE * LEASE_PERIOD / 12,2)/LEASE_PERIOD,2)
+   WHEN PERIOD_NUM = 1 THEN
+    ROUND(LEASE_TOPRIC * INSURE_BASE_RATE*( LEASE_PERIOD / 12)* tian / (360 * (LEASE_PERIOD / 12)) , 2)
+   ELSE
+    ROUND(LEASE_TOPRIC * INSURE_BASE_RATE*( LEASE_PERIOD / 12)* 30 / (360* (LEASE_PERIOD / 12)) , 2)
+ END baoxian,
+ ROUND(LEASE_TOPRIC * INSURE_BASE_RATE * LEASE_PERIOD / 12,2) insurance,
+ PERIOD_NUM,LEASE_PERIOD,FIRST_PAYDATE,FINANCECONTRACT_DATE
+from (SELECT *,
+         DATEDIFF(day,
+                  finance_date,
+                  dateadd(dd,
+                          -day(dateadd(m, 1, finance_date)),
+                          dateadd(m, 1, finance_date))) + 1 tian,
+         (SELECT MAX(T.RATE_VALUE) / 100 INSURE_BASE_RATE
+            FROM T_RATE_CONFIG T
+           WHERE T.STATUS = 0
+             AND CONVERT(VARCHAR(10), T.START_DATE, 23) <=
+                 CONVERT(VARCHAR(10), FINANCECONTRACT_DATE, 23)
+             AND CONVERT(VARCHAR(10), T.END_DATE, 23) >=
+                 CONVERT(VARCHAR(10), FINANCECONTRACT_DATE, 23)
+             AND T.FILED_NAME = 'INSURE_BASE_RATE' and T.TAX_PLAN_CODE=T1.TAX_PLAN_CODE) INSURE_BASE_RATE
+    FROM (select trcp.recp_id,
+                 trcd.PERIOD_NUM,
+                 TRCP.LEASE_TOPRIC,
+                 trcp.LEASE_PERIOD,
+                 trcd.REN_PRICE,
+                 LEASE_TERM,
+                case
+                 when CONVERT(VARCHAR(7),trcd.finance_date,23)<=CONVERT(VARCHAR(7),FINANCECONTRACT_DATE,23) then
+                  FINANCECONTRACT_DATE
+                 else
+                  trcd.finance_date
+                 end
+                  QI_DATE,
+                 trcd.finance_date finance_date,
+   TPCD.FINANCECONTRACT_DATE,FIRST_PAYDATE,
+   RECP_STATUS
+            from T_RENT_COLLECTIONDETAIL trcd
+            left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID =
+                                                    trcd.RECP_ID
+                                                AND trcp.STATUS = 0
+            LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID =
+                                             trcp.RECT_ID
+                                         AND TRC.STATUS = 0
+            LEFT JOIN T_PRJT_CREDIT TPCD ON TPCD.ID =
+                                            TRC.PRCD_ID
+                                        AND TPCD.STATUS = 0                                     
+           WHERE trcd.STATUS = 0
+            and 
+           (year(TPCD.FINANCECONTRACT_DATE) < YEAR(convert(DATE,convert(varchar,#startDate#, 23)))							
+           OR
+( 	year(TPCD.FINANCECONTRACT_DATE) = YEAR(convert(DATE,convert(varchar,#startDate#, 23)))
+	AND month(TPCD.FINANCECONTRACT_DATE) <= MONTH(convert(DATE,convert(varchar,#startDate#, 23))) ))
+           ) t) tt
+		        union
+		 select tt.RECP_ID, 
+         TT.QI_DATE,DATEDIFF(mm, 0, dateadd(m, 1, QI_DATE)) MONTH,
+         CASE
+         	WHEN RECP_STATUS = 3  AND 
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = tt.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+			<= CONVERT(VARCHAR(7),finance_date,23)
+	THEN 0	
+	WHEN day(FIRST_PAYDATE)=1 then 0
+   WHEN PERIOD_NUM = LEASE_PERIOD THEN
+    ROUND(LEASE_TOPRIC * INSURE_BASE_RATE*( LEASE_PERIOD / 12)* (30-tian) / (360* (LEASE_PERIOD / 12)), 2)
+   ELSE
+    0
+ END baoxian,
+ round(LEASE_TOPRIC * INSURE_BASE_RATE * LEASE_PERIOD * LEASE_TERM / 12,2) insurance,
+ PERIOD_NUM,LEASE_PERIOD,FIRST_PAYDATE,FINANCECONTRACT_DATE
+from (SELECT *,
+         DATEDIFF(day,
+                  finance_date,
+                  dateadd(dd,
+                          -day(dateadd(m, 1, finance_date)),
+                          dateadd(m, 1, finance_date))) + 1 tian,
+         (SELECT MAX(T.RATE_VALUE) / 100 INSURE_BASE_RATE
+            FROM T_RATE_CONFIG T
+           WHERE T.STATUS = 0
+             AND CONVERT(VARCHAR(10), T.START_DATE, 23) <=
+                 CONVERT(VARCHAR(10), DATEADD(M, 1, FINANCECONTRACT_DATE), 23)
+             AND CONVERT(VARCHAR(10), T.END_DATE, 23) >=
+                 CONVERT(VARCHAR(10), DATEADD(M, 1, FINANCECONTRACT_DATE), 23)
+             AND T.FILED_NAME = 'INSURE_BASE_RATE' and T.TAX_PLAN_CODE=T1.TAX_PLAN_CODE ) INSURE_BASE_RATE
+    FROM (select TRCP.RECP_ID,
+                 trcd.PERIOD_NUM,
+                 TRCP.LEASE_TOPRIC,
+                 trcp.LEASE_PERIOD,
+                 trcd.REN_PRICE,
+                 LEASE_TERM,
+                 case
+                 when CONVERT(VARCHAR(7),trcd.finance_date,23)<=CONVERT(VARCHAR(7),FINANCECONTRACT_DATE,23) then
+                  FINANCECONTRACT_DATE
+                 else
+                  trcd.finance_date
+                 end
+                  QI_DATE,
+                 trcd.finance_date finance_date,
+                 FINANCECONTRACT_DATE,FIRST_PAYDATE,
+                 RECP_STATUS
+            from T_RENT_COLLECTIONDETAIL trcd
+            left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID =
+                                                    trcd.RECP_ID
+                                                AND trcp.STATUS = 0
+            LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID =
+                                             trcp.RECT_ID
+                                         AND TRC.STATUS = 0
+            LEFT JOIN T_PRJT_CREDIT TPCD ON TPCD.ID =
+                                            TRC.PRCD_ID
+                                        AND TPCD.STATUS = 0
+           WHERE trcd.STATUS = 0 
+           and 
+           (year(TPCD.FINANCECONTRACT_DATE) < YEAR(convert(DATE,convert(varchar,#startDate#, 23)))							
+           OR
+( 	year(TPCD.FINANCECONTRACT_DATE) = YEAR(convert(DATE,convert(varchar,#startDate#, 23)))
+	AND month(TPCD.FINANCECONTRACT_DATE) <= MONTH(convert(DATE,convert(varchar,#startDate#, 23))) ))
+           ) t) tt   
+)ttt
+where (YEAR(DATEADD(mm, MONTH, 0))<year(#startDate#) or(YEAR(DATEADD(mm, MONTH, 0))=year(#startDate#) and MONTH(DATEADD(mm, MONTH, 0))<month(#startDate#)))
+GROUP BY MONTH ,RECP_ID,LEASE_PERIOD,FIRST_PAYDATE ,FINANCECONTRACT_DATE 
+)tqcye
+where RECP_ID=tall.RECP_ID
+group by recp_id),2)
+
+else
+0
+end qcye,
+T3.CUST_NAME,
+T9.NAME SUPL_NAME,
+T4.DECP_NAME_CN,
+T5.NAME,
+T2.LEASE_CODE RECP_CODE,
+T1.LEASE_TOPRIC
+from
+(
+select RECP_ID,LEASE_PERIOD,FIRST_PAYDATE ,FINANCECONTRACT_DATE,insurance,Y,M,
+
+case 
+WHEN RECP_STATUS = 3 then
+case 
+when 
+
+(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+FROM T_RENT_SETTLE trst
+WHERE STATUS=0 
+AND RECP_ID = t0.RECP_ID
+GROUP BY trst.RECP_ID
+) 
+= CONVERT(VARCHAR(7),convert(date,convert(varchar,Y)+'-'+convert(varchar,M)+'-01'),23)
+then
+convert(decimal(18,2),insurance-
+(select sum(monthinsurance) totalinsurance from
+(select 
+SUM(baoxian) monthinsurance,
+RECP_ID,
+MAX(insurance) insurance,
+YEAR(DATEADD(mm, MONTH, 0)) Y,MONTH(DATEADD(mm, MONTH, 0)) M,
+LEASE_PERIOD,FIRST_PAYDATE ,FINANCECONTRACT_DATE
+FROM (
+select tt.RECP_ID,
+TT.QI_DATE,DATEDIFF(mm, 0, QI_DATE) MONTH,
+CASE
+WHEN RECP_STATUS = 3  AND 
+(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+FROM T_RENT_SETTLE trst
+WHERE STATUS=0 
+AND RECP_ID = tt.RECP_ID
+GROUP BY trst.RECP_ID
+) 
+<= CONVERT(VARCHAR(7),finance_date,23)
+THEN 0	
+WHEN day(FIRST_PAYDATE)=1 then 
+round(ROUND(LEASE_TOPRIC * INSURE_BASE_RATE * LEASE_PERIOD / 12,2)/LEASE_PERIOD,2)
+WHEN PERIOD_NUM = 1 THEN
+ROUND(LEASE_TOPRIC * INSURE_BASE_RATE*( LEASE_PERIOD / 12)* tian / (360 * (LEASE_PERIOD / 12)) , 2)
+ELSE
+ROUND(LEASE_TOPRIC * INSURE_BASE_RATE*( LEASE_PERIOD / 12)* 30 / (360* (LEASE_PERIOD / 12)) , 2)
+END baoxian,
+ROUND(LEASE_TOPRIC * INSURE_BASE_RATE * LEASE_PERIOD / 12,2) insurance,
+PERIOD_NUM,LEASE_PERIOD,FIRST_PAYDATE,FINANCECONTRACT_DATE
+from (SELECT *,
+DATEDIFF(day,
+      finance_date,
+      dateadd(dd,
+              -day(dateadd(m, 1, finance_date)),
+              dateadd(m, 1, finance_date))) + 1 tian,
+(SELECT MAX(T.RATE_VALUE) / 100 INSURE_BASE_RATE
+FROM T_RATE_CONFIG T
+WHERE T.STATUS = 0
+ AND CONVERT(VARCHAR(10), T.START_DATE, 23) <=
+     CONVERT(VARCHAR(10), FINANCECONTRACT_DATE, 23)
+ AND CONVERT(VARCHAR(10), T.END_DATE, 23) >=
+     CONVERT(VARCHAR(10), FINANCECONTRACT_DATE, 23)
+ AND T.FILED_NAME = 'INSURE_BASE_RATE' and T.TAX_PLAN_CODE='1') INSURE_BASE_RATE
+FROM (select trcp.recp_id,
+     trcd.PERIOD_NUM,
+     TRCP.LEASE_TOPRIC,
+     LEASE_PERIOD,
+     trcd.REN_PRICE,
+     trcp.LEASE_TERM,
+    case
+     when CONVERT(VARCHAR(7),trcd.finance_date,23)<=CONVERT(VARCHAR(7),FINANCECONTRACT_DATE,23) then
+      FINANCECONTRACT_DATE
+     else
+      trcd.finance_date
+     end
+      QI_DATE,
+     trcd.finance_date finance_date,
+TPCD.FINANCECONTRACT_DATE,FIRST_PAYDATE,
+RECP_STATUS
+from T_RENT_COLLECTIONDETAIL trcd
+left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID =
+                                        trcd.RECP_ID
+                                    AND trcp.STATUS = 0
+LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID =
+                                 trcp.RECT_ID
+                             AND TRC.STATUS = 0
+LEFT JOIN T_PRJT_CREDIT TPCD ON TPCD.ID =
+                                TRC.PRCD_ID
+                            AND TPCD.STATUS = 0
+WHERE trcd.STATUS = 0
+and 
+(year(TPCD.FINANCECONTRACT_DATE) < YEAR(convert(DATE,convert(varchar,#startDate#, 23)))							
+OR
+( 	year(TPCD.FINANCECONTRACT_DATE) = YEAR(convert(DATE,convert(varchar,#startDate#, 23)))
+AND month(TPCD.FINANCECONTRACT_DATE) <= MONTH(convert(DATE,convert(varchar,#startDate#, 23))) ))
+) t) tt
+union
+select tt.RECP_ID, 
+TT.QI_DATE,DATEDIFF(mm, 0, dateadd(m, 1, QI_DATE)) MONTH,
+CASE
+WHEN RECP_STATUS = 3  AND 
+(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+FROM T_RENT_SETTLE trst
+WHERE STATUS=0 
+AND RECP_ID = tt.RECP_ID
+GROUP BY trst.RECP_ID
+) 
+<= CONVERT(VARCHAR(7),finance_date,23)
+THEN 0	
+WHEN day(FIRST_PAYDATE)=1 then 0	
+WHEN PERIOD_NUM = LEASE_PERIOD THEN
+ROUND(LEASE_TOPRIC * INSURE_BASE_RATE*( LEASE_PERIOD / 12)* (30-tian) / (360* (LEASE_PERIOD / 12)), 2)
+ELSE
+0
+END baoxian,
+round(LEASE_TOPRIC * INSURE_BASE_RATE * LEASE_PERIOD * LEASE_TERM / 12,2) insurance,
+PERIOD_NUM,LEASE_PERIOD,FIRST_PAYDATE,FINANCECONTRACT_DATE
+from (SELECT *,
+DATEDIFF(day,
+      finance_date,
+      dateadd(dd,
+              -day(dateadd(m, 1, finance_date)),
+              dateadd(m, 1, finance_date))) + 1 tian,
+(SELECT MAX(T.RATE_VALUE) / 100 INSURE_BASE_RATE
+FROM T_RATE_CONFIG T
+WHERE T.STATUS = 0
+ AND CONVERT(VARCHAR(10), T.START_DATE, 23) <=
+     CONVERT(VARCHAR(10), DATEADD(M, 1, FINANCECONTRACT_DATE), 23)
+ AND CONVERT(VARCHAR(10), T.END_DATE, 23) >=
+     CONVERT(VARCHAR(10), DATEADD(M, 1, FINANCECONTRACT_DATE), 23)
+ AND T.FILED_NAME = 'INSURE_BASE_RATE' and T.TAX_PLAN_CODE='1') INSURE_BASE_RATE
+FROM (select TRCP.RECP_ID,
+     trcd.PERIOD_NUM,
+     TRCP.LEASE_TOPRIC,
+     LEASE_PERIOD,
+     trcd.REN_PRICE,
+     trcp.LEASE_TERM,
+     case
+     when CONVERT(VARCHAR(7),trcd.finance_date,23)<=CONVERT(VARCHAR(7),FINANCECONTRACT_DATE,23) then
+      FINANCECONTRACT_DATE
+     else
+      trcd.finance_date
+     end
+      QI_DATE,
+     trcd.finance_date finance_date,
+     FINANCECONTRACT_DATE,FIRST_PAYDATE,
+     RECP_STATUS
+from T_RENT_COLLECTIONDETAIL trcd
+left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID =
+                                        trcd.RECP_ID
+                                    AND trcp.STATUS = 0
+LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID =
+                                 trcp.RECT_ID
+                             AND TRC.STATUS = 0
+LEFT JOIN T_PRJT_CREDIT TPCD ON TPCD.ID =
+                                TRC.PRCD_ID
+                            AND TPCD.STATUS = 0
+WHERE trcd.STATUS = 0 
+and 
+(year(TPCD.FINANCECONTRACT_DATE) < YEAR(convert(DATE,convert(varchar,#startDate#, 23)))							
+OR
+( 	year(TPCD.FINANCECONTRACT_DATE) = YEAR(convert(DATE,convert(varchar,#startDate#, 23)))
+AND month(TPCD.FINANCECONTRACT_DATE) <= MONTH(convert(DATE,convert(varchar,#startDate#, 23))) ))
+) t) tt   
+)ttt
+where 
+DATEDIFF(mm, 0, dateadd(m, 1, DATEADD(M,LEASE_PERIOD-1 ,FIRST_PAYDATE)))>MONTH
+and RECP_ID=t0.RECP_ID
+GROUP BY RECP_ID,LEASE_PERIOD,FIRST_PAYDATE ,FINANCECONTRACT_DATE,MONTH 
+) total
+group by RECP_ID)
+)
+else
+0
+end 
+when CONVERT(VARCHAR(7),DATEADD(M,LEASE_PERIOD,FIRST_PAYDATE),23)=CONVERT(VARCHAR(7),convert(date,convert(varchar,Y)+'-'+convert(varchar,M)+'-01'),23)
+then
+convert(decimal(18,2),insurance-
+(select sum(monthinsurance) totalinsurance from
+(select 
+SUM(baoxian) monthinsurance,
+RECP_ID,
+MAX(insurance) insurance,
+YEAR(DATEADD(mm, MONTH, 0)) Y,MONTH(DATEADD(mm, MONTH, 0)) M,
+LEASE_PERIOD,FIRST_PAYDATE ,FINANCECONTRACT_DATE
+FROM (
+select tt.RECP_ID,
+TT.QI_DATE,DATEDIFF(mm, 0, QI_DATE) MONTH,
+CASE
+WHEN RECP_STATUS = 3  AND 
+(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+FROM T_RENT_SETTLE trst
+WHERE STATUS=0 
+AND RECP_ID = tt.RECP_ID
+GROUP BY trst.RECP_ID
+) 
+<= CONVERT(VARCHAR(7),finance_date,23)
+THEN 0	
+WHEN day(FIRST_PAYDATE)=1 then 
+round(ROUND(LEASE_TOPRIC * INSURE_BASE_RATE * LEASE_PERIOD / 12,2)/LEASE_PERIOD,2)
+WHEN PERIOD_NUM = 1 THEN
+ROUND(LEASE_TOPRIC * INSURE_BASE_RATE*( LEASE_PERIOD / 12)* tian / (360 * (LEASE_PERIOD / 12)) , 2)
+ELSE
+ROUND(LEASE_TOPRIC * INSURE_BASE_RATE*( LEASE_PERIOD / 12)* 30 / (360* (LEASE_PERIOD / 12)) , 2)
+END baoxian,
+ROUND(LEASE_TOPRIC * INSURE_BASE_RATE * LEASE_PERIOD / 12,2) insurance,
+PERIOD_NUM,LEASE_PERIOD,FIRST_PAYDATE,FINANCECONTRACT_DATE
+from (SELECT *,
+DATEDIFF(day,
+      finance_date,
+      dateadd(dd,
+              -day(dateadd(m, 1, finance_date)),
+              dateadd(m, 1, finance_date))) + 1 tian,
+(SELECT MAX(T.RATE_VALUE) / 100 INSURE_BASE_RATE
+FROM T_RATE_CONFIG T
+WHERE T.STATUS = 0
+ AND CONVERT(VARCHAR(10), T.START_DATE, 23) <=
+     CONVERT(VARCHAR(10), FINANCECONTRACT_DATE, 23)
+ AND CONVERT(VARCHAR(10), T.END_DATE, 23) >=
+     CONVERT(VARCHAR(10), FINANCECONTRACT_DATE, 23)
+ AND T.FILED_NAME = 'INSURE_BASE_RATE' and T.TAX_PLAN_CODE='1') INSURE_BASE_RATE
+FROM (select trcp.recp_id,
+     trcd.PERIOD_NUM,
+     TRCP.LEASE_TOPRIC,
+     LEASE_PERIOD,
+     trcd.REN_PRICE,
+     trcp.LEASE_TERM,
+    case
+     when CONVERT(VARCHAR(7),trcd.finance_date,23)<=CONVERT(VARCHAR(7),FINANCECONTRACT_DATE,23) then
+      FINANCECONTRACT_DATE
+     else
+      trcd.finance_date
+     end
+      QI_DATE,
+     trcd.finance_date finance_date,
+TPCD.FINANCECONTRACT_DATE,FIRST_PAYDATE,
+RECP_STATUS
+from T_RENT_COLLECTIONDETAIL trcd
+left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID =
+                                        trcd.RECP_ID
+                                    AND trcp.STATUS = 0
+LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID =
+                                 trcp.RECT_ID
+                             AND TRC.STATUS = 0
+LEFT JOIN T_PRJT_CREDIT TPCD ON TPCD.ID =
+                                TRC.PRCD_ID
+                            AND TPCD.STATUS = 0                     
+WHERE trcd.STATUS = 0
+and 
+(year(TPCD.FINANCECONTRACT_DATE) < YEAR(convert(DATE,convert(varchar,#startDate#, 23)))							
+OR
+( 	year(TPCD.FINANCECONTRACT_DATE) = YEAR(convert(DATE,convert(varchar,#startDate#, 23)))
+AND month(TPCD.FINANCECONTRACT_DATE) <= MONTH(convert(DATE,convert(varchar,#startDate#, 23))) ))
+) t) tt
+union
+select tt.RECP_ID, 
+TT.QI_DATE,DATEDIFF(mm, 0, dateadd(m, 1, QI_DATE)) MONTH,
+CASE
+WHEN RECP_STATUS = 3  AND 
+(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+FROM T_RENT_SETTLE trst
+WHERE STATUS=0 
+AND RECP_ID = tt.RECP_ID
+GROUP BY trst.RECP_ID
+) 
+<= CONVERT(VARCHAR(7),finance_date,23)
+THEN 0	
+WHEN day(FIRST_PAYDATE)=1 then 0	
+WHEN PERIOD_NUM = LEASE_PERIOD THEN
+ROUND(LEASE_TOPRIC * INSURE_BASE_RATE*( LEASE_PERIOD / 12)* (30-tian) / (360* (LEASE_PERIOD / 12)), 2)
+ELSE
+0
+END baoxian,
+round(LEASE_TOPRIC * INSURE_BASE_RATE * LEASE_PERIOD * LEASE_TERM / 12,2) insurance,
+PERIOD_NUM,LEASE_PERIOD,FIRST_PAYDATE,FINANCECONTRACT_DATE
+from (SELECT *,
+DATEDIFF(day,
+      finance_date,
+      dateadd(dd,
+              -day(dateadd(m, 1, finance_date)),
+              dateadd(m, 1, finance_date))) + 1 tian,
+(SELECT MAX(T.RATE_VALUE) / 100 INSURE_BASE_RATE
+FROM T_RATE_CONFIG T
+WHERE T.STATUS = 0
+ AND CONVERT(VARCHAR(10), T.START_DATE, 23) <=
+     CONVERT(VARCHAR(10), DATEADD(M, 1, FINANCECONTRACT_DATE), 23)
+ AND CONVERT(VARCHAR(10), T.END_DATE, 23) >=
+     CONVERT(VARCHAR(10), DATEADD(M, 1, FINANCECONTRACT_DATE), 23)
+ AND T.FILED_NAME = 'INSURE_BASE_RATE' and T.TAX_PLAN_CODE='1') INSURE_BASE_RATE
+FROM (select TRCP.RECP_ID,
+     trcd.PERIOD_NUM,
+     TRCP.LEASE_TOPRIC,
+     LEASE_PERIOD,
+     trcd.REN_PRICE,
+     trcp.LEASE_TERM,
+     case
+     when CONVERT(VARCHAR(7),trcd.finance_date,23)<=CONVERT(VARCHAR(7),FINANCECONTRACT_DATE,23) then
+      FINANCECONTRACT_DATE
+     else
+      trcd.finance_date
+     end
+      QI_DATE,
+     trcd.finance_date finance_date,
+     FINANCECONTRACT_DATE,FIRST_PAYDATE,
+     RECP_STATUS
+from T_RENT_COLLECTIONDETAIL trcd
+left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID =
+                                        trcd.RECP_ID
+                                    AND trcp.STATUS = 0
+LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID =
+                                 trcp.RECT_ID
+                             AND TRC.STATUS = 0
+LEFT JOIN T_PRJT_CREDIT TPCD ON TPCD.ID =
+                                TRC.PRCD_ID
+                            AND TPCD.STATUS = 0                         
+WHERE trcd.STATUS = 0 
+and 
+(year(TPCD.FINANCECONTRACT_DATE) < YEAR(convert(DATE,convert(varchar,#startDate#, 23)))							
+OR
+( 	year(TPCD.FINANCECONTRACT_DATE) = YEAR(convert(DATE,convert(varchar,#startDate#, 23)))
+AND month(TPCD.FINANCECONTRACT_DATE) <= MONTH(convert(DATE,convert(varchar,#startDate#, 23))) ))
+) t) tt   
+)ttt
+where 
+DATEDIFF(mm, 0, dateadd(m, 1, DATEADD(M,LEASE_PERIOD-1 ,FIRST_PAYDATE)))>MONTH
+and RECP_ID=t0.RECP_ID
+GROUP BY RECP_ID,LEASE_PERIOD,FIRST_PAYDATE ,FINANCECONTRACT_DATE,MONTH 
+) total
+group by RECP_ID)
+)
+else
+monthinsurance
+end monthinsurance,
+RECP_STATUS
+from (
+select 
+ SUM(baoxian) monthinsurance,
+ RECP_ID,
+ MAX(insurance) insurance,
+ LEASE_PERIOD,FIRST_PAYDATE ,FINANCECONTRACT_DATE,
+ YEAR(DATEADD(mm, MONTH, 0)) Y,MONTH(DATEADD(mm, MONTH, 0)) M,RECP_STATUS
+FROM (
+select tt.RECP_ID,
+ TT.QI_DATE,DATEDIFF(mm, 0, QI_DATE) MONTH,
+ CASE
+WHEN RECP_STATUS = 3  AND 
+(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+FROM T_RENT_SETTLE trst
+WHERE STATUS=0 
+AND RECP_ID = tt.RECP_ID
+GROUP BY trst.RECP_ID
+) 
+<= CONVERT(VARCHAR(7),finance_date,23)
+THEN 0
+WHEN day(FIRST_PAYDATE)=1 then 
+round(ROUND(LEASE_TOPRIC * INSURE_BASE_RATE * LEASE_PERIOD / 12,2)/LEASE_PERIOD,2)	
+   WHEN PERIOD_NUM = 1 THEN
+    ROUND(LEASE_TOPRIC * INSURE_BASE_RATE*( LEASE_PERIOD / 12)* tian / (360 * (LEASE_PERIOD / 12)) , 2)
+   ELSE
+    ROUND(LEASE_TOPRIC * INSURE_BASE_RATE*( LEASE_PERIOD / 12)* 30 / (360* (LEASE_PERIOD / 12)) , 2)
+ END baoxian,
+ ROUND(LEASE_TOPRIC * INSURE_BASE_RATE * LEASE_PERIOD / 12,2) insurance,
+ PERIOD_NUM,LEASE_PERIOD,FIRST_PAYDATE,FINANCECONTRACT_DATE,RECP_STATUS
+from (SELECT *,
+         DATEDIFF(day,
+                  finance_date,
+                  dateadd(dd,
+                          -day(dateadd(m, 1, finance_date)),
+                          dateadd(m, 1, finance_date))) + 1 tian,
+         (SELECT MAX(T.RATE_VALUE) / 100 INSURE_BASE_RATE
+            FROM T_RATE_CONFIG T
+           WHERE T.STATUS = 0
+             AND CONVERT(VARCHAR(10), T.START_DATE, 23) <=
+                 CONVERT(VARCHAR(10), FINANCECONTRACT_DATE, 23)
+             AND CONVERT(VARCHAR(10), T.END_DATE, 23) >=
+                 CONVERT(VARCHAR(10), FINANCECONTRACT_DATE, 23)
+             AND T.FILED_NAME = 'INSURE_BASE_RATE' and T.TAX_PLAN_CODE='1') INSURE_BASE_RATE
+    FROM (select trcp.recp_id,
+                 trcd.PERIOD_NUM,
+                 TRCP.LEASE_TOPRIC,
+                 trcp.LEASE_PERIOD,
+                 trcd.REN_PRICE,
+                 trcp.LEASE_TERM,
+                case
+                 when CONVERT(VARCHAR(7),trcd.finance_date,23)<=CONVERT(VARCHAR(7),FINANCECONTRACT_DATE,23) then
+                  FINANCECONTRACT_DATE
+                 else
+                  trcd.finance_date
+                 end
+                  QI_DATE,
+                 trcd.finance_date finance_date,
+   TPCD.FINANCECONTRACT_DATE,FIRST_PAYDATE,
+   RECP_STATUS
+            from T_RENT_COLLECTIONDETAIL trcd
+            left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID =
+                                                    trcd.RECP_ID
+                                                AND trcp.STATUS = 0
+            LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID =
+                                             trcp.RECT_ID
+                                         AND TRC.STATUS = 0
+            LEFT JOIN T_PRJT_CREDIT TPCD ON TPCD.ID =
+                                            TRC.PRCD_ID
+                                        AND TPCD.STATUS = 0
+            left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID and trcs.STATUS=0
+           WHERE trcd.STATUS = 0 and trcs.INSURANCE_COMPANY_ID!=4
+            and 
+           (year(TPCD.FINANCECONTRACT_DATE) < YEAR(convert(DATE,convert(varchar,#startDate#, 23)))							
+           OR
+( 	year(TPCD.FINANCECONTRACT_DATE) = YEAR(convert(DATE,convert(varchar,#startDate#, 23)))
+	AND month(TPCD.FINANCECONTRACT_DATE) <= MONTH(convert(DATE,convert(varchar,#startDate#, 23))) ))
+           ) t) tt
+	union  
+		 select tt.RECP_ID, 
+         TT.QI_DATE,DATEDIFF(mm, 0, dateadd(m, 1, QI_DATE)) MONTH,
+         CASE
+         	WHEN RECP_STATUS = 3  AND 
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = tt.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+			<= CONVERT(VARCHAR(7),finance_date,23)
+	THEN 0	
+   WHEN day(FIRST_PAYDATE)=1 then 0
+   WHEN PERIOD_NUM = LEASE_PERIOD THEN
+    ROUND(LEASE_TOPRIC * INSURE_BASE_RATE*( LEASE_PERIOD / 12)* (30-tian) / (360* (LEASE_PERIOD / 12)), 2)
+   ELSE
+    0
+ END baoxian,
+ round(LEASE_TOPRIC * INSURE_BASE_RATE * LEASE_PERIOD * LEASE_TERM / 12,2) insurance,
+ PERIOD_NUM,LEASE_PERIOD,FIRST_PAYDATE,FINANCECONTRACT_DATE,RECP_STATUS
+from (SELECT *,
+         DATEDIFF(day,
+                  finance_date,
+                  dateadd(dd,
+                          -day(dateadd(m, 1, finance_date)),
+                          dateadd(m, 1, finance_date))) + 1 tian,
+         (SELECT MAX(T.RATE_VALUE) / 100 INSURE_BASE_RATE
+            FROM T_RATE_CONFIG T
+           WHERE T.STATUS = 0
+             AND CONVERT(VARCHAR(10), T.START_DATE, 23) <=
+                 CONVERT(VARCHAR(10), DATEADD(M, 1, FINANCECONTRACT_DATE), 23)
+             AND CONVERT(VARCHAR(10), T.END_DATE, 23) >=
+                 CONVERT(VARCHAR(10), DATEADD(M, 1, FINANCECONTRACT_DATE), 23)
+             AND T.FILED_NAME = 'INSURE_BASE_RATE' and T.TAX_PLAN_CODE='1') INSURE_BASE_RATE
+    FROM (select TRCP.RECP_ID,
+                 trcd.PERIOD_NUM,
+                 TRCP.LEASE_TOPRIC,
+                 trcp.LEASE_PERIOD,
+                 trcd.REN_PRICE,
+                 trcp.LEASE_TERM,
+                 case
+                 when CONVERT(VARCHAR(7),trcd.finance_date,23)<=CONVERT(VARCHAR(7),FINANCECONTRACT_DATE,23) then
+                  FINANCECONTRACT_DATE
+                 else
+                  trcd.finance_date
+                 end
+                  QI_DATE,
+                 trcd.finance_date finance_date,
+                 FINANCECONTRACT_DATE,FIRST_PAYDATE,
+                 RECP_STATUS
+            from T_RENT_COLLECTIONDETAIL trcd
+            left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID =
+                                                    trcd.RECP_ID
+                                                AND trcp.STATUS = 0
+            LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID =
+                                             trcp.RECT_ID
+                                         AND TRC.STATUS = 0
+            LEFT JOIN T_PRJT_CREDIT TPCD ON TPCD.ID =
+                                            TRC.PRCD_ID
+                                        AND TPCD.STATUS = 0
+           left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID and trcs.STATUS=0
+           WHERE trcd.STATUS = 0 
+           and trcs.INSURANCE_COMPANY_ID!=4
+           and 
+           (year(TPCD.FINANCECONTRACT_DATE) < YEAR(convert(DATE,convert(varchar,#startDate#, 23)))							
+           OR
+( 	year(TPCD.FINANCECONTRACT_DATE) = YEAR(convert(DATE,convert(varchar,#startDate#, 23)))
+	AND month(TPCD.FINANCECONTRACT_DATE) <= MONTH(convert(DATE,convert(varchar,#startDate#, 23))) ))
+           ) t) tt   
+)ttt
+GROUP BY 
+RECP_ID,LEASE_PERIOD,FIRST_PAYDATE ,FINANCECONTRACT_DATE,MONTH,RECP_STATUS
+) t0
+) tall
+LEFT JOIN T_RENT_COLLECTIONPLAN T1 ON tall.RECP_ID = T1.RECP_ID 
+LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = T1.RECT_ID  AND T2.STATUS = 0
+LEFT JOIN T_CUST_CUSTOMER T3 ON T3.CUST_ID = T2.CUST_ID AND T3.STATUS = 0
+LEFT JOIN T_USER_USER T5 ON T5.ID = T2.SENSOR_ID 
+left join T_DEPT_DEPARTMENT TDD on TDD.ID=t5.DEPT_ID and tdd.STATUS=0
+LEFT JOIN T_DEPT_COMPANY T4 ON T4.DECP_ID = TDD.DECP_ID AND T4.STATUS = 0
+LEFT JOIN (SELECT RECT_ID, MAX(EQMT_ID) EQMT_ID
+           FROM T_RENT_CONTRACTDETAIL
+          WHERE STATUS = 0
+          GROUP BY RECT_ID) T6 ON T6.RECT_ID = T1.RECT_ID
+LEFT JOIN T_EQMT_EQUIPMENT T7 ON T7.EQMT_ID = T6.EQMT_ID AND T7.STATUS = 0
+LEFT JOIN T_SUPL_EQUIPMENT T8 ON T7.SUEQ_ID = T8.SUEQ_ID AND T8.STATUS = 0
+LEFT JOIN T_SUPL_SUPPLIER T9 ON T9.ID = T8.SUPPLIER_ID AND T9.STATUS = 0
+where tall.y=year(#startDate#) and tall.m=month(#startDate#) 
+and 
+(t2.RECT_TYPE<>3 and t2.RECT_TYPE<>4) and tall.monthinsurance>0
+)ttttt
+	]]>	 
+	-->
+	<![CDATA[
+select CUST_NAME,SUPL_NAME,RECP_CODE,NAME,DECP_NAME_CN,LEASE_TOPRIC,FIRST_PAYDATE,LEASE_PERIOD,INSURANCE,QCYE,BQXZ,MONTHINSURANCE,convert(decimal(18,2),(qcye+bqxz-monthinsurance)) qmye,convert(Date,GETDATE(),23)FINANCE_DATE from (
+select t1.RECP_ID,t1.LEASE_PERIOD,T3.CUST_NAME,
+T9.NAME SUPL_NAME,
+T4.DECP_NAME_CN,
+T5.NAME,
+T2.LEASE_CODE RECP_CODE,
+T1.LEASE_TOPRIC,tpc.FINANCECONTRACT_DATE,T1.FIRST_PAYDATE,trid.INSURANCE,
+
+case
+when CONVERT(VARCHAR(7),convert(date,convert(varchar,trid.Y)+'-'+convert(varchar,trid.M)+'-01'),23)=CONVERT(VARCHAR(7),tpc.FINANCECONTRACT_DATE,23)
+then
+trid.INSURANCE
+else
+0
+end bqxz,
+
+case
+when CONVERT(VARCHAR(7),convert(date,convert(varchar,trid.Y)+'-'+convert(varchar,trid.M)+'-01'),23)<>CONVERT(VARCHAR(7),tpc.FINANCECONTRACT_DATE,23)
+then
+trid.INSURANCE - (
+select sum(TT.MONTHINSURANCE) MONTHINSURANCE from T_RENT_INSURANCE_DETAIL TT  
+where (TT.Y<year(#startDate#) or(TT.Y=year(#startDate#) and TT.M<month(#startDate#)))
+and TT.RECP_ID = trid.RECP_ID
+GROUP BY RECP_ID
+)
+
+else
+0
+end qcye,
+
+case 
+WHEN trid.RECP_STATUS = 3 then
+
+case 
+when
+(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+FROM T_RENT_SETTLE trst
+WHERE STATUS=0 
+AND RECP_ID = trid.RECP_ID
+GROUP BY trst.RECP_ID
+) 
+= CONVERT(VARCHAR(7),convert(date,convert(varchar,trid.Y)+'-'+convert(varchar,trid.M)+'-01'),23)
+then
+
+trid.INSURANCE - (
+select sum(TT.MONTHINSURANCE) MONTHINSURANCE from T_RENT_INSURANCE_DETAIL TT  
+where (TT.Y<year(#startDate#) or(TT.Y=year(#startDate#) and TT.M<month(#startDate#)))
+and TT.RECP_ID = trid.RECP_ID
+GROUP BY RECP_ID
+)
+end 
+else
+MONTHINSURANCE
+end MONTHINSURANCE
+
+from T_RENT_INSURANCE_DETAIL  trid
+LEFT JOIN T_RENT_COLLECTIONPLAN T1 ON trid.RECP_ID = T1.RECP_ID 
+LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = T1.RECT_ID  AND T2.STATUS = 0
+left join T_PRJT_CREDIT tpc on T2.PRCD_ID = tpc.ID and tpc.STATUS = 0
+LEFT JOIN T_CUST_CUSTOMER T3 ON T3.CUST_ID = T2.CUST_ID AND T3.STATUS = 0
+LEFT JOIN T_USER_USER T5 ON T5.ID = T2.SENSOR_ID 
+left join T_DEPT_DEPARTMENT TDD on TDD.ID=t5.DEPT_ID and tdd.STATUS=0
+LEFT JOIN T_DEPT_COMPANY T4 ON T4.DECP_ID = TDD.DECP_ID AND T4.STATUS = 0
+LEFT JOIN (SELECT RECT_ID, MAX(EQMT_ID) EQMT_ID
+           FROM T_RENT_CONTRACTDETAIL
+          WHERE STATUS = 0
+          GROUP BY RECT_ID) T6 ON T6.RECT_ID = T1.RECT_ID
+LEFT JOIN T_EQMT_EQUIPMENT T7 ON T7.EQMT_ID = T6.EQMT_ID AND T7.STATUS = 0
+LEFT JOIN T_SUPL_EQUIPMENT T8 ON T7.SUEQ_ID = T8.SUEQ_ID AND T8.STATUS = 0
+LEFT JOIN T_SUPL_SUPPLIER T9 ON T9.ID = T8.SUPPLIER_ID AND T9.STATUS = 0
+where t1.status=0 and tpc.FINANCECONTRACT_DATE is not null
+and  trid.y=year(#startDate#) and trid.m=month(#startDate#) 
+) TTT where MONTHINSURANCE>0
+	]]>
+</select>
+
+<select id="queryDecomposeByDayForValueAdd" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[	
+		select ddr.*,trcd.IRR_MONTH_PRICE,isnull(trcd.VALUE_ADDED_TAX,0)VALUE_ADDED_TAX,isnull(trcd.REDUCE_OWN_PRICE,0)REDUCE_OWN_PRICE,trcp.TAX_PLAN_CODE from DAILY_DECOMPOSE_REPORT  ddr
+		left join T_RENT_COLLECTIONPLAN trcp on ddr.RECP_ID=trcp.RECP_ID and trcp.STATUS='0'
+		left join T_RENT_COLLECTIONDETAIL trcd 
+		on ddr.RECP_ID=trcd.RECP_ID and ddr.RECD_PERIOD=trcd.PERIOD_NUM and trcd.STATUS='0'
+		 where ddr.FICB_ITEM=#ficb_item# and YEAR(ddr.CREATE_TIME)=year(GETDATE()) and month(ddr.CREATE_TIME)=month(GETDATE()) and day(ddr.CREATE_TIME)=day(GETDATE())
+	]]>
+</select>
+
+	<!--  修改来款的分解状态  -->
+	<update id="updateDecomposeDailyFicbItem" parameterClass="map">
+		<![CDATA[
+			update DAILY_DECOMPOSE_REPORT  
+		    set  FICB_ITEM = '增值税'
+		    where  id = #ID#
+		]]>
+	</update>	
+	
+		<!--  此次销账租金的金额  -->
+	<update id="addDecomposeDailyForValueAdd" parameterClass="map">
+		<![CDATA[
+			update DAILY_DECOMPOSE_REPORT  
+		    set  REAL_PRICE = #REAL_PRICE#
+		    where  id = #ID#
+		]]>
+	</update>
+	
+	<insert id="insertCurrencyDecomposeReportForValueAdd" parameterClass="map">
+		<![CDATA[
+			insert into DAILY_DECOMPOSE_REPORT
+			  (OPPOSING_DATE,CUST_NAME, CUST_CODE,LEASE_CODE,FICB_ITEM,REAL_PRICE,BANK_NAME,FINANCE_TYPE,CREATE_TIME,FIIN_ID,RECP_ID,RECD_PERIOD,FICB_ID,BANK_CODE)
+			values
+			  (#OPPOSING_DATE#,#CUST_NAME#,#CUST_CODE#,#LEASE_CODE#,#FICB_ITEM#,#REAL_PRICE#,#BANK_NAME#,#FINANCE_TYPE#,getdate(),#FIIN_ID#,#RECP_ID#,#RECD_PERIOD#,#FICB_ID#,#RECEIPT_BANKNO#)
+		]]>		
+	</insert>
+	
+<select id="queryDecomposePledgeBRecpID" parameterClass="map" resultClass="java.util.HashMap">
+	select T.recp_id,T.FICB_ID,T.FIIN_ID, T.REAL_PRICE from T_FINA_COLLECTIONBILL  T
+  left join t_rent_collectionplan trcp on t.recp_id=trcp.recp_id 
+   where FICB_ITEM='保证金B' and ficb_type='0' and (FICB_STATE='4' or FICB_STATE='5' ) 
+   and trcp.recp_status=0
+   AND NOT EXISTS (SELECT 1 FROM T_PLEDGE_B_CHARGE_BACK TP WHERE TP.STATUS=0 AND TP.RECP_ID=T.RECP_ID)	
+</select>
+
+<select id="queryDecomposePledgeBLastPeriod" parameterClass="map" resultClass="java.util.HashMap">
+	select pledge_last_period as LAST_PERIOD from t_rent_collectionplan where STATUS=0 and recp_id=#RECP_ID#
+</select>	
+
+<select id="queryDecomposePledgeBDetail" parameterClass="map" resultClass="java.util.HashMap">
+   select top (#LAST_PERIOD#) RECP_ID,recd_id, (IRR_MONTH_PRICE+ isnull(VALUE_ADDED_TAX,0)) IRR_MONTH_PRICE, isnull(REDUCE_OWN_PRICE,0) REDUCE_OWN_PRICE,PAY_DATE, PERIOD_NUM from T_RENT_COLLECTIONDETAIL where recp_id=#RECP_ID# and status=0
+   order by period_num desc
+</select>  
+ 
+<select id="queryDecomposePledgeBCollectoinBill" parameterClass="map" resultClass="java.util.HashMap">
+   select * from T_FINA_COLLECTIONBILL
+   where ficb_id=#FICB_ID#
+</select> 
+
+<insert id="insertCollectionBillByPledgeB" parameterClass="map">
+	insert into T_FINA_COLLECTIONBILL(
+		RECP_ID, RECP_CODE, PAY_DATE, RECD_PERIOD, FICB_ITEM, SHOULD_PRICE, REAL_PRICE, FIIN_ID, CUST_CODE, FICB_STATE, FICB_TYPE, RECD_TYPE, ITEM_ORDER, DECOMPOSE_ID, DECOMPOSE_DATE, CHECK_ID, CHECK_DATE, [TYPE], STATUS, CREATE_DATE, CREATE_NAME, MODIFY_DATE, DEPOSIT_STATUS, RED_CHECK_ID, RED_CHECK_DATE, DEPOSIT_FLAG, IS_PLEDGE_B, PRINCIPAL_RUNCODE, REAL_OWN_PRICE, ORI_PRINCIPAL_RUNCODE, IS_PRINT
+	) values(
+		#RECP_ID#, #RECP_CODE#, #PAY_DATE#, #RECD_PERIOD#, #FICB_ITEM#, #SHOULD_PRICE#, #REAL_PRICE#, #FIIN_ID#, #CUST_CODE#, #FICB_STATE#, #FICB_TYPE#, #RECD_TYPE#, #ITEM_ORDER#, #DECOMPOSE_ID#, getDate(), #CHECK_ID#, getDate(), #TYPE#, #STATUS#, getDate(), #CREATE_NAME#, getDate(), #DEPOSIT_STATUS#, #RED_CHECK_ID#, getDate(), #DEPOSIT_FLAG#, #IS_PLEDGE_B#, #PRINCIPAL_RUNCODE#, #REAL_OWN_PRICE#, #ORI_PRINCIPAL_RUNCODE#, #IS_PRINT#
+	)
+</insert>
+
+<select id="queryDecomposePledgeBFinanceIncome" parameterClass="map" resultClass="java.util.HashMap">
+   select * from T_FINA_INCOME
+   where FIIN_ID=#FIIN_ID#
+</select>
+ 
+<insert id="insertFinanceIncome" parameterClass="map">
+	insert into T_FINA_INCOME(
+		RECEIPT_BANKNO, RECEIPT_UNIT, OPPOSING_BANKNO, OPPOSING_UNIT, OPPOSING_BANKNAME, OPPOSING_DATE, OPPOSING_TYPE, OPPOSING_FLAG, OPPOSING_ADDRESS, OPPOSING_SUMMARY, OPPOSING_EXPLAIN, OPPOSING_POSTSCRIPT, INCOME_MONEY, PAYMENT_MONEY, LEFT_MONEY, COMMISSION_MONEY, LOCKED, DECOMPOSE_STATUS, OPERATE_REMARK, OPERATE_ID, OPERATE_TIME, FINANCE_REMARK, FINANCE_ID, FINANCE_TIME, LEFT_ID, TRANSFER_ID, RED_ID, RED_TYPE, EXPORT_FLAG, EXPORT_COUNT, EXPORT_NAME, EXPORT_TIME, [TYPE], STATUS, UPLOAD_USER_ID, UPLOAD_TIME, UPLOAD_PATH, MODIFY__USER_ID, MODIFY_TIME, OPPOSING_DATETAG, FICB_FLAG, virtual_code, Abnormal_Status, Income_Finance_Code
+	) values(
+		#RECEIPT_BANKNO#, #RECEIPT_UNIT#, #OPPOSING_BANKNO#, #OPPOSING_UNIT#, #OPPOSING_BANKNAME#, #OPPOSING_DATE#, #OPPOSING_TYPE#, #OPPOSING_FLAG#, #OPPOSING_ADDRESS#, #OPPOSING_SUMMARY#, #OPPOSING_EXPLAIN#, #OPPOSING_POSTSCRIPT#, #INCOME_MONEY#, #PAYMENT_MONEY#, #LEFT_MONEY#, #COMMISSION_MONEY#, #LOCKED#, #DECOMPOSE_STATUS#, #OPERATE_REMARK#, #OPERATE_ID#, #OPERATE_TIME#, #FINANCE_REMARK#, #FINANCE_ID#, #FINANCE_TIME#, #LEFT_ID#, #TRANSFER_ID#, #RED_ID#, #RED_TYPE#, #EXPORT_FLAG#, #EXPORT_COUNT#, #EXPORT_NAME#, #EXPORT_TIME#, #TYPE#, #STATUS#, #UPLOAD_USER_ID#, #UPLOAD_TIME#, #UPLOAD_PATH#, #MODIFY__USER_ID#, #MODIFY_TIME#, #OPPOSING_DATETAG#, #FICB_FLAG#, #VIRTUAL_CODE#, #ABNORMAL_STATUS#, #INCOME_FINANCE_CODE#
+	)
+	<selectKey resultClass="java.lang.Long" keyProperty="FIIN_ID">
+		SELECT @@IDENTITY AS FIIN_ID
+	</selectKey> 
+</insert>
+
+	<update id="updateRentCollectionReduce" parameterClass="map">
+		<![CDATA[
+			update T_RENT_COLLECTIONDETAIL  
+		    set  REDUCE_OWN_PRICE = #IRR_MONTH_PRICE#
+		    where  recd_id = #RECD_ID#
+		]]>
+	</update>
+
+<insert id="insertPledgeBDecomposeLog" parameterClass="map">
+	insert into t_log_pledgeB(
+		recp_id,oppo_date,recd_id
+	) values(
+		#RECP_ID#,getDate(),#RECD_ID#
+	)
+</insert>
+<select id="queryDayNoSendLockEmailInfo" parameterClass="map" resultClass="java.util.HashMap">
+	select dlsi.*,trct.LEASE_CODE from DAILY_LOCKMANAGE_SENDINFO dlsi
+	left join T_SEND_EMAIL tse on dlsi.RENTER_EMAIL=tse.EMAIL_TO
+	left join T_RENT_CONTRACT trct on trct.RECT_ID=dlsi.RECT_ID
+	where   year(dlsi.CREATE_TIME)=year(GETDATE()) and MONTH(dlsi.CREATE_TIME)=MONTH(GETDATE()) and DAY(dlsi.CREATE_TIME)=DAY(GETDATE())
+	and year(tse.CREATE_TIME)=year(GETDATE()) and MONTH(tse.CREATE_TIME)=MONTH(GETDATE()) and DAY(tse.CREATE_TIME)=DAY(GETDATE())
+	and tse.SEND_FLAG=-1
+</select>
+<!-- 获取当日拨款的支付表 ID -->
+<select id="selectRentRecpIDByFinanceDate" parameterClass="map" resultClass="java.util.HashMap">
+ 
+	select trcp.RECP_ID from T_PRJT_CREDIT tpc
+	left join T_RENT_CONTRACT trct on tpc.id=trct.PRCD_ID and trct.status=0
+	left join T_RENT_COLLECTIONPLAN trcp on trct.RECT_ID = trcp.RECT_ID and trcp.STATUS = 0
+	where year(tpc.FINANCECONTRACT_DATE)=year(getDate()) and month(tpc.FINANCECONTRACT_DATE)=month(getDate())
+	and day(tpc.FINANCECONTRACT_DATE)=day(getDate())
+	and tpc.status=0  and isnull(trcp.INSURE_PRICE,0) >0
+
+<!--  	
+	select RECP_ID from T_RENT_COLLECTIONplan where isnull(INSURE_PRICE,0)>0 and RECP_ID
+	not in(select RECP_ID from T_RENT_INSURANCE_DETAIL group by RECP_ID) and STATUS=0
+
+select trcp.RECP_ID from T_RENT_COLLECTIONplan trcp left join 
+(select sum( convert( decimal(18,2),MONTHINSURANCE))MONTHINSURANCE,RECP_ID from T_RENT_INSURANCE_DETAIL group by RECP_ID ) tt
+on trcp.RECP_ID =tt.recp_id
+where trcp.INSURE_PRICE!=tt.MONTHINSURANCE
+-->	
+</select>
+
+<select id="selectRentInsuranceDetailByRecpID" parameterClass="map" resultClass="java.util.HashMap">
+	select * from T_RENT_INSURANCE_DETAIL where recp_id=#RECP_ID#
+	order by id 
+</select>
+
+<update id="updateRentInsuranceDetailByRecpID" parameterClass="map">
+	<![CDATA[
+		update T_RENT_INSURANCE_DETAIL  
+	    set  MONTHINSURANCE = #MONTHINSURANCE#
+	    where  ID = #ID#
+	]]>
+</update>
+
+<select id="deaulInsuranceDynamicDetailForJob" parameterClass="map" resultClass="java.util.HashMap">
+<![CDATA[
+insert into T_RENT_INSURANCE_DETAIL(MONTHINSURANCE,RECP_ID,INSURANCE,LEASE_PERIOD,Y,M,RECP_STATUS,QI_DATE) 
+select * from (
+select 
+ convert(decimal(18,2),SUM(baoxian)) monthinsurance,
+ RECP_ID,
+ MAX(insurance) insurance,
+ LEASE_PERIOD,
+ YEAR(DATEADD(mm, MONTH, 0)) Y,MONTH(DATEADD(mm, MONTH, 0)) M,RECP_STATUS,QI_DATE
+ FROM (
+ select tt.RECP_ID, 
+         TT.QI_DATE,DATEDIFF(mm, 0, dateadd(m, 1, QI_DATE)) MONTH,
+         CASE
+	WHEN day(FIRST_PAYDATE)=1 then 0
+   WHEN PERIOD_NUM = LEASE_PERIOD THEN
+    ROUND(INSURE_PRICE* (30-tian) / (360* (LEASE_PERIOD / 12)), 2)
+   ELSE
+    0
+ END baoxian,
+ round(INSURE_PRICE,2) insurance,
+ PERIOD_NUM,LEASE_PERIOD,FIRST_PAYDATE,FINANCECONTRACT_DATE,RECP_STATUS
+from (SELECT *,
+DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 tian
+    FROM (select TRCP.RECP_ID,
+                 trcd.PERIOD_NUM,
+                 TRCP.LEASE_TOPRIC,
+                 trcp.LEASE_PERIOD,
+                 trcd.REN_PRICE,
+                 LEASE_TERM,
+                 case
+                 when CONVERT(VARCHAR(7),trcd.finance_date,23)<=CONVERT(VARCHAR(7),FINANCECONTRACT_DATE,23) then
+                  FINANCECONTRACT_DATE
+                 else
+                  trcd.finance_date
+                 end
+                  QI_DATE,
+                 trcd.finance_date finance_date,
+                 FINANCECONTRACT_DATE,FIRST_PAYDATE,
+                 RECP_STATUS,trcp.INSURE_PRICE
+            from T_RENT_COLLECTIONDETAIL trcd
+            left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID =
+                                                    trcd.RECP_ID
+                                                AND trcp.STATUS = 0
+            LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID =
+                                             trcp.RECT_ID
+                                         AND TRC.STATUS = 0
+            LEFT JOIN T_PRJT_CREDIT TPCD ON TPCD.ID =
+                                            TRC.PRCD_ID
+                                        AND TPCD.STATUS = 0
+           WHERE trcd.STATUS = 0  and trcp.RECP_ID=#RECP_ID#
+           ) t
+           ) tt  
+           union all
+select tt.RECP_ID,
+ TT.QI_DATE,DATEDIFF(mm, 0, QI_DATE) MONTH,
+ CASE
+WHEN day(FIRST_PAYDATE)=1 then 
+INSURE_PRICE /LEASE_PERIOD	
+   WHEN PERIOD_NUM = 1 THEN
+INSURE_PRICE * tian / (360 * (LEASE_PERIOD / 12)) 
+   ELSE
+INSURE_PRICE* 30 / (360* (LEASE_PERIOD / 12))
+ END baoxian,
+ INSURE_PRICE,
+ PERIOD_NUM,LEASE_PERIOD,FIRST_PAYDATE,FINANCECONTRACT_DATE,RECP_STATUS
+from (SELECT *,
+DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 tian
+    FROM (select trcp.recp_id,
+                 trcd.PERIOD_NUM,
+                 TRCP.LEASE_TOPRIC,
+                 trcp.LEASE_PERIOD,
+                 trcd.REN_PRICE,
+                 trcp.LEASE_TERM,
+                case
+                 when CONVERT(VARCHAR(7),trcd.finance_date,23)<=CONVERT(VARCHAR(7),FINANCECONTRACT_DATE,23) then
+                  FINANCECONTRACT_DATE
+                 else
+                  trcd.finance_date
+                 end
+                  QI_DATE,
+                 trcd.finance_date finance_date,
+   TPCD.FINANCECONTRACT_DATE,FIRST_PAYDATE,
+   RECP_STATUS,trcp.INSURE_PRICE
+            from T_RENT_COLLECTIONDETAIL trcd
+            left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID =
+                                                    trcd.RECP_ID
+                                                AND trcp.STATUS = 0
+            LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID =
+                                             trcp.RECT_ID
+                                         AND TRC.STATUS = 0
+            LEFT JOIN T_PRJT_CREDIT TPCD ON TPCD.ID =
+                                            TRC.PRCD_ID
+                                        AND TPCD.STATUS = 0
+            left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID and trcs.STATUS=0
+           WHERE trcd.STATUS = 0 and trcs.INSURANCE_COMPANY_ID!=4
+           and trcp.RECP_ID=#RECP_ID#
+           ) t) tt
+)ttt
+GROUP BY 
+RECP_ID,LEASE_PERIOD,FIRST_PAYDATE ,FINANCECONTRACT_DATE,MONTH,RECP_STATUS,QI_DATE
+) TTTT where monthinsurance>0
+]]>
+</select>
+
+<select id="getHRCallInfo" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		select call.CallID,call.CallContent,users.LoginCode+'@tacleasing.cn' EMAIL_TO from srv_lnk.C6.dbo.Call call
+		inner join srv_lnk.C6.dbo.CallDetail callDetail on call.CallID=callDetail.CallID 
+		inner join srv_lnk.C6.dbo.Users users on callDetail.CallDUser=users.UserID
+		inner join srv_lnk.C6.dbo.Users cusers on call.UserID=cusers.UserID
+		where call.CallID > #CALL_ID#
+		order by call.CallID
+	]]>
+</select>	
+
+<select id="getCallID" parameterClass="map" resultClass="java.lang.Integer">
+	<![CDATA[
+		select max(CALL_ID) CALL_ID from HR_CALL_EMAIL
+	]]>
+</select>
+
+<insert id="insertIntoHREmailInfo" parameterClass="map">
+	insert into HR_CALL_EMAIL(
+		CALL_CONTENT,EMAIL_TO,CREATE_TIME,SEND_FLAG,STATUS,CALL_ID
+	) values(
+		#CALLCONTENT#,#EMAIL_TO#,getDate(),0,0,#CALLID#
+	)
+</insert>
+
+	<!-- 获得结账周期结束日往后2天的年月 -->
+	<select id="getRunTime" resultClass="java.util.HashMap">
+      SELECT [MONTH],[YEAR],BEGINTIME,ENDTIME,DATEADD(DAY,2,ENDTIME) RUNTIME
+        FROM T_REPORT_DATE 
+       WHERE STATUS=0
+         AND CONVERT(DATE,DATEADD(DAY,2,ENDTIME))=CONVERT(DATE,GETDATE())
+	</select>
+	
+	<select id="getRunTime1" resultClass="java.util.HashMap">
+	  SELECT [MONTH],[YEAR],BEGINTIME,ENDTIME,DATEADD(DAY,2,ENDTIME) RUNTIME
+        FROM T_REPORT_DATE 
+       WHERE STATUS=0
+         AND CONVERT(DATE,GETDATE())=(SELECT TOP 1 CONVERT(DATE,A.DATE)
+                                           FROM (SELECT TOP 2 O.* 
+                                                   FROM (SELECT TOP 2 *
+                                            		           FROM T_DAY_TYPE 
+                                            		          WHERE CONVERT(DATE,DATE)>CONVERT(DATE,ENDTIME) 
+                                                            	AND CONVERT(DATE,DATE)&lt;CONVERT(DATE,DATEADD(MONTH,1,ENDTIME))
+                                            		            AND DAY_TYPE='WD'
+                                            		       ORDER BY [DATE] ASC) O 
+                                    		   ORDER BY O.[DATE] DESC) A)
+	</select>
+	
+	<select id="getStartDate" resultClass="java.lang.String">
+		SELECT TOP 1 O.DATE FROM (
+                    SELECT TOP 2 DATE
+                      FROM T_DAY_TYPE
+                     WHERE CONVERT(DATE,DATE)>=CONVERT(DATE,#BEGINTIME#) 
+                       AND DAY_TYPE='WD'
+                  ORDER BY DATE ASC
+                       ) O
+                        ORDER BY O.DATE DESC
+	</select>
+	
+	<select id="getEndDate" resultClass="java.lang.String">
+		SELECT           
+                CASE WHEN (SELECT DAY_TYPE FROM T_DAY_TYPE WHERE CONVERT(DATE,DATE)=CONVERT(DATE,#ENDTIME#))='HD'
+                     THEN
+                     (SELECT TOP 1 DATE
+                        FROM T_DAY_TYPE
+                       WHERE CONVERT(DATE,DATE)>=CONVERT(DATE,#ENDTIME#) 
+                         AND DAY_TYPE='WD'
+                    ORDER BY DATE ASC)
+                     ELSE 
+                      (SELECT TOP 1 O.DATE FROM (
+                                                  SELECT TOP 2 DATE
+                                                    FROM T_DAY_TYPE
+                                                   WHERE CONVERT(DATE,DATE)>=CONVERT(DATE,#ENDTIME#) 
+                                                     AND DAY_TYPE='WD'
+                                                ORDER BY DATE ASC
+                                                     ) O
+                                                      ORDER BY O.DATE DESC)
+                                                      END
+	</select>
+</sqlMap>

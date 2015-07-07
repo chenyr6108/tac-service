@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="GBK" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="deposit">
+	<!-- 查询已经分解的保证金个数 -->
+	<select id="queryDepositInfo_count" parameterClass="map"
+		resultClass="java.lang.Integer">
+		<![CDATA[
+ 		select count(1)
+		  from (select rect.cust_name,
+		               ficb.recp_code,
+		               ficb.recp_id,
+		               sum(ficb.real_price) real_price,
+		               usus.name decompose_name,
+		               convert(datetime,ficb.decompose_date,120) decompose_date,
+		               deposit_status
+		          from t_fina_collectionbill ficb
+		          left join (select rect.cust_name, rect.cust_code
+		                      from t_rent_contract rect
+		                     group by rect.cust_name, rect.cust_code) rect on rect.cust_code =
+		                                                                      ficb.cust_code
+		          left join t_user_user usus on ficb.decompose_id = usus.id
+		         where ficb.ficb_item = '保证金'
+		           and ficb.status = 0
+		           and ficb.ficb_state = 5
+		         group by rect.cust_name,
+		                  ficb.recp_code,
+		                  ficb.recp_id,
+		                  usus.name,
+		                    convert(datetime,ficb.decompose_date,120),
+		                  deposit_status) yt
+		]]>
+		<dynamic prepend="where">
+			<isNotEmpty prepend="and" property="cust_name">
+				<![CDATA[
+				cust_name like '%$cust_name$%'   
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="recp_code">
+				<![CDATA[
+				recp_code like '%$recp_code$%'
+				]]>
+			</isNotEmpty>
+			<isNotEmpty property="deposit_status">
+				<isNotEqual compareValue="-1" prepend="and"
+					property="deposit_status">
+					<![CDATA[
+						deposit_status=#deposit_status#
+					]]>
+				</isNotEqual>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+
+	<!-- 查询已经分解的保证金 -->
+	<select id="queryDepositInfo" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+ 		select *
+		  from (select rect.cust_name,
+		               ficb.recp_code,
+		               ficb.recp_id,
+		               sum(ficb.real_price) real_price,
+		               usus.name decompose_name,
+				        convert(datetime,ficb.decompose_date, 120) decompose_date,
+		               deposit_status
+		          from t_fina_collectionbill ficb
+		          left join (select rect.cust_name, rect.cust_code
+		                      from t_rent_contract rect
+		                     group by rect.cust_name, rect.cust_code) rect on rect.cust_code =
+		                                                                      ficb.cust_code
+		          left join t_user_user usus on ficb.decompose_id = usus.id
+		         where ficb.ficb_item = '保证金'
+		           and ficb.status = 0
+		           and ficb.ficb_state = 5
+		         group by rect.cust_name,
+		                  ficb.recp_code,
+		                  ficb.recp_id,
+		                  usus.name,
+		                  convert(datetime,ficb.decompose_date,120),
+		                  deposit_status) yyg
+		]]>
+		<dynamic prepend="where">
+			<isNotEmpty prepend="and" property="cust_name">
+				<![CDATA[
+				cust_name like '%$cust_name$%'   
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="recp_code">
+				<![CDATA[
+				recp_code like '%$recp_code$%'
+				]]>
+			</isNotEmpty>
+			<isNotEmpty property="deposit_status">
+				<isNotEqual compareValue="-1" prepend="and"	property="deposit_status">
+					<![CDATA[
+						deposit_status=#deposit_status#
+					]]>
+				</isNotEqual>
+			</isNotEmpty>
+		</dynamic>
+		<![CDATA[
+			order by cust_name,recp_code
+		]]>
+	</select>
+	<!-- 修改分解单中的保证金操作状态 -->
+	<update id="updateDepositStatus" parameterClass="map">
+		update t_fina_collectionbill  
+		   set  deposit_status = #deposit_status#
+		 where  recp_code = #recp_code#
+		   and  ficb_state = 5
+		   and  status = 0
+	</update>
+
+	<!-- 抵消租金：将保证金转出作为来款，类型为保证金转出 -->
+	<insert id="insertDepositAsIncome" parameterClass="map">
+		<![CDATA[
+			insert into t_fina_income
+			  ( 
+			   receipt_bankno,
+			   opposing_bankno,
+			   opposing_unit,
+			   opposing_date,
+			   opposing_type,
+			   income_money,
+			   opposing_summary,
+			   opposing_postscript,
+			   upload_user_id)
+			  select 'XT-BZJ',
+	                 1,
+	                 rect.cust_name,
+	                 max(fiin.opposing_date),
+	                 '保证金转出',
+	                 sum(ficb.real_price) real_price,
+	                 '冲抵租金',
+	                 '支付表' + ficb.recp_code + '保证金',
+	                 #s_employeeId#
+	            from t_fina_collectionbill ficb
+	            left join (select rect.cust_name, rect.cust_code
+	                        from t_rent_contract rect
+	                       group by rect.cust_name, rect.cust_code) rect on rect.cust_code =
+	                                                                        ficb.cust_code
+	            left join t_user_user usus on ficb.decompose_id = usus.id
+	            left join t_fina_income fiin on fiin.fiin_id = ficb.fiin_id
+	           where ficb.ficb_item = '保证金'
+	             and ficb.status = 0
+	             and ficb.ficb_state = 5
+	             and ficb.recp_code = #recp_code#
+	           group by rect.cust_name, ficb.recp_code
+		]]>
+	</insert>
+
+	<!-- 期末退回：将保证金转出作为业务外款，类型为保证金转出 -->
+	<insert id="insertDepositAsEndback" parameterClass="map">
+		<![CDATA[
+			insert into t_fina_income
+			  ( 
+			   receipt_bankno,
+			   opposing_bankno,
+			   opposing_unit,
+			   opposing_date,
+			   opposing_type,
+			   income_money,
+			   opposing_summary,
+			   opposing_postscript,
+			   decompose_status,
+			   upload_user_id)
+			  select 'XT-BZJ',
+	                 1,
+	                 rect.cust_name,
+	                 max(fiin.opposing_date),
+	                 '保证金转出',
+	                 sum(ficb.real_price) real_price,
+	                 '期末退回',
+	                 '支付表' + ficb.recp_code + '保证金',
+	                 7,
+	                 #s_employeeId#
+	            from t_fina_collectionbill ficb
+	            left join (select rect.cust_name, rect.cust_code
+	                        from t_rent_contract rect
+	                       group by rect.cust_name, rect.cust_code) rect on rect.cust_code =
+	                                                                        ficb.cust_code
+	            left join t_user_user usus on ficb.decompose_id = usus.id
+	            left join t_fina_income fiin on fiin.fiin_id = ficb.fiin_id
+	           where ficb.ficb_item = '保证金'
+	             and ficb.status = 0
+	             and ficb.ficb_state = 5
+	             and ficb.recp_code = #recp_code#
+	           group by rect.cust_name, ficb.recp_code
+		]]>
+	</insert>
+	
+	<!-- 记录保证金日志(冲抵、期末) -->
+	<insert id="insertFinaLogin" parameterClass="map">
+		<![CDATA[
+			insert into T_FINA_LOGIN
+			(
+			 RECP_ID,
+			 STATUS,
+			 CREATE_USER_ID,
+			 CREATE_DATE,
+			 TYPES
+			)
+			values
+			(
+			 #recp_id#,
+			 #status#,
+			 #s_employeeId#,
+			 getdate(),
+			 0
+			)
+		]]>
+	</insert>
+	
+	<!-- 平均冲抵：将保证金转出作为业务外款，类型为保证金转出 -->
+	<insert id="insertDepositAsAverage" parameterClass="map">
+		<![CDATA[
+			insert into t_fina_income
+			  ( 
+			   receipt_bankno,
+			   opposing_bankno,
+			   opposing_unit,
+			   opposing_date,
+			   opposing_type,
+			   income_money,
+			   opposing_summary,
+			   opposing_postscript,
+			   decompose_status,
+			   upload_user_id)
+			  select 'XT-BZJ',
+	                 1,
+	                 rect.cust_name,
+	                 max(fiin.opposing_date),
+	                 '保证金转出',
+	                 sum(ficb.real_price) real_price,
+	                 '平均冲抵',
+	                 '支付表' + ficb.recp_code + '保证金',
+	                 7,
+	                 #s_employeeId#
+	            from t_fina_collectionbill ficb
+	            left join (select rect.cust_name, rect.cust_code
+	                        from t_rent_contract rect
+	                       group by rect.cust_name, rect.cust_code) rect on rect.cust_code =
+	                                                                        ficb.cust_code
+	            left join t_user_user usus on ficb.decompose_id = usus.id
+	            left join t_fina_income fiin on fiin.fiin_id = ficb.fiin_id
+	           where ficb.ficb_item = '保证金'
+	             and ficb.status = 0
+	             and ficb.ficb_state = 5
+	             and ficb.recp_code = #recp_code#
+	           group by rect.cust_name, ficb.recp_code
+		]]>
+		<selectKey resultClass="java.lang.Integer" keyProperty="fiin_id">
+			<![CDATA[	select @@IDENTITY as fiin_id  ]]>
+		</selectKey> 
+	</insert>
+	
+	<!-- 查询支付表详细 -->
+	<select id="queryRecp" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select distinct recp.recp_code,
+							recp.lease_period,
+			                t1.cust_code,
+			                t2.pay_date
+			  from t_rent_collectionplan recp
+			  left join t_rent_contract t1 on t1.rect_id = recp.rect_id
+			  left join t_rent_collectiondetail t2 on t2.recp_id = recp.recp_id
+			 where recp.recp_id = #recp_id#
+			   and recp.fund_status = 0
+			   and recp.status = 0
+			 order by t2.pay_date
+		]]>
+	</select>
+	
+	<!-- 插入分解单信息 -->
+	<insert id="addDecomposeBill" parameterClass="map">
+		<![CDATA[
+			insert into t_fina_collectionbill
+			  ( 
+			   recp_id,
+			   recp_code,
+			   pay_date,
+			   recd_period,
+			   ficb_item,
+			   should_price,
+			   real_price,
+			   fiin_id,
+			   cust_code,
+			   ficb_state,
+			   ficb_type,
+			   recd_type,
+			   item_order,
+			   decompose_id,
+			   decompose_date,
+			   check_id,
+			   check_date,
+			   status,
+			   create_date,
+			   
+			   type
+			   )
+			values
+			  ( 
+			   #recp_id#,
+			   #recp_code#,
+			   convert(datetime,#pay_date# ),
+			   #recd_period#,
+			   #ficb_item#,
+			   #should_price#,
+			   #real_price#,
+			   #fiin_id#,
+			   #cust_code#,
+			   #ficb_state#,
+			   #ficb_type#,
+			   #recd_type#,
+			   #item_order#,
+			   #decompose_id#,
+			   getdate(),
+			   #check_id#,
+			   getdate(),
+			   0,
+			   getdate(),
+			   
+			   0)
+		]]>
+	</insert>
+	<!-- 修改来款的分解状态 -->
+	<update id="updateIncomeStatus" parameterClass="map">
+		<![CDATA[
+			update t_fina_income  
+			   set  decompose_status = #decompose_status#,
+			        ficb_flag = #ficb_flag#
+			 where  fiin_id = #select_income_id#
+		]]>
+	</update>
+</sqlMap>

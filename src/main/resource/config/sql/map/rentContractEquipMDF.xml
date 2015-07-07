@@ -1,0 +1,1071 @@
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="rentContractEquiMDF">
+
+	<!-- read -->
+	<statement id="readRentContractByRectId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		SELECT T2.CONTRACT_TYPE,T1.RECT_ID,T1.LEASE_CODE,T1.LESSOR_TIME,T1.LESSEE_TIME,T1.LESSOR,T1.LESSEE,T1.CUST_TYPE,T1.PROVINCE_ID,T1.CITY_ID,
+			T1.CUST_CODE,T1.CUST_NAME,T1.NATU_IDCARD,T1.CUST_ADDRESS,T1.CUST_ZIP,T1.CUST_PHONE,T1.CUST_FAX,T1.NATU_MATE_NAME,
+			T1.NATU_MATE_IDCARD,T1.CUST_LINKMAN,T1.CORP_ORAGNIZATION_CODE,T1.OPEN_BANK,T1.BANK_ACCOUNTS,T1.LEASE_TOPRIC,
+			T1.OTHER_AGREEMENT,T1.DECP_ID,T1.RECT_TYPE,T1.AREA_ID,T1.ID_CARD_TYPE,t1.CORP_REGISTE_ADDRESS,t1.CORP_WORK_ADDRESS,t1.PRCD_ID
+		FROM T_RENT_CONTRACT T1
+		LEFT JOIN T_PRJT_CREDIT T2 ON T2.ID = T1.PRCD_ID 
+		WHERE T1.RECT_ID=#RECT_ID#
+		]]>
+	</statement>
+	<statement id="readEquipmentByRectId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		SELECT T5.TYPE_ID,
+		       T4.KIND_ID,
+		       T3.PRODUCT_ID,
+		       T3.SUPPLIER_ID,
+		       T2.SUEQ_ID,
+		       T1.STAYBUY_PRICE,
+		       T1.UNIT_PRICE,
+		       T1.SHUI_PRICE,
+		       SUM(T1.AMOUNT) AS AMOUNT,
+		       T1.UNIT,
+		       MAX(T1.MEMO) AS MEMO,
+		       T1.THING_KIND,
+		       T5.NAME THING_NAME,
+		       T4.NAME MODEL_SPEC,
+		       T1.BRAND,
+		       T1.LOCK_CODE,
+		       t1.shui_price ,
+		       T2.THING_NUMBER,
+		        T7.Manufacturer,
+		         T7.NAME TYPE_NAME,
+		         T2.EQMT_ID
+		  FROM T_RENT_CONTRACTDETAIL T1
+		  LEFT JOIN T_EQMT_EQUIPMENT T2 ON T1.EQMT_ID = T2.EQMT_ID
+		  LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.SUEQ_ID = T2.SUEQ_ID
+		  LEFT JOIN T_PRDC_PRODUCT T4 ON T4.ID = T3.PRODUCT_ID
+		  LEFT JOIN T_PRDC_KIND T5 ON T5.ID = T4.KIND_ID
+		  LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = t5.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+		 WHERE T1.STATUS=0 AND T1.RECT_ID = #RECT_ID#
+		 GROUP BY T5.TYPE_ID,
+		          T4.KIND_ID,
+		          T3.PRODUCT_ID,
+		          T3.SUPPLIER_ID,
+		          T2.SUEQ_ID,
+		          T1.STAYBUY_PRICE,
+		          T1.UNIT_PRICE,
+		          T1.SHUI_PRICE,
+		          T1.UNIT,
+		          T1.THING_KIND,
+		          T4.NAME,
+		          T5.NAME,
+		          T1.BRAND,
+		          T1.LOCK_CODE,
+		          t1.shui_price ,
+		          T2.THING_NUMBER,
+		           T7.Manufacturer,
+		            T7.NAME,
+		            T2.EQMT_ID
+		]]>
+	</statement>
+	<statement id="queryEquipmentIdsByRectId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T.EQMT_ID
+		  FROM T_RENT_CONTRACTDETAIL T
+		 WHERE T.STATUS = 0
+		   AND T.RECT_ID = #RECT_ID#
+	]]>
+	</statement>
+
+	<!-- 查询制造商 -->
+	<select id="getAllManufacturer" parameterClass="map" resultClass="hashmap">
+		select tpt.Manufacturer Manufacturer
+			  from t_supl_equipment tse
+			 inner join t_prdc_product tpp on tpp.id = tse.product_id
+			 inner join t_prdc_kind tpd on tpd.id = tpp.kind_id
+			 inner join t_prdc_type tpt on tpt.id = tpd.type_id
+			 where tse.status = 0
+			 group by tpt.Manufacturer
+			 order by tpt.Manufacturer
+	</select>
+	
+	<!-- 根据制造商名称查询厂牌 -->
+	<select id="getAllTypeByManufacturer" parameterClass="map" resultClass="hashmap">
+		select TPT.ID,TPT.NAME
+		   from t_supl_equipment tse
+		  inner join t_prdc_product tpp on tpp.id = tse.product_id AND tpp.STATUS = 0
+		  inner join t_prdc_kind tpd on tpd.id = tpp.kind_id AND tpd.PRDC_KIND_STATUS = 0
+		  LEFT JOIN T_PRDC_TYPE TPT ON TPT.ID = tpd.TYPE_ID AND TPT.PRDC_TYPE_STATUS = 0
+		  where tse.status = 0
+		    and TPT.Manufacturer = #MANUFACTURER#
+		  group by TPT.id, TPT.name
+		  order by TPT.name
+	</select>
+	
+<update id="updateCONTRACTEqui" parameterClass="map">
+	<![CDATA[
+		update T_RENT_CONTRACTDETAIL set 
+		thing_name=#THING_NAME#,
+		brand=#BRAND#,
+		thing_kind=#THING_KIND#,
+		MODEL_SPEC=#MODEL_SPEC#,
+		THING_NUMBER=#THING_NUMBER#
+		where rect_id= #RECT_ID#  and EQMT_ID=#EQMT_ID#
+	]]>
+</update>
+
+<!--更新设备名称 -->	
+<update id="updateEQUIPMENTDetail" parameterClass="map">
+	<![CDATA[
+		update T_EQMT_EQUIPMENT set 
+		thing_name=#THING_NAME#,
+		brand=#BRAND#,
+		thing_kind=#THING_KIND#,
+		MODEL_SPEC=#MODEL_SPEC#,
+		SUEQ_ID=#SUEQ_ID#,
+		THING_NUMBER=#THING_NUMBER#
+		where EQMT_ID=#EQMT_ID#
+	]]>
+</update>
+
+<!--更新资信设备表 -->	
+<update id="updateCREDITEQUIPMENT" parameterClass="map">
+	<![CDATA[
+		update T_PRJT_CREDITEQUIPMENT set 
+		thing_name=#THING_NAME#,
+		brand=#BRAND#,
+		thing_kind=#THING_KIND#,
+		MODEL_SPEC=#MODEL_SPEC#,
+		SUEQ_ID=#SUEQ_ID#
+		where CREDIT_ID=#PRCD_ID# and SUEQ_ID=#SUEQ_IDOld#
+	]]>
+</update>
+
+<!-- Add by Michael 根据资信报告ID查询设备信息  -->
+	<select id="queryCarRentContract_count" parameterClass="map" resultClass="java.lang.Integer">
+			 <![CDATA[ SELECT COUNT(1) FROM (
+			 		SELECT 
+					 T1.ID PRCD_ID,
+					 T10.RECP_STATUS,
+					 T1.STATUS PRCD_STATUS,
+					 T2.RECT_ID,
+					 T1.LEASE_CODE,
+					 T2.RECT_STATUS,
+					 T2.STATUS,
+					 T3.CUST_NAME,
+					 T4.NAME AREA,
+					 upper.NAME CLERK_NAME,
+					 T6.NAME SENSOR_NAME,
+					 T2.LESSOR_TIME,
+					 MAX(T7.BRAND) BRAND,
+					 isnull(T8.PAYLISTFLAG,0) PAYLISTFLAG,
+					 t1.wind_result_date, t9.DECP_NAME_CN
+				  FROM T_PRJT_CREDIT T1
+				  LEFT JOIN T_RENT_CONTRACT T2 ON T1.ID = T2.PRCD_ID
+				  LEFT JOIN T_CUST_CUSTOMER T3 ON T1.CUST_ID = T3.CUST_ID
+				  LEFT JOIN T_AREA T4 ON T1.PROVINCE_ID = T4.ID
+				  LEFT JOIN T_USER_USER T6 ON T1.SENSOR_ID = T6.ID
+				  ]]>
+				  <![CDATA[
+				  left join T_USER_USER upper on upper.id = T6.upper_user
+				  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+	      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+				  ]]>
+				  <![CDATA[
+				  LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON T1.ID = T7.CREDIT_ID
+				  LEFT JOIN ( SELECT COUNT(1) PAYLISTFLAG,T8.RECT_ID FROM T_RENT_CONTRACTDETAIL T8 WHERE T8.STATUS=0  AND T8.RECP_ID IS NULL GROUP BY T8.RECT_ID) T8 ON T8.RECT_ID=T2.RECT_ID
+		  			 LEFT JOIN T_RENT_COLLECTIONPLAN T10 ON T10.RECT_ID = T2.RECT_ID AND T10.STATUS = 0
+		  WHERE T1.STATUS=0 AND (T1.WIND_STATE=1 OR T1.WIND_STATE=2)
+  			AND (T2.STATUS!=-2 OR T2.STATUS IS NULL) and (t1.production_type = 2) and T2.RECT_STATUS is null
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.SENSOR_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T2.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T3.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+						OR upper.NAME LIKE '%$QSEARCH_VALUE$%' 
+						OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+						OR T7.BRAND LIKE '%$QSEARCH_VALUE$%'
+						or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+						)
+				  ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+				 T2.LESSOR_TIME&gt;=cast(#QSTART_DATE# as datetime) 
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+				 T2.LESSOR_TIME&lt;=cast(#QEND_DATE# as datetime)
+			</isNotEmpty>
+			<isNotEmpty prepend="" property="QSELECT_STATUS">
+				<isNotEqual prepend="" property="QSELECT_STATUS" compareValue="-2">
+					<isEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS is null ]]>
+					</isEqual>
+					<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS = #QSELECT_STATUS# ]]>
+					</isNotEqual>
+				</isNotEqual>
+			</isNotEmpty>
+			<isNotEmpty property="RENTSTAUTS">
+		  	<isNotEqual prepend="and" property="RENTSTAUTS" compareValue="-3">
+		  		 t2.status=#RENTSTAUTS#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+			<isNotEmpty prepend="and" property="RECP_STATUS">
+		  		<![CDATA[ T10.RECP_STATUS = #RECP_STATUS# ]]>
+		  	</isNotEmpty>
+			
+		<![CDATA[  GROUP BY T1.ID,
+			          T1.STATUS,
+			          T2.RECT_ID,
+			          T1.LEASE_CODE,
+			          T2.RECT_STATUS,
+			          T2.STATUS,
+			          T3.CUST_NAME,
+			          T4.NAME,
+			          upper.NAME,
+			          T6.NAME,
+			          T2.LESSOR_TIME,
+			          T8.PAYLISTFLAG  , t1.wind_result_date, t9.DECP_NAME_CN,
+			          T10.RECP_STATUS
+			        ) t
+			 ]]>
+	</select>
+	
+	<!-- Add by Michael 根据资信报告ID查询设备信息  -->
+	<select id="queryCarRentContract" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ SELECT 
+					 T1.ID PRCD_ID,
+					 T10.RECP_STATUS,
+					 T1.STATUS PRCD_STATUS,
+					 T2.RECT_ID,
+					 T1.LEASE_CODE,
+					 T2.RECT_STATUS,
+					 T2.STATUS,
+					 T3.CUST_NAME,
+					 T4.NAME AREA,
+					 upper.NAME CLERK_NAME,
+					 T6.NAME SENSOR_NAME,
+					 T2.LESSOR_TIME,
+					 MAX(T7.BRAND) BRAND,
+					 isnull(T8.PAYLISTFLAG,0) PAYLISTFLAG,
+					 t1.wind_result_date, t9.DECP_NAME_CN
+				  FROM T_PRJT_CREDIT T1
+				  LEFT JOIN T_RENT_CONTRACT T2 ON T1.ID = T2.PRCD_ID
+				  LEFT JOIN T_CUST_CUSTOMER T3 ON T1.CUST_ID = T3.CUST_ID
+				  LEFT JOIN T_AREA T4 ON T1.PROVINCE_ID = T4.ID
+				  LEFT JOIN T_USER_USER T6 ON T1.SENSOR_ID = T6.ID
+				  ]]>
+				  <![CDATA[
+				  left join T_USER_USER upper on upper.id = T6.upper_user
+				  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+	      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+				  ]]>
+				  <![CDATA[
+				  LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON T1.ID = T7.CREDIT_ID
+				  LEFT JOIN ( SELECT COUNT(1) PAYLISTFLAG,T8.RECT_ID FROM T_RENT_CONTRACTDETAIL T8 WHERE T8.STATUS=0  AND T8.RECP_ID IS NULL GROUP BY T8.RECT_ID) T8 ON T8.RECT_ID=T2.RECT_ID
+		  			 LEFT JOIN T_RENT_COLLECTIONPLAN T10 ON T10.RECT_ID = T2.RECT_ID AND T10.STATUS = 0
+		  WHERE T1.STATUS=0 AND (T1.WIND_STATE=1 OR T1.WIND_STATE=2)
+  			AND (T2.STATUS!=-2 OR T2.STATUS IS NULL)  and (t1.production_type = 2) and T2.RECT_STATUS is null
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.SENSOR_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T2.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T3.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+						OR upper.NAME LIKE '%$QSEARCH_VALUE$%' 
+						OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+						OR T7.BRAND LIKE '%$QSEARCH_VALUE$%'
+						or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+						)
+				  ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+				 T2.LESSOR_TIME&gt;=cast(#QSTART_DATE# as datetime) 
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+				 T2.LESSOR_TIME&lt;=cast(#QEND_DATE# as datetime)
+			</isNotEmpty>
+			
+			<isNotEmpty prepend="" property="QSELECT_STATUS">
+				<isNotEqual prepend="" property="QSELECT_STATUS" compareValue="-2">
+					<isEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS is null ]]>
+					</isEqual>
+					<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS = #QSELECT_STATUS# ]]>
+					</isNotEqual>
+				</isNotEqual>
+			</isNotEmpty>
+			<isNotEmpty property="RENTSTAUTS">
+		  	<isNotEqual prepend="and" property="RENTSTAUTS" compareValue="-3">
+		  		 t2.status=#RENTSTAUTS#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+			<isNotEmpty prepend="and" property="RECP_STATUS">
+		  		<![CDATA[ T10.RECP_STATUS = #RECP_STATUS# ]]>
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="CAR_NUMBER">
+				<![CDATA[
+					exists (
+					
+					SELECT distinct TPCE.CREDIT_ID
+					  FROM T_PRJT_CREDITEQUIPMENT TPCE
+					  LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.SUEQ_ID = TPCE.SUEQ_ID
+					  LEFT JOIN T_PRDC_PRODUCT T4 ON T4.ID = T3.PRODUCT_ID
+					  LEFT JOIN T_PRDC_KIND T5 ON T5.ID = T4.KIND_ID
+					  LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = t5.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+					 WHERE  TPCE.CAR_RIGSTER_NUMBER is not null 
+					 and TPCE.CAR_RIGSTER_NUMBER like '%$CAR_NUMBER$%' 
+					 and TPCE.CREDIT_ID = T1.ID
+					)
+				  ]]>
+			</isNotEmpty>
+			
+		<![CDATA[  GROUP BY T1.ID,
+			          T1.STATUS,
+			          T2.RECT_ID,
+			          T1.LEASE_CODE,
+			          T2.RECT_STATUS,
+			          T2.STATUS,
+			          T3.CUST_NAME,
+			          T4.NAME,
+			          upper.NAME,
+			          T6.NAME,
+			          T2.LESSOR_TIME,
+			          T8.PAYLISTFLAG  , t1.wind_result_date, t9.DECP_NAME_CN,
+			          T10.RECP_STATUS
+			    ORDER BY  T1.ID DESC,T2.RECT_STATUS
+		]]>
+	</select>
+
+<!-- Add by Michael 根据资信报告ID查询设备信息  -->
+	<statement id="readEquipmentByCreditId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		SELECT T5.TYPE_ID,
+		       T4.KIND_ID,
+		       T3.PRODUCT_ID,
+		       T3.SUPPLIER_ID,
+		       T1.STAYBUY_PRICE,
+		       T1.UNIT_PRICE,
+		       T1.SHUI_PRICE,
+		       SUM(T1.AMOUNT) AS AMOUNT,
+		       T1.UNIT,
+		       MAX(T1.MEMO) AS MEMO,
+		       T1.THING_KIND,
+		       T5.NAME THING_NAME,
+		       T4.NAME MODEL_SPEC,
+		       T1.BRAND,
+		       T1.LOCK_CODE,
+		       t1.shui_price ,
+	         T7.Manufacturer,
+	         T7.NAME TYPE_NAME,T1.SUEQ_ID,
+	         t1.CAR_COLOR,t1.CAR_RIGSTER_NUMBER,t1.CAR_ID_NUMBER,t1.CAR_ENGINE_NUMBER,t1.CAR_IMPORT_DOMESTIC
+		  FROM T_PRJT_CREDITEQUIPMENT T1
+		  LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.SUEQ_ID = T1.SUEQ_ID
+		  LEFT JOIN T_PRDC_PRODUCT T4 ON T4.ID = T3.PRODUCT_ID
+		  LEFT JOIN T_PRDC_KIND T5 ON T5.ID = T4.KIND_ID
+		  LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = t5.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+		 WHERE  T1.CREDIT_ID = #PRCD_ID#
+		 GROUP BY T5.TYPE_ID,
+		          T4.KIND_ID,
+		          T3.PRODUCT_ID,
+		          T3.SUPPLIER_ID,
+		          T1.STAYBUY_PRICE,
+		          T1.UNIT_PRICE,
+		          T1.SHUI_PRICE,
+		          T1.UNIT,
+		          T1.THING_KIND,
+		          T4.NAME,
+		          T5.NAME,
+		          T1.BRAND,
+		          T1.LOCK_CODE,
+		          t1.shui_price ,
+	           	T7.Manufacturer,
+	            T7.NAME,t1.CAR_COLOR,T1.SUEQ_ID,
+	            t1.CAR_RIGSTER_NUMBER,t1.CAR_ID_NUMBER,t1.CAR_ENGINE_NUMBER,t1.CAR_IMPORT_DOMESTIC
+		]]>
+	</statement>
+
+<!--更新资信设备表 -->	
+<update id="updateCREDITEQUIPMENTBySUEQID" parameterClass="map">
+	<![CDATA[
+		update T_PRJT_CREDITEQUIPMENT set 
+		thing_name=#THING_NAME#,
+		brand=#BRAND#,
+		thing_kind=#THING_KIND#,
+		MODEL_SPEC=#MODEL_SPEC#,
+		SUEQ_ID=#SUEQ_ID#
+		where CREDIT_ID=#PRCD_ID# and SUEQ_ID=#SUEQ_IDOld#
+	]]>
+</update>	
+
+<!--更新资信设备表 -->	
+<update id="updateCarCREDITEQUIPMENT" parameterClass="map">
+	<![CDATA[
+		update T_PRJT_CREDITEQUIPMENT set 
+		CAR_COLOR=#CAR_COLOR#,
+		CAR_RIGSTER_NUMBER=#CAR_RIGSTER_NUMBER#,
+		CAR_ID_NUMBER=#CAR_ID_NUMBER#,
+		CAR_ENGINE_NUMBER=#CAR_ENGINE_NUMBER#,
+		CAR_IMPORT_DOMESTIC=#CAR_IMPORT_DOMESTIC#
+		where CREDIT_ID=#PRCD_ID# and SUEQ_ID=#SUEQ_ID# and PRCE_ID=#PRCE_ID#
+	]]>
+</update>
+
+
+
+<!-- Add by Michael 根据资信报告ID查询设备信息  -->
+	<select id="queryRentContractThingNumber_count" parameterClass="map" resultClass="java.lang.Integer">
+			 <![CDATA[ SELECT COUNT(1) FROM (
+			 		SELECT 
+					 T1.ID PRCD_ID,
+					 T10.RECP_STATUS,
+					 T1.STATUS PRCD_STATUS,
+					 T2.RECT_ID,
+					 T1.LEASE_CODE,
+					 T2.RECT_STATUS,
+					 T2.STATUS,
+					 T3.CUST_NAME,
+					 T4.NAME AREA,
+					 upper.NAME CLERK_NAME,
+					 T6.NAME SENSOR_NAME,
+					 T2.LESSOR_TIME,
+					 MAX(T7.BRAND) BRAND,
+					 isnull(T8.PAYLISTFLAG,0) PAYLISTFLAG,
+					 t1.wind_result_date, t9.DECP_NAME_CN
+				  FROM T_PRJT_CREDIT T1
+				  LEFT JOIN T_RENT_CONTRACT T2 ON T1.ID = T2.PRCD_ID
+				  LEFT JOIN T_CUST_CUSTOMER T3 ON T1.CUST_ID = T3.CUST_ID
+				  LEFT JOIN T_AREA T4 ON T1.PROVINCE_ID = T4.ID
+				  LEFT JOIN T_USER_USER T6 ON T1.SENSOR_ID = T6.ID
+				  ]]>
+				  <![CDATA[
+				  left join T_USER_USER upper on upper.id = T6.upper_user
+				  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+	      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+				  ]]>
+				  <![CDATA[
+				  LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON T1.ID = T7.CREDIT_ID
+				  LEFT JOIN ( SELECT COUNT(1) PAYLISTFLAG,T8.RECT_ID FROM T_RENT_CONTRACTDETAIL T8 WHERE T8.STATUS=0  AND T8.RECP_ID IS NULL GROUP BY T8.RECT_ID) T8 ON T8.RECT_ID=T2.RECT_ID
+		  			 LEFT JOIN T_RENT_COLLECTIONPLAN T10 ON T10.RECT_ID = T2.RECT_ID AND T10.STATUS = 0
+		  WHERE T1.STATUS=0 AND (T1.WIND_STATE=1 OR T1.WIND_STATE=2)
+  			AND (T2.STATUS!=-2 OR T2.STATUS IS NULL) and t1.CONTRACT_TYPE<>'3' and (T2.RECT_STATUS =0 or T2.RECT_STATUS =2 )
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.SENSOR_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T2.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T3.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+						OR upper.NAME LIKE '%$QSEARCH_VALUE$%' 
+						OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+						OR T7.BRAND LIKE '%$QSEARCH_VALUE$%'
+						or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+						)
+				  ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+				 T2.LESSOR_TIME&gt;=cast(#QSTART_DATE# as datetime) 
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+				 T2.LESSOR_TIME&lt;=cast(#QEND_DATE# as datetime)
+			</isNotEmpty>
+			<isNotEmpty prepend="" property="QSELECT_STATUS">
+				<isNotEqual prepend="" property="QSELECT_STATUS" compareValue="-2">
+					<isEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS is null ]]>
+					</isEqual>
+					<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS = #QSELECT_STATUS# ]]>
+					</isNotEqual>
+				</isNotEqual>
+			</isNotEmpty>
+			<isNotEmpty property="RENTSTAUTS">
+		  	<isNotEqual prepend="and" property="RENTSTAUTS" compareValue="-3">
+		  		 t2.status=#RENTSTAUTS#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+			<isNotEmpty prepend="and" property="RECP_STATUS">
+		  		<![CDATA[ T10.RECP_STATUS = #RECP_STATUS# ]]>
+		  	</isNotEmpty>
+			
+		<![CDATA[  GROUP BY T1.ID,
+			          T1.STATUS,
+			          T2.RECT_ID,
+			          T1.LEASE_CODE,
+			          T2.RECT_STATUS,
+			          T2.STATUS,
+			          T3.CUST_NAME,
+			          T4.NAME,
+			          upper.NAME,
+			          T6.NAME,
+			          T2.LESSOR_TIME,
+			          T8.PAYLISTFLAG  , t1.wind_result_date, t9.DECP_NAME_CN,
+			          T10.RECP_STATUS
+			        ) t
+			 ]]>
+	</select>
+	
+	<!-- Add by Michael 根据资信报告ID查询设备信息  -->
+	<select id="queryRentContractThingNumber" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ SELECT 
+					 T1.ID PRCD_ID,
+					 T10.RECP_STATUS,
+					 T1.STATUS PRCD_STATUS,
+					 T2.RECT_ID,
+					 T1.LEASE_CODE,
+					 T2.RECT_STATUS,
+					 T2.STATUS,
+					 T3.CUST_NAME,
+					 T4.NAME AREA,
+					 upper.NAME CLERK_NAME,
+					 T6.NAME SENSOR_NAME,
+					 T2.LESSOR_TIME,
+					 MAX(T7.BRAND) BRAND,
+					 isnull(T8.PAYLISTFLAG,0) PAYLISTFLAG,
+					 t1.wind_result_date, t9.DECP_NAME_CN
+				  FROM T_PRJT_CREDIT T1
+				  LEFT JOIN T_RENT_CONTRACT T2 ON T1.ID = T2.PRCD_ID
+				  LEFT JOIN T_CUST_CUSTOMER T3 ON T1.CUST_ID = T3.CUST_ID
+				  LEFT JOIN T_AREA T4 ON T1.PROVINCE_ID = T4.ID
+				  LEFT JOIN T_USER_USER T6 ON T1.SENSOR_ID = T6.ID
+				  ]]>
+				  <![CDATA[
+				  left join T_USER_USER upper on upper.id = T6.upper_user
+				  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+	      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+				  ]]>
+				  <![CDATA[
+				  LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON T1.ID = T7.CREDIT_ID
+				  LEFT JOIN ( SELECT COUNT(1) PAYLISTFLAG,T8.RECT_ID FROM T_RENT_CONTRACTDETAIL T8 WHERE T8.STATUS=0  AND T8.RECP_ID IS NULL GROUP BY T8.RECT_ID) T8 ON T8.RECT_ID=T2.RECT_ID
+		  			 LEFT JOIN T_RENT_COLLECTIONPLAN T10 ON T10.RECT_ID = T2.RECT_ID AND T10.STATUS = 0
+		  WHERE T1.STATUS=0 AND (T1.WIND_STATE=1 OR T1.WIND_STATE=2)
+  			AND (T2.STATUS!=-2 OR T2.STATUS IS NULL)  and t1.CONTRACT_TYPE<>'3' and (T2.RECT_STATUS =0 or T2.RECT_STATUS =2 )
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.SENSOR_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T2.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T3.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+						OR upper.NAME LIKE '%$QSEARCH_VALUE$%' 
+						OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+						OR T7.BRAND LIKE '%$QSEARCH_VALUE$%'
+						or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+						)
+				  ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+				 T2.LESSOR_TIME&gt;=cast(#QSTART_DATE# as datetime) 
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+				 T2.LESSOR_TIME&lt;=cast(#QEND_DATE# as datetime)
+			</isNotEmpty>
+			<isNotEmpty prepend="" property="QSELECT_STATUS">
+				<isNotEqual prepend="" property="QSELECT_STATUS" compareValue="-2">
+					<isEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS is null ]]>
+					</isEqual>
+					<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS = #QSELECT_STATUS# ]]>
+					</isNotEqual>
+				</isNotEqual>
+			</isNotEmpty>
+			<isNotEmpty property="RENTSTAUTS">
+		  	<isNotEqual prepend="and" property="RENTSTAUTS" compareValue="-3">
+		  		 t2.status=#RENTSTAUTS#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+			<isNotEmpty prepend="and" property="RECP_STATUS">
+		  		<![CDATA[ T10.RECP_STATUS = #RECP_STATUS# ]]>
+		  	</isNotEmpty>
+			
+		<![CDATA[  GROUP BY T1.ID,
+			          T1.STATUS,
+			          T2.RECT_ID,
+			          T1.LEASE_CODE,
+			          T2.RECT_STATUS,
+			          T2.STATUS,
+			          T3.CUST_NAME,
+			          T4.NAME,
+			          upper.NAME,
+			          T6.NAME,
+			          T2.LESSOR_TIME,
+			          T8.PAYLISTFLAG  , t1.wind_result_date, t9.DECP_NAME_CN,
+			          T10.RECP_STATUS
+			    ORDER BY  T1.ID DESC,T2.RECT_STATUS
+		]]>
+	</select>
+
+
+<!-- Add by Michael 根据资信报告ID查询设备信息 For 修改机号 -->
+	<statement id="getEquipmentByCreditIdForThingNum" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		SELECT T5.TYPE_ID,
+		       T4.KIND_ID,
+		       T3.PRODUCT_ID,
+		       T3.SUPPLIER_ID,
+		       T2.SUEQ_ID,
+		       T1.STAYBUY_PRICE,
+		       T1.UNIT_PRICE,
+		       T1.SHUI_PRICE,
+		       T1.AMOUNT,
+		       T1.UNIT,
+		       T1.MEMO,
+		       T1.THING_KIND,
+		       T5.NAME THING_NAME,
+		       T4.NAME MODEL_SPEC,
+		       T1.BRAND,
+		       T1.LOCK_CODE,
+		       t1.shui_price ,
+		       T1.THING_NUMBER,
+		       T7.Manufacturer,
+		       T7.NAME TYPE_NAME,
+		       T2.EQMT_ID
+		  FROM T_RENT_CONTRACTDETAIL T1
+		  LEFT JOIN T_EQMT_EQUIPMENT T2 ON T1.EQMT_ID = T2.EQMT_ID
+		  LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.SUEQ_ID = T2.SUEQ_ID
+		  LEFT JOIN T_PRDC_PRODUCT T4 ON T4.ID = T3.PRODUCT_ID
+		  LEFT JOIN T_PRDC_KIND T5 ON T5.ID = T4.KIND_ID
+		  LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = t5.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+		 WHERE T1.STATUS=0 AND T1.RECT_ID = #RECT_ID#
+		]]>
+	</statement>
+
+<update id="updateCONTRACTThingNum" parameterClass="map">
+	<![CDATA[
+		update T_RENT_CONTRACTDETAIL set 
+		THING_NUMBER=#THING_NUMBER#
+		where rect_id= #RECT_ID#  and EQMT_ID=#EQMT_ID#
+	]]>
+</update>
+
+<update id="updateEqmtThingNum" parameterClass="map">
+	<![CDATA[
+		update T_EQMT_EQUIPMENT set 
+		THING_NUMBER=#THING_NUMBER#
+		where EQMT_ID=#EQMT_ID#
+	]]>
+</update>
+
+<!-- Add by Michael 根据资信报告ID查询重车信息  -->
+	<statement id="readCarEquipmentByCreditId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		SELECT T5.TYPE_ID,
+		       T4.KIND_ID,
+		       T3.PRODUCT_ID,
+		       T3.SUPPLIER_ID,
+		       T1.STAYBUY_PRICE,
+		       T1.UNIT_PRICE,
+		       T1.SHUI_PRICE,
+		       T1.AMOUNT AS AMOUNT,
+		       T1.UNIT,
+		       T1.MEMO AS MEMO,
+		       T1.THING_KIND,
+		       T5.NAME THING_NAME,
+		       T4.NAME MODEL_SPEC,
+		       T1.BRAND,
+		       T1.LOCK_CODE,
+		       t1.shui_price ,
+	         T7.Manufacturer,
+	         T7.NAME TYPE_NAME,T1.SUEQ_ID,
+	         t1.CAR_COLOR,t1.CAR_RIGSTER_NUMBER,t1.CAR_ID_NUMBER,t1.CAR_ENGINE_NUMBER,t1.CAR_IMPORT_DOMESTIC,T1.PRCE_ID
+		  FROM T_PRJT_CREDITEQUIPMENT T1
+		  LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.SUEQ_ID = T1.SUEQ_ID
+		  LEFT JOIN T_PRDC_PRODUCT T4 ON T4.ID = T3.PRODUCT_ID
+		  LEFT JOIN T_PRDC_KIND T5 ON T5.ID = T4.KIND_ID
+		  LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = t5.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+		 WHERE  T1.CREDIT_ID = #PRCD_ID#
+		]]>
+	</statement>
+	
+	
+	<!-- Add by xuwei 根据资信报告ID查询设备信息  -->
+	<select id="queryBusRentContractForPayer" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ SELECT 
+					 T1.ID PRCD_ID,
+					  T1.CREDIT_RUNCODE,
+					 T1.LEASE_CODE,
+					 T3.CUST_NAME,
+					 T4.NAME AREA,
+					 upper.NAME CLERK_NAME,
+					 T6.NAME SENSOR_NAME,
+					 T2.LESSOR_TIME,
+					 MAX(T7.BRAND) BRAND,
+					t9.DECP_NAME_CN
+				  FROM T_PRJT_CREDIT T1
+				  LEFT JOIN T_RENT_CONTRACT T2 ON T1.ID = T2.PRCD_ID and T2.STATUS = 0
+				  LEFT JOIN T_CUST_CUSTOMER T3 ON T1.CUST_ID = T3.CUST_ID
+				  LEFT JOIN T_AREA T4 ON T1.PROVINCE_ID = T4.ID
+				  LEFT JOIN T_USER_USER T6 ON T1.SENSOR_ID = T6.ID
+				  ]]>
+				  <![CDATA[
+				  left join T_USER_USER upper on upper.id = T6.upper_user
+				  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+	      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+				  ]]>
+				  <![CDATA[
+				  LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON T1.ID = T7.CREDIT_ID
+				 where t1.production_type = 2 
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.SENSOR_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T2.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T3.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+						OR upper.NAME LIKE '%$QSEARCH_VALUE$%' 
+						OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+						OR T7.BRAND LIKE '%$QSEARCH_VALUE$%'
+						or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+						OR T1.CREDIT_RUNCODE LIKE '%$QSEARCH_VALUE$%' 
+						)
+				  ]]>
+			</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="CAR_NUMBER">
+				<![CDATA[
+					exists (
+					
+					SELECT distinct TPCE.CREDIT_ID
+					  FROM T_PRJT_CREDITEQUIPMENT TPCE
+					  LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.SUEQ_ID = TPCE.SUEQ_ID
+					  LEFT JOIN T_PRDC_PRODUCT T4 ON T4.ID = T3.PRODUCT_ID
+					  LEFT JOIN T_PRDC_KIND T5 ON T5.ID = T4.KIND_ID
+					  LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = t5.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+					 WHERE  TPCE.CAR_RIGSTER_NUMBER is not null 
+					 and TPCE.CAR_RIGSTER_NUMBER like '%$CAR_NUMBER$%' 
+					 and TPCE.CREDIT_ID = T1.ID
+					)
+				  ]]>
+			</isNotEmpty>
+			
+		<![CDATA[  GROUP BY T1.ID,
+		 			T1.CREDIT_RUNCODE,
+			          T2.RECT_ID,
+			          T1.LEASE_CODE,
+			          T3.CUST_NAME,
+			          T4.NAME,
+			          upper.NAME,
+			          T6.NAME,
+			          T2.LESSOR_TIME,
+			          t9.DECP_NAME_CN		
+		]]>
+	</select>
+	
+	
+	<!-- Add by xuwei 根据资信报告ID查询设备信息  -->
+	<select id="queryBusRentContractForPayer_count" parameterClass="map" resultClass="java.lang.Integer">
+	    select count(0)
+			from(
+		<![CDATA[ 
+			SELECT 
+					 T1.ID PRCD_ID,
+					 T1.CREDIT_RUNCODE,
+					 T1.LEASE_CODE,
+					 T3.CUST_NAME,
+					 T4.NAME AREA,
+					 upper.NAME CLERK_NAME,
+					 T6.NAME SENSOR_NAME,
+					 T2.LESSOR_TIME,
+					 MAX(T7.BRAND) BRAND,
+					t9.DECP_NAME_CN
+				  FROM T_PRJT_CREDIT T1
+				  LEFT JOIN T_RENT_CONTRACT T2 ON T1.ID = T2.PRCD_ID and T2.STATUS = 0
+				  LEFT JOIN T_CUST_CUSTOMER T3 ON T1.CUST_ID = T3.CUST_ID
+				  LEFT JOIN T_AREA T4 ON T1.PROVINCE_ID = T4.ID
+				  LEFT JOIN T_USER_USER T6 ON T1.SENSOR_ID = T6.ID
+				  ]]>
+				  <![CDATA[
+				  left join T_USER_USER upper on upper.id = T6.upper_user
+				  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+	      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+				  ]]>
+				  <![CDATA[
+				  LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON T1.ID = T7.CREDIT_ID
+				 where t1.production_type = 2 
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.SENSOR_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+				
+					(	T1.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T2.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T3.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+						OR upper.NAME LIKE '%$QSEARCH_VALUE$%' 
+						OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+						OR T7.BRAND LIKE '%$QSEARCH_VALUE$%'
+						or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+						OR T1.CREDIT_RUNCODE LIKE '%$QSEARCH_VALUE$%' 
+						)
+				  ]]>
+			</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="CAR_NUMBER">
+				<![CDATA[
+					exists (
+					
+					SELECT distinct TPCE.CREDIT_ID
+					  FROM T_PRJT_CREDITEQUIPMENT TPCE
+					  LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.SUEQ_ID = TPCE.SUEQ_ID
+					  LEFT JOIN T_PRDC_PRODUCT T4 ON T4.ID = T3.PRODUCT_ID
+					  LEFT JOIN T_PRDC_KIND T5 ON T5.ID = T4.KIND_ID
+					  LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = t5.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+					 WHERE  TPCE.CAR_RIGSTER_NUMBER is not null 
+					 and TPCE.CAR_RIGSTER_NUMBER like '%$CAR_NUMBER$%' 
+					 and TPCE.CREDIT_ID = T1.ID
+					)
+				  ]]>
+			</isNotEmpty>
+			
+		<![CDATA[  GROUP BY T1.ID,
+						T1.CREDIT_RUNCODE,
+			          T2.RECT_ID,
+			          T1.LEASE_CODE,
+			          T3.CUST_NAME,
+			          T4.NAME,
+			          upper.NAME,
+			          T6.NAME,
+			          T2.LESSOR_TIME,
+			          t9.DECP_NAME_CN		
+		]]>
+		) tt
+	</select>
+	
+		<!-- Add by xuwei 根据资信报告ID查询设备信息  -->
+	<select id="queryCarRentContracts" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ SELECT 
+					 T1.ID PRCD_ID,
+					  T1.CREDIT_RUNCODE,
+					 T1.LEASE_CODE,
+					 T3.CUST_NAME,
+					 T4.NAME AREA,
+					 upper.NAME CLERK_NAME,
+					 T6.NAME SENSOR_NAME,
+					 T2.LESSOR_TIME,
+					 MAX(T7.BRAND) BRAND,
+					t9.DECP_NAME_CN
+				  FROM T_PRJT_CREDIT T1
+				  LEFT JOIN T_RENT_CONTRACT T2 ON T1.ID = T2.PRCD_ID and T2.STATUS = 0
+				  LEFT JOIN T_CUST_CUSTOMER T3 ON T1.CUST_ID = T3.CUST_ID
+				  LEFT JOIN T_AREA T4 ON T1.PROVINCE_ID = T4.ID
+				  LEFT JOIN T_USER_USER T6 ON T1.SENSOR_ID = T6.ID
+				  ]]>
+				  <![CDATA[
+				  left join T_USER_USER upper on upper.id = T6.upper_user
+				  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+	      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+				  ]]>
+				  <![CDATA[
+				  LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON T1.ID = T7.CREDIT_ID
+				 where t1.production_type = 3 
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.SENSOR_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T2.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T3.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+						OR upper.NAME LIKE '%$QSEARCH_VALUE$%' 
+						OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+						OR T7.BRAND LIKE '%$QSEARCH_VALUE$%'
+						or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+						OR T1.CREDIT_RUNCODE LIKE '%$QSEARCH_VALUE$%' 
+						)
+				  ]]>
+			</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="CAR_NUMBER">
+				<![CDATA[
+					exists (
+					
+					SELECT distinct TPCE.CREDIT_ID
+					  FROM T_PRJT_CREDITEQUIPMENT TPCE
+					  LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.SUEQ_ID = TPCE.SUEQ_ID
+					  LEFT JOIN T_PRDC_PRODUCT T4 ON T4.ID = T3.PRODUCT_ID
+					  LEFT JOIN T_PRDC_KIND T5 ON T5.ID = T4.KIND_ID
+					  LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = t5.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+					 WHERE  TPCE.CAR_RIGSTER_NUMBER is not null 
+					 and TPCE.CAR_RIGSTER_NUMBER like '%$CAR_NUMBER$%' 
+					 and TPCE.CREDIT_ID = T1.ID
+					)
+				  ]]>
+			</isNotEmpty>
+			
+		<![CDATA[  GROUP BY T1.ID,
+		 			T1.CREDIT_RUNCODE,
+			          T2.RECT_ID,
+			          T1.LEASE_CODE,
+			          T3.CUST_NAME,
+			          T4.NAME,
+			          upper.NAME,
+			          T6.NAME,
+			          T2.LESSOR_TIME,
+			          t9.DECP_NAME_CN		
+		]]>
+	</select>
+	
+	
+	<!-- Add by xuwei 根据资信报告ID查询设备信息  -->
+	<select id="queryCarRentContracts_count" parameterClass="map" resultClass="java.lang.Integer">
+	    select count(0)
+			from(
+		<![CDATA[ 
+			SELECT 
+					 T1.ID PRCD_ID,
+					 T1.CREDIT_RUNCODE,
+					 T1.LEASE_CODE,
+					 T3.CUST_NAME,
+					 T4.NAME AREA,
+					 upper.NAME CLERK_NAME,
+					 T6.NAME SENSOR_NAME,
+					 T2.LESSOR_TIME,
+					 MAX(T7.BRAND) BRAND,
+					t9.DECP_NAME_CN
+				  FROM T_PRJT_CREDIT T1
+				  LEFT JOIN T_RENT_CONTRACT T2 ON T1.ID = T2.PRCD_ID and T2.STATUS = 0
+				  LEFT JOIN T_CUST_CUSTOMER T3 ON T1.CUST_ID = T3.CUST_ID
+				  LEFT JOIN T_AREA T4 ON T1.PROVINCE_ID = T4.ID
+				  LEFT JOIN T_USER_USER T6 ON T1.SENSOR_ID = T6.ID
+				  ]]>
+				  <![CDATA[
+				  left join T_USER_USER upper on upper.id = T6.upper_user
+				  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+	      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+				  ]]>
+				  <![CDATA[
+				  LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON T1.ID = T7.CREDIT_ID
+				 where t1.production_type = 3 
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.SENSOR_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+				
+					(	T1.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T2.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' 
+						OR T3.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+						OR upper.NAME LIKE '%$QSEARCH_VALUE$%' 
+						OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+						OR T7.BRAND LIKE '%$QSEARCH_VALUE$%'
+						or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+						OR T1.CREDIT_RUNCODE LIKE '%$QSEARCH_VALUE$%' 
+						)
+				  ]]>
+			</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="CAR_NUMBER">
+				<![CDATA[
+					exists (
+					
+					SELECT distinct TPCE.CREDIT_ID
+					  FROM T_PRJT_CREDITEQUIPMENT TPCE
+					  LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.SUEQ_ID = TPCE.SUEQ_ID
+					  LEFT JOIN T_PRDC_PRODUCT T4 ON T4.ID = T3.PRODUCT_ID
+					  LEFT JOIN T_PRDC_KIND T5 ON T5.ID = T4.KIND_ID
+					  LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = t5.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+					 WHERE  TPCE.CAR_RIGSTER_NUMBER is not null 
+					 and TPCE.CAR_RIGSTER_NUMBER like '%$CAR_NUMBER$%' 
+					 and TPCE.CREDIT_ID = T1.ID
+					)
+				  ]]>
+			</isNotEmpty>
+			
+		<![CDATA[  GROUP BY T1.ID,
+						T1.CREDIT_RUNCODE,
+			          T2.RECT_ID,
+			          T1.LEASE_CODE,
+			          T3.CUST_NAME,
+			          T4.NAME,
+			          upper.NAME,
+			          T6.NAME,
+			          T2.LESSOR_TIME,
+			          t9.DECP_NAME_CN		
+		]]>
+		) tt
+	</select>
+</sqlMap>

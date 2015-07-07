@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="riskAuditUpdate">
+
+	<select id="selectWindIdea" parameterClass="map" resultClass="hashmap">
+		select tprcl.prc_id,
+		       tprcl.credit_id,
+		       tprcl.state							STATE,
+		       CONVERT(varchar,tprcl.sec_suggestion)     SEC_SUGGESTION,
+		       tprcl.sec_user_id,
+		       tprcl.sec_date SEC_DATE,
+		       CONVERT(varchar,tprcl.synthesize_suggestion)	SYNTHESIZE_SUGGESTION,
+		       tprcl.synthesize_user_id,
+		       tprcl.synthesize_date SYNTHESIZE_DATE,
+		       CONVERT(varchar,tprcl.gm_suggestion)			GM_SUGGESTION,
+		       tprcl.gm_user_id,
+		       tprcl.gm_date GM_DATE,
+		       CONVERT(varchar,tprcl.decision_content)		DECISION_CONTENT,
+		       tprcl.decision_user_id,
+		       tprcl.decision_date DECISION_DATE,
+		       tprcl.status,
+		       tprcl.prc_node,
+		       tuu.name        	    TUU_NAME,
+		       tuu1.name      	    TUU1_NAME,
+		       tuu2.name      	    TUU2_NAME,
+		       tuu3.name      	    TUU3_NAME,
+		       tprcl.prc_hao        PRC_HAO,
+		       tprcl.prc_level_id 	PRC_LEVEL_ID,
+		       tprcl.riskinfo		RISKINFO,
+		       tprcl.real_prc_hao   REAL_PRC_HAO,
+	       	   case when vi.REAL_VISIT_DATE is not null then convert(nvarchar, vi.REAL_VISIT_DATE)
+	       		else vi.NONE_VISIT_REASON end as VISIT_DATE,
+	       	   vu.[NAME] as VISITOR,
+	       	   tprcl.RISK_LEVEL,
+	       	   tprcl.RISK_LEVEL_MEMO
+	       	   , tprcl.RETURN_CLASS_LEVEL_ONE
+	       	   , tprcl.RETURN_CLASS_LEVEL_TWO
+	       	   , tprcl.SCORE
+	  from t_prjt_risk_control tprcl
+	  <![CDATA[ left join t_prjt_visit vi on vi.credit_id = tprcl.CREDIT_ID and vi.status = 0 and vi.VISIT_STATUS >= 3 ]]>
+	  left join t_user_user vu on vi.REAL_VISITOR = vu.ID
+    left join t_user_user tuu on tuu.id=tprcl.sec_user_id
+    left join t_user_user tuu1 on tuu1.id=tprcl.synthesize_user_id
+    left join t_user_user tuu2 on tuu2.id=tprcl.gm_user_id
+    left join t_user_user tuu3 on tuu3.id=tprcl.decision_user_id
+	  where tprcl.prc_id=#prc_id#  and tprcl.status=0
+	</select>
+	
+	<update id="updatewind" parameterClass="map">
+	update t_prjt_risk_control 
+	   set 
+	       sec_suggestion = #SEC_SUGGESTION#,
+	       sec_user_id = #s_employeeId#,
+	       riskinfo = #RISKINFO#
+	       sec_date = getdate()
+	 where prc_id = #prc_id#
+	</update>
+	
+	<select id="selectXuanFen" parameterClass="map" resultClass="hashmap">
+		select  tprpt.t_prp_id		T_PRP_ID, 
+				tprpt.points_id		POINT_ID, 
+				tprpt.t_prp_content	T_PRP_CONTENT, 
+		        tprpt.t_prp_point	T_PRP_POINT, 
+		        tprpt.credit_id		CREDIT_ID, 
+		        tprpt.prc_id		PRC_ID,
+		        tprpt.psType		PSTYPE,
+		        tspss.points_name 	POINTS_NAME,
+		        tdd.flag			FLAG,
+		        tspss.memo			MEMO,
+		        tspss.standard_score	STANDARD_SCORE,
+		        tspss.type_code   TYPE_CODE
+		  from t_prjt_risk_point tprpt
+		  left join t_prjt_risk_control tprcl on tprpt.prc_id=tprcl.prc_id
+		  left join t_sys_pointsitems tspss on tprpt.points_id=tspss.points_id
+		  left join t_data_dictionary tdd on tdd.code=tspss.type_code
+		  where tprpt.prc_id=#prc_id# and tdd.type=#fenTy#
+		  order by tspss.type_code
+	</select>
+
+	<select id="selectFenType" parameterClass="map" resultClass="hashmap">
+		select  distinct(tspss.type_code)   TYPE_CODE 
+		  from t_prjt_risk_point tprpt
+		  left join t_prjt_risk_control tprcl on tprpt.prc_id=tprcl.prc_id
+		  left join t_sys_pointsitems tspss on tprpt.points_id=tspss.points_id
+		  left join t_data_dictionary tdd on tdd.code=tspss.type_code
+		  where tprpt.prc_id=#prc_id# and tdd.type=#fenTy#
+		  order by tspss.type_code
+	</select>	
+	<select id="selectXiangFen"   resultClass="hashmap" parameterClass="map">
+		select 
+		        tsp.points_id points_id, 
+		        tsp.points_name, 
+		        tsp.memo, 
+		        tsp.standard_score, 
+		        tsp.type_code, 
+		        tsp.state, 
+		        tsp.status,
+		        tdd.flag,
+		        tsspi.subitem_id, 
+				tsspi.subitem_content  SUBITEM_CONTENT, 
+				tsspi.subitem_point		SUBITEM_POINT, 
+				tsspi.status
+		from t_sys_pointsitems tsp
+		left join t_data_dictionary tdd on tdd.code=tsp.type_code
+		left join t_sys_subpointitems tsspi on tsspi.points_id=tsp.points_id
+		where tdd.type=#fenTy# and tsp.state=1 and tsp.points_id=#points_id# and tsspi.status=0
+		order by tsp.type_code,tsspi.subitem_point
+	</select>
+	<delete id="deletepoint"   parameterClass="map">
+		delete t_prjt_risk_point where prc_id = #prc_id#
+	</delete>	
+	
+	<update id="upRiskMemoForSummit" parameterClass="map">
+		update t_prjt_risk_controlmemo set 
+		modify_time =getdate(),
+		modify_user_id =#s_employeeId#,
+		prc_id=#prc_id#,
+		prcm_context=#context#,
+		prcm_level=#memoLevel#,
+		prcm_user_level=#memoLevelUrl#
+		where prcm_id=#PRCM_ID#		
+	</update>
+	
+	<update id="upRiskMemoForResult" parameterClass="map">
+		update t_prjt_risk_controlmemo set 
+		modify_time =getdate(),
+		modify_user_id =#s_employeeId#,
+		prc_id=#prc_id#,
+		prcm_context=#context#,
+		prcm_user_level=#memoLevelUrl#
+		where prcm_id=#PRCM_ID#				
+	</update>
+	
+	<update id="upRiskMemoForResult_forpass" parameterClass="map">
+		update t_prjt_risk_controlmemo set 
+		modify_time =getdate(),
+		modify_user_id =#s_employeeId#,
+		prc_id=#prc_id#,
+		prcm_level=null,
+		prcm_context=#context#,
+		prcm_user_level=#memoLevelUrl#
+		where prcm_id=#PRCM_ID#				
+	</update>
+	
+	<update id="upCreditstate" parameterClass="map">
+		update t_prjt_credit   set   WIND_STATE=null    where id = #credit_id#    
+	</update> 
+	<update id="upCstate" parameterClass="map">
+		update t_prjt_risk_control   set   STATE=0   where prc_id = #prc_id#    
+	</update> 	
+	<!--测评分等级 -->
+	<select id="fen_page"   resultClass="hashmap" parameterClass="map">
+			select prc_id ,lev,sum_point from 
+			(select prc_id ,sum_point,row_number() over(order by sum_point desc) lev from 
+			(select tprc.prc_id,sum(isnull(tprp.t_prp_point,0)) sum_point  from  
+			  t_prjt_risk_control tprc
+			left join t_prjt_risk_point tprp
+			on tprc.prc_id=tprp.prc_id 
+			where tprc.status=0 and tprc.state!=0
+			group by tprc.prc_id
+			union 
+			select a1.prc_id,sum(isnull(a2.t_prp_point,0)) sum_point from t_prjt_risk_control a1
+			left join t_prjt_risk_point a2 on a1.prc_id=a2.prc_id
+			where a1.status=0 and a1.prc_id=#prc_id# and a1.state=0
+			group by a1.prc_id			
+			 ) t2) t1
+			where prc_id=#prc_id#
+	</select>
+	<select id="risk_state"   resultClass="hashmap" parameterClass="map">
+			select state from t_prjt_risk_control 	where prc_id=#prc_id#
+	</select>	
+	<select id="getFenOrder_count" parameterClass="map" resultClass="int">	  
+		select count(t11.prc_id) CNT from 		
+		(select prc_id ,lev,sum_point from 
+				(select prc_id ,sum_point,row_number() over(order by sum_point desc) lev from 
+				(select tprc.prc_id,sum(isnull(tprp.t_prp_point,0)) sum_point  from  
+				  t_prjt_risk_control tprc
+				left join t_prjt_risk_point tprp
+				on tprc.prc_id=tprp.prc_id
+				where tprc.status=0 and tprc.state!=0
+				group by tprc.prc_id 
+				union 
+				select a1.prc_id,sum(isnull(a2.t_prp_point,0)) sum_point from t_prjt_risk_control a1
+				left join t_prjt_risk_point a2 on a1.prc_id=a2.prc_id
+				where a1.status=0 and a1.prc_id=#prc_id# and a1.state=0
+				group by a1.prc_id	
+				) t2) t1) t55
+		left join t_prjt_risk_control t11 on t11.prc_id=t55.prc_id
+		left join t_prjt_credit t22 on t22.id=t11.credit_id
+		left join t_cust_customer t33 on t33.cust_id=t22.cust_id
+		left join t_prjt_creditscheme t44 on t44.credit_id=t22.id
+	</select>
+	<select id="getFenOrder" parameterClass="map" resultClass="hashmap">
+			select t11.prc_id,lev,sum_point,t44.credit_id,t22.credit_code,t33.cust_name,t33.cust_code, CONVERT(varchar,t22.commit_wind_date,23) commit_wind_date ,t44.lease_rze from 		
+			(select prc_id ,lev,sum_point from 
+					(select prc_id ,sum_point,row_number() over(order by sum_point desc) lev from 
+					(select tprc.prc_id,sum(isnull(tprp.t_prp_point,0)) sum_point  from  
+					  t_prjt_risk_control tprc
+					left join t_prjt_risk_point tprp
+					on tprc.prc_id=tprp.prc_id
+					where tprc.status=0 and tprc.state!=0
+					group by tprc.prc_id 
+					union 
+					select a1.prc_id,sum(isnull(a2.t_prp_point,0)) sum_point from t_prjt_risk_control a1
+					left join t_prjt_risk_point a2 on a1.prc_id=a2.prc_id
+					where a1.status=0 and a1.prc_id=#prc_id# and a1.state=0
+					group by a1.prc_id										
+					) t2) t1) t55
+			left join t_prjt_risk_control t11 on t11.prc_id=t55.prc_id
+			left join t_prjt_credit t22 on t22.id=t11.credit_id
+			left join t_cust_customer t33 on t33.cust_id=t22.cust_id
+			left join t_prjt_creditscheme t44 on t44.credit_id=t22.id	
+			where lev&gt;=#str# and lev&lt;=#end#					
+	</select>
+	
+	<select id="sumFenOrder" parameterClass="map" resultClass="hashmap">
+		select sum(isnull(sum_point,0)) sum_point from
+			(select prc_id ,lev,sum_point from 
+			(select prc_id ,sum_point,row_number() over(order by sum_point desc) lev from 
+			(select tprc.prc_id,sum(isnull(tprp.t_prp_point,0)) sum_point  from  
+			  t_prjt_risk_control tprc
+			left join t_prjt_risk_point tprp
+			on tprc.prc_id=tprp.prc_id
+			where tprc.status=0 and tprc.state!=0
+			group by tprc.prc_id ) t2) t1) t5
+	</select>	
+	
+	<select id="checkContractType" parameterClass="map" resultClass="int">
+	    SELECT DISTINCT CONTRACT_TYPE 
+	      FROM T_PRJT_CREDIT 
+	     WHERE ID=#CREDIT_ID#
+	</select>									
+</sqlMap>

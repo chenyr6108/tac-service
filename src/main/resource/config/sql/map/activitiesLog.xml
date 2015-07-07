@@ -1,0 +1,631 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="activitiesLog">
+
+<!-- 管理页面 查询个数 -->
+	<select id="query_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ select count(1) from t_cust_customer t where t.status=0]]>
+		<isNotEmpty prepend="and" property="content">
+		  		(	t.cust_code LIKE '%$content$%' 
+		  			OR  t.cust_name LIKE '%$content$%' 
+		  		)
+		</isNotEmpty>
+	</select>
+	<!-- 管理页面 查询数据 -->
+	<select id="query" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ select t.cust_id,t.cust_type,t.cust_code,t.cust_name,t.cust_level,t.create_time,t.modify_time from t_cust_customer t 
+		where t.status=0
+		]]>
+		<isNotEmpty prepend="and" property="content">
+		  		(	t.cust_code LIKE '%$content$%' 
+		  			OR  t.cust_name LIKE '%$content$%' 
+		  		)
+		</isNotEmpty>
+	</select>
+
+<!-- 管理页面 查询个数(查询条件) -->
+	<select id="queryList_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[select count(*) from( select t.cust_id,t.cust_type,t.cust_code,t.cust_name,t.cust_level,t.create_time,
+t.modify_time,t3.PROVINCE_ID,t3.CITY_ID,t3.SENSOR_ID,t3.DECP_ID,t1.CASESTATE,t1.FIRSTVISITDATE,t4.NAME
+from T_LOG_ACTIVITIESLOG t1
+left join t_cust_customer t on t1.CUST_ID=t.CUST_ID
+left join T_LOG_ACTIVITIESDETAILLOG t2 on t1.ACTILOG_ID=t2.ACTILOG_ID
+left join T_PRJT_CREDIT t3 on t1.CREDIT_ID=t3.ID
+left join T_USER_USER t4 on t3.SENSOR_ID=t4.ID
+where t.status=0 and t1.STATUS=0 and t2.STATUS=0
+]]>
+			<isNotEmpty prepend="and" property="decp_id">
+				<![CDATA[ t3.DECP_ID=#decp_id# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="province_id">
+				<![CDATA[ t3.PROVINCE_ID=#province_id# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="city_id">
+				<![CDATA[ t3.CITY_ID=#city_id# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="casesun">
+				<![CDATA[ t1.CASESTATE=#logName# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="sorUserId">
+				<![CDATA[t4.NAME like '%$sorUserId$%' ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+		  		t1.FIRSTVISITDATE&gt;=CONVERT(datetime,#QSTART_DATE#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="QEND_DATE">
+		  		t1.FIRSTVISITDATE&lt;=CONVERT(datetime,#QEND_DATE#)+1
+		  	</isNotEmpty>
+			<isNotEmpty prepend="and" property="content">
+		  		(	t.cust_code LIKE '%$content$%' 
+		  			OR  t.cust_name LIKE '%$content$%' 
+		  		)
+		  	</isNotEmpty>
+	    <![CDATA[group by t.cust_id,t.cust_type,t.cust_code,t.cust_name,t.cust_level,t.create_time,
+t.modify_time,t3.PROVINCE_ID,t3.CITY_ID,t3.SENSOR_ID,t3.DECP_ID,t1.CASESTATE,t1.FIRSTVISITDATE,t4.NAME
+	     ) tt
+	     ]]>
+	</select>
+	<!-- 管理页面 查询数据(查询条件) -->
+	<select id="queryList" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ select t.cust_id,t.cust_type,t.cust_code,t.cust_name,t.cust_level,t.create_time,
+t.modify_time,t3.PROVINCE_ID,t3.CITY_ID,t3.SENSOR_ID,t3.DECP_ID,t1.CASESTATE,t1.FIRSTVISITDATE,t4.NAME
+from T_LOG_ACTIVITIESLOG t1
+left join t_cust_customer t on t1.CUST_ID=t.CUST_ID
+left join T_LOG_ACTIVITIESDETAILLOG t2 on t1.ACTILOG_ID=t2.ACTILOG_ID
+left join T_PRJT_CREDIT t3 on t1.CREDIT_ID=t3.ID
+left join T_USER_USER t4 on t3.SENSOR_ID=t4.ID
+where t.status=0 and t1.STATUS=0 and t2.STATUS=0
+]]>
+			<isNotEmpty prepend="and" property="decp_id">
+				<![CDATA[ t3.DECP_ID=#decp_id# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="province_id">
+				<![CDATA[ t3.PROVINCE_ID=#province_id# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="city_id">
+				<![CDATA[ t3.CITY_ID=#city_id# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="casesun">
+				<![CDATA[ t1.CASESTATE=#logName# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="sorUserId">
+				<![CDATA[t4.NAME like '%$sorUserId$%' ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+		  		t1.FIRSTVISITDATE&gt;=CONVERT(datetime,#QSTART_DATE#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="QEND_DATE">
+		  		t1.FIRSTVISITDATE&lt;=CONVERT(datetime,#QEND_DATE#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="content">
+		  		(	
+		  				t.cust_code LIKE '%$content$%' 
+		  			OR  t.cust_name LIKE '%$content$%' 
+		  		)
+		  	</isNotEmpty>
+	    <![CDATA[group by t.cust_id,t.cust_type,t.cust_code,t.cust_name,t.cust_level,t.create_time,
+t.modify_time,t3.PROVINCE_ID,t3.CITY_ID,t3.SENSOR_ID,t3.DECP_ID,t1.CASESTATE,t1.FIRSTVISITDATE,t4.NAME
+	     order by t.create_time desc  ]]>
+	</select>
+
+<!-- 新建一条活动日志主档 -->
+<insert id="createActivitiesLog" parameterClass="map">
+		<![CDATA[
+			insert into T_LOG_ACTIVITIESLOG
+			  (CUST_ID, PRODUCTSABOUT, REFEREE, SUPPLIER, LIMIT,STATE, CREATE_ID, CREATE_TIME, STATUS)
+			values
+			  (#cust_id#,#productsabout#,#referee#,#supplier#,#limit#,0,#id#,getdate(),0)
+		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="actilog_id">
+			<![CDATA[	select @@IDENTITY as actilog_id  ]]>
+		</selectKey>
+</insert>
+	
+<!-- 查询出承租人下的所有主档 -->
+<select id="activitiesLogByCustId" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select t1.STATE,t.ACTILOG_ID ACTILOG_ID, t.CREDIT_ID, t.CUST_ID, t.PRODUCTSABOUT, t.REFEREE, t.SUPPLIER, t.LIMIT, t.CASESTATE,
+				t. CONTARCTHAB, t.CONTARCTHABPREO, t.VISITFACTORYDATE, t.FIRSTVISITDATE, t.STATE, t.CREATE_ID, t.MODIFY_ID, 
+				t.CREATE_TIME, t.MODIFY_DATE, t.STATUS,t1.CREDIT_CODE,t2.CUST_CODE,t2.CUST_NAME,t2.CUST_TYPE,t3.NAME,t3.CODE ,
+				t1.CONTRACT_HAB, t1.CONTRACT_HAB_BEFORE,t.CONTRACT_HAB CONTRACT_HAB_LOG,t.CONTRACT_HAB_BEFORE CONTRACT_HAB_BEFORE_LOG
+			from T_LOG_ACTIVITIESLOG t
+				left join T_PRJT_CREDIT t1 on t.CREDIT_ID=t1.ID
+				left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+				left join T_USER_USER t3 on t.CREATE_ID=t3.ID
+			where t.CUST_ID=#cust_id# and t.STATUS=0 and (t1.STATUS=0 or t1.STATUS is null) and t2.STATUS=0
+			group by t.ACTILOG_ID, t.CREDIT_ID, t.CUST_ID, t.PRODUCTSABOUT, t.REFEREE, t.SUPPLIER, t.LIMIT, t.CASESTATE,
+				t. CONTARCTHAB, t.CONTARCTHABPREO, t.VISITFACTORYDATE, t.FIRSTVISITDATE, t.STATE, t.CREATE_ID, t.MODIFY_ID, 
+				t.CREATE_TIME, t.MODIFY_DATE, t.STATUS,t1.CREDIT_CODE,t2.CUST_CODE,t2.CUST_NAME,t2.CUST_TYPE,t3.NAME,t3.CODE,
+				t1.CONTRACT_HAB, t1.CONTRACT_HAB_BEFORE,t.CONTRACT_HAB,t.CONTRACT_HAB_BEFORE,t1.STATE
+ 		]]>
+ 	</select>
+ 	
+ 	
+ 	
+ 	<!-- 查询出一个主档下的所有明细档 -->
+<select id="activitiesLogByLog" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select t.DETLOG_ID, t.ACTILOG_ID, t.EXPECTEDDATE, t.ACTUALDATE, t.CASEFATHER, t.CASESUN, 
+t.ECPECTEDREMARK, t.VISITREMARK, t.VISITNAME, t.VISITTITLES, t.CONTACTKEY, t.CREATE_ID, 
+t.MODIFY_ID, t.CREATE_TIME, t.MODIFY_DATE, t.STATUS,t2.NAME,t2.CODE,t3.ACTLOG_NAME
+from T_LOG_ACTIVITIESDETAILLOG t
+left join T_LOG_ACTIVITIESLOG t1 on t.ACTILOG_ID=t1.ACTILOG_ID
+left join T_USER_USER t2 on t.CREATE_ID=t2.ID
+left join T_REPORT_ACTLOG t3 on t.CASESUN=t3.ACTLOG_ID
+where t.ACTILOG_ID=#actilog# and t.STATUS=0 and t1.STATUS=0
+group by t.DETLOG_ID, t.ACTILOG_ID, t.EXPECTEDDATE, t.ACTUALDATE, t.CASEFATHER, t.CASESUN, 
+t.ECPECTEDREMARK, t.VISITREMARK, t.VISITNAME, t.VISITTITLES, t.CONTACTKEY, t.CREATE_ID, 
+t.MODIFY_ID, t.CREATE_TIME, t.MODIFY_DATE, t.STATUS,t2.NAME,t2.CODE,t3.ACTLOG_NAME
+ 		]]>
+ 	</select>
+ 	
+ 	
+ 	<!-- 为新建主档提供信息 -->
+<select id="logTypeList" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select DATA_ID,TYPE,FLAG,CODE from T_DATA_DICTIONARY where TYPE=#type# and SHORTNAME='1' and STATUS=0
+ 		]]>
+ 	</select>
+ 	
+ 	 	<!-- 为新建主档提供信息 -->
+<select id="logTypeList1" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select DATA_ID,TYPE,FLAG,CODE from T_DATA_DICTIONARY where TYPE=#type1# and STATUS=0
+ 		]]>
+ 	</select>
+ 	
+ 	 	<!-- 为新建主档提供信息 -->
+<select id="logTypeList2" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select DATA_ID,TYPE,FLAG,CODE,LEVEL_NUM from T_DATA_DICTIONARY where TYPE=#type1# and STATUS=0
+			 and LEVEL_NUM<=( select 
+			 case
+			 when max(t2.LEVEL_NUM) is null
+				then 1
+			when  max(t2.LEVEL_NUM)>0
+				then max(t2.LEVEL_NUM)+1
+			end
+			  from T_LOG_ACTIVITIESLOG t
+			 left join T_LOG_ACTIVITIESDETAILLOG t1 on t1.ACTILOG_ID=t.ACTILOG_ID and t1.STATUS=0
+			 left join T_DATA_DICTIONARY t2 on t1.CASEFATHER=t2.DATA_ID and t2.STATUS=0
+			 where t.ACTILOG_ID=#actilog_id# and t.STATUS=0)
+ 		]]>
+ 	</select>
+ 	
+ 	
+ 	<!-- 查询案件狀況細項 -->
+	<select id="logSunList" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select ACTLOG_ID,ACTLOG_TYPE,ACTLOG_NAME from T_REPORT_ACTLOG where ACTLOG_TYPE=#code#  and STATUS=0
+ 		]]>
+ 	</select>
+ 	
+ 	<!-- 查询客户拜访与维护 -->
+	<select id="logSunList1" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select DATA_ID,TYPE,FLAG,CODE from T_DATA_DICTIONARY where TYPE=#code# and STATUS=0
+ 		]]>
+ 	</select>
+ 	
+ 	<!-- 新建主档明细 -->
+<insert id="createLog" parameterClass="map">
+		<![CDATA[
+			insert into T_LOG_ACTIVITIESDETAILLOG
+			  (ACTILOG_ID, EXPECTEDDATE,
+			  ]]>
+			  <isNotEmpty property="actualDate">
+				<![CDATA[  ACTUALDATE,  ]]>
+			</isNotEmpty>
+			   <![CDATA[
+			   CASEFATHER, CASESUN, ECPECTEDREMARK, VISITREMARK,
+			   VISITNAME, VISITTITLES, CONTACTKEY, CREATE_ID, CREATE_TIME, STATUS,CASEFATHER1,CASESUN1)
+			values
+			  (#actilog#,convert(datetime,convert(varchar,(#expectedDate#),23)),
+			  ]]>
+			  <isNotEmpty property="actualDate">
+				<![CDATA[   convert(datetime,convert(varchar,(#actualDate#),23)),  ]]>
+			</isNotEmpty>
+			   <![CDATA[
+			  #caseFather#,#casesun#,#ecpectedRemark#,#visitRemark#,#visitName#,#visitTitles#,#contactKey#,
+			  #id#,getdate(),0,#CASEFATHER1#,#CASESUN1#)
+		]]>
+</insert>
+
+ 	<!-- 由其他地方事件触发后新建主档明细 -->
+<insert id="createLogByOther" parameterClass="map">
+		<![CDATA[
+			insert into T_LOG_ACTIVITIESDETAILLOG
+			  (ACTILOG_ID, EXPECTEDDATE, ACTUALDATE, CASEFATHER, CASESUN, CREATE_ID, CREATE_TIME, STATUS)
+			values
+			  (#actilog#,convert(datetime,convert(varchar,(getDate()),23)),convert(datetime,convert(varchar,(getDate()),23)),
+			  #caseFather#,#casesunId#,#id#,getdate(),0)
+		]]>
+</insert>
+
+
+
+<!-- 根据Id查询出具体一条主档 -->
+	<select id="readActivitiesInfo" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select t.ACTILOG_ID, t.CREDIT_ID, t.CUST_ID, t.PRODUCTSABOUT, t.REFEREE, t.SUPPLIER, t.LIMIT, t.CASESTATE,
+t. CONTARCTHAB, t.CONTARCTHABPREO, t.VISITFACTORYDATE, t.FIRSTVISITDATE, t.STATE, t.CREATE_ID, t.MODIFY_ID, 
+t.CREATE_TIME, t.MODIFY_DATE, t.STATUS,t1.CREDIT_CODE,t2.CUST_CODE,t2.CUST_NAME,t2.CUST_TYPE,t3.NAME,t3.CODE
+from T_LOG_ACTIVITIESLOG t
+left join T_PRJT_CREDIT t1 on t.CREDIT_ID=t1.ID
+left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+left join T_USER_USER t3 on t.CREATE_ID=t3.ID
+ where t.ACTILOG_ID=#actilog_id# and t.STATUS=0 and (t1.STATUS=0 or t1.STATUS is null) and t2.STATUS=0
+ group by t.ACTILOG_ID, t.CREDIT_ID, t.CUST_ID, t.PRODUCTSABOUT, t.REFEREE, t.SUPPLIER, t.LIMIT, t.CASESTATE,
+t. CONTARCTHAB, t.CONTARCTHABPREO, t.VISITFACTORYDATE, t.FIRSTVISITDATE, t.STATE, t.CREATE_ID, t.MODIFY_ID, 
+t.CREATE_TIME, t.MODIFY_DATE, t.STATUS,t1.CREDIT_CODE,t2.CUST_CODE,t2.CUST_NAME,t2.CUST_TYPE,t3.NAME,t3.CODE
+
+
+ 		]]>
+ 	</select>
+ 	
+ 	
+	<!-- 修改主档 -->  
+	<update id="updateFiles" parameterClass="map">
+		<![CDATA[ 
+		 update T_LOG_ACTIVITIESLOG  set PRODUCTSABOUT=#productsabout#,REFEREE=#referee#,SUPPLIER=#supplier#,LIMIT=#limit#,MODIFY_ID=#id#,MODIFY_DATE=getdate()  where  ACTILOG_ID=#actilog_id#  
+		]]>
+	</update>
+	
+	<!-- 删除主档 -->  
+	<update id="deteleFiles" parameterClass="map">
+		<![CDATA[ 
+		 update T_LOG_ACTIVITIESLOG  set STATUS='1',MODIFY_ID=#id#,MODIFY_DATE=getdate()  where  ACTILOG_ID=#actilog_id#  
+		]]>
+	</update>
+	
+	
+	<!-- 查询出主档下的一个明细档 -->
+<select id="LogByDet" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 		select t.DETLOG_ID, t.ACTILOG_ID, t.EXPECTEDDATE, t.ACTUALDATE, t.CASEFATHER, t.CASESUN, 
+t.ECPECTEDREMARK, t.VISITREMARK, t.VISITNAME, t.VISITTITLES, t.CONTACTKEY, t.CREATE_ID, 
+t.MODIFY_ID, t.CREATE_TIME, t.MODIFY_DATE, t.STATUS,t2.NAME,t2.CODE,t5.FLAG,t5.CODE dictcode,t3.ACTLOG_ID repid,t3.ACTLOG_NAME,t4.CUST_CODE,t7.FLAG dictcode1,t6.DATA_ID repid1
+,t4.CUST_NAME,t4.CUST_ID,t4.CUST_TYPE,t6.FLAG ACTLOG_NAME1,t7.FLAG FLAG1, t.CASEFATHER1, t.CASESUN1
+from T_LOG_ACTIVITIESDETAILLOG t
+left join T_LOG_ACTIVITIESLOG t1 on t.ACTILOG_ID=t1.ACTILOG_ID
+left join T_USER_USER t2 on t.CREATE_ID=t2.ID
+left join T_REPORT_ACTLOG t3 on t.CASESUN=t3.ACTLOG_ID
+left join T_CUST_CUSTOMER t4 on t1.CUST_ID=t4.CUST_ID
+LEFT join T_DATA_DICTIONARY t5 on t.CASEFATHER=t5.DATA_ID
+left join T_DATA_DICTIONARY t6 on t.CASESUN1=t6.DATA_ID
+LEFT join T_DATA_DICTIONARY t7 on t.CASEFATHER1=t7.DATA_ID
+where t.DETLOG_ID=#detlog# and t.STATUS=0 and t1.STATUS=0
+group by t.DETLOG_ID, t.ACTILOG_ID, t.EXPECTEDDATE, t.ACTUALDATE, t.CASEFATHER, t.CASESUN, 
+t.ECPECTEDREMARK, t.VISITREMARK, t.VISITNAME, t.VISITTITLES, t.CONTACTKEY, t.CREATE_ID, 
+t.MODIFY_ID, t.CREATE_TIME, t.MODIFY_DATE, t.STATUS,t2.NAME,t2.CODE,t5.FLAG,t3.ACTLOG_NAME,t4.CUST_CODE
+,t4.CUST_NAME,t4.CUST_ID,t4.CUST_TYPE,t5.CODE,t3.ACTLOG_ID,t6.FLAG,t7.FLAG,t6.DATA_ID, t.CASEFATHER1, t.CASESUN1
+ 		]]>
+ 	</select>
+ 	
+ 	
+ 	<!-- 修改主档明细 -->  
+	<update id="updateLog" parameterClass="map">
+		<![CDATA[ 
+		 update T_LOG_ACTIVITIESDETAILLOG  set EXPECTEDDATE=convert(datetime,convert(varchar,(#expectedDate#),23)),
+		  ]]>
+			  <isNotEmpty property="actualDate">
+				<![CDATA[   ACTUALDATE=convert(datetime,convert(varchar,(#actualDate#),23)),   ]]>
+			</isNotEmpty>
+			 <isEmpty property="actualDate">
+				<![CDATA[   ACTUALDATE=null,   ]]>
+			</isEmpty>
+			   <![CDATA[
+		 CASEFATHER=#caseFather#,CASESUN=#casesun#,ECPECTEDREMARK=#ecpectedRemark#,
+		 VISITREMARK=#visitRemark#,VISITNAME=#visitName#,VISITTITLES=#visitTitles#,MODIFY_ID=#id#,MODIFY_DATE=getdate(),CASEFATHER1=#CASEFATHER1#,CASESUN1=#CASESUN1#  where  DETLOG_ID=#detlog_id#  
+		]]>
+	</update>
+	
+	<!-- 修改主档案件状况 -->
+	<update id="updateCaseState" parameterClass="map">
+		<![CDATA[ 
+		 update T_LOG_ACTIVITIESLOG  set CASESTATE=#logName#,MODIFY_ID=#id#,MODIFY_DATE=getdate()  where  ACTILOG_ID=#actilog#  
+		]]>
+	</update>
+	
+	
+	
+	<!-- 删除主档明细-->  
+	<update id="deteleLog" parameterClass="map">
+		<![CDATA[ 
+		  update T_LOG_ACTIVITIESDETAILLOG set  STATUS='1',MODIFY_ID=#id#,MODIFY_DATE=getdate()  where  DETLOG_ID=#detlog#   
+		]]>
+	</update>
+	
+	<!-- 修改主档案件状况及访厂日 -->
+	<update id="updateCaseStateByVisitFactoryDate" parameterClass="map">
+		<![CDATA[ 
+		 update T_LOG_ACTIVITIESLOG  set CASESTATE=#logName#,MODIFY_ID=#id#,
+		  ]]>
+			  <isNotEmpty property="actualDate">
+				<![CDATA[   VISITFACTORYDATE=#actualDate#,   ]]>
+			</isNotEmpty>
+			 <isEmpty property="actualDate">
+				<![CDATA[   VISITFACTORYDATE=null,   ]]>
+			</isEmpty>
+			   <![CDATA[
+			   MODIFY_DATE=getdate()
+		 where  ACTILOG_ID=#actilog#  
+		]]>
+	</update>
+	
+	
+	
+	<!-- 修改主档案件状况及首次拜访日 -->
+	<update id="updateCaseStateByVisitFirst" parameterClass="map">
+		<![CDATA[ 
+		 update T_LOG_ACTIVITIESLOG  set CASESTATE=#logName#,MODIFY_ID=#id#,
+		 ]]>
+			  <isNotEmpty property="actualDate">
+				<![CDATA[    FIRSTVISITDATE=#actualDate# ,    ]]>
+			</isNotEmpty>
+			 <isEmpty property="actualDate">
+				<![CDATA[   FIRSTVISITDATE=null,   ]]>
+			</isEmpty>
+			   <![CDATA[
+			   MODIFY_DATE=getdate()
+		 where  ACTILOG_ID=#actilog#  
+		]]>
+	</update>
+	
+	
+	
+	<select id="logActlog_id" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select t.ACTLOG_ID,t1.DATA_ID from T_REPORT_ACTLOG t
+left join T_DATA_DICTIONARY t1 on t.ACTLOG_TYPE=t1.CODE and t1.STATUS=0
+where t1.FLAG=#logFlag# and t.ACTLOG_NAME=#logName# and t.STATUS=0
+ 		]]>
+ 	</select>
+ 	
+ 	<!-- 不区分status的查询 -->
+ 	<select id="logActlog_idNotStatus" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select top 1 t.ACTLOG_ID,t1.DATA_ID from T_REPORT_ACTLOG t
+left join T_DATA_DICTIONARY t1 on t.ACTLOG_TYPE=t1.CODE
+where t1.FLAG=#logFlag# and t.ACTLOG_NAME=#logName#
+order by t.ACTLOG_ID desc
+ 		]]>
+ 	</select>
+	
+	
+	<!-- 根据主档创建人和承租人查出主档（提案 ，还没有报告编号） -->
+	<select id="logFirst" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select top 1 * from T_LOG_ACTIVITIESLOG where CUST_ID=#custidBycredit# and CREATE_ID=#sensoridBycredit# and CREDIT_ID is null order by CREATE_TIME
+ 		]]>
+ 	</select>
+ 	
+ 	<!-- 根据主档创建人和承租人查出主档（核准时   如果该报告已经存在就查询这条 ） -->
+	<select id="logFirstByCreditId" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select top 1 * from T_LOG_ACTIVITIESLOG where CUST_ID=#custidBycredit# and  CREDIT_ID=#credit_id# order by CREATE_TIME
+ 		]]>
+ 	</select>
+ 	
+ 	<!-- 修改主档案件状况（有报告编号，连报告编号一起修改） -->
+	<update id="updateCaseStateBycredit_id" parameterClass="map">
+		<![CDATA[ 
+		 update T_LOG_ACTIVITIESLOG  set CASESTATE=#casesun#,MODIFY_ID=#id#,MODIFY_DATE=getdate(),CREDIT_ID=#credit_id#  where  ACTILOG_ID=#actilog#  
+		]]>
+	</update>
+	
+	<!-- 根据主档创建人和承租人查出主档（制造合同是 ，还没有报告编号） -->
+	<select id="logFirstnotnull" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select top 1 * from T_LOG_ACTIVITIESLOG where CUST_ID=#custidBycredit# and CREATE_ID=#sensoridBycredit# and CREDIT_ID is not null order by CREATE_TIME
+ 		]]>
+ 	</select>
+ 	
+ 	
+ 	<!-- 根据dataId查询出所有状况明细 -->
+	<select id="logreportbycode" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select DATA_ID,ACTLOG_NAME,ACTLOG_ID from T_DATA_DICTIONARY t
+	     left join T_REPORT_ACTLOG t1 on t1.ACTLOG_TYPE=t.CODE
+	     where t.DATA_ID=#caseFather#
+ 		]]>
+ 	</select>
+ 	
+ 	
+ 	<!-- 根据条件查询出相应的统计个数 -->
+	<select id="activitiesStatisticsCounts" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select COUNT(ta.DECP_NAME_CN) DEPT_COUNT,MAX(ta.DECP_ID)DECP_ID,MAX(ta.DECP_NAME_CN)DECP_NAME_CN from T_activites_statistics ta 
+ 			where EXISTS (
+						SELECT 1 FROM T_USER_USER T WHERE ta.USERS_ID=T.ID AND T.STATUS=0
+						)
+ 			]]>
+			<isNotEmpty prepend="and" property="Query_DATE">
+		  		CONVERT(date,ta.CREATE_DATE)=CONVERT(date,#Query_DATE#)
+		  	</isNotEmpty>
+			<isNotEmpty prepend="and" property="decp_Id">
+		  		ta.decp_Id=#decp_Id#
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="Id">
+		  		ta.users_Id=#Id#
+		  	</isNotEmpty>
+	    <![CDATA[
+ 			 group by ta.DECP_ID
+ 		]]>
+ 	</select>
+ 	
+ 	
+ 	<!-- 根据条件查询出相应的统计个数 -->
+	<select id="activitiesStatisticsCountss" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select COUNT(ta.DECP_NAME_CN) DEPT_COUNT,MAX(ta.DECP_ID)DECP_ID,MAX(ta.DECP_NAME_CN)DECP_NAME_CN from T_activites_statistics ta 
+ 			where CONVERT(date,ta.CREATE_DATE)=CONVERT(date,GETDATE())
+ 			 	  AND EXISTS (
+						SELECT 1 FROM T_USER_USER T WHERE ta.USERS_ID=T.ID AND T.STATUS=0
+						)	
+ 			 group by ta.DECP_ID
+ 		]]>
+ 	</select>
+ 	
+ 	
+ 	<!-- 根据日期来查询业务员一天的活动统计（默认查询今天的） -->
+ 	<select id="activitiesStatistics" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select ta.USERS_ID [USER_ID],CONVERT(VARCHAR,ta.CREATE_DATE,23) CREATE_DATE,0 TOTAL,* from T_activites_statistics ta 
+ 			where CONVERT(date,ta.CREATE_DATE)=CONVERT(date,GETDATE())
+ 			AND EXISTS (
+				SELECT 1 FROM T_USER_USER T WHERE ta.USERS_ID=T.ID AND T.STATUS=0
+				)
+				ORDER BY ta.DECP_ID,LEN(ta.USERS_NAME) ASC
+ 		]]>
+ 	</select>
+ 	
+ 	
+ 	<!-- 根据日期来查询业务员一天的活动统计（根据条件来搜） -->
+ 	<select id="activitiesStatisticsByDate" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select ta.USERS_ID [USER_ID],CONVERT(VARCHAR,ta.CREATE_DATE,23) CREATE_DATE,0 TOTAL,* from T_activites_statistics ta where 
+			EXISTS (
+				SELECT 1 FROM T_USER_USER T WHERE ta.USERS_ID=T.ID AND T.STATUS=0
+				)
+ 			]]>
+ 			<isNotEmpty prepend="and" property="Query_DATE">
+		  		CONVERT(date,ta.CREATE_DATE)=CONVERT(date,#Query_DATE#)
+		  	</isNotEmpty>
+			<isNotEmpty prepend="and" property="decp_Id">
+		  		ta.decp_Id=#decp_Id#
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="Id">
+		  		ta.users_Id=#Id#
+		  	</isNotEmpty>
+		  	ORDER BY ta.DECP_ID,LEN(ta.USERS_NAME) ASC
+ 	</select>
+ 	
+ 	<!-- 加入HAB金额统计 add by ShenQi -->
+ 	<select id="getHABAmount" resultClass="java.util.HashMap">
+ 			      SELECT ISNULL(SUM(PAY.PAY_MONEY),0) AMOUNT,SENSOR_ID,'H' HAB
+					FROM T_LOG_ACTIVITIESLOG T
+ 			   LEFT JOIN T_PRJT_CREDIT T1 ON T1.ID=T.CREDIT_ID AND T1.STATUS=0
+			   LEFT JOIN T_SUPL_PLAYDETIL PAY ON T.CREDIT_ID=PAY.CREDIT_ID AND PAY.STATUS=0
+			 	   WHERE T.CONTRACT_HAB=1 AND T.STATUS=0 
+         			 AND CONVERT(DATE,T.MODIFY_DATE)=CONVERT(DATE,<isNotEmpty property="DATE">#DATE#</isNotEmpty><isEmpty property="DATE">GETDATE()</isEmpty>) 
+				GROUP BY T1.SENSOR_ID
+            UNION
+			      SELECT ISNULL(SUM(PAY.PAY_MONEY),0) AMOUNT,SENSOR_ID,'A' HAB
+					FROM T_LOG_ACTIVITIESLOG T
+			   LEFT JOIN T_PRJT_CREDIT T1 ON T1.ID=T.CREDIT_ID AND T1.STATUS=0
+			   LEFT JOIN T_SUPL_PLAYDETIL PAY ON T.CREDIT_ID=PAY.CREDIT_ID AND PAY.STATUS=0
+				   WHERE T.CONTRACT_HAB=2 AND T.STATUS=0 
+			         AND CONVERT(DATE,T.MODIFY_DATE)=CONVERT(DATE,<isNotEmpty property="DATE">#DATE#</isNotEmpty><isEmpty property="DATE">GETDATE()</isEmpty>) 
+				GROUP BY T1.SENSOR_ID
+            UNION
+			      SELECT ISNULL(SUM(PAY.PAY_MONEY),0) AMOUNT,SENSOR_ID,'B' HAB
+					FROM T_LOG_ACTIVITIESLOG T
+			   LEFT JOIN T_PRJT_CREDIT T1 ON T1.ID=T.CREDIT_ID AND T1.STATUS=0
+			   LEFT JOIN T_SUPL_PLAYDETIL PAY ON T.CREDIT_ID=PAY.CREDIT_ID AND PAY.STATUS=0
+				   WHERE T.CONTRACT_HAB=3 AND T.STATUS=0 
+			         AND CONVERT(DATE,T.MODIFY_DATE)=CONVERT(DATE,<isNotEmpty property="DATE">#DATE#</isNotEmpty><isEmpty property="DATE">GETDATE()</isEmpty>) 
+				GROUP BY T1.SENSOR_ID
+ 	</select>
+ 	<update id="modifyHAB" parameterClass="map">
+ 		update T_LOG_ACTIVITIESLOG 
+ 		set CONTRACT_HAB_BEFORE=#CONTRACT_HAB_BEFORE#,
+ 			CONTRACT_HAB=#CONTRACT_HAB#,
+ 			MODIFY_DATE = getdate() ,
+ 			MODIFY_ID = #s_employeeId#
+ 		where ACTILOG_ID=#ACTILOG_ID#
+ 	</update>
+ 	
+ 	
+ 		<!-- 根据明细配置查询出配置名称 -->
+ 	<select id="getActlogNameByActlogId" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			select ACTLOG_NAME from T_REPORT_ACTLOG where STATUS=0 and ACTLOG_ID=#reportactlogid#
+ 		]]>
+ 	</select>
+ 	
+ 	<!-- 搜索日报汇总表 -->
+ 	<select id="activitiesStatisticsTotal" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 			SELECT 
+				ISNULL(SUM(CREATECOUNT),0) CREATECOUNT, 
+				ISNULL(SUM(VISITFACTORYCOUNT),0) VISITFACTORYCOUNT,
+				ISNULL(SUM(CUSTVISITCOUNT),0) CUSTVISITCOUNT,
+				ISNULL(SUM(BACKVISITCOUNT),0) BACKVISITCOUNT,
+				ISNULL(SUM(SENDCOUNT),0) SENDCOUNT,
+				ISNULL(SUM(SHENGHECOUNT),0) SHENGHECOUNT,
+				ISNULL(SUM(FUHECOUNT),0) FUHECOUNT,
+				ISNULL(SUM(HCOUNT),0) HCOUNT,
+				ISNULL(SUM(ACOUNT),0) ACOUNT,
+				ISNULL(SUM(BCOUNT),0) BCOUNT,
+				ISNULL(SUM(PAY_MONEYDAYCOUNT),0) PAY_MONEYDAYCOUNT,
+				ISNULL(SUM(PAY_MONEYMONTHCOUNT),0) PAY_MONEYMONTHCOUNT,
+				ISNULL(SUM(marginCount),0) MARGINCOUNT,
+				ISNULL(SUM(FIRSTPRICECOUNT),0) FIRSTPRICECOUNT,
+				CREATE_DATE
+			FROM T_activites_statistics  T
+			WHERE
+				T.STATUS = 0
+				]]>
+			<isNotEmpty prepend="and" property="startDate">
+				<![CDATA[
+					CONVERT(DATE,T.CREATE_DATE) >= #startDate#
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="endDate">
+				<![CDATA[
+					CONVERT(DATE,T.CREATE_DATE) <= #endDate#
+				]]>
+			</isNotEmpty>
+			GROUP BY T.CREATE_DATE
+			ORDER BY CREATE_DATE
+ 	</select>
+ 	<!-- 搜索日报汇总表 -->
+ 	<select id="activitiesStatisticsTotal_count" parameterClass="map" resultClass="java.lang.Integer">
+ 		<![CDATA[
+ 		SELECT COUNT(1) 
+ 		FROM (
+ 			SELECT 
+				ISNULL(SUM(CREATECOUNT),0) CREATECOUNT, 
+				ISNULL(SUM(VISITFACTORYCOUNT),0) VISITFACTORYCOUNT,
+				ISNULL(SUM(CUSTVISITCOUNT),0) CUSTVISITCOUNT,
+				ISNULL(SUM(BACKVISITCOUNT),0) BACKVISITCOUNT,
+				ISNULL(SUM(SENDCOUNT),0) SENDCOUNT,
+				ISNULL(SUM(SHENGHECOUNT),0) SHENGHECOUNT,
+				ISNULL(SUM(FUHECOUNT),0) FUHECOUNT,
+				ISNULL(SUM(HCOUNT),0) HCOUNT,
+				ISNULL(SUM(ACOUNT),0) ACOUNT,
+				ISNULL(SUM(BCOUNT),0) BCOUNT,
+				ISNULL(SUM(PAY_MONEYDAYCOUNT),0) PAY_MONEYDAYCOUNT,
+				ISNULL(SUM(PAY_MONEYMONTHCOUNT),0) PAY_MONEYMONTHCOUNT,
+				ISNULL(SUM(marginCount),0) MARGINCOUNT,
+				ISNULL(SUM(FIRSTPRICECOUNT),0) FIRSTPRICECOUNT,
+				CREATE_DATE
+			FROM T_activites_statistics  T
+			WHERE
+				T.STATUS = 0
+				]]>
+			<isNotEmpty prepend="and" property="startDate">
+				<![CDATA[
+					CONVERT(DATE,T.CREATE_DATE) >= #startDate#
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="endDate">
+				<![CDATA[
+					CONVERT(DATE,T.CREATE_DATE) <= #endDate#
+				]]>
+			</isNotEmpty>
+			GROUP BY T.CREATE_DATE
+			) T
+ 	</select>
+ 	
+ 	<!-- [活动日志][業務人員活動日报表]获得首次拜访次数 add by ShenQi see mantis 24 -->
+ 	<select id="getCountOfFirstAccess" resultClass="java.util.HashMap">
+ 			SELECT COUNT(CREATE_ID) TOTAL,CREATE_ID [USER_ID],CONVERT(VARCHAR,ACTUALDATE,23) CREATE_DATE
+ 			  FROM T_LOG_ACTIVITIESDETAILLOG 
+		     WHERE CASESUN=1 AND ACTUALDATE IS NOT NULL
+	      GROUP BY CREATE_ID,ACTUALDATE		
+ 	</select>
+</sqlMap>

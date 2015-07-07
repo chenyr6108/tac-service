@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+ "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="dataStaticReport">
+
+    <!-- 每日应收租金,实际来款报表 -->
+	<select id="getStaticList" resultClass="java.util.HashMap">
+		select
+		sum(a.IRR_MONTH_PRICE+isnull(a.VALUE_ADDED_TAX,0))
+		'rentOfDay',sum(isnull(a.REDUCE_OWN_PRICE,0))
+		'acturePay',convert(date,a.PAY_DATE) as payDate
+		from T_RENT_COLLECTIONDETAIL a
+		where
+		a.STATUS=0
+		and a.RECD_STATUS=0
+		and a.finance_date is not null
+		<isNotEmpty property="payDate" prepend="and">
+		   convert(date,pay_date)=#payDate#
+		</isNotEmpty>
+		group by
+		convert(date,a.PAY_DATE)
+		order by convert(date,a.PAY_DATE) desc
+	</select>
+
+	<select id="getStaticList_count" resultClass="java.lang.Integer">
+		select count(k.rentOfDay) from
+		(
+		select sum(a.IRR_MONTH_PRICE+isnull(a.VALUE_ADDED_TAX,0))
+		'rentOfDay',sum(isnull(a.REDUCE_OWN_PRICE,0))
+		'acturePay',convert(date,a.PAY_DATE) as payDate
+		from T_RENT_COLLECTIONDETAIL a
+		where a.STATUS=0
+		and a.RECD_STATUS=0
+		and a.finance_date is not null
+		<isNotEmpty property="payDate" prepend="and">
+		   convert(date,pay_date)=#payDate#
+		</isNotEmpty>
+		group by convert(date,a.PAY_DATE)
+		)k
+	</select>
+
+</sqlMap>

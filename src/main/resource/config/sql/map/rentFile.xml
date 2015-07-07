@@ -1,0 +1,1707 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="rentFile">
+	<!-- 添加合同资料 -->
+	<insert id="insertReft"   parameterClass="map">
+		insert into t_rent_filedetail
+		  (
+		   prcd_id,
+		   refi_id,
+		   file_count,
+		   copyfile_count,
+		   COPYSIGN_COUNT,
+		   file_memo,
+		   status,
+		   create_id,
+		   create_time,
+		   IS_ALREADY,FILE_CONTRACT_TYPE,FILE_TYPE,ISSURE_REASON,RETURN_DATE)
+		values
+		  (
+		   #prcd_id2#,
+		   #refi_id2#,
+		   #file_count2#,
+		   #copyfile_count2#,
+		   #COPYSIGN_COUNT2#,
+		   #memo2#,
+		   0,
+		   #s_employeeId#,
+		   getdate(),
+		   0,#CONTRACT_TYPE#,#FILE_TYPE#,#ISSURE_REASON#,getdate()
+        )
+	</insert>
+
+	<!-- 修改合同资料 -->
+	<update id="updateReft" parameterClass="map">
+		update t_rent_filedetail
+		   set prcd_id = #prcd_id2#,
+		       refi_id = #refi_id2#,
+		       file_count = #file_count2#,
+		       copyfile_count = #copyfile_count2#,
+		       file_memo = #memo2#,
+		       modify_id = #s_employeeId#,
+		       status=0,
+		       modify_time = getdate(),ISSURE_REASON=#ISSURE_REASON#,RETURN_DATE=getdate()
+		 where refd_id = #refd_id2#   
+	</update>
+	
+	<select id="existsFiledetail" parameterClass="map" resultClass="hashmap">
+		select refd_id from t_rent_filedetail
+		where prcd_id = #prcd_id2# and refi_id = #refi_id2# 
+	</select>
+	
+	<insert id="insertFiledetail" parameterClass="map">
+		insert into t_rent_filedetail
+		  (
+		   prcd_id,
+		   refi_id,
+		   file_count,
+		   copyfile_count,
+		   COPYSIGN_COUNT,
+		   file_memo,
+		   status,
+		   create_id,
+		   create_time,
+		   IS_ALREADY,IS_ALREADY_DETAIL,CONFIRM_DATE,FILE_CONTRACT_TYPE,FILE_TYPE,ISSURE_REASON,RETURN_DATE)
+		values
+		  (
+		   #prcd_id2#,
+		   #refi_id2#,
+		   #file_count2#,
+		   #copyfile_count2#,
+		   #COPYSIGN_COUNT2#,
+		   #memo2#,
+		   0,
+		   #s_employeeId#,
+		   getdate(),
+		   #is_already#,
+		   #is_already_detail#,
+		   <isEqual property="is_already" compareValue="1">
+		   getdate(),
+		   </isEqual>
+		   <isNotEqual property="is_already" compareValue="1">
+		   null,
+		   </isNotEqual>
+		   #CONTRACT_TYPE#,#FILE_TYPE#,#ISSURE_REASON#,
+		   <isEmpty property="RETURN_DATE">
+		   getdate()
+		   </isEmpty>
+		   <isNotEmpty property="RETURN_DATE">
+		   #RETURN_DATE#
+		   </isNotEmpty>
+        );
+	</insert>
+	
+	<insert id="insertFiledetailHW" parameterClass="map">
+		insert into t_rent_filedetail_HW
+		  (
+		   prcd_id,
+		   refi_id,
+		   file_count,
+		   copyfile_count,
+		   COPYSIGN_COUNT,
+		   file_memo,
+		   status,
+		   create_id,
+		   create_time,
+		   IS_ALREADY,FILE_CONTRACT_TYPE,FILE_TYPE,ISSURE_REASON,RETURN_DATE)
+		values
+		  (
+		   #prcd_id2#,
+		   #refi_id2#,
+		   #file_count2#,
+		   #copyfile_count2#,
+		   #COPYSIGN_COUNT2#,
+		   #memo2#,
+		   0,
+		   #s_employeeId#,
+		   getdate(),
+		   #is_already#,
+		   #CONTRACT_TYPE#,#FILE_TYPE#,#ISSURE_REASON#,
+		   <isEmpty property="RETURN_DATE">
+		   getdate()
+		   </isEmpty>
+		   <isNotEmpty property="RETURN_DATE">
+		   #RETURN_DATE#
+		   </isNotEmpty>
+        );
+	</insert>
+	
+	<insert id="insertFiledetailFirst" parameterClass="map">
+        insert into T_RENT_FILEDETAIL_FIRST
+		  (
+		   prcd_id,
+		   refi_id,
+		   file_count,
+		   copyfile_count,
+		   COPYSIGN_COUNT,
+		   file_memo,
+		   status,
+		   create_id,
+		   create_time,
+		   IS_ALREADY,FILE_CONTRACT_TYPE,FILE_TYPE,ISSURE_REASON)
+		values
+		  (
+		   #prcd_id2#,
+		   #refi_id2#,
+		   #file_count2#,
+		   #copyfile_count2#,
+		   #COPYSIGN_COUNT2#,
+		   #memo2#,
+		   0,
+		   #s_employeeId#,
+		   getdate(),
+		   #is_already#,
+		   #CONTRACT_TYPE#,#FILE_TYPE#,#ISSURE_REASON#
+        );
+	</insert>
+	
+	<insert id="updateFiledetail"  parameterClass="map">
+		INSERT INTO T_RENT_FILEDETAIL_LOG(REFD_ID,IS_ALREADY,IS_ALREADY_DETAIL,ISSURE_REASON,FILE_MEMO,SALES_CREATE_ID,SALES_CREATE_TIME,confirm_date,RETURN_DATE)
+		SELECT REFD_ID,IS_ALREADY,IS_ALREADY_DETAIL,ISSURE_REASON,FILE_MEMO,SALES_CREATE_ID,SALES_CREATE_TIME,confirm_date,RETURN_DATE FROM T_RENT_FILEDETAIL
+		WHERE REFD_ID = #refd_id2#;
+		
+		update t_rent_filedetail
+		   set 
+		   	<!--	
+		   		prcd_id = #prcd_id2#,
+		       refi_id = #refi_id2#,
+		       file_count = #file_count2#,
+		       copyfile_count = #copyfile_count2#,
+		    --><isEqual property="is_already" compareValue="1">
+		    	CONFIRM_DATE = getdate(),
+		       </isEqual>
+		       file_memo = #memo2#,
+		       modify_id = #s_employeeId#,
+		       status=0,
+		       IS_ALREADY = #is_already#,
+		       IS_ALREADY_DETAIL = #is_already_detail#,
+		       modify_time = getdate(),ISSURE_REASON=#ISSURE_REASON#,RETURN_DATE=getdate()
+		 where refd_id = #refd_id2#;
+		
+	</insert>
+	 
+	<!-- Add by Michael 2012 08-08 保存合同资料的初始部分 -->
+	<insert id="insertRentFileFirstReft"   parameterClass="map">
+		insert into T_RENT_FILEDETAIL_FIRST
+		  (
+		   prcd_id,
+		   refi_id,
+		   file_count,
+		   copyfile_count,
+		   COPYSIGN_COUNT,
+		   file_memo,
+		   status,
+		   create_id,
+		   create_time,
+		   IS_ALREADY,FILE_CONTRACT_TYPE,FILE_TYPE,ISSURE_REASON)
+		values
+		  (
+		   #prcd_id2#,
+		   #refi_id2#,
+		   #file_count2#,
+		   #copyfile_count2#,
+		   #COPYSIGN_COUNT2#,
+		   #memo2#,
+		   0,
+		   #s_employeeId#,
+		   getdate(),
+		   0,#CONTRACT_TYPE#,#FILE_TYPE#,#ISSURE_REASON#
+        )
+	</insert>
+
+	<!-- Add by Michael 2012 08-08 保存合同资料的原因部分 -->
+	<insert id="insertRentFileLossReason"   parameterClass="map">
+		insert into T_RENT_FILELOSS_REASON
+		  (
+		   prcd_id,
+		   refi_id,
+		   REASON,
+		   CONTRACT_TYPE,
+		   status,
+		   create_id,
+		   create_time,
+			FILE_TYPE)
+		values
+		  (
+		   #prcd_id2#,
+		   #refi_id2#,
+		   #REASON#,
+		   #CONTRACT_TYPE#,
+		   0,
+		   #s_employeeId#,
+		   getdate(),
+		   #FILE_TYPE#
+        )
+	</insert>	
+	
+		<!-- Add by Michael 2012 08-08 保存合同资料的初始原因部分 -->
+	<insert id="insertRentFirstFileLossReason"   parameterClass="map">
+		insert into T_RENT_FILE_FIRSTLOSS_REASON
+		  (
+		   prcd_id,
+		   refi_id,
+		   REASON,
+		   CONTRACT_TYPE,
+		   status,
+		   create_id,
+		   create_time,
+			FILE_TYPE)
+		values
+		  (
+		   #prcd_id2#,
+		   #refi_id2#,
+		   #REASON#,
+		   #CONTRACT_TYPE#,
+		   0,
+		   #s_employeeId#,
+		   getdate(),
+		   #FILE_TYPE#
+        )
+	</insert>
+	
+	<!-- Add by Michael 2012 08-08 -->
+	<!-- 更新合同资料的文件状况 -->
+	<update id="updateRentFileStatus" parameterClass="map">
+		update t_rent_filedetail
+		   set IS_ALREADY = '1'
+		   , CONFIRM_DATE = getdate()
+		 where REFI_ID in( $checked_rent_ids$ ) and prcd_id =  #prcd_id2#
+	</update>
+	<!-- 将文件的IS_ALREADY状态更新成0 -->
+	<update id="setRentFileIsAlreadyStatus" parameterClass="map">
+		update t_rent_filedetail
+		   set IS_ALREADY = '0'
+		where prcd_id =  #prcd_id2#
+	</update>
+	
+		<!-- 更新合同资料初始状况的文件状况 -->
+	<update id="updateRentFileFirstStatus" parameterClass="map">
+		update T_RENT_FILEDETAIL_FIRST
+		   set IS_ALREADY = '1'
+		 where REFI_ID in( $checked_rent_ids$  )  and prcd_id =  #prcd_id2#
+	</update>
+	
+	<!-- 查询合同与合同资料表的中间表  是否有合同ID 有修改  没有添加 -->
+	<select id="selectRentFile" parameterClass="map" resultClass="hashmap">
+	<![CDATA[ 
+		select   t1.refi_id REFI_ID,t2.IS_ALREADY,t2.IS_ALREADY_DETAIL,t2.ISSURE_REASON,t2.RETURN_DATE,
+                 t1.file_name FILE_NAME,
+                 t1.contract_file_type FILE_TYPE,
+                 ISNULL(t2.file_count, 0) FILE_COUNT,
+                 ISNULL(t2.copyfile_count, 0) COPYFILE_COUNT,
+                 t2.file_memo MEMO,
+                 ISNULL(t2.refd_id,0)	REFD_ID,
+                 replace(ISNULL(t2.path,0),'\','\\') PATH,
+                 t2.file_filename FILE_FILENAME,
+				 t1.state FILESTATE,
+				 t1.FILE_CONTRACT_TYPE,
+				 ISNULL(t3.TRFU_ID,1) UPSTATE,
+				  ISNULL(t2.COPYSIGN_COUNT,0) COPYSIGN_COUNT,t2.SALES_MEMO,             
+                 (select  count(1) FILECOUNT from t_rent_fileup where refi_id=t1.REFI_ID  and prcd_id=t2.PRCD_ID and status=0)   FILECOUNT ,
+                  t1.WANT_COUNT   
+            from t_rent_file t1
+            left join t_rent_filedetail t2 on t1.refi_id =t2.refi_id  and t2.prcd_id = #prcd_id#
+			left join (
+			select t3.REFI_ID,max(t3.TRFU_ID) TRFU_ID from T_RENT_FILEUP t3 where t3.status=0 and  t3.PRCD_ID=#prcd_id#
+			group by t3.REFI_ID
+			) t3 on t3.REFI_ID=t1.REFI_ID              
+           where t1.file_type = #cardFlag#+1
+            ]]> 
+           <isEqual prepend="and" property="cardFlag" compareValue="2">
+		  	 	<![CDATA[ t1.FILE_CONTRACT_TYPE=#CONTRACT_TYPE# ]]>
+		  	</isEqual>
+		  	<![CDATA[ 
+             and t1.FILE_STATUS=0            
+             and (t2.STATUS = 0 or t2.STATUS is null)
+		 order by t1.level_num
+		 ]]> 
+	</select>	
+	<select id="selectRentFileLog" parameterClass="map" resultClass="hashmap">
+		SELECT REFD_ID,IS_ALREADY,IS_ALREADY_DETAIL,ISSURE_REASON,FILE_MEMO AS MEMO,SALES_CREATE_ID,SALES_CREATE_TIME,confirm_date,RETURN_DATE FROM T_RENT_FILEDETAIL_LOG
+		WHERE REFD_ID = #refd_id#
+		ORDER BY ID DESC
+	</select>
+	<!-- 查询合同与合同资料表的中间表  是否有合同ID 有修改  没有添加 -->
+	<select id="selectRentFileForBack" parameterClass="map" resultClass="hashmap">
+	<![CDATA[ 
+		select   t1.refi_id REFI_ID,
+                 t1.file_name FILE_NAME,
+                 ISNULL(t2.file_count, 0) FILE_COUNT,
+                 ISNULL(t2.copyfile_count, 0) COPYFILE_COUNT,
+                 t2.file_memo MEMO,
+                 ISNULL(t2.refd_id,0)	REFD_ID,
+                 replace(ISNULL(t2.path,0),'\','\\') PATH,
+                 t2.file_filename FILE_FILENAME,
+				 t1.state FILESTATE,
+				 ISNULL(t3.TRFU_ID,1) UPSTATE,             
+				 t1.file_contract_type, 
+			     t1.file_type FILE_TYPE,
+			     t1.level_num LEVEL_NUM,
+			     t1.state STATE,
+			     t1.want_count, 
+			     ISNULL(t2.COPYSIGN_COUNT,0) COPYSIGN_COUNT,         
+                 (select  count(1) FILECOUNT from t_rent_fileup where refi_id=t1.REFI_ID  and prcd_id=t2.PRCD_ID and status=0)   FILECOUNT    
+            from t_rent_file t1
+            left join t_rent_filedetail t2 on t1.refi_id =t2.refi_id  and t2.prcd_id = #prcd_id#
+			left join (
+			select t3.REFI_ID,max(t3.TRFU_ID) TRFU_ID from T_RENT_FILEUP t3 where t3.status=0 and  t3.PRCD_ID=#prcd_id#
+			group by t3.REFI_ID
+			) t3 on t3.REFI_ID=t1.REFI_ID              
+           where t1.file_type = 3
+             and t1.FILE_STATUS=0
+             and t1.FILE_CONTRACT_TYPE=#contract_type#+1  
+             and t2.status = 0     
+		 order by t1.refi_id
+		 ]]> 
+	</select>	
+		
+	<!-- 根据资信ID查询承租人资料和合同资料的信息 -->
+	<select id="selectInfor" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+			select  t.lease_code LEASE_CODE,
+					t1.cust_name CUST_NAME,
+					t1.cust_type CUST_TYPE,
+					t1.natu_mobile NATU_MOBILE,
+					t1.corp_hs_link_mode CORP_HS_LINK_MODE,trct.RECT_ID   
+			from t_prjt_credit t
+			left join t_cust_customer t1 on t.cust_id=t1.cust_id
+			left join t_rent_contract trct on t.id=trct.prcd_id and trct.status='0'
+			where t.id=#prcd_id# and t.status=0
+		 ]]> 
+	</select>
+	
+<select id="selectInforForSales" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+			select  t.lease_code LEASE_CODE,
+					t1.cust_name CUST_NAME,
+					t1.cust_type CUST_TYPE,
+					t1.natu_mobile NATU_MOBILE,
+					t1.corp_hs_link_mode CORP_HS_LINK_MODE,trct.RECT_ID,tdd.FLAG,t10.TYPE qianType,t11.TYPE houType   
+			from t_prjt_credit t
+			left join t_cust_customer t1 on t.cust_id=t1.cust_id
+			left join t_rent_contract trct on t.id=trct.prcd_id and trct.status='0'
+			LEFT join (select credit_id,TYPE,APPRORIATEMON from T_PRJT_CREDITAPPROPIATE where STATUS=0 and TYPE=0) t10 on t10.CREDIT_ID=T.ID
+			LEFT join (select credit_id,TYPE,APPRORIATEMON from T_PRJT_CREDITAPPROPIATE where STATUS=0 and TYPE=1) t11 on t11.CREDIT_ID=T.ID
+			LEFT JOIN t_prjt_creditscheme T3 ON T3.CREDIT_ID=T.ID
+			left join (select flag,code,type from T_DATA_DICTIONARY where type = '支付方式') tdd on T3.PAY_WAY=tdd.CODE
+			where t.id=#prcd_id# and t.status=0
+		 ]]> 
+	</select>
+	
+	<!-- 添加合同资料附件 -->
+	<insert id="insertFileForUp"   parameterClass="map">		
+		insert into t_rent_fileup
+		  (
+		   status,
+		   create_id,
+		   create_date,
+		   refi_id,
+		   prcd_id,
+		   path,
+		   title,
+		   file_filename)
+		values
+		  (
+		    0,
+		    #s_employeeId#,
+		    getdate(),
+			#refi_id2#,
+			#prcd_id2#,
+			#file_path#,
+			#title#,
+			#file_name#)		
+	</insert>
+	<!-- 修改合同资料附件 -->
+	<update id="updateFileForUp" parameterClass="map">		
+		update t_rent_filedetail
+		   set modify_id = #s_employeeId#,
+		       modify_time = getdate,
+		       path = #file_path#,
+		       title = #title#,
+		       file_filename = #file_name#	 
+		 where refd_id =#refd_id2#		  
+	</update>
+	
+	<!-- insert to log  -->
+	<insert id="insertLog"   parameterClass="map">						
+		insert into t_rent_file_log
+		  (
+		   status,
+		   create__id,
+		   create__date,
+		   end_date,
+		   rtfl_memo,
+		   prcd_id)
+		values
+		  (
+		   0,
+		   #s_employeeId#,
+		   getdate(),
+		   CONVERT(datetime,#logTime#),
+		   #logMemo#,
+		   #prcd_id#)
+		<selectKey resultClass="java.lang.Long" keyProperty="trfl_id">
+			<![CDATA[	select @@IDENTITY as trfl_id]]>
+		</selectKey>		   			
+	</insert>
+	
+	<!-- insert to file2log  -->
+	<insert id="insertFile2Log"   parameterClass="map">		
+			insert into t_rent_file2log
+			  ( trfl_id, refi_id)
+			values
+			  ( #trfl_id#, #id#)			
+	</insert>
+	
+	
+	<select id="selectFileUpMore" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+			select  replace(path,'\','\\') PATH ,title TITLE,file_filename FILE_FILENAME,trfu_id TRFU_ID  
+			from t_rent_fileup 
+			where refi_id=#REFI_ID# and prcd_id=#PRCD_ID# and status=0
+		 ]]> 
+	</select>
+	
+	<!-- 删除文件 -->
+	<update id="invalidRentFileUp" parameterClass="map">
+		update t_rent_fileup
+		   set status=-2,modify_date=getdate(),modify_id=#s_employeeId#
+		 where trfu_id = #TRFU_ID#   
+	</update>	
+	<select id="selectFileCount" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+			select  count(1) FILECOUNT from t_rent_fileup where refi_id=#id#  and prcd_id=#prcd_id# and status=0
+		 ]]> 
+	</select>	
+	
+	
+	<!-- 根据资信ID查询没有上传的必传项 -->
+	<select id="getunUp" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+		select 
+		(case
+		     when t.FILE_TYPE = 1 then #A#
+		     when t.FILE_TYPE = 2 then #B#
+		 end) FILE_TYPE,t.FILE_NAME from T_RENT_FILE t where t.state=1 and t.file_status=0 and t.FILE_TYPE in (1,2) and t.REFI_ID not in 
+		 (select t1.REFI_ID from  T_RENT_FILEUP t1 where t1.PRCD_ID=#credit_id# and t1.status=0)
+		 ]]> 
+	</select>	
+	
+	<!-- 2012/1/4 Yang Yun 根据资信ID查询没有上传的必传项,活动日志 ********* -->
+	<select id="getunUpForActive" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select 
+			case when a.b > 0 and b.z > 0 then 'true'
+			else 'false' end as RESULT
+			from (
+			select count(0) as 'b'
+			from T_LOG_ACTIVITIESLOG al
+			left join T_LOG_ACTIVITIESDETAILLOG adl on adl.ACTILOG_ID = al.ACTILOG_ID and adl.status = 0
+			left join T_REPORT_ACTLOG a on adl.CASESUN = a.ACTLOG_ID and a.STATUS = 0
+			where al.STATUS = 0
+			and a.ACTLOG_TYPE = #type1#
+			and al.CUST_ID = #cust_id#
+			) a, (
+			select count(0) as 'z'
+			from T_LOG_ACTIVITIESLOG al
+			left join T_LOG_ACTIVITIESDETAILLOG adl on adl.ACTILOG_ID = al.ACTILOG_ID and adl.status = 0
+			left join T_REPORT_ACTLOG a on adl.CASESUN = a.ACTLOG_ID and a.STATUS = 0
+			where al.STATUS = 0
+			and a.ACTLOG_TYPE = #type2#
+			and al.CUST_ID = #cust_id#
+			) b
+		 ]]> 
+	</select>	
+	<!-- ****************************************************************** -->
+	
+	<!-- 根据资信ID查询没有上传的必传项 -->
+	<select id="getunUpsss" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+		select 
+		(case
+		     when t.FILE_TYPE =3 then #C# 
+		 end) FILE_TYPE,t.FILE_NAME from T_RENT_FILE t where t.state=1 and t.file_status=0 and t.FILE_TYPE in (3) and t.FILE_CONTRACT_TYPE=#CONTRACT_TYPE#+1  and t.REFI_ID not in 
+		 (select t1.REFI_ID from  T_RENT_FILEUP t1 where t1.PRCD_ID=#credit_id# and t1.status=0)
+		 ]]> 
+	</select>
+	<!-- 根据资信ID查询没有上传的必传项 -->
+	<select id="getunUpsss_no" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+			select   t5.PRCD_ID,
+		                  t5.REFD_ID,
+	                   (case
+							 when t1.FILE_TYPE =3 then #C# 
+							 end) FILE_TYPE,
+							 t1.FILE_NAME,
+		                  t5.COPYSIGN_COUNT,
+		                  t1.WANT_COUNT,
+		                  t1.FILE_CONTRACT_TYPE
+		            from  T_RENT_FILEDETAIL t5 
+		            left join T_RENT_FILE t1 on t1.REFI_ID=t5.REFI_ID 
+		            where t1.FILE_STATUS=0 and t1.FILE_TYPE in (3) and t1.state=1 and t5.STATUS=0
+		                  and t1.WANT_COUNT-t5.COPYSIGN_COUNT>0 and t5.PRCD_ID=#ID# and t1.FILE_CONTRACT_TYPE=#CONTRACT_TYPE#+1 ]]> 
+	</select>
+	<select id="getunUpsss_yes" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+					   select t1.FILE_NAME,(case
+							 when t1.FILE_TYPE =3 then #C#
+							 end) FILE_TYPE
+		      	from  T_PRJT_CREDIT t4 
+		      	left join T_RENT_FILE t1  on t1.FILE_CONTRACT_TYPE=(t4.CONTRACT_TYPE+1)
+				where     t4.ID=#credit_id#  and t1.STATE=1     and t1.FILE_TYPE in (3)    and t1.FILE_STATUS=0]]> 
+	</select>
+	<select id="getisnotnull" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+		select * from T_RENT_FILEDETAIL  t 
+				left join  T_PRJT_CREDIT  t1  on   t1.ID=t.PRCD_ID and t.STATUS=0 and t1.STATUS=0 
+				where t1.ID=#credit_id#
+		 ]]> 
+	</select>		
+	
+	<!-- 查找该报告的合同类型 -->
+	<select id="getRentType" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+		select CONTRACT_TYPE,ID from T_PRJT_CREDIT where ID=#credit_id#
+		 ]]> 
+	</select>	
+	
+		<!-- 根据资信ID查询所有已经上传的信息 -->
+	<select id="getUPAll" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+			   select t1.refi_id REFI_ID,
+                 t1.file_name FILE_NAME,
+                 ISNULL(t2.file_count, 0) FILE_COUNT,
+                 ISNULL(t2.copyfile_count, 0) COPYFILE_COUNT,
+                 t2.file_memo MEMO,
+                 ISNULL(t2.refd_id,0)	REFD_ID,
+                 replace(ISNULL(t2.path,0),'\','\\') PATH,
+                 t2.file_filename FILE_FILENAME,
+				 t1.state FILESTATE,            
+				 t1.file_contract_type, 
+			     t1.file_type FILE_TYPE,
+			     t1.level_num LEVEL_NUM,
+			     t1.state STATE,
+			     t1.want_count,
+			     t2.STATUS,t2.SALES_MEMO,t2.COPYSIGN_COUNT,
+                 (select  count(1) FILECOUNT from t_rent_fileup where refi_id=t1.REFI_ID  and prcd_id=t2.PRCD_ID and status=0)   FILECOUNT  
+		    from T_RENT_FILEUP t3
+		   left join t_rent_filedetail t2 on t2.prcd_id = t3.PRCD_ID and t3.REFI_ID=t2.REFI_ID
+		   left join t_rent_file t1 on t1.REFI_ID=t3.REFI_ID
+		   where t3.PRCD_ID=#prcd_id# and t3.status=0 and t2.status = 0
+		   order by t1.refi_id
+		 ]]> 
+	</select>	
+	
+	
+	<!-- 根据资信ID查询合同该上传却没有上传的资料 -->
+	<select id="getUPContractNo" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+			  select t1.FILE_CONTRACT_TYPE,t1.STATE,t1.FILE_NAME from t_rent_file t1
+		   where t1.FILE_TYPE=3 and  t1.FILE_CONTRACT_TYPE=#contract_type#+1 and t1.FILE_STATUS=0 and t1.STATE=1
+		   and REFI_ID not in (select REFI_ID  from T_RENT_FILEUP t3 where t3.PRCD_ID=#prcd_id# and t3.status=0 )
+		 ]]> 
+	</select>	
+	
+	<!-- 根据资信ID及租赁方式查询上传资料 -->	
+	<select id="getUPContractCount" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+			 select t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE,count(t1.TRFU_ID) upFileCount
+	from T_RENT_FILE t
+	left join T_RENT_FILEUP t1 on t.REFI_ID=t1.REFI_ID and t1.status=0 and t1.PRCD_ID=#credit_id#
+	where t.FILE_TYPE='3' and t.FILE_STATUS=0 and (t.FILE_CONTRACT_TYPE=#contract_type#+1 or t.FILE_CONTRACT_TYPE is null)
+	group by t1.PRCD_ID,t1.REFI_ID,t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE,t.LEVEL_NUM
+	order by t.LEVEL_NUM,t.REFI_ID
+		 ]]> 
+	</select>	
+	
+	<!-- Add by Michael 2012 05-24 增加水单附件 -->
+	<insert id="insertTransferCertificate"   parameterClass="map">		
+		insert into T_TRANSFERCERTIFICATE_FILE
+		  (
+		   STATUS,
+		   PATH,
+		   TITLE,
+		   FILE_NAME,
+		   FIIN_ID,
+		   INCOME_FINANCE_CODE,
+		   CREATE_ID,
+		   CREATE_DATE)
+		values
+		  (
+		    0,
+		    #file_path#,
+		    #title#,
+		    #file_name#,
+		    #fiinID#,
+		    #incomeFinanceCode#,
+		    #s_employeeId#,
+		    getdate()
+		)		
+	</insert>	
+	
+	<!-- Add by Michael 2012 05-24 查询水单附件 -->
+	<select id="selectTransferCertificate" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+			select  replace(f.PATH,'\','\\') PATH ,f.TITLE,f.FILE_NAME,convert(varchar(100),f.create_date, 111) create_date,u.NAME,t.virtual_code 
+			from T_TRANSFERCERTIFICATE_FILE f
+			LEFT JOIN T_USER_USER u on u.ID = f.CREATE_ID
+			left join t_fina_income t on t.fiin_id = f.FIIN_ID and t.STATUS = 0
+			where f.FIIN_ID=#FIIN_ID# and f.status=0
+		 ]]> 
+	</select>
+	
+		 
+	 <!-- Add by Michael 2012 08-09 根据合同类别查找不同的文件不全原因 -->
+   	<select id="getRentFileLossReason" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[
+		    select * from T_RENT_FILEREASON 
+		    where STATUS='0' and  CONTRACT_TYPE=#CONTRACT_TYPE#
+		]]>
+	 </select>	
+	 
+	 <!-- Add by Michael 2012 08-09 查询所有待补文件List For Email 使用 -->
+   	<select id="getAllUnCompletedFileList" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[	 
+			select tpc.LEASE_CODE,tcc.CUST_NAME,trf.FILE_NAME,T6.NAME,t9.DECP_NAME_CN,t8.BRAND,trfd.FILE_MEMO,trfd.ISSURE_REASON,tpc.FINANCECONTRACT_DATE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			else
+			convert(varchar,DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE),23)
+			end  SHOULD_FINISH_DATE,		
+			case when tpca.TYPE=0 then '交机前拨款' else '交机后拨款' end as TYPE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			when datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))<0 then
+			convert(varchar,ABS(datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))))+'天'
+			else
+			'  '
+			end DELAY_DAY
+		    from 
+			T_RENT_FILEDETAIL  trfd 
+			left join t_prjt_credit  tpc on trfd.PRCD_ID=tpc.id and tpc.STATUS=0
+			LEFT join (select MIN(TYPE) TYPE,CREDIT_ID from T_PRJT_CREDITAPPROPIATE where STATUS=0 group by CREDIT_ID) tpca on tpc.ID=tpca.CREDIT_ID 
+			left join T_RENT_FILE trf on trfd.REFI_ID=trf.REFI_ID and trf.FILE_STATUS=0
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID=tpc.CUST_ID and tcc.STATUS=0
+			LEFT JOIN T_USER_USER T6 ON tpc.SENSOR_ID = T6.ID
+			left join T_USER_USER upper on upper.id = T6.upper_user
+			left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+			left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			left join (SELECT MAX(BRAND) BRAND,T8.CREDIT_ID FROM T_PRJT_CREDITEQUIPMENT T8 WHERE T8.EQMT_STATUS='0'  GROUP BY T8.CREDIT_ID) T8 on tpc.id=T8.CREDIT_ID
+			where trfd.IS_ALREADY ='0' and trfd.FILE_TYPE='3' and trfd.STATUS = 0
+			and trfd.REFD_ID is not null and tpc.STATUS=0 and tpc.LEASE_CODE is not null and tpc.FINANCECONTRACT_DATE is not null	
+		]]>
+	 </select>
+	 
+	 <!-- Add by Michael 2012 08-13 将缺发票的合同保存起来 -->
+	 <insert id="insertFileLossInvoice" parameterClass="map">
+	 	<![CDATA[
+		 	insert into T_RENT_FILE_LOSSINVOICE(LEASE_CODE,STATUS,CREDIT_ID)
+			select tpc.LEASE_CODE,  0 as STATUS,tpc.ID from T_RENT_FILEDETAIL  tfd
+			left join t_prjt_credit  tpc
+			on tfd.PRCD_ID=tpc.ID
+			where tfd.IS_ALREADY =0 and tfd.REFI_ID in(select REFI_ID from T_RENT_FILE
+			where FILE_NAME in('购置凭证（发票）','购置凭证（发票正本/抵扣联）','原始购置凭证（发票）.财产目录.固定资产入账卡','目标物相片及位置图')
+			and FILE_STATUS='0')
+			and tfd.status = 0
+			group by tfd.PRCD_ID,tpc.LEASE_CODE,tpc.ID
+		]]>
+	</insert>
+	
+	<delete id="deleteFileLossInvoice" parameterClass="map">
+		<![CDATA[
+			DELETE FROM T_RENT_FILE_LOSSINVOICE
+		]]>
+	</delete>
+
+	 <!-- Add by Michael 2012 08-14 在初审前查看合同资料是否有添加 -->
+   	<select id="getRentContractFileList" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[
+			select * from T_RENT_FILEDETAIL	
+			where FILE_TYPE=3 and PRCD_ID=#credit_id# and IS_ALREADY='1'
+			and status = 0
+		]]>
+	 </select>
+	 
+	 	<!-- 根据ID查询资料状况 -->
+	<select id="getRentFileDetailByRefdID" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select * from T_RENT_FILEDETAIL	
+			where REFD_ID =	#refd_id2#
+			and status = 0
+		 ]]> 
+	</select>
+	
+	
+	 <!-- Add by xuwei 2014 06-18 查询所有待补文件办事处 -->
+   	<select id="getAllUnCompletedFileListForDept" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[	 
+			select tpc.LEASE_CODE,tcc.CUST_NAME,trf.FILE_NAME,T6.NAME,t9.DECP_NAME_CN,t8.BRAND,trfd.FILE_MEMO,trfd.ISSURE_REASON,tpc.FINANCECONTRACT_DATE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			else
+			convert(varchar,DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE),23)
+			end  SHOULD_FINISH_DATE,		
+			case when tpca.TYPE=0 then '交机前拨款' else '交机后拨款' end as TYPE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			when datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))<0 then
+			convert(varchar,ABS(datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))))+'天'
+			else
+			'  '
+			end DELAY_DAY
+		    from 
+			T_RENT_FILEDETAIL  trfd 
+			left join t_prjt_credit  tpc on trfd.PRCD_ID=tpc.id and tpc.STATUS=0
+			LEFT join (select MIN(TYPE) TYPE,CREDIT_ID from T_PRJT_CREDITAPPROPIATE where STATUS=0 group by CREDIT_ID) tpca on tpc.ID=tpca.CREDIT_ID 
+			left join T_RENT_FILE trf on trfd.REFI_ID=trf.REFI_ID and trf.FILE_STATUS=0
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID=tpc.CUST_ID and tcc.STATUS=0
+			LEFT JOIN T_USER_USER T6 ON tpc.SENSOR_ID = T6.ID
+			left join T_USER_USER upper on upper.id = T6.upper_user
+			left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+			left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			left join (SELECT MAX(BRAND) BRAND,T8.CREDIT_ID FROM T_PRJT_CREDITEQUIPMENT T8 WHERE T8.EQMT_STATUS='0'  GROUP BY T8.CREDIT_ID) T8 on tpc.id=T8.CREDIT_ID
+			where trfd.IS_ALREADY ='0' and trfd.FILE_TYPE='3' and trfd.STATUS = 0
+			and trfd.REFD_ID is not null and tpc.STATUS=0 and tpc.LEASE_CODE is not null and tpc.FINANCECONTRACT_DATE is not null
+			and T6.DEPT_ID in ($decpId$)
+			and trf.[FILE_NAME] not like '%清偿文件%'
+			and trfd.ISSURE_REASON not like '%清偿文件%'
+		]]>
+	 </select>
+	 
+	  <!-- Add by xuwei 2014 06-18 查询所有待补文件办事处 -->
+   	<select id="getAllUnCompletedFileListForUser" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[	 
+			select tpc.LEASE_CODE,tcc.CUST_NAME,trf.FILE_NAME,T6.NAME,t9.DECP_NAME_CN,t8.BRAND,trfd.FILE_MEMO,trfd.ISSURE_REASON,tpc.FINANCECONTRACT_DATE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			else
+			convert(varchar,DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE),23)
+			end  SHOULD_FINISH_DATE,		
+			case when tpca.TYPE=0 then '交机前拨款' else '交机后拨款' end as TYPE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			when datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))<0 then
+			convert(varchar,ABS(datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))))+'天'
+			else
+			'  '
+			end DELAY_DAY
+		    from 
+			T_RENT_FILEDETAIL  trfd 
+			left join t_prjt_credit  tpc on trfd.PRCD_ID=tpc.id and tpc.STATUS=0
+			LEFT join (select MIN(TYPE) TYPE,CREDIT_ID from T_PRJT_CREDITAPPROPIATE where STATUS=0 group by CREDIT_ID) tpca on tpc.ID=tpca.CREDIT_ID 
+			left join T_RENT_FILE trf on trfd.REFI_ID=trf.REFI_ID and trf.FILE_STATUS=0
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID=tpc.CUST_ID and tcc.STATUS=0
+			LEFT JOIN T_USER_USER T6 ON tpc.SENSOR_ID = T6.ID
+			left join T_USER_USER upper on upper.id = T6.upper_user
+			left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+			left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			left join (SELECT MAX(BRAND) BRAND,T8.CREDIT_ID FROM T_PRJT_CREDITEQUIPMENT T8 WHERE T8.EQMT_STATUS='0'  GROUP BY T8.CREDIT_ID) T8 on tpc.id=T8.CREDIT_ID
+			where trfd.IS_ALREADY ='0' and trfd.FILE_TYPE='3' and trfd.STATUS = 0
+			and trfd.REFD_ID is not null and tpc.STATUS=0 and tpc.LEASE_CODE is not null and tpc.FINANCECONTRACT_DATE is not null
+			and tpc.SENSOR_ID = #userId#
+			and trf.[FILE_NAME] not like '%清偿文件%'
+			and trfd.ISSURE_REASON not like '%清偿文件%'
+		]]>
+	 </select>
+	 
+	 <select id="getDeptUserEmail" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[	 
+			SELECT ID, EMAIL FROM T_USER_USER WHERE DEPT_ID = #deptId#
+		]]>
+	 </select>
+	 
+	 
+	 
+	 <!-- Add by Michael 2012 08-09 查询所有待补文件List For Email 使用  厦门 -->
+   	<select id="getAllUnCompletedFileListXiamen" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[	 
+			select tpc.LEASE_CODE,tcc.CUST_NAME,trf.FILE_NAME,T6.NAME,t9.DECP_NAME_CN,t8.BRAND,trfd.FILE_MEMO,trfd.ISSURE_REASON,tpc.FINANCECONTRACT_DATE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			else
+			convert(varchar,DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE),23)
+			end  SHOULD_FINISH_DATE,		
+			case when tpca.TYPE=0 then '交机前拨款' else '交机后拨款' end as TYPE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			when datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))<0 then
+			convert(varchar,ABS(datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))))+'天'
+			else
+			'  '
+			end DELAY_DAY
+		    from 
+			T_RENT_FILEDETAIL  trfd 
+			left join t_prjt_credit  tpc on trfd.PRCD_ID=tpc.id and tpc.STATUS=0
+			LEFT join (select MIN(TYPE) TYPE,CREDIT_ID from T_PRJT_CREDITAPPROPIATE where STATUS=0 group by CREDIT_ID) tpca on tpc.ID=tpca.CREDIT_ID 
+			left join T_RENT_FILE trf on trfd.REFI_ID=trf.REFI_ID and trf.FILE_STATUS=0
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID=tpc.CUST_ID and tcc.STATUS=0
+			LEFT JOIN T_USER_USER T6 ON tpc.SENSOR_ID = T6.ID
+			left join T_USER_USER upper on upper.id = T6.upper_user
+			left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+			left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			left join (SELECT MAX(BRAND) BRAND,T8.CREDIT_ID FROM T_PRJT_CREDITEQUIPMENT T8 WHERE T8.EQMT_STATUS='0'  GROUP BY T8.CREDIT_ID) T8 on tpc.id=T8.CREDIT_ID
+			where trfd.IS_ALREADY ='0' and trfd.FILE_TYPE='3' and trfd.STATUS = 0
+			and trfd.REFD_ID is not null and tpc.STATUS=0 and tpc.LEASE_CODE is not null and tpc.FINANCECONTRACT_DATE is not null
+			and t6.dept_id='17'	
+			and trf.[FILE_NAME] not like '%清偿文件%'
+			and trfd.ISSURE_REASON not like '%清偿文件%'
+		]]>
+	 </select>
+		 <!-- Add by Michael 2012 08-09 查询所有待补文件List For Email 使用  佛山 -->
+   	<select id="getAllUnCompletedFileListFoshan" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[	 
+			select tpc.LEASE_CODE,tcc.CUST_NAME,trf.FILE_NAME,T6.NAME,t9.DECP_NAME_CN,t8.BRAND,trfd.FILE_MEMO,trfd.ISSURE_REASON,tpc.FINANCECONTRACT_DATE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			else
+			convert(varchar,DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE),23)
+			end  SHOULD_FINISH_DATE,		
+			case when tpca.TYPE=0 then '交机前拨款' else '交机后拨款' end as TYPE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			when datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))<0 then
+			convert(varchar,ABS(datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))))+'天'
+			else
+			'  '
+			end DELAY_DAY
+		    from 
+			T_RENT_FILEDETAIL  trfd 
+			left join t_prjt_credit  tpc on trfd.PRCD_ID=tpc.id and tpc.STATUS=0
+			LEFT join (select MIN(TYPE) TYPE,CREDIT_ID from T_PRJT_CREDITAPPROPIATE where STATUS=0 group by CREDIT_ID) tpca on tpc.ID=tpca.CREDIT_ID 
+			left join T_RENT_FILE trf on trfd.REFI_ID=trf.REFI_ID and trf.FILE_STATUS=0
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID=tpc.CUST_ID and tcc.STATUS=0
+			LEFT JOIN T_USER_USER T6 ON tpc.SENSOR_ID = T6.ID
+			left join T_USER_USER upper on upper.id = T6.upper_user
+			left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+			left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			left join (SELECT MAX(BRAND) BRAND,T8.CREDIT_ID FROM T_PRJT_CREDITEQUIPMENT T8 WHERE T8.EQMT_STATUS='0'  GROUP BY T8.CREDIT_ID) T8 on tpc.id=T8.CREDIT_ID
+			where trfd.IS_ALREADY ='0' and trfd.FILE_TYPE='3' and trfd.STATUS = 0
+			and trfd.REFD_ID is not null and tpc.STATUS=0 and tpc.LEASE_CODE is not null and tpc.FINANCECONTRACT_DATE is not null
+			and t6.dept_id='12'	
+			and trf.[FILE_NAME] not like '%清偿文件%'
+			and trfd.ISSURE_REASON not like '%清偿文件%'
+		]]>
+	 </select>
+			 <!-- Add by Michael 2012 08-09 查询所有待补文件List For Email 使用  东莞 -->
+   	<select id="getAllUnCompletedFileListDongguan" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[	 
+			select tpc.LEASE_CODE,tcc.CUST_NAME,trf.FILE_NAME,T6.NAME,t9.DECP_NAME_CN,t8.BRAND,trfd.FILE_MEMO,trfd.ISSURE_REASON,tpc.FINANCECONTRACT_DATE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			else
+			convert(varchar,DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE),23)
+			end  SHOULD_FINISH_DATE,		
+			case when tpca.TYPE=0 then '交机前拨款' else '交机后拨款' end as TYPE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			when datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))<0 then
+			convert(varchar,ABS(datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))))+'天'
+			else
+			'  '
+			end DELAY_DAY
+		    from 
+			T_RENT_FILEDETAIL  trfd 
+			left join t_prjt_credit  tpc on trfd.PRCD_ID=tpc.id and tpc.STATUS=0
+			LEFT join (select MIN(TYPE) TYPE,CREDIT_ID from T_PRJT_CREDITAPPROPIATE where STATUS=0 group by CREDIT_ID) tpca on tpc.ID=tpca.CREDIT_ID 
+			left join T_RENT_FILE trf on trfd.REFI_ID=trf.REFI_ID and trf.FILE_STATUS=0
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID=tpc.CUST_ID and tcc.STATUS=0
+			LEFT JOIN T_USER_USER T6 ON tpc.SENSOR_ID = T6.ID
+			left join T_USER_USER upper on upper.id = T6.upper_user
+			left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+			left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			left join (SELECT MAX(BRAND) BRAND,T8.CREDIT_ID FROM T_PRJT_CREDITEQUIPMENT T8 WHERE T8.EQMT_STATUS='0'  GROUP BY T8.CREDIT_ID) T8 on tpc.id=T8.CREDIT_ID
+			where trfd.IS_ALREADY ='0' and trfd.FILE_TYPE='3' and trfd.STATUS = 0
+			and trfd.REFD_ID is not null and tpc.STATUS=0 and tpc.LEASE_CODE is not null and tpc.FINANCECONTRACT_DATE is not null
+			and t6.dept_id='10'	
+			and trf.[FILE_NAME] not like '%清偿文件%'
+			and trfd.ISSURE_REASON not like '%清偿文件%'
+		]]>
+	 </select>
+				 <!-- Add by Michael 2012 08-09 查询所有待补文件List For Email 使用  成都 -->
+   	<select id="getAllUnCompletedFileListChengdu" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[	 
+			select tpc.LEASE_CODE,tcc.CUST_NAME,trf.FILE_NAME,T6.NAME,t9.DECP_NAME_CN,t8.BRAND,trfd.FILE_MEMO,trfd.ISSURE_REASON,tpc.FINANCECONTRACT_DATE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			else
+			convert(varchar,DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE),23)
+			end  SHOULD_FINISH_DATE,		
+			case when tpca.TYPE=0 then '交机前拨款' else '交机后拨款' end as TYPE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			when datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))<0 then
+			convert(varchar,ABS(datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))))+'天'
+			else
+			'  '
+			end DELAY_DAY
+		    from 
+			T_RENT_FILEDETAIL  trfd 
+			left join t_prjt_credit  tpc on trfd.PRCD_ID=tpc.id and tpc.STATUS=0
+			LEFT join (select MIN(TYPE) TYPE,CREDIT_ID from T_PRJT_CREDITAPPROPIATE where STATUS=0 group by CREDIT_ID) tpca on tpc.ID=tpca.CREDIT_ID 
+			left join T_RENT_FILE trf on trfd.REFI_ID=trf.REFI_ID and trf.FILE_STATUS=0
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID=tpc.CUST_ID and tcc.STATUS=0
+			LEFT JOIN T_USER_USER T6 ON tpc.SENSOR_ID = T6.ID
+			left join T_USER_USER upper on upper.id = T6.upper_user
+			left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+			left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			left join (SELECT MAX(BRAND) BRAND,T8.CREDIT_ID FROM T_PRJT_CREDITEQUIPMENT T8 WHERE T8.EQMT_STATUS='0'  GROUP BY T8.CREDIT_ID) T8 on tpc.id=T8.CREDIT_ID
+			where trfd.IS_ALREADY ='0' and trfd.FILE_TYPE='3' and trfd.STATUS = 0
+			and trfd.REFD_ID is not null and tpc.STATUS=0 and tpc.LEASE_CODE is not null and tpc.FINANCECONTRACT_DATE is not null
+			and t6.dept_id='21'	
+			and trf.[FILE_NAME] not like '%清偿文件%'
+			and trfd.ISSURE_REASON not like '%清偿文件%'
+		]]>
+	 </select>
+					 <!-- Add by Michael 2012 08-09 查询所有待补文件List For Email 使用  重庆 -->
+   	<select id="getAllUnCompletedFileListChongqing" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[	 
+			select tpc.LEASE_CODE,tcc.CUST_NAME,trf.FILE_NAME,T6.NAME,t9.DECP_NAME_CN,t8.BRAND,trfd.FILE_MEMO,trfd.ISSURE_REASON,tpc.FINANCECONTRACT_DATE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			else
+			convert(varchar,DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE),23)
+			end  SHOULD_FINISH_DATE,		
+			case when tpca.TYPE=0 then '交机前拨款' else '交机后拨款' end as TYPE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			when datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))<0 then
+			convert(varchar,ABS(datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))))+'天'
+			else
+			'  '
+			end DELAY_DAY
+		    from 
+			T_RENT_FILEDETAIL  trfd 
+			left join t_prjt_credit  tpc on trfd.PRCD_ID=tpc.id and tpc.STATUS=0
+			LEFT join (select MIN(TYPE) TYPE,CREDIT_ID from T_PRJT_CREDITAPPROPIATE where STATUS=0 group by CREDIT_ID) tpca on tpc.ID=tpca.CREDIT_ID 
+			left join T_RENT_FILE trf on trfd.REFI_ID=trf.REFI_ID and trf.FILE_STATUS=0
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID=tpc.CUST_ID and tcc.STATUS=0
+			LEFT JOIN T_USER_USER T6 ON tpc.SENSOR_ID = T6.ID
+			left join T_USER_USER upper on upper.id = T6.upper_user
+			left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+			left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			left join (SELECT MAX(BRAND) BRAND,T8.CREDIT_ID FROM T_PRJT_CREDITEQUIPMENT T8 WHERE T8.EQMT_STATUS='0'  GROUP BY T8.CREDIT_ID) T8 on tpc.id=T8.CREDIT_ID
+			where trfd.IS_ALREADY ='0' and trfd.FILE_TYPE='3' and trfd.STATUS = 0
+			and trfd.REFD_ID is not null and tpc.STATUS=0 and tpc.LEASE_CODE is not null and tpc.FINANCECONTRACT_DATE is not null
+			and t6.dept_id='13'	
+			and trf.[FILE_NAME] not like '%清偿文件%'
+			and trfd.ISSURE_REASON not like '%清偿文件%'
+		]]>
+	 </select>
+					<!-- Add by Michael 2012 08-09 查询所有待补文件List For Email 使用  南京 -->
+   	<select id="getAllUnCompletedFileListNanjing" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[	 
+			select tpc.LEASE_CODE,tcc.CUST_NAME,trf.FILE_NAME,T6.NAME,t9.DECP_NAME_CN,t8.BRAND,trfd.FILE_MEMO,trfd.ISSURE_REASON,tpc.FINANCECONTRACT_DATE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			else
+			convert(varchar,DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE),23)
+			end  SHOULD_FINISH_DATE,		
+			case when tpca.TYPE=0 then '交机前拨款' else '交机后拨款' end as TYPE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			when datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))<0 then
+			convert(varchar,ABS(datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))))+'天'
+			else
+			'  '
+			end DELAY_DAY
+		    from 
+			T_RENT_FILEDETAIL  trfd 
+			left join t_prjt_credit  tpc on trfd.PRCD_ID=tpc.id and tpc.STATUS=0
+			LEFT join (select MIN(TYPE) TYPE,CREDIT_ID from T_PRJT_CREDITAPPROPIATE where STATUS=0 group by CREDIT_ID) tpca on tpc.ID=tpca.CREDIT_ID 
+			left join T_RENT_FILE trf on trfd.REFI_ID=trf.REFI_ID and trf.FILE_STATUS=0
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID=tpc.CUST_ID and tcc.STATUS=0
+			LEFT JOIN T_USER_USER T6 ON tpc.SENSOR_ID = T6.ID
+			left join T_USER_USER upper on upper.id = T6.upper_user
+			left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+			left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			left join (SELECT MAX(BRAND) BRAND,T8.CREDIT_ID FROM T_PRJT_CREDITEQUIPMENT T8 WHERE T8.EQMT_STATUS='0'  GROUP BY T8.CREDIT_ID) T8 on tpc.id=T8.CREDIT_ID
+			where trfd.IS_ALREADY ='0' and trfd.FILE_TYPE='3' and trfd.STATUS = 0
+			and trfd.REFD_ID is not null and tpc.STATUS=0 and tpc.LEASE_CODE is not null and tpc.FINANCECONTRACT_DATE is not null
+			and t6.dept_id='11'	
+			and trf.[FILE_NAME] not like '%清偿文件%'
+			and trfd.ISSURE_REASON not like '%清偿文件%'
+		]]>
+	 </select>
+						<!-- Add by Michael 2012 08-09 查询所有待补文件List For Email 使用  上海 -->
+   	<select id="getAllUnCompletedFileListShanghai" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[	 
+			select tpc.LEASE_CODE,tcc.CUST_NAME,trf.FILE_NAME,T6.NAME,t9.DECP_NAME_CN,t8.BRAND,trfd.FILE_MEMO,trfd.ISSURE_REASON,tpc.FINANCECONTRACT_DATE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			else
+			convert(varchar,DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE),23)
+			end  SHOULD_FINISH_DATE,		
+			case when tpca.TYPE=0 then '交机前拨款' else '交机后拨款' end as TYPE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			when datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))<0 then
+			convert(varchar,ABS(datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))))+'天'
+			else
+			'  '
+			end DELAY_DAY
+		    from 
+			T_RENT_FILEDETAIL  trfd 
+			left join t_prjt_credit  tpc on trfd.PRCD_ID=tpc.id and tpc.STATUS=0
+			LEFT join (select MIN(TYPE) TYPE,CREDIT_ID from T_PRJT_CREDITAPPROPIATE where STATUS=0 group by CREDIT_ID) tpca on tpc.ID=tpca.CREDIT_ID 
+			left join T_RENT_FILE trf on trfd.REFI_ID=trf.REFI_ID and trf.FILE_STATUS=0
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID=tpc.CUST_ID and tcc.STATUS=0
+			LEFT JOIN T_USER_USER T6 ON tpc.SENSOR_ID = T6.ID
+			left join T_USER_USER upper on upper.id = T6.upper_user
+			left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+			left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			left join (SELECT MAX(BRAND) BRAND,T8.CREDIT_ID FROM T_PRJT_CREDITEQUIPMENT T8 WHERE T8.EQMT_STATUS='0'  GROUP BY T8.CREDIT_ID) T8 on tpc.id=T8.CREDIT_ID
+			where trfd.IS_ALREADY ='0' and trfd.FILE_TYPE='3' and trfd.STATUS = 0
+			and trfd.REFD_ID is not null and tpc.STATUS=0 and tpc.LEASE_CODE is not null and tpc.FINANCECONTRACT_DATE is not null
+			and t6.dept_id='19'	
+			and trf.[FILE_NAME] not like '%清偿文件%'
+			and trfd.ISSURE_REASON not like '%清偿文件%'
+		]]>
+	 </select>
+						<!-- Add by Michael 2012 08-09 查询所有待补文件List For Email 使用  昆山 -->
+   	<select id="getAllUnCompletedFileListKunshan" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[	 
+			select tpc.LEASE_CODE,tcc.CUST_NAME,trf.FILE_NAME,T6.NAME,t9.DECP_NAME_CN,t8.BRAND,trfd.FILE_MEMO,trfd.ISSURE_REASON,tpc.FINANCECONTRACT_DATE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			else
+			convert(varchar,DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE),23)
+			end  SHOULD_FINISH_DATE,		
+			case when tpca.TYPE=0 then '交机前拨款' else '交机后拨款' end as TYPE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			when datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))<0 then
+			convert(varchar,ABS(datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))))+'天'
+			else
+			'  '
+			end DELAY_DAY
+		    from 
+			T_RENT_FILEDETAIL  trfd 
+			left join t_prjt_credit  tpc on trfd.PRCD_ID=tpc.id and tpc.STATUS=0
+			LEFT join (select MIN(TYPE) TYPE,CREDIT_ID from T_PRJT_CREDITAPPROPIATE where STATUS=0 group by CREDIT_ID) tpca on tpc.ID=tpca.CREDIT_ID 
+			left join T_RENT_FILE trf on trfd.REFI_ID=trf.REFI_ID and trf.FILE_STATUS=0
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID=tpc.CUST_ID and tcc.STATUS=0
+			LEFT JOIN T_USER_USER T6 ON tpc.SENSOR_ID = T6.ID
+			left join T_USER_USER upper on upper.id = T6.upper_user
+			left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+			left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			left join (SELECT MAX(BRAND) BRAND,T8.CREDIT_ID FROM T_PRJT_CREDITEQUIPMENT T8 WHERE T8.EQMT_STATUS='0'  GROUP BY T8.CREDIT_ID) T8 on tpc.id=T8.CREDIT_ID
+			where trfd.IS_ALREADY ='0' and trfd.FILE_TYPE='3' and trfd.STATUS = 0
+			and trfd.REFD_ID is not null and tpc.STATUS=0 and tpc.LEASE_CODE is not null and tpc.FINANCECONTRACT_DATE is not null
+			and t6.dept_id='9'	
+			and trf.[FILE_NAME] not like '%清偿文件%'
+			and trfd.ISSURE_REASON not like '%清偿文件%'
+		]]>
+	 </select>
+						<!-- Add by Michael 2012 08-09 查询所有待补文件List For Email 使用  苏州重车 -->
+   	<select id="getAllUnCompletedFileListSuzhouCar" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[	 
+			select tpc.LEASE_CODE,tcc.CUST_NAME,trf.FILE_NAME,T6.NAME,t9.DECP_NAME_CN,t8.BRAND,trfd.FILE_MEMO,trfd.ISSURE_REASON,tpc.FINANCECONTRACT_DATE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			else
+			convert(varchar,DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE),23)
+			end  SHOULD_FINISH_DATE,		
+			case when tpca.TYPE=0 then '交机前拨款' else '交机后拨款' end as TYPE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			when datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))<0 then
+			convert(varchar,ABS(datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))))+'天'
+			else
+			'  '
+			end DELAY_DAY
+		    from 
+			T_RENT_FILEDETAIL  trfd 
+			left join t_prjt_credit  tpc on trfd.PRCD_ID=tpc.id and tpc.STATUS=0
+			LEFT join (select MIN(TYPE) TYPE,CREDIT_ID from T_PRJT_CREDITAPPROPIATE where STATUS=0 group by CREDIT_ID) tpca on tpc.ID=tpca.CREDIT_ID 
+			left join T_RENT_FILE trf on trfd.REFI_ID=trf.REFI_ID and trf.FILE_STATUS=0
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID=tpc.CUST_ID and tcc.STATUS=0
+			LEFT JOIN T_USER_USER T6 ON tpc.SENSOR_ID = T6.ID
+			left join T_USER_USER upper on upper.id = T6.upper_user
+			left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+			left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			left join (SELECT MAX(BRAND) BRAND,T8.CREDIT_ID FROM T_PRJT_CREDITEQUIPMENT T8 WHERE T8.EQMT_STATUS='0'  GROUP BY T8.CREDIT_ID) T8 on tpc.id=T8.CREDIT_ID
+			where trfd.IS_ALREADY ='0' and trfd.FILE_TYPE='3' and trfd.STATUS = 0
+			and trfd.REFD_ID is not null and tpc.STATUS=0 and tpc.LEASE_CODE is not null and tpc.FINANCECONTRACT_DATE is not null
+			and t6.dept_id in('24','22')	
+			and trf.[FILE_NAME] not like '%清偿文件%'
+			and trfd.ISSURE_REASON not like '%清偿文件%'
+		]]>
+	 </select>
+						<!-- Add by Michael 2012 08-09 查询所有待补文件List For Email 使用  苏州设备 -->
+   	<select id="getAllUnCompletedFileListSuzhou" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[	 
+			select tpc.LEASE_CODE,tcc.CUST_NAME,trf.FILE_NAME,T6.NAME,t9.DECP_NAME_CN,t8.BRAND,trfd.FILE_MEMO,trfd.ISSURE_REASON,tpc.FINANCECONTRACT_DATE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			else
+			convert(varchar,DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE),23)
+			end  SHOULD_FINISH_DATE,		
+			case when tpca.TYPE=0 then '交机前拨款' else '交机后拨款' end as TYPE,
+			case 
+			when trfd.ISSURE_REASON='清偿文件' or trfd.ISSURE_REASON='发票联借出' then
+			'  '
+			when datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))<0 then
+			convert(varchar,ABS(datediff(day,GETDATE(),DateAdd(DAY,15,tpc.FINANCECONTRACT_DATE))))+'天'
+			else
+			'  '
+			end DELAY_DAY
+		    from 
+			T_RENT_FILEDETAIL  trfd 
+			left join t_prjt_credit  tpc on trfd.PRCD_ID=tpc.id and tpc.STATUS=0
+			LEFT join (select MIN(TYPE) TYPE,CREDIT_ID from T_PRJT_CREDITAPPROPIATE where STATUS=0 group by CREDIT_ID) tpca on tpc.ID=tpca.CREDIT_ID 
+			left join T_RENT_FILE trf on trfd.REFI_ID=trf.REFI_ID and trf.FILE_STATUS=0
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID=tpc.CUST_ID and tcc.STATUS=0
+			LEFT JOIN T_USER_USER T6 ON tpc.SENSOR_ID = T6.ID
+			left join T_USER_USER upper on upper.id = T6.upper_user
+			left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+			left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			left join (SELECT MAX(BRAND) BRAND,T8.CREDIT_ID FROM T_PRJT_CREDITEQUIPMENT T8 WHERE T8.EQMT_STATUS='0'  GROUP BY T8.CREDIT_ID) T8 on tpc.id=T8.CREDIT_ID
+			where trfd.IS_ALREADY ='0' and trfd.FILE_TYPE='3' and trfd.STATUS = 0
+			and trfd.REFD_ID is not null and tpc.STATUS=0 and tpc.LEASE_CODE is not null and tpc.FINANCECONTRACT_DATE is not null
+			and t6.dept_id='25'	
+			and trf.[FILE_NAME] not like '%清偿文件%'
+			and trfd.ISSURE_REASON not like '%清偿文件%'
+			order by trfd.ISSURE_REASON
+		]]>
+	 </select>
+				
+	 <!-- add by ShenQi 获得所有办事处的待补文件 used by业务人员综合界面的待补文件清单 -->	
+	 <select id="getAllUnCompletedFileCompany" resultClass="java.util.HashMap">
+	 		     SELECT TPC.LEASE_CODE,TCC.CUST_NAME,TRF.FILE_NAME,TPC.CREDIT_RUNCODE,
+			            T6.NAME,T9.DECP_NAME_CN,T8.BRAND,TRFD.FILE_MEMO,
+			            TRFD.ISSURE_REASON,TPC.FINANCECONTRACT_DATE,
+		      			CASE 
+		      			WHEN TRFD.ISSURE_REASON='清偿文件' OR TRFD.ISSURE_REASON='发票联借出'
+            			THEN '  '
+					    ELSE
+		      			CONVERT(VARCHAR,DATEADD(DAY,15,TPC.FINANCECONTRACT_DATE),23)
+		      			END SHOULD_FINISH_DATE,		
+		      			CASE 
+			            WHEN TPCA.[TYPE]=0 
+			            THEN '交机前拨款' 
+			            ELSE '交机后拨款' 
+			            END [TYPE],
+		      			CASE 
+		      			WHEN TRFD.ISSURE_REASON='清偿文件' OR TRFD.ISSURE_REASON='发票联借出'
+			            THEN '  '
+		      			WHEN DATEDIFF(DAY,GETDATE(),DATEADD(DAY,15,TPC.FINANCECONTRACT_DATE))&lt;0 
+			            THEN CONVERT(VARCHAR,ABS(DATEDIFF(DAY,GETDATE(),DATEADD(DAY,15,TPC.FINANCECONTRACT_DATE))))+'天'
+		      			ELSE '  '
+		      			END DELAY_DAY
+			       FROM T_RENT_FILEDETAIL  TRFD 
+			  LEFT JOIN T_PRJT_CREDIT  TPC ON TRFD.PRCD_ID=TPC.ID AND TPC.STATUS=0
+			  LEFT JOIN (SELECT MIN(TYPE) TYPE,CREDIT_ID FROM T_PRJT_CREDITAPPROPIATE WHERE STATUS=0 GROUP BY CREDIT_ID) TPCA ON TPC.ID=TPCA.CREDIT_ID 
+			  LEFT JOIN T_RENT_FILE TRF ON TRFD.REFI_ID=TRF.REFI_ID AND TRF.FILE_STATUS=0
+			  LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.CUST_ID=TPC.CUST_ID AND TCC.STATUS=0
+			  LEFT JOIN T_USER_USER T6 ON TPC.SENSOR_ID=T6.ID
+			  LEFT JOIN T_USER_USER UPPER ON UPPER.ID=T6.UPPER_USER
+			  LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=T6.DEPT_ID AND DEPT.STATUS=0
+			  LEFT JOIN T_DEPT_COMPANY T9 ON DEPT.DECP_ID=T9.DECP_ID AND T9.STATUS=0
+			  LEFT JOIN (SELECT MAX(BRAND) BRAND,T8.CREDIT_ID FROM T_PRJT_CREDITEQUIPMENT T8 WHERE T8.EQMT_STATUS='0'  GROUP BY T8.CREDIT_ID) T8 ON TPC.ID=T8.CREDIT_ID
+				  WHERE TRFD.IS_ALREADY ='0' 
+			        AND TRFD.FILE_TYPE='3'
+				    AND TRFD.REFD_ID IS NOT NULL 
+				    and trfd.STATUS = 0
+			        AND TPC.STATUS=0 
+			        AND TPC.LEASE_CODE IS NOT NULL 
+			        AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+			        AND TPC.SENSOR_ID=#s_employeeId#
+			 <isNotEmpty property="content">
+			 		AND (TCC.CUST_NAME LIKE '%$content$%' 
+			 				OR T8.BRAND LIKE '%$content$%' 
+			 				OR TRFD.ISSURE_REASON LIKE '%$content$%'
+			 				OR TPC.LEASE_CODE LIKE '%$content$%'
+			 				OR TPC.CREDIT_RUNCODE LIKE '%$content$%')
+			 </isNotEmpty>       
+	 </select>	
+
+		<!-- 修改合同资料 -->
+	<update id="updateReftBySales" parameterClass="map">
+		update t_rent_filedetail
+		   set SALES_MEMO = #SALES_MEMO#,
+		       SALES_CREATE_ID = #s_employeeId#,
+		       SALES_CREATE_TIME = GETDATE(),
+		       COPYSIGN_COUNT = #COPYSIGN_COUNT2#,
+		       FILE_TYPE=#FILE_TYPE#
+		 where refd_id = #refd_id2#   
+	</update>	
+	
+		<!-- 添加合同资料 -->
+	<insert id="insertReftBySales"   parameterClass="map">
+		insert into t_rent_filedetail
+		  (
+		   prcd_id,
+		   refi_id,
+		   file_count,
+		   COPYSIGN_COUNT,
+		   SALES_MEMO,
+		   status,
+		   SALES_CREATE_ID,
+		   SALES_CREATE_TIME,
+		   FILE_TYPE,FILE_CONTRACT_TYPE,CREATE_TIME,CREATE_ID
+		   )
+		values
+		  (
+		   #prcd_id2#,
+		   #refi_id2#,
+		   #file_count2#,
+		   #COPYSIGN_COUNT2#,
+		   #SALES_MEMO#,
+		   0,
+		   #s_employeeId#,
+		   getdate(),
+		   #FILE_TYPE#,#CONTRACT_TYPE#,getDate(),#s_employeeId#
+        )
+	</insert>
+		<!-- 添加合同文件送件状况 -->
+	<insert id="insertRentFileSenderState"   parameterClass="map">
+		<![CDATA[
+			insert into T_RENT_FILE_SENDER_STATE(
+			CREDIT_ID,
+			STATUS,
+			STATE,
+			MODIFY_TIME,
+			CREATE_TIME,
+			CREATE_ID,MODIFY_ID
+			)values(
+		   #CREDIT_ID#,
+		   0,
+		   1,
+		    getDate(),
+		   getDate(),
+		   #s_employeeId#,
+		   #s_employeeId#
+			)
+		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="ID">
+			SELECT @@IDENTITY AS FSS_ID
+		</selectKey> 
+ 	</insert>
+ 		<!-- 添加合同文件送件状况 -->
+	<update id="updateRentFileSenderState" parameterClass="map">
+		update T_RENT_FILE_SENDER_STATE
+		   set STATE = 1,
+		       MODIFY_ID = #s_employeeId#,
+		       MODIFY_TIME = GETDATE()
+		 where CREDIT_ID = #prcd_id2#   
+	</update>	
+	
+	<!-- Add by Michael 2012 11-09 查询合同收件状态 -->
+   	<select id="getRentFileSenderState" parameterClass="map" resultClass="java.util.HashMap"> 
+		<![CDATA[		
+			select top 1 * from T_RENT_FILE_SENDER_STATE
+			where CREDIT_ID= #prcd_id#
+			order by id desc
+		]]>
+	 </select>
+	 
+	 	<!-- 添加合同资料 For 业管初审 -->
+	<insert id="insertReftByHW"   parameterClass="map">
+		insert into t_rent_filedetail_HW
+		  (
+		   prcd_id,
+		   refi_id,
+		   file_count,
+		   copyfile_count,
+		   COPYSIGN_COUNT,
+		   file_memo,
+		   status,
+		   create_id,
+		   create_time,
+		   IS_ALREADY,FILE_CONTRACT_TYPE,FILE_TYPE,ISSURE_REASON,RETURN_DATE)
+		values
+		  (
+		   #prcd_id2#,
+		   #refi_id2#,
+		   #file_count2#,
+		   #copyfile_count2#,
+		   #COPYSIGN_COUNT2#,
+		   #memo2#,
+		   0,
+		   #s_employeeId#,
+		   getdate(),
+		   0,#CONTRACT_TYPE#,#FILE_TYPE#,#ISSURE_REASON#,#RETURN_DATE#
+        )
+	</insert>
+
+	<!-- 修改合同资料 For 业管初审 -->
+	<update id="updateReftByHW" parameterClass="map">
+		update t_rent_filedetail_HW
+		   set prcd_id = #prcd_id2#,
+		       refi_id = #refi_id2#,
+		       file_count = #file_count2#,
+		       copyfile_count = #copyfile_count2#,
+		       file_memo = #memo2#,
+		       modify_id = #s_employeeId#,
+		       status=0,
+		       modify_time = getdate(),ISSURE_REASON=#ISSURE_REASON#,RETURN_DATE=#RETURN_DATE#
+		 where refd_id = #refd_id2#   
+	</update>
+	
+		<!-- Add by  Michael2012 12-11 For 业管初审资料查询 -->
+	<select id="selectRentFileByHW" parameterClass="map" resultClass="hashmap">
+	<![CDATA[ 
+		select   t1.refi_id REFI_ID,t2.IS_ALREADY,t2.ISSURE_REASON,t2.RETURN_DATE,
+                 t1.file_name FILE_NAME,
+                 ISNULL(t2.file_count, 0) FILE_COUNT,
+                 ISNULL(t2.copyfile_count, 0) COPYFILE_COUNT,
+                 t2.file_memo MEMO,
+                 ISNULL(t2.refd_id,0)	REFD_ID,
+                 replace(ISNULL(t2.path,0),'\','\\') PATH,
+                 t2.file_filename FILE_FILENAME,
+				 t1.state FILESTATE,
+				 t1.FILE_CONTRACT_TYPE,
+				 ISNULL(t3.TRFU_ID,1) UPSTATE,
+				  ISNULL(t2.COPYSIGN_COUNT,0) COPYSIGN_COUNT,t2.SALES_MEMO,             
+                 (select  count(1) FILECOUNT from t_rent_fileup where refi_id=t1.REFI_ID  and prcd_id=t2.PRCD_ID and status=0)   FILECOUNT ,
+                  t1.WANT_COUNT   
+            from t_rent_file t1
+            left join t_rent_filedetail_HW t2 on t1.refi_id =t2.refi_id  and t2.prcd_id = #prcd_id#
+			left join (
+			select t3.REFI_ID,max(t3.TRFU_ID) TRFU_ID from T_RENT_FILEUP t3 where t3.status=0 and  t3.PRCD_ID=#prcd_id#
+			group by t3.REFI_ID
+			) t3 on t3.REFI_ID=t1.REFI_ID              
+           where t1.file_type = #cardFlag#+1 
+            ]]> 
+           <isEqual prepend="and" property="cardFlag" compareValue="2">
+		  	 	<![CDATA[ t1.FILE_CONTRACT_TYPE=#CONTRACT_TYPE# ]]>
+		  	</isEqual>
+		  	<![CDATA[ 
+             and t1.FILE_STATUS=0            
+		 order by t1.level_num
+		 ]]> 
+	</select>
+	
+		<!-- 更新合同资料的文件状况 For业管初审 -->
+	<update id="updateRentFileStatusByHW" parameterClass="map">
+		update t_rent_filedetail_HW
+		   set IS_ALREADY = '1'
+		 where REFI_ID in( $checked_rent_ids$ ) and prcd_id =  #prcd_id2#
+	</update>
+	
+		<!-- Add by Michael 2012 12-13 增加支票附件 -->
+	<insert id="insertRentCheckDetailDoc"   parameterClass="map">		
+		insert into T_RENTCHECK_FILE
+		  (
+		   STATUS,
+		   PATH,
+		   TITLE,
+		   FILE_NAME,
+		   RENT_CHECK_ID,
+		   CREATE_ID,
+		   CREATE_DATE)
+		values
+		  (
+		    0,
+		    #file_path#,
+		    #title#,
+		    #file_name#,
+		    #ID#,
+		    #s_employeeId#,
+		    getdate()
+		)		
+	</insert>	
+	
+	<!-- Add by Michael 2012 12-13 查询支票附件 -->
+	<select id="selectRentCheckDetailDoc" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select  replace(trcf.PATH,'\','\\') PATH ,trcf.TITLE,trcf.FILE_NAME,tuu.[NAME],trcf.CREATE_DATE 
+			from T_RENTCHECK_FILE  trcf
+      		left join T_USER_USER tuu on trcf.CREATE_ID=tuu.ID
+			where trcf.RENT_CHECK_ID=#ID# and trcf.status=0
+		 ]]> 
+	</select>
+
+	<select id="selectRentSettleFileDetail" parameterClass="map" resultClass="hashmap">
+		<![CDATA[ 
+        	select   t1.refi_id REFI_ID,
+                t1.file_name FILE_NAME,
+                ISNULL(t1.WANT_COUNT, 0) FILE_COUNT,
+                ISNULL(t2.copyfile_count, 0) COPYFILE_COUNT,
+                t2.file_memo MEMO,
+			    t1.state FILESTATE,
+			    ISNULL(t2.COPYSIGN_COUNT,0) COPYSIGN_COUNT,t2.ID
+           from t_rent_file t1
+           left join T_RENT_SETTLEFILE_DETAIL t2 on t1.refi_id =t2.refi_id  and t2.RECT_ID = #RECT_ID#
+           where t1.file_type = #FILE_TYPE#   and t1.FILE_STATUS=0            
+	 	   order by t1.level_num
+		 ]]> 
+	</select>
+	<!-- 添加结清申请资料资料 -->
+	<insert id="insertRentSettleFileDetail"   parameterClass="map">
+		insert into T_RENT_SETTLEFILE_DETAIL
+		  (
+		   RECT_ID,
+		   refi_id,
+		   file_count,
+		   COPYSIGN_COUNT,
+		   FILE_MEMO,
+		   status,
+		   FILE_NAME,CREATE_TIME,CREATE_ID
+		   )
+		values
+		  (
+		   #RECT_ID#,
+		   #refi_id2#,
+		   #file_count2#,
+		   #COPYSIGN_COUNT2#,
+		   #MEMO#, 0,  
+		   #FILE_NAME#,getDate(),#s_employeeId#
+        )
+	</insert>
+	
+		<!-- 修改结清文件资料 -->
+	<update id="updateRentSettleFileDetail" parameterClass="map">
+		update T_RENT_SETTLEFILE_DETAIL
+		   set FILE_MEMO = #MEMO#,
+		       MODIFY_ID = #s_employeeId#,
+		       MODIFY_TIME = GETDATE(),
+		       COPYSIGN_COUNT = #COPYSIGN_COUNT2#
+		 where id = #refd_id2#   
+	</update>	
+	
+	<insert id="insertRentSettleDetail"   parameterClass="map">
+		insert into T_RENT_SETTLEFILE_SEND
+		  (
+		   RECT_ID,
+		   STATUS,
+		   STATE,
+		   CREATE_TIME,
+		   CREATE_ID,
+		   REMARK
+		   )
+		values
+		  (
+		   #RECT_ID#,
+		   0,0,
+		   getdate(),  #s_employeeId#,
+		   #REMARK#
+        )
+	</insert>
+	
+	<update id="updateRentSettleDetail" parameterClass="map">
+		update T_RENT_SETTLEFILE_SEND
+		   set REMARK = #REMARK#,
+		       MODIFY_ID = #s_employeeId#,
+		       MODIFY_TIME = GETDATE()
+		 where id = #RENT_SETTLEFILE_ID#   
+	</update>	
+
+	<!-- 查询合同与合同资料表的中间表  是否有合同ID For 寄件管理 -->
+	<select id="selectRentFileForPost" parameterClass="map" resultClass="hashmap">
+	<![CDATA[ 
+		select   t1.refi_id REFI_ID,t2.IS_ALREADY,t2.ISSURE_REASON,t2.RETURN_DATE,
+                 t1.file_name FILE_NAME,
+                 ISNULL(t2.file_count, 0) FILE_COUNT,
+                 ISNULL(t2.copyfile_count, 0) COPYFILE_COUNT,
+                 t2.file_memo MEMO,
+                 ISNULL(t2.refd_id,0)	REFD_ID,
+                 replace(ISNULL(t2.path,0),'\','\\') PATH,
+                 t2.file_filename FILE_FILENAME,
+				 t1.state FILESTATE,
+				 t1.FILE_CONTRACT_TYPE,
+				 ISNULL(t3.TRFU_ID,1) UPSTATE,
+				  ISNULL(t2.COPYSIGN_COUNT,0) COPYSIGN_COUNT,t2.SALES_MEMO,             
+                 (select  count(1) FILECOUNT from t_rent_fileup where refi_id=t1.REFI_ID  and prcd_id=t2.PRCD_ID and status=0)   FILECOUNT ,
+                  t1.WANT_COUNT   
+            from t_rent_file t1
+            left join t_rent_filedetail t2 on t1.refi_id =t2.refi_id  and t2.prcd_id = #prcd_id# and t2.status = 0
+			left join (
+			select t3.REFI_ID,max(t3.TRFU_ID) TRFU_ID from T_RENT_FILEUP t3 where t3.status=0 and  t3.PRCD_ID=#prcd_id#
+			group by t3.REFI_ID
+			) t3 on t3.REFI_ID=t1.REFI_ID              
+           where (t1.file_type = #cardFlag#+1 
+            ]]> 
+           <isEqual prepend="and" property="cardFlag" compareValue="2">
+		  	 	<![CDATA[ t1.FILE_CONTRACT_TYPE=#CONTRACT_TYPE# ]]>
+		  	</isEqual>
+		  	<![CDATA[ 
+             and t1.FILE_STATUS=0  
+             ) or  t1.file_type=6          
+		 order by t1.level_num
+		 ]]> 
+	</select>
+	
+		<!-- Add by Michael 2013 03-07  查询合同与寄件资料表的中间表  根据寄件管理ID -->
+	<select id="selectRentPostFileByID" parameterClass="map" resultClass="hashmap">
+	<![CDATA[ 
+		select   t1.refi_id REFI_ID,
+                 t1.file_name FILE_NAME,
+                 ISNULL(t2.FILE_COUNT, 0) FILE_POST_COUNT,
+                 t2.file_memo MEMO,
+                 ISNULL(t2.refd_id,0)	REFD_ID,
+                 t2.file_filename FILE_FILENAME,
+				 t1.state FILESTATE,
+				 t1.FILE_CONTRACT_TYPE
+            from t_rent_file t1
+            left join T_RENT_FILE_POSTDETAIL t2 on t1.refi_id =t2.refi_id  and t2.prcd_id = #prcd_id#
+           where ((t1.file_type = #cardFlag#+1 
+            ]]> 
+           <isEqual prepend="and" property="cardFlag" compareValue="2">
+		  	 	<![CDATA[ t1.FILE_CONTRACT_TYPE=#CONTRACT_TYPE# ]]>
+		  	</isEqual>
+		  	<![CDATA[ 
+             and t1.FILE_STATUS=0 )   or  t1.file_type=6)   and t2.POST_ID=#ID#          
+		 order by t1.level_num
+		 ]]> 
+	</select>
+
+	<insert id="saveRentFilePost"   parameterClass="map">
+		insert into T_RENT_FILE_POST_MANAGE
+		  (
+		   PRCD_ID,
+		   STATUS,
+		   POST_DATE,POST_CODE,MEMO,POST_NAME,
+		   CREATE_TIME,
+		   CREATE_ID
+		   )
+		values
+		  (
+		   #prcd_id#,
+		   0,#POST_DATE#,#POST_CODE#,#REMARK#,#POST_NAME#,
+		   getdate(),  #s_employeeId#
+        )
+        <selectKey resultClass="java.lang.Long" keyProperty="ID">
+			SELECT @@IDENTITY AS POST_ID
+		</selectKey>
+	</insert>	
+
+	 
+	<insert id="saveRentPostFileDetail"   parameterClass="map">
+		insert into T_RENT_FILE_POSTDETAIL
+		  (
+		   REFI_ID,FILE_NAME,FILE_COUNT,FILE_MEMO,STATUS,CREATE_ID,CREATE_TIME,POST_ID,PRCD_ID,POST_FLAG
+		   )
+		values
+		  (
+		   #REFI_ID#,#FILE_NAME#,#FILE_COUNT#,#MEMO#,0,#s_employeeId#,getdate(),#POST_ID#,#prcd_id#,0
+        )
+	</insert>
+
+	<insert id="updateRentPostFileDetail"   parameterClass="map">
+		update T_RENT_FILE_POSTDETAIL
+		set FILE_COUNT=#FILE_COUNT#,FILE_MEMO=#MEMO#
+		where prcd_id=#prcd_id# and REFI_ID=#REFI_ID# and POST_ID=#POST_ID#
+	</insert>
+
+	<!-- 将邮寄文件的POST_FLAG状态更新成1 更新成寄送状态 -->
+	<update id="updateRentPostFileFlag" parameterClass="map">
+		update T_RENT_FILE_POSTDETAIL
+		   set POST_FLAG = '1'
+		 where REFI_ID in( $checked_rent_ids$ ) and prcd_id =  #prcd_id# 
+		 and POST_ID=#POST_ID#
+	</update>	
+	
+		<!-- 将邮寄文件的POST_FLAG状态更新成0 更新成默认状态 -->
+	<update id="updateRentPostFileDefFlag" parameterClass="map">
+		update T_RENT_FILE_POSTDETAIL
+		   set POST_FLAG = '0'
+		 where  prcd_id =  #prcd_id# 
+		 and POST_ID=#POST_ID#
+	</update>
+	
+	<update id="updateRentFilePost" parameterClass="map">
+		update T_RENT_FILE_POST_MANAGE
+		   set POST_CODE = #POST_CODE#,MEMO=#REMARK#,POST_DATE=#POST_DATE#,POST_NAME=#POST_NAME#
+		 where  ID =  #POST_ID#
+	</update>
+
+	<select id="selectRentPostFileByPostID" parameterClass="map" resultClass="hashmap">
+		select   *,FILE_COUNT FILE_POST_COUNT from T_RENT_FILE_POSTDETAIL
+		where post_id =  #POST_ID# and prcd_id =  #prcd_id# 
+	</select>	
+	
+	<select id="selectPostDetailByID" parameterClass="map" resultClass="hashmap">
+		select   * from T_RENT_FILE_POST_MANAGE
+		where id =  #POST_ID# 
+	</select>	
+	
+	<select id="getCreditIdForCarExportContractFile" parameterClass="map" resultClass="int">
+	    select  c.PRCD_ID   
+		from T_RENT_COLLECTIONDETAIL  t   
+		left join T_RENT_COLLECTIONPLAN trc on trc.RECP_ID = t.RECP_ID and trc.STATUS =  0   
+		left join T_RENT_CONTRACT c on c.RECT_ID =  trc.RECT_ID and c.STATUS = 0   
+		left join t_prjt_credit tpc on tpc.id = c.prcd_id and tpc.status = 0
+		WHERE t.STATUS = 0 AND trc.TAX_PLAN_CODE = 5 
+		and year(t.PAY_DATE) = #year# and month(t.PAY_DATE) = #month#
+		<isNotEmpty prepend="and" property="companyCode">
+			tpc.company_code = #companyCode#
+		</isNotEmpty>
+		order by t.PAY_DATE    
+	</select>
+	<select id="getNewCreditId" parameterClass="map" resultClass="int">
+		select t.id from t_prjt_credit  t
+		left join t_prjt_creditscheme  p on t.id = p.credit_id and p.status = 0
+		<![CDATA[ 
+		where cast(t.FINANCECONTRACT_DATE as date)  >= #startDate#   
+		and cast(t.FINANCECONTRACT_DATE as date)  <= #endDate#  
+		]]>
+		 and t.status = 0 and p.tax_plan_code =5
+		 <isNotEmpty prepend="and" property="companyCode">
+			t.company_code = #companyCode#
+		</isNotEmpty>
+		order by t.FINANCECONTRACT_DATE
+	</select>
+	
+	<select id="getCarContractFile" parameterClass="map"  resultClass="hashmap">
+    select r.FILE_FILENAME,r.PATH ,f.[FILE_NAME],c.cust_name,rc.LEASE_CODE,u.[NAME],DD1.DECP_NAME_CN
+    from t_rent_fileup r 
+    left join T_RENT_FILE f on f.REFI_ID = r.REFI_ID 
+    left join t_prjt_credit p on p.ID = r.PRCD_ID and p.STATUS = 0  
+    left join T_CUST_CUSTOMER c on c.CUSt_id = p.CUST_ID  
+    left join T_RENT_CONTRACT rc on rc.PRCD_ID = p.ID and rc.STATUS = 0
+    LEFT JOIN T_USER_USER u ON p.SENSOR_ID = u.ID        
+    LEFT JOIN T_DEPT_DEPARTMENT DD ON DD.ID=u.DEPT_ID AND DD.STATUS=0       
+    LEFT JOIN T_DEPT_COMPANY DD1 ON DD1.STATUS=0 AND DD1.DECP_ID=DD.DECP_ID   
+    where (f.[FILE_NAME] = '车主身份证复印件' or f.[FILE_NAME] = '个人委托贷款借款合同'  
+    or f.[FILE_NAME] = '客户照片' or f.[FILE_NAME] = '营业执照、营业执照副本(含年审章)'  or f.[FILE_NAME] = '财务规划服务协议书')
+		and r.PRCD_ID = #creditId# and r.status=0
+	order by f.[FILE_NAME]	    			    
+	</select>
+	<select id="selectInvoice" parameterClass="map"  resultClass="hashmap">
+		select iv.ID as id
+		, INVOICE_ID as invoice_id
+		, INVOICE_CODE as invoice_code
+		, INVOICE_MONEY as invoice_money
+		, INVOICE_TYPE as invoice_type
+		, case when INVOICE_TYPE = 0 then '复印件'
+		when INVOICE_TYPE = 1 then '原件'
+		else '' end as invoice_type_desc
+		, DRAWER as drawer
+		, iv.CREATE_DATE as create_date
+		, iv.MODIFY_DATE as modify_date
+		, u.[NAME]  as modify_by
+		, iv.STATUS as status
+		, iv.MEMO as memo
+		from T_INVO_INVOICE iv
+		left join T_USER_USER u on iv.MODIFY_BY = u.ID
+		where INVOICE_ID = (SELECT pi.ID FROM T_PRJT_INVOICE pi WHERE pi.credit_id = #prcd_id#) AND iv.STATUS >= 0
+	</select>
+</sqlMap>

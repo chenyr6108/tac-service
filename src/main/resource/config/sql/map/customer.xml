@@ -1,0 +1,1230 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="customer">
+	<!-- 管理页面 查询个数 -->
+	<select id="query_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ select count(1) from (
+		    select t.cust_id,t.cust_type,t.cust_code,t.VIRTUAL_CODE,t.cust_name,t.cust_level,t.create_time,t.modify_time ,t2.NAME,
+		    TCL.LINK_NAME,TCL.LINK_MOBILE,TCL.LINK_EMAIL
+				from t_cust_customer t 
+				LEFT JOIN t_cust_linkman TCL ON TCL.CUST_ID=t.CUST_ID AND TCL.STATUS=0 AND TCL.LINK_TYPE=0
+				left join T_USER_USER t2 on t2.ID=t.CREATE_USER_ID
+				where t.status=0
+		    ]]>
+		    <isNotEmpty prepend="and" property="companyCode">
+				 EXISTS (
+					select p.id from t_prjt_credit p 
+					where p.status = 0 and p.company_code = #companyCode# and p.cust_id = t.cust_id
+				)
+			</isNotEmpty>
+			<!-- user node=1则登录人只能看自己的 -->
+			<isEqual property="NODE" compareValue="1">
+			    AND t.CREATE_USER_ID=#s_employeeId#
+			</isEqual>
+			<!-- user node=2则登录人可以看自己的和自己所在区域的 -->
+			<isEqual property="NODE" compareValue="2">
+				AND EXISTS (
+					SELECT 1 FROM (
+								SELECT TUSER.ID FROM T_USER_USER TUSER WHERE EXISTS 
+								    (SELECT 1 FROM T_USER_USER2COMPANY UC 
+								             WHERE UC.USER_ID = #s_employeeId#
+								               AND UC.DEPT_ID=TUSER.DEPT_ID)
+					              ) O
+			                WHERE O.ID=t.CREATE_USER_ID
+               )
+			</isEqual>
+			
+			<isNotEmpty prepend="and" property="cust_type">
+				<![CDATA[ t.cust_type=#cust_type# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="searchValue">
+				<![CDATA[(t.cust_code like '%$searchValue$%' or t.cust_name like '%$searchValue$%' or t2.NAME like '%$searchValue$%' or t.VIRTUAL_CODE like '%$searchValue$%'
+				OR TCL.LINK_NAME like '%$searchValue$%'
+				           OR TCL.LINK_MOBILE like '%$searchValue$%'
+				           OR TCL.LINK_EMAIL like '%$searchValue$%')]]>
+			</isNotEmpty>
+		<![CDATA[	)t ]]>
+	</select>
+	<!-- 管理页面 查询数据 -->
+	<select id="query" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[select t.cust_id,t.cust_type,t.cust_code,t.VIRTUAL_CODE,t.cust_name,t.cust_level,t.create_time,t.modify_time ,t2.NAME,
+				TCL.LINK_NAME,TCL.LINK_MOBILE,TCL.LINK_EMAIL,TCL.LINK_WORK_ADDRESS
+				from t_cust_customer t 
+				LEFT JOIN t_cust_linkman TCL ON TCL.CUST_ID=t.CUST_ID AND TCL.STATUS=0 AND TCL.LINK_TYPE=0
+				left join T_USER_USER t2 on t2.ID=t.CREATE_USER_ID
+				where t.status=0]]>
+			
+			<isNotEmpty prepend="and" property="companyCode">
+				 EXISTS (
+					select p.id from t_prjt_credit p 
+					where p.status = 0 and p.company_code = #companyCode# and p.cust_id = t.cust_id
+				)
+			</isNotEmpty>
+		 	<!-- user node=1则登录人只能看自己的 see mantis 387-->
+			<isEqual property="NODE" compareValue="1">
+			    AND t.CREATE_USER_ID=#s_employeeId#
+			</isEqual>
+			<!-- user node=2则登录人可以看自己的和自己所在区域的 -->
+			<isEqual property="NODE" compareValue="2">
+				AND EXISTS (
+					SELECT 1 FROM (
+								SELECT TUSER.ID FROM T_USER_USER TUSER WHERE EXISTS 
+								    (SELECT 1 FROM T_USER_USER2COMPANY UC 
+								             WHERE UC.USER_ID = #s_employeeId#
+								               AND UC.DEPT_ID=TUSER.DEPT_ID)
+					              ) O
+			                WHERE O.ID=t.CREATE_USER_ID
+               )
+			</isEqual>
+			
+			<isNotEmpty prepend="and" property="cust_type">
+				<![CDATA[ t.cust_type=#cust_type# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="searchValue">
+				<![CDATA[(t.cust_code like '%$searchValue$%' 
+				           or t.cust_name like '%$searchValue$%' 
+				           or t2.NAME like '%$searchValue$%'
+				           or t.VIRTUAL_CODE like '%$searchValue$%'
+				           OR TCL.LINK_NAME like '%$searchValue$%'
+				           OR TCL.LINK_MOBILE like '%$searchValue$%'
+				           OR TCL.LINK_EMAIL like '%$searchValue$%')]]>
+			</isNotEmpty>
+	    <![CDATA[ order by t.create_time desc  ]]>
+	</select>
+	<!-- 数据字典，承租人级别 -->
+	<select id="getCustLevelDataDictionary" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t.code,t.flag from t_data_dictionary t where t.type=#dataType# and STATUS=0 order by t.code
+		]]>
+	</select>
+	<!-- 检验自然人是否存在 -->
+	<select id="checkCustomerNatu" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[ select count(1) as count from t_cust_customer t ]]>
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="and" property="cust_type">
+				<![CDATA[t.cust_type=#cust_type# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="cust_name">
+				<![CDATA[t.cust_name=#cust_name# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="natu_idcard">
+				<![CDATA[t.natu_idcard=#natu_idcard# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="cust_id">
+				<![CDATA[ t.cust_id<>#cust_id# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="status">
+				<![CDATA[ t.status=#status# ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	<!-- 检验虚拟帐号是否存在 -->
+	<select id="checkVIRTUAL" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ select count(1) as COUNTVIRTUAL from t_cust_customer t ]]>
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="and" property="VIRTUAL_CODE">
+				<![CDATA[t.VIRTUAL_CODE=#VIRTUAL_CODE# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="cust_id">
+				<![CDATA[ t.cust_id<>#cust_id# ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	<!-- 检验法人是否存在 -->
+	<select id="checkCustomerCorp" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[ select count(1) as count from t_cust_customer t ]]>
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="and" property="cust_type">
+				<![CDATA[t.cust_type=#cust_type# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="cust_name">
+				<![CDATA[t.cust_name=#cust_name# ]]>
+			</isNotEmpty>
+			<!-- <isNotEmpty prepend="and" property="cust_name">   检查客户信息是否存在的时候不需要检查组织机构代码,只需要检查承租人姓名 add by ShenQi
+				<![CDATA[t.corp_oragnization_code=#corp_oragnization_code# ]]>
+			</isNotEmpty> -->
+			<isNotEmpty prepend="and" property="cust_id">
+				<![CDATA[ t.cust_id<>#cust_id# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="status">
+				<![CDATA[ t.status=#status# ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	<!-- 新增自然人基本 select seq_cust_customer.nextval as cust_id from dual -->
+	<!-- Modify by Michael 2012 3-8 增加客户虚拟账号 -->
+	<insert id="createCustNatu" parameterClass="map">
+		<![CDATA[ 
+			insert into t_cust_customer
+				(create_user_id,cust_code,cust_type,cust_name,natu_idcard,
+				natu_mobile,natu_work_units,cust_level,province_id,city_id,
+				area_id,virtual_code,x_point, y_point)
+			values
+				(#s_employeeId#,#cust_code#,#cust_type#,#cust_name#,#natu_idcard#,
+				#natu_mobile#,#natu_work_units#,#cust_level#,#province_id#,#city_id#,
+				#area_id#,#virtual_code#,#x_point#, #y_point#)
+		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="cust_id">
+			<![CDATA[	select @@IDENTITY as cust_id  ]]>
+		</selectKey> 
+	</insert>
+	<!-- 新增法人基本 	select seq_cust_customer.nextval as cust_id from dual  -->
+	<!-- Modify by Michael 2012 3-8 增加客户虚拟账号 -->
+	<insert id="createCustCrop" parameterClass="map">
+		<![CDATA[ 
+			insert into t_cust_customer 
+				(create_user_id,cust_code,cust_type,cust_name,corp_head_signature,
+				corp_oragnization_code,corp_hs_link_mode,cust_level,province_id,
+				city_id,area_id,virtual_code,x_point, y_point)
+			values
+				(#s_employeeId#,#cust_code#,#cust_type#,#cust_name#,#corp_head_signature#,
+				#corp_oragnization_code#,#corp_hs_link_mode#,#cust_level#,#province_id#,
+				#city_id#,#area_id#,#virtual_code#,#x_point#, #y_point#)
+		 ]]>
+		 <selectKey resultClass="java.lang.Long" keyProperty="cust_id">
+			<![CDATA[	select @@IDENTITY as cust_id  ]]>
+		</selectKey> 
+	</insert>
+	<!-- 新增||修改自然人详细 -->
+	<!-- Modify By Michael 2011 11/29 For 修改自然人时客户名和身份证号不可以修改 -->
+	<statement id="createCustomerNatu" parameterClass="map">
+		<![CDATA[ update t_cust_customer    set modify_time = getdate(), ]]>
+		<isNotEmpty prepend="" property="cust_code">
+		  <![CDATA[  cust_code = #cust_code#, ]]>
+	    </isNotEmpty>   
+	    <isNotEmpty prepend="" property="province_id">
+	   		<![CDATA[  province_id = #province_id#,]]>
+	    </isNotEmpty>   
+		<isNotEmpty prepend="" property="city_id">
+	   		<![CDATA[  city_id = #city_id#,]]>
+	    </isNotEmpty>   
+	    <isNotEmpty prepend="" property="area_id">
+	   		<![CDATA[  area_id = #area_id#,]]>
+	    </isNotEmpty>
+		<![CDATA[   
+			    natu_gender=#natu_gender#, natu_age=#natu_age#,VIRTUAL_CODE=#VIRTUAL_CODE#,
+		        natu_mobile=#natu_mobile#, natu_phone=#natu_phone#, natu_zip=#natu_zip#,
+		        natu_idcard_address=#natu_idcard_address#, natu_home_address=#natu_home_address#,
+		        natu_work_units=#natu_work_units#, natu_work_address=#natu_work_address#, natu_mate_name=#natu_mate_name#,
+		        natu_mate_mobile=#natu_mate_mobile#, natu_mate_idcard=#natu_mate_idcard#, natu_mate_idcard_address=#natu_mate_idcard_address#,
+		        natu_mate_work_units=#natu_mate_work_units#, natu_mate_work_address=#natu_mate_work_address#,
+		        remark=#remark#, cust_level=#cust_level#, modify_user_id=#s_employeeId#,corp_company_email=#corp_company_email# 
+		        ,TRADE_TYPE=#trade_type#
+		        ,x_point = #x_point#
+		      	,y_point = #y_point#
+		       where  cust_id=#cust_id#
+       ]]>
+	</statement>
+	<!-- 新增||修改法人详细 -->
+	<!-- Modify By Michael 2011 11/29 For 修改法人是客户名不可以修改 -->
+	<statement id="createCustomerCorp" parameterClass="map">
+		<![CDATA[ 
+			update t_cust_customer     set  modify_time =getdate(),
+		]]>
+		<isNotEmpty prepend="" property="cust_code">
+	   		<![CDATA[  cust_code = #cust_code#,]]>
+	    </isNotEmpty>   
+		<isNotEmpty prepend="" property="province_id">
+	   		<![CDATA[  province_id = #province_id#,]]>
+	    </isNotEmpty>   
+		<isNotEmpty prepend="" property="city_id">
+	   		<![CDATA[  city_id = #city_id#,]]>
+	    </isNotEmpty>
+	    <isNotEmpty prepend="" property="area_id">
+	   		<![CDATA[  area_id = #area_id#,]]>
+	    </isNotEmpty>
+	    <![CDATA[ 
+	          corp_enterprises_property=#corp_enterprises_property#, corp_setup_date=#corp_setup_date#,VIRTUAL_CODE=#VIRTUAL_CODE#,
+	          corp_registe_capital=#corp_registe_capital#, corp_paiclup_capital=#corp_paiclup_capital#,
+	          corp_head_signature=#corp_head_signature#, corp_hs_idcard=#corp_hs_idcard#,
+	          corp_hs_link_mode=#corp_hs_link_mode#, corp_hs_home_address=#corp_hs_home_address#,
+	          corp_business_license=#corp_business_license#, corp_tax_code=#corp_tax_code#,
+	          corp_oragnization_code=#corp_oragnization_code#, corp_period_validity=#corp_period_validity#,
+	          corp_registe_address=#corp_registe_address#, corp_work_address=#corp_work_address#,
+	          corp_business_range=#corp_business_range#, corp_company_zip=#corp_company_zip#,
+	          corp_company_website=#corp_company_website#, corp_other_massage=#corp_other_massage#,
+		      remark=#remark#, cust_level=#cust_level#, modify_user_id=#s_employeeId#,tax_code=#tax_code#,corp_company_email=#corp_company_email# 
+		      ,TRADE_TYPE=#trade_type#
+		      ,x_point = #x_point#
+		      ,y_point = #y_point#
+		      ,CORP_REGISTE_CAPITAL_CURRENCY = #registe_capital_currency#
+		      ,CORP_PAICLUP_CAPITAL_CURRENCY = #paiclup_capital_currency#
+		       where  cust_id=#cust_id#
+		]]>
+	</statement>
+	<!-- 读取某自然人的基本信息 -->
+	<select id="readCustNatu" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+		 select t.cust_id,t.create_time,t.modify_time,t.status,t.type
+		 ,t.create_user_id,t.cust_type,t.cust_code,t.VIRTUAL_CODE,t.cust_name
+		 ,t.natu_idcard,t.natu_gender,t.natu_age,t.natu_mobile,t.natu_phone
+		 ,t.natu_zip,t.natu_idcard_address,t.natu_home_address,t.natu_work_units
+		 ,t.natu_work_address,t.natu_mate_name,t.natu_mate_name,t.natu_mate_mobile
+		 ,t.natu_mate_idcard,t.natu_mate_idcard_address,t.natu_mate_work_units
+		 ,t.natu_mate_work_address,t.cust_level,t.remark,t.province_id,t.city_id, t.area_id
+		 ,t.corp_company_email,TRADE_TYPE,pr_ar.[NAME] + '_' + ct_ar.[NAME] + '_' + isnull(aa_ar.[NAME], '') as 'CUST_AREA'
+		 ,x_point, y_point
+ 			from t_cust_customer t 
+ 			left join T_AREA pr_ar on t.PROVINCE_ID = pr_ar.ID
+			left join T_AREA ct_ar on t.CITY_ID = ct_ar.ID
+			left join T_AREA aa_ar on t.area_id = aa_ar.ID
+ 			where t.cust_id=#cust_id#
+		]]>
+	</select>
+	<!-- 读取某法人的基本信息 -->
+	<select id="readCustCorp" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+			select t.cust_id,t.create_time,t.modify_time,t.status,t.type,t.create_user_id
+			,t.cust_type,t.cust_code,t.VIRTUAL_CODE,t.cust_name,t.corp_enterprises_property
+			,t.corp_setup_date,t.corp_registe_capital,t.corp_paiclup_capital,t.corp_head_signature
+			,t.corp_hs_idcard,t.corp_hs_link_mode,t.corp_hs_home_address,t.corp_business_license
+			,t.corp_tax_code,t.corp_oragnization_code,t.corp_period_validity,t.corp_registe_address
+			,t.corp_work_address,t.corp_business_range,t.corp_company_zip,t.corp_company_website
+			,t.corp_other_massage,t.cust_level,t.remark,t.province_id,t.city_id, t.area_id,t.tax_code
+			,t.corp_company_email,TRADE_TYPE,pr_ar.[NAME] + '_' + ct_ar.[NAME] + '_' + isnull(aa_ar.[NAME], '') as 'CUST_AREA'
+			,x_point, y_point,t.CORP_REGISTE_CAPITAL_CURRENCY,t.CORP_PAICLUP_CAPITAL_CURRENCY
+			from t_cust_customer t 
+			left join T_AREA pr_ar on t.PROVINCE_ID = pr_ar.ID
+			left join T_AREA ct_ar on t.CITY_ID = ct_ar.ID
+			left join T_AREA aa_ar on t.area_id = aa_ar.ID
+			where t.cust_id = #cust_id#
+		]]>
+	</select>
+	
+	<!-- 读取某承租人的客户状态 -->
+	<select id="readCustState" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+			select max(
+case 
+when t1.ID is null
+then '0'
+when t1.ID is not null and t1.STATE=0
+then '1'
+when t1.ID is not null and t1.STATE=1 and (t1.WIND_STATE not in (1,2) or t1.WIND_STATE is null)
+then '2'
+when t1.ID is not null and (t1.WIND_STATE in (1,2) or t1.WIND_STATE is null)
+then '3'
+else '4' 
+end
+) as stateType from T_CUST_CUSTOMER t
+left join T_PRJT_CREDIT t1 on t.CUST_ID =t1.CUST_ID where t.CUST_ID=#cust_id#
+		]]>
+	</select>
+	
+	<!-- 读取某承租人的基本信息 -->
+	<select id="readInfo" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+			select t.cust_id,t.cust_type,t.cust_code,t.cust_name
+			  from t_cust_customer t where t.cust_id = #cust_id# and t.STATUS='0'
+		]]>
+	</select>
+	
+	<!-- 删除承租人 -->
+	<delete id="deleteCust" parameterClass="map">
+		<![CDATA[ 
+		 delete from t_cust_customer   where  cust_id=#cust_id#
+		]]>
+	</delete>
+	
+	<update id="custShift" parameterClass="map">
+		update T_CUST_CUSTOMER
+		set CREATE_USER_ID = #user_id#
+		where CUST_ID = #cust_id#
+	</update>
+	
+	<!-- 更新指定id数据的status -->  
+	<update id="updateStatusCust" parameterClass="map">
+		<![CDATA[ 
+		 update t_cust_customer  set  status=-2 where  cust_id=#cust_id#      
+		]]>
+	</update>
+	
+	
+
+	<!-- 新增承租人联系方式  	select seq_cust_linkman.nextval as culm_id from dual-->
+	<insert id="createCustLinkMan" parameterClass="map">
+		<![CDATA[ 
+			insert into t_cust_linkman(cust_id,create_user_id,link_relation2cust,link_name,link_idcard,link_mobile,link_phone,link_idcard_address,link_home_address,link_zip,link_work_units,link_work_address,link_duty,link_gender,link_age,link_email) 
+   				values(#cust_id#,#s_employeeId#,#link_relation2cust#,#link_name#,#link_idcard#,#link_mobile#,#link_phone#,#link_idcard_address#,#link_home_address#,#link_zip#,#link_work_units#,#link_work_address#,#link_duty#,#link_gender#,#link_age#,#link_email#)
+   		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="culm_id">
+			<![CDATA[	select @@IDENTITY as culm_id  ]]>
+		</selectKey> 
+	</insert>
+	<!-- 读取承租人下的某个联系方式 -->
+	<select id="readCustLinkMan" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select t.culm_id,t.cust_id,t.create_time,t.modify_time,t.status,t.link_name,t.link_relation2cust,t.link_mobile,t.link_phone,t.link_gender,t.link_email,t.link_type from t_cust_linkman t where t.culm_id=#culm_id#
+		]]>
+	</select>
+	<!-- 根据联系人ID读取承租人下的某个联系人 -->
+	<select id="readCustLinkManById" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select t.culm_id,
+				   t.cust_id,
+				   t.status,
+				   t.link_name,
+				   t.link_relation2cust,
+				   t.link_gender,
+				   t.link_age,
+				   t.link_mobile,
+				   t.link_phone,
+				   t.link_idcard,
+				   t.link_zip,
+				   t.link_email,
+				   t.link_idcard_address,
+				   t.link_home_address,
+				   t.link_work_units,
+				   t.link_duty,
+				   t.link_work_address,
+				   t.link_type 
+				   from t_cust_linkman t where t.culm_id=#culm_id#
+		]]>
+	</select>
+	
+	<!-- 根据联系人ID更新承租人下的某个联系人 -->  
+	<update id="updateCustLinkManById" parameterClass="map">
+		<![CDATA[ 
+		update t_cust_linkman set link_name = #link_name#,
+								  link_relation2cust = #link_relation2cust#,
+								  link_idcard = #link_idcard#,
+								  link_mobile = #link_mobile#, 
+								  link_phone = #link_phone#,
+								  link_idcard_address = #link_idcard_address#,
+								  link_home_address = #link_home_address#,
+								  link_zip = #link_zip#,
+								  link_work_units = #link_work_units#,
+								  link_work_address = #link_work_address#,
+								  link_duty = #link_duty#,
+								  link_gender = #link_gender#,
+								  link_age = #link_age#,
+								  link_email = #link_email#
+		   						  where CULM_ID = #culm_id#      
+		]]>
+	</update>
+	
+	<!-- 读取承租人下的所有联系方式 -->
+	<select id="queryCustLinkMan" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select t.culm_id,t.cust_id,t.create_time,t.modify_time,t.status,t.link_name,t.link_relation2cust,t.link_mobile,t.link_phone,t.link_gender,t.link_type,t.link_email from t_cust_linkman t where t.cust_id=#cust_id# order by t.link_type 
+			
+		]]>
+	</select>
+	
+	<!-- 操作承租人下的所有联系方式的状态 -->
+	<statement id="operteCustLinkManStatus" parameterClass="map">
+		<![CDATA[
+			update t_cust_linkman  set  status=#status#, modify_time=getdate(), modify_user_id=#s_employeeId# where  culm_id=#culm_id# 
+		]]>
+	</statement>
+	
+	<!--2011/12/21 Yang Yun Add set default link man and Get default link man. Start-->
+	<!-- Roll Back Default LinkMan -->
+	<statement id="rollBackDefaultLinkMan" parameterClass="map">
+		<![CDATA[
+			update t_cust_linkman  set  LINK_TYPE = 1, modify_time=getdate(), modify_user_id=#s_employeeId# 
+			where  CUST_ID=#cust_id# and LINK_TYPE = 0
+		]]>
+	</statement>
+	
+	<!-- Set Default LinkMan -->
+	<statement id="setDefaultLinkMan" parameterClass="map">
+		<![CDATA[
+			update t_cust_linkman  set  LINK_TYPE=0, modify_time=getdate(), modify_user_id=#s_employeeId# where  culm_id=#culm_id# 
+		]]>
+	</statement>
+	<!-- Get Default LinkMan -->
+	<select id="getDefaultLinkMan" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		select l.LINK_NAME, l.LINK_IDCARD, l.LINK_PHONE, l.LINK_MOBILE, l.LINK_DUTY,
+		l.LINK_ZIP, l.LINK_EMAIL, l.LINK_WORK_ADDRESS, c.CUST_TYPE, l.CUST_ID
+		from T_CUST_LINKMAN l left join T_CUST_CUSTOMER c
+		on c.CUST_ID = l.CUST_ID
+		where l.CUST_ID = #cust_id#
+		and l.LINK_TYPE = 0
+		and l.STATUS = 0
+	]]>
+	</select>
+	<!--2011/12/21 Yang Yun Add set default link man and Get default link man. End-->
+	
+	<!-- 2012/01/20 Yang Yun 查询主要联系人，用于验证. -->
+	<select id="checkDefaultLinkMan" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0) from T_CUST_LINKMAN
+		where  CUST_ID in (select CUST_ID from T_PRJT_CREDIT where ID = #prcd_id#) 
+       				and LINK_TYPE = 0
+	</select>
+	
+	<!-- insert  create  T_CUST_LINKRECORD SELECT SEQ_CUST_LINKRECORD.NEXTVAL AS culr_id FROM DUAL  -->
+	<insert id="createCustLINKRecord" parameterClass="map">
+		<![CDATA[ 
+		INSERT INTO T_CUST_LINKRECORD
+						(CUST_ID,TYPE,CREATE_USER_ID,MODIFY_USER_ID,
+								LINK_PRINCIPAL,LINK_DATE,LINK_THEME,SELLOPPORTUNITY,LINK_DETAILS,LINK_MEMO,CULM_ID,FROM_TIME,TO_TIME,INTENT,IMPORTANT_RECORD)
+				VALUES 												
+						(#CUST_ID#,#TYPE#,#s_employeeId#,#s_employeeId#,#LINK_PRINCIPAL#,
+								#LINK_DATE#,#LINK_THEME#,#SELLOPPORTUNITY#,#LINK_DETAILS#,#LINK_MEMO#,#CULM_ID#,#FROM_TIME#,#TO_TIME#,#INTENT#,#IMPORTANT_RECORD#)
+		
+		
+		   		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="culr_id">
+			<![CDATA[	select @@IDENTITY as culr_id  ]]>
+		</selectKey> 
+	</insert>
+	<!-- readCustLinkRecord  -->
+	<select id="readCustLinkRecord" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T.CULR_ID,T.LINK_THEME,T.LINK_PRINCIPAL,T.LINK_DATE,T.LINK_DETAILS,T.TYPE,T.STATUS,
+				   T.FROM_TIME,T.TO_TIME,T2.FLAG intentDescr,T3.FLAG importantDescr
+			  FROM T_CUST_LINKRECORD T 
+		 LEFT JOIN T_DATA_DICTIONARY T2 ON T2.CODE=T.INTENT AND T2.STATUS=0 AND T2.[TYPE]='拜访目的'
+	 	 LEFT JOIN T_DATA_DICTIONARY T3 ON T3.CODE=T.IMPORTANT_RECORD AND T3.STATUS=0 AND T3.[TYPE]='重点记录'  
+			 WHERE T.CULR_ID=#CULR_ID#
+		]]>
+	</select>
+	<select id="queryCustLinkRecord" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T.CULR_ID,T.LINK_THEME,T.LINK_PRINCIPAL,T.LINK_DATE,T.LINK_DETAILS,T.TYPE,T.STATUS,
+				   T.FROM_TIME,T.TO_TIME,T2.FLAG intentDescr,T3.FLAG importantDescr 
+			  FROM T_CUST_LINKRECORD T
+		 LEFT JOIN T_DATA_DICTIONARY T2 ON T2.CODE=T.INTENT AND T2.STATUS=0 AND T2.[TYPE]='拜访目的'
+	 	 LEFT JOIN T_DATA_DICTIONARY T3 ON T3.CODE=T.IMPORTANT_RECORD AND T3.STATUS=0 AND T3.[TYPE]='重点记录' 
+			 WHERE T.STATUS='0' AND T.CUST_ID=#cust_id# ORDER BY T.CREATE_TIME DESC 
+		]]>
+	</select>
+	<!-- delete one record  -->
+	<update id="deleteLinkrecord"  parameterClass="map"> 
+		<![CDATA[
+				UPDATE T_CUST_LINKRECORD 
+				SET  STATUS = '-2',
+					MODIFY_USER_ID=#s_employeeId#,
+					MODIFY_TIME =getdate()
+				WHERE CULR_ID=#CULR_ID#	 
+
+		]]>
+		</update>
+	
+	
+	
+	<!-- insert  create  T_CUST_LINKMANCARE -->
+	<insert id="createCustLinkCare" parameterClass="map">
+		<![CDATA[ 
+		INSERT INTO T_CUST_LINKMANCARE
+						(CUST_ID,CREATE_USER_ID,MODIFY_USER_ID,
+								LINK_PRINCIPAL,LINK_DATE,LINK_THEME,LINK_DETAILS,LINK_MEMO,CULM_ID)
+				VALUES 												
+						(#CUST_ID#,#s_employeeId#,#s_employeeId#,#LINK_PRINCIPAL#,
+								#LINK_DATE#,#LINK_THEME#,#LINK_DETAILS#,#LINK_MEMO#,#CULM_ID#)
+		
+		
+		   		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="culc_id">
+			<![CDATA[	select @@IDENTITY as culc_id  ]]>
+		</selectKey> 
+	</insert>
+	<!-- readCustLinkCare  -->
+	<select id="readCustLinkcare" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T.CULC_ID,T.LINK_THEME,T.LINK_PRINCIPAL,T.LINK_DATE,T.LINK_DETAILS,T.STATUS FROM T_CUST_LINKMANCARE T WHERE T.STATUS='0' AND T.CULC_ID=#CULC_ID#
+		]]>
+	</select>
+	<select id="queryCustLinkcare" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		
+			SELECT T.CULC_ID,T.LINK_THEME,T.LINK_PRINCIPAL,T.LINK_DATE,T.LINK_DETAILS,T.STATUS FROM T_CUST_LINKMANCARE T WHERE  T.STATUS='0' AND T.CUST_ID=#cust_id# ORDER BY T.CREATE_TIME DESC 
+		]]>
+	</select>
+	<!-- delete  -->
+	<update id="deleteLinkcare"  parameterClass="map"> 
+		<![CDATA[
+				UPDATE T_CUST_LINKMANCARE 
+				SET  STATUS = '-2',
+					MODIFY_USER_ID=#s_employeeId#,
+					MODIFY_TIME =getdate()
+				WHERE CULC_ID=#CULC_ID#	 
+
+		]]>
+		</update>
+		
+		
+		
+		<!-- insert  create T_CUST_LINKEXPENSE -->
+	<insert id="createCustLinkExpense" parameterClass="map">
+		
+		<![CDATA[ 
+		INSERT INTO T_CUST_LINKEXPENSE
+						(CUST_ID,CREATE_USER_ID,MODIFY_USER_ID,
+								LINK_PRINCIPAL,LINK_DATE,LINK_MEMO,LINK_PURPOSE,INVOICE_CODE,LINK_MONEY, HANDLE_MAN,CURRENCY,LINK_TYPE)
+				VALUES 												
+						(#CUST_ID#,#s_employeeId#,#s_employeeId#,#LINK_PRINCIPAL#,
+								#LINK_DATE#,#LINK_MEMO#,#LINK_PURPOSE#,#INVOICE_CODE#,#LINK_MONEY#,#HANDLE_MAN#,#CURRENCY#,#LINK_TYPE#)
+		
+		
+		   		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="cule_id">
+			<![CDATA[	select @@IDENTITY as cule_id  ]]>
+		</selectKey> 
+	</insert>
+	<!-- readCustLinkExpense  -->
+	<select id="readCustLinkExpense" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T.CULE_ID,T.LINK_PRINCIPAL,T.HANDLE_MAN,T.LINK_MEMO,T.CURRENCY,T.INVOICE_CODE,T.LINK_PURPOSE,T.LINK_MONEY,T.LINK_TYPE,T.STATUS ,T.LINK_DATE FROM T_CUST_LINKEXPENSE T WHERE T.STATUS='0' AND T.CULE_ID=#CULE_ID#
+		]]>
+	</select>
+	<select id="queryCustLinkExpense" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		
+			SELECT T.CULE_ID,T.INVOICE_CODE,T.LINK_PURPOSE,T.LINK_MONEY,T.LINK_TYPE,T.STATUS,T.LINK_PRINCIPAL ,T.LINK_DATE FROM T_CUST_LINKEXPENSE T WHERE  T.STATUS='0' AND T.CUST_ID=#cust_id# ORDER BY T.CREATE_TIME DESC 
+		]]>
+	</select>
+	<!-- delete   -->
+	<update id="deleteLinkExpense"  parameterClass="map"> 
+		<![CDATA[
+				UPDATE T_CUST_LINKEXPENSE
+				SET  STATUS = '-2',
+					MODIFY_USER_ID=#s_employeeId#,
+					MODIFY_TIME =getdate()
+				WHERE CULE_ID=#CULE_ID#	 
+		]]>
+		</update>
+		
+		
+		
+		
+		
+		
+		<!-- insert  create T_CUST_LINKCOMPETITOR -->
+	<insert id="createCustLinkCompetitor" parameterClass="map">
+		<![CDATA[ 
+		
+		INSERT INTO T_CUST_LINKCOMPETITOR
+						(CUST_ID,CREATE_USER_ID,MODIFY_USER_ID,LINK_PRINCIPAL,LINK_DATE,
+						LINK_MEMO,COMPETITOR_NAME,DANGEROUS_LEVEL,COMPETITOR_PRODUCT, LINK_DISADVANTAGE,LINK_TACTICS,LINK_SUPERIORITY)
+				VALUES 												
+						(#CUST_ID#,#s_employeeId#,#s_employeeId#,#LINK_PRINCIPAL#,#LINK_DATE#,
+						#LINK_MEMO#,#COMPETITOR_NAME#,#DANGEROUS_LEVEL#,#COMPETITOR_PRODUCT#,#LINK_DISADVANTAGE#,#LINK_TACTICS#,#LINK_SUPERIORITY#)
+		
+		
+		   		]]>
+	</insert>
+	<!-- readCustLinkCompetitor -->
+	<select id="readCustLinkCompetitor" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T.CULT_ID,T.CUST_ID,T.LINK_PRINCIPAL,T.LINK_MEMO,T.COMPETITOR_NAME,T.DANGEROUS_LEVEL,
+			T.COMPETITOR_PRODUCT,T.STATUS ,T.LINK_SUPERIORITY,T.LINK_DISADVANTAGE,
+			T.LINK_TACTICS,T.LINK_DATE , T1.CUST_NAME
+			FROM T_CUST_LINKCOMPETITOR T
+			LEFT JOIN T_CUST_CUSTOMER T1 ON T.CUST_ID = T1.CUST_ID
+			WHERE T.STATUS='0' AND T.CULT_ID=#CULT_ID#
+	
+		]]>
+	</select>
+	<select id="queryCustLinkCompetitor" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T.CULT_ID,T.CUST_ID,T.LINK_PRINCIPAL,T.LINK_MEMO,T.COMPETITOR_NAME,T.DANGEROUS_LEVEL,
+			T.COMPETITOR_PRODUCT,T.STATUS ,T.LINK_SUPERIORITY,T.LINK_DISADVANTAGE,T.LINK_TACTICS,
+			T.LINK_DATE  , T1.CUST_NAME
+			 FROM T_CUST_LINKCOMPETITOR T 
+			 	LEFT JOIN T_CUST_CUSTOMER T1 ON T.CUST_ID = T1.CUST_ID
+			 WHERE  T.STATUS='0' AND T.CUST_ID=#cust_id# ORDER BY T.CREATE_TIME DESC 
+		]]>
+	</select>
+	<select id="queryLinkCompetitorList" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		
+			SELECT T.CULT_ID,T.CUST_ID,T.LINK_PRINCIPAL,T.LINK_MEMO,T.COMPETITOR_NAME,T.DANGEROUS_LEVEL,
+			T.COMPETITOR_PRODUCT,T.STATUS ,T.LINK_SUPERIORITY,T.LINK_DISADVANTAGE,T.LINK_TACTICS,
+			T.LINK_DATE  , T1.CUST_NAME
+			FROM T_CUST_LINKCOMPETITOR T
+				LEFT JOIN T_CUST_CUSTOMER T1 ON T.CUST_ID = T1.CUST_ID
+			 WHERE  T.STATUS='0'  
+			 
+		]]>
+		<isNotEmpty prepend="and" property="DANGEROUS_LEVEL">
+				<![CDATA[ T.DANGEROUS_LEVEL=#DANGEROUS_LEVEL# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="searchValue">
+				<![CDATA[(T.LINK_PRINCIPAL LIKE '%$searchValue$%' OR T.COMPETITOR_NAME LIKE '%$searchValue$%')]]>
+			</isNotEmpty>
+		
+	  	<![CDATA[ ORDER BY T.CREATE_TIME DESC ]]>
+		
+	</select>
+	<select id="queryLinkCompetitorList_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[
+		
+			SELECT COUNT(1)  FROM T_CUST_LINKCOMPETITOR T WHERE  T.STATUS='0' 
+		]]>
+		<isNotEmpty prepend="and" property="DANGEROUS_LEVEL">
+				<![CDATA[ T.DANGEROUS_LEVEL=#DANGEROUS_LEVEL# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="searchValue">
+				<![CDATA[(T.LINK_PRINCIPAL LIKE '%$searchValue$%' OR T.COMPETITOR_NAME LIKE '%$searchValue$%')]]>
+			</isNotEmpty>
+	</select>
+	<!-- delete   -->
+	<update id="deleteLinkCompetitor"  parameterClass="map"> 
+		<![CDATA[
+				UPDATE T_CUST_LINKCOMPETITOR
+				SET  STATUS = '-2',
+					MODIFY_USER_ID=#s_employeeId#,
+					MODIFY_TIME =GETDATE()
+				WHERE CULT_ID=#CULT_ID#	 
+		]]>
+		</update>
+		
+	<update id="updateLinkCompetitor"  parameterClass="map"> 
+		<![CDATA[
+				UPDATE T_CUST_LINKCOMPETITOR
+				SET MODIFY_USER_ID=#s_employeeId#,
+					MODIFY_TIME =GETDATE(),
+					CUST_ID =#CUST_ID#,
+					LINK_PRINCIPAL=#LINK_PRINCIPAL#,
+					LINK_DATE=#LINK_DATE#,
+					LINK_MEMO=#LINK_MEMO#,
+					COMPETITOR_NAME=#COMPETITOR_NAME#,
+					DANGEROUS_LEVEL=#DANGEROUS_LEVEL#,
+					COMPETITOR_PRODUCT=#COMPETITOR_PRODUCT#,
+					LINK_DISADVANTAGE=#LINK_DISADVANTAGE#,
+					LINK_TACTICS=#LINK_TACTICS#,
+					LINK_SUPERIORITY=#LINK_SUPERIORITY#
+				WHERE CULT_ID=#CULT_ID#	 
+		]]>
+		</update>
+		
+		
+		<select  id="queryCustlinInfo" parameterClass="map" resultClass="java.util.HashMap">
+			select distinct t.cust_id ,t.cust_name, t1.culm_id ,t1.link_name  
+ 					from t_cust_customer t
+				left join t_cust_linkman t1 on t.cust_id = t1.cust_id 
+				where t1.status =0 and t.cust_id = #cust_id#
+		</select>
+		
+		<select id="queryCredit" parameterClass="map" resultClass="java.util.HashMap">
+			<![CDATA[
+				select T.ID,T.CREDIT_CODE,T.LEASE_CODE,T.WIND_STATE,RECP.RECT_ID,t1.CREDIT_ID from T_PRJT_CREDIT t 
+
+					left join T_RENT_CONTRACT RECT ON RECT.LEASE_CODE = T.LEASE_CODE
+					LEFT JOIN T_RENT_COLLECTIONPLAN RECP ON RECP.RECT_ID = RECT.RECT_ID
+					left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = t.id
+					where t.CUST_ID =#cust_id# and t.STATUS = 0
+			]]>
+		</select>
+		<select id="groupNumId" parameterClass="map" resultClass="java.util.HashMap">
+			<![CDATA[
+				   select t.PRODUCTSABOUT  PRODUCTSABOUT,t.ACTILOG_ID ACTILOG_ID from T_LOG_ACTIVITIESLOG t 
+				   left join T_CUST_CUSTOMER t1 on t1.STATUS=0 and t.CUST_ID=t1.CUST_ID
+				   where  t.CREATE_ID=#groupNumId#  and t.CUST_ID=#custId# and t.CREDIT_ID is null and t.STATUS=0 and ((len(t1.CORP_ORAGNIZATION_CODE)>0 and t1.CUST_TYPE=1) or (t1.CUST_TYPE=0 and LEN(t1.NATU_IDCARD)>0))
+			]]>
+		</select>
+		<!-- 增加判断也列出当前报告的主档  -->
+		<select id="groupNumIdCreditId" parameterClass="map" resultClass="java.util.HashMap">
+			<![CDATA[
+				   select t.PRODUCTSABOUT  PRODUCTSABOUT,t.ACTILOG_ID ACTILOG_ID , 
+				     CASE
+					 WHEN CREDIT_ID IS not null
+					 then 1
+					 else 2
+					 end ISED
+				   from T_LOG_ACTIVITIESLOG t 
+				   left join T_CUST_CUSTOMER t1 on t1.STATUS=0 and t.CUST_ID=t1.CUST_ID
+				   where  t.CREATE_ID=#s_employeeId#  and t.CUST_ID=#custId# and 
+				   (t.CREDIT_ID is null or t.CREDIT_ID = #credit_id#) and t.STATUS=0 and ((len(t1.CORP_ORAGNIZATION_CODE)>0 and t1.CUST_TYPE=1) or (t1.CUST_TYPE=0 and LEN(t1.NATU_IDCARD)>0))
+			]]>
+		</select>
+		<!-- 修改主档的credit_id为空 -->
+        <update id="deleteZhudangCreditId" parameterClass="map">
+        	<![CDATA[
+        		UPDATE T_LOG_ACTIVITIESLOG SET CREDIT_ID = null WHERE CREDIT_ID = #credit_id#
+        	]]>
+        </update>
+		<select id="getUserUserName" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT * FROM T_USER_USER WHERE STATUS = 0 AND ID = #CREATE_ID#
+		]]>
+		</select>
+		<!-- Add By Michael 2011 11/29 -->
+		<!-- 检查客户是否有关联合同 -->
+	<select id="checkCustContractExist" parameterClass="map" resultClass="java.lang.Integer">
+			<![CDATA[
+			SELECT 
+				count(*) COUNT
+			FROM 
+				T_RENT_CONTRACT
+			WHERE
+				STATUS = 0
+				AND CUST_ID = #cust_id#
+		]]>
+	</select>
+	
+	<!-- 2012/03/27 Yang Yun 行业别查询 -->
+	<select id="getAllFirstTradeType" parameterClass="map" resultClass="java.util.HashMap">
+		select TRADE_CODE, TRADE_NAME, TRADE_LEVEL from T_CUST_TRADE
+		where TRADE_LEVEL = #trade_level# and STATUS = 0
+		<isEmpty property="trade_code">
+			and TRADE_CODE like '$trade_code$%'
+		</isEmpty>
+		<isNotEmpty property="trade_code">
+			and TRADE_CODE like '$trade_code$-%'
+		</isNotEmpty>
+		order by convert(int,REPLACE(TRADE_CODE,'-',''))
+	</select>
+	
+	<!-- 2012/03/28 Yang Yun -->
+	<select id="getTradeTypeByCust" parameterClass="map" resultClass="java.util.HashMap">
+		select TRADE_CODE, TRADE_NAME, TRADE_LEVEL from T_CUST_TRADE
+		where convert(nvarchar,#TRADE_TYPE#) + '-' like TRADE_CODE +'-%'
+		order by TRADE_LEVEL
+	</select>
+	
+		<!-- 2012/04/12 Add by Michael -->
+	<select id="getCustomerVirtualCode" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select distinct tcc.CUST_CODE,tcc.CUST_NAME,tcc.VIRTUAL_CODE,tcc.CUST_ID,T1.COMPANY_CODE FROM T_PRJT_CREDIT T1
+			left join T_CUST_CUSTOMER tcc
+			on t1.CUST_ID=tcc.CUST_ID 
+			WHERE T1.STATUS=0 AND (T1.WIND_STATE=1 OR T1.WIND_STATE=2)
+			and tcc.status='0'
+		]]>	
+		<isEqual property="com_type" compareValue="1" prepend="and">
+			T1.COMPANY_CODE = 1 AND tcc.EXPORT_FLAG = 0
+		</isEqual>
+		<isEqual property="com_type" compareValue="2" prepend="and">
+			T1.COMPANY_CODE = 2 AND tcc.EXPORT_FLAG1 = 0
+		</isEqual>
+		<isNotEmpty prepend="and" property="cust_type">
+			<![CDATA[T1.PRODUCTION_TYPE = #cust_type#]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="searchValue">
+			<![CDATA[(tcc.cust_code like '%$searchValue$%' or tcc.cust_name like '%$searchValue$%' or tcc.VIRTUAL_CODE like '%$searchValue$%')]]>
+		</isNotEmpty>
+	</select>
+	<!-- 2012/04/12 Add by Michael -->
+      <update id="updateCustomerExportFlag" parameterClass="map">
+      	<![CDATA[
+      		UPDATE T_CUST_CUSTOMER SET EXPORT_FLAG = '1' WHERE CUST_ID = #CUST_ID#
+      	]]>
+      </update>
+      
+      <!-- Add by Michael  插入导出虚拟账号日志 -->
+   	<insert id="createExportCustVirtualLog" parameterClass="map">
+		<![CDATA[ 
+		INSERT INTO T_CUST_EXPORT_VIRTUAL_CODE_LOG
+			(CUST_NAME,CUST_CODE,VIRTUAL_CODE,EXPORT_TIME,EXPORT_USER)
+		VALUES 												
+			(#CUST_NAME#,#CUST_CODE#,#VIRTUAL_CODE#,getDate(),#s_employeeId#)
+   		]]>
+	</insert>
+	
+	<select id="getCustomerVirtualCode_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[
+			select count(*)from(
+			select tcc.CUST_CODE,tcc.CUST_NAME,tcc.VIRTUAL_CODE,tcc.CUST_ID FROM T_PRJT_CREDIT T1    
+			left join T_CUST_CUSTOMER tcc    on t1.CUST_ID=tcc.CUST_ID     
+			WHERE T1.STATUS=0 AND (T1.WIND_STATE=1 OR T1.WIND_STATE=2)    
+			and tcc.EXPORT_FLAG=0 and t1.CONTRACT_TYPE<>3 and t1.CONTRACT_TYPE<>4 and tcc.status='0'    
+			group by tcc.CUST_CODE,tcc.CUST_NAME,tcc.VIRTUAL_CODE,tcc.CUST_ID 
+			)ttt
+			where 1=1
+		]]>
+		<isNotEmpty prepend="and" property="searchValue">
+			<![CDATA[(ttt.cust_code like '%$searchValue$%' or ttt.cust_name like '%$searchValue$%' or ttt.VIRTUAL_CODE like '%$searchValue$%')]]>
+		</isNotEmpty>
+	</select>
+	
+	
+	<select id="getExportCustVirtualLog_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[
+			select count(*) FROM T_CUST_EXPORT_VIRTUAL_CODE_LOG T1
+			left join T_USER_USER tuu
+			on t1.export_user=tuu.ID
+			where 1=1
+		]]>
+		<isNotEmpty prepend="and" property="searchValue">
+			<![CDATA[(t1.cust_code like '%$searchValue$%' or t1.cust_name like '%$searchValue$%' 
+			or t1.VIRTUAL_CODE like '%$searchValue$%' or tuu.name like '%$searchValue$%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[
+				 CONVERT(DATE,
+					t1.export_time,23
+				 ) >= #QSTART_DATE# 
+				 ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[
+				  CONVERT(DATE,
+					t1.export_time,23
+				 ) <= #QEND_DATE#
+				 ]]>
+			</isNotEmpty>
+	</select>
+	
+	<select id="getExportCustVirtualLog" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t1.*,tuu.NAME USER_NAME FROM T_CUST_EXPORT_VIRTUAL_CODE_LOG T1
+			left join T_USER_USER tuu
+			on t1.export_user=tuu.ID
+			where 1=1
+		]]>
+		<isNotEmpty prepend="and" property="searchValue">
+			<![CDATA[(t1.cust_code like '%$searchValue$%' or t1.cust_name like '%$searchValue$%' 
+			or t1.VIRTUAL_CODE like '%$searchValue$%' or tuu.name like '%$searchValue$%')]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="QSTART_DATE">
+			<![CDATA[
+				 CONVERT(DATE,
+					t1.export_time,23
+				 ) >= #QSTART_DATE# 
+				 ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+			<![CDATA[
+				  CONVERT(DATE,
+					t1.export_time,23
+				 ) <= #QEND_DATE#
+				 ]]>
+			</isNotEmpty>
+	</select>
+	
+			<!-- 2012/04/12 Add by Michael -->
+	<select id="getCustomerVirtualCodeBirt" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select distinct tcc.CUST_CODE,tcc.CUST_NAME,tcc.VIRTUAL_CODE,tcc.CUST_ID FROM T_PRJT_CREDIT T1
+			left join T_CUST_CUSTOMER tcc
+			on t1.CUST_ID=tcc.CUST_ID 
+			WHERE T1.STATUS=0 AND (T1.WIND_STATE=1 OR T1.WIND_STATE=2)
+			and tcc.EXPORT_FLAG=0 and t1.CONTRACT_TYPE<>3 and tcc.status='0'
+			and tcc.CUST_ID in ($CUST_ID$)
+		]]>
+	</select>
+	
+			<!-- 2012/07/26 Add by Michael 导出每月拨款案件的客户联系人 -->
+	<select id="getCustLinkManLinker" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select distinct tcc.CUST_NAME,tcl.LINK_NAME,tcl.LINK_EMAIL,tcl.LINK_WORK_ADDRESS,tcl.LINK_MOBILE,tcl.LINK_PHONE from t_prjt_credit  tpc
+			left join T_CUST_CUSTOMER tcc
+			on tpc.CUST_ID=tcc.CUST_ID and tcc.STATUS=0
+			left join T_CUST_LINKMAN tcl on tcl.CUST_ID=tcc.CUST_ID and tcl.STATUS=0 and tcl.LINK_TYPE=0
+			left join t_rent_contract trct on trct.PRCD_ID=tpc.ID and trct.STATUS=0
+			left join T_RENT_COLLECTIONPLAN trcp on trct.RECT_ID=trcp.RECT_ID and trcp.STATUS=0
+			where tpc.FINANCECONTRACT_DATE is not null  
+			and tpc.FINANCECONTRACT_DATE>=#QUERY_START_DATE#
+			and tpc.FINANCECONTRACT_DATE<=#QUERY_END_DATE#
+			and trcp.RECP_STATUS=0 and trcp.INVOICE_STATUS=0
+		]]>
+	    <isNotEmpty prepend="and" property="companyCode">
+		 EXISTS (
+			select p.id from t_prjt_credit p 
+			where p.status = 0 and p.company_code = #companyCode# and p.cust_id = tcc.cust_id
+		)
+		</isNotEmpty>
+	</select>
+	
+	<select id="getCustLinkManLinker_count" parameterClass="map" resultClass="java.lang.Integer">
+	    
+	    select count(0) from (
+		<![CDATA[	
+			select distinct tcc.CUST_NAME,tcl.LINK_NAME,tcl.LINK_EMAIL,tcl.LINK_WORK_ADDRESS,tcl.LINK_MOBILE,tcl.LINK_PHONE from t_prjt_credit  tpc
+			left join T_CUST_CUSTOMER tcc
+			on tpc.CUST_ID=tcc.CUST_ID and tcc.STATUS=0
+			left join T_CUST_LINKMAN tcl on tcl.CUST_ID=tcc.CUST_ID and tcl.STATUS=0 and tcl.LINK_TYPE=0
+			left join t_rent_contract trct on trct.PRCD_ID=tpc.ID and trct.STATUS=0
+			left join T_RENT_COLLECTIONPLAN trcp on trct.RECT_ID=trcp.RECT_ID and trcp.STATUS=0
+			where tpc.FINANCECONTRACT_DATE is not null  
+			and tpc.FINANCECONTRACT_DATE>=#QUERY_START_DATE#
+			and tpc.FINANCECONTRACT_DATE<=#QUERY_END_DATE#
+			and trcp.RECP_STATUS=0 and trcp.INVOICE_STATUS=0
+		]]>
+	    <isNotEmpty prepend="and" property="companyCode">
+		 EXISTS (
+			select p.id from t_prjt_credit p 
+			where p.status = 0 and p.company_code = #companyCode# and p.cust_id = tcc.cust_id
+		)
+		</isNotEmpty>
+		) x
+	</select>
+
+	<select id="queryAllFinanceRecpID" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[		
+			select trct.cust_name,trct.LEASE_CODE,tuu.NAME,tdcp.DECP_NAME_CN,trcp.RECP_ID,trcp.LEASE_PERIOD from t_prjt_credit  tpc
+			left join t_rent_contract trct
+			on tpc.ID=trct.PRCD_ID and trct.STATUS=0
+			left join T_RENT_COLLECTIONPLAN trcp
+			on trct.RECT_ID=trcp.RECT_ID and trcp.STATUS=0
+			left join T_USER_USER tuu
+			on trct.SENSOR_ID=tuu.ID
+			left join T_DEPT_DEPARTMENT tddp
+			on tuu.DEPT_ID=tddp.ID
+			left join T_DEPT_COMPANY tdcp
+			on tddp.DECP_ID=tdcp.DECP_ID
+			where tpc.STATUS=0 and tpc.FINANCECONTRACT_DATE is not null
+			and trcp.RECP_STATUS=0
+			order by tdcp.DECP_ID
+		]]>
+	</select>
+	
+	<!-- 根据code查询企业类型 -->
+	<select id="getCustLevelDataByCode" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T.CODE,T.FLAG FROM T_DATA_DICTIONARY T WHERE T.TYPE=#dataType# AND STATUS=0 AND T.CODE=#code# ORDER BY T.CODE
+		]]>
+	</select>
+	
+	
+	<select id="virtualAccountManager" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT 
+			DISTINCT CUST.CUST_ID
+			, CUST.CUST_CODE
+			, CUST.CUST_NAME
+			, CUST.VIRTUAL_CODE
+			<isEqual property="search_company" compareValue="1">
+				, CONVERT(INT, CUST.EXPORT_FLAG) AS EXPORT_FLAG
+				, CUST.EXPORT_DATE
+				, CUST.EXPORT_REMARK
+			</isEqual>
+			<isEqual property="search_company" compareValue="2">
+				, CONVERT(INT, CUST.EXPORT_FLAG1) AS EXPORT_FLAG
+				, CUST.EXPORT_DATE1 as EXPORT_DATE
+				, CUST.EXPORT_REMARK1 as EXPORT_REMARK
+			</isEqual>
+	        , PC.COMPANY_CODE
+		FROM T_CUST_CUSTOMER CUST
+        LEFT JOIN T_PRJT_CREDIT PC ON PC.STATUS = 0 AND PC.CUST_ID = CUST.CUST_ID
+		WHERE CUST.STATUS = 0
+		<isNotEmpty property="search_type">
+			and cust.cust_id in(
+				select pc.cust_id from t_prjt_credit pc
+				where pc.status = 0 
+				and pc.PRODUCTION_TYPE = #search_type#
+				and pc.WIND_STATE = 1
+			)
+		</isNotEmpty>
+		<isNotEmpty property="search_company">
+			AND PC.COMPANY_CODE = #search_company#
+		</isNotEmpty>
+		<isNotEmpty property="search_status">
+			<isEqual property="search_company" compareValue="1">
+				and CUST.EXPORT_FLAG = #search_status#
+			</isEqual>
+			<isEqual property="search_company" compareValue="2">
+				and CUST.EXPORT_FLAG1 = #search_status#
+			</isEqual>
+		</isNotEmpty>
+		<isNotEmpty property="search_date_from">
+			<isEqual property="search_company" compareValue="1">
+				and convert(date, CUST.EXPORT_DATE) >= convert(date, #search_date_from#)
+			</isEqual>
+			<isEqual property="search_company" compareValue="2">
+				and convert(date, CUST.EXPORT_DATE1) >= convert(date, #search_date_from#)
+			</isEqual>
+		</isNotEmpty>
+		<isNotEmpty property="search_date_to">
+			<isEqual property="search_company" compareValue="1">
+				<![CDATA[ and convert(date, CUST.EXPORT_DATE) <= convert(date, #search_date_to#) ]]>
+			</isEqual>
+			<isEqual property="search_company" compareValue="2">
+				<![CDATA[ and convert(date, CUST.EXPORT_DATE1) <= convert(date, #search_date_to#) ]]>
+			</isEqual>
+		</isNotEmpty>
+		<isNotEmpty property="search_content">
+			and (
+				CUST.CUST_CODE like '%$search_content$%'
+				or CUST.CUST_NAME like '%$search_content$%'
+				or CUST.VIRTUAL_CODE like '%$search_content$%'
+			)
+		</isNotEmpty>
+	</select>
+	
+	<update id="updateExportStatus" parameterClass="map">
+		update T_CUST_CUSTOMER
+		<isEqual property="company_code" compareValue="1">
+			set EXPORT_FLAG = #flag#
+		</isEqual>
+		<isEqual property="company_code" compareValue="2">
+			set EXPORT_FLAG1 = #flag#
+		</isEqual>
+		where CUST_ID = #cust_id#
+	</update>
+	
+	<select id="getRemarkById" parameterClass="map" resultClass="java.lang.String">
+		select EXPORT_REMARK from T_CUST_CUSTOMER
+		where CUST_ID = #cust_id#
+	</select>
+	
+	<update id="addRemark" parameterClass="map">
+		update T_CUST_CUSTOMER
+		<isEqual property="company_code" compareValue="1">
+			set EXPORT_REMARK = #remark#
+		</isEqual>
+		<isEqual property="company_code" compareValue="2">
+			set EXPORT_REMARK1 = #remark#
+		</isEqual>
+		where CUST_ID = #CUST_ID#
+	</update>
+	
+	<select id="getCustForApplyVirtualAccount" resultClass="java.util.HashMap" parameterClass="map">
+		SELECT 
+		    CUST.CUST_ID
+			, CUST.CUST_CODE
+			, CUST.CUST_NAME
+			, CUST.VIRTUAL_CODE
+		FROM T_CUST_CUSTOMER CUST
+		WHERE 
+			CUST.STATUS = 0 
+			<isEqual prepend="and" property="companyCode" compareValue="1">
+				CUST.EXPORT_FLAG = 10
+			</isEqual>
+			<isEqual prepend="and" property="companyCode" compareValue="2">
+				CUST.EXPORT_FLAG1 = 10
+			</isEqual>
+	</select>
+	
+	<update id="applyVirtualAccount" parameterClass="map">
+		update T_CUST_CUSTOMER
+		set EXPORT_FLAG = 1
+		, EXPORT_DATE = getdate()
+		where CUST_ID = #CUST_ID#
+	</update>
+	
+	<update id="applyVirtualAccount1" parameterClass="map">
+		update T_CUST_CUSTOMER
+		set EXPORT_FLAG1 = 1
+		, EXPORT_DATE1 = getdate()
+		where CUST_ID = #CUST_ID#
+	</update>
+	
+	<update id="updateExportFlagForSendBySystemForYR">
+		UPDATE T_CUST_CUSTOMER
+		SET EXPORT_FLAG = 10
+		WHERE STATUS = 0
+		AND EXPORT_FLAG = 0
+		AND CUST_ID IN(
+			SELECT PC.CUST_ID FROM T_PRJT_CREDIT PC
+			WHERE PC.STATUS = 0 
+			AND PC.PRODUCTION_TYPE = 1
+			AND PC.WIND_STATE = 1
+            AND PC.COMPANY_CODE = 1
+		)
+	</update>
+	
+	<update id="updateExportFlagForSendBySystemForYG">
+		UPDATE T_CUST_CUSTOMER
+		SET EXPORT_FLAG1 = 10
+		WHERE STATUS = 0
+		AND (EXPORT_FLAG1 = 0 OR EXPORT_FLAG1 IS NULL)
+		AND CUST_ID IN(
+			SELECT PC.CUST_ID FROM T_PRJT_CREDIT PC
+			WHERE PC.STATUS = 0 
+			AND PC.PRODUCTION_TYPE = 1
+			AND PC.WIND_STATE = 1
+            AND PC.COMPANY_CODE = 2
+		)
+	</update>
+	
+	<!-- add by xuyuefei 2014/6/10 -->
+	<!-- 查询客户信息 -->
+	<select id="getCustomerInfoList" resultClass="java.util.HashMap">
+	select
+    t.cust_id,
+    t.CUST_CODE,
+    t2.name,
+    t.CUST_NAME,
+    k.CORP_ORAGNIZATION_CODE,
+    k.CUST_AREA,
+    k.virtual_code,
+    k.CORP_SETUP_DATE,
+    k.CORP_REGISTE_CAPITAL,
+    k.CORP_PAICLUP_CAPITAL,
+    k.CORP_BUSINESS_LICENSE,
+    k.TAX_CODE,
+    k.CORP_TAX_CODE,
+    k.CORP_PERIOD_VALIDITY,
+    k.CORP_COMPANY_ZIP,
+    k.CORP_REGISTE_ADDRESS,
+    k.CORP_WORK_ADDRESS,
+    k.CORP_BUSINESS_RANGE,
+    k.CORP_COMPANY_EMAIL,
+    k.CORP_COMPANY_WEBSITE,
+    k.CORP_OTHER_MASSAGE,
+    k.CORP_HEAD_SIGNATURE,
+    k.CORP_HS_IDCARD,
+    k.CORP_HS_HOME_ADDRESS
+    ,k.CORP_HS_LINK_MODE
+    ,p.stateType
+     ,k.REMARK
+    from t_cust_customer t 
+		LEFT JOIN t_cust_linkman TCL ON TCL.CUST_ID=t.CUST_ID AND TCL.STATUS=0 AND TCL.LINK_TYPE=0
+	  left join T_USER_USER t2 on t2.ID=t.CREATE_USER_ID
+    left join 
+     (
+      select t.cust_id,t.create_time,t.modify_time,t.status,t.type,t.create_user_id
+			,t.cust_type,t.cust_code,t.VIRTUAL_CODE,t.cust_name,t.corp_enterprises_property
+			,t.corp_setup_date,t.corp_registe_capital,t.corp_paiclup_capital,t.corp_head_signature
+			,t.corp_hs_idcard,t.corp_hs_link_mode,t.corp_hs_home_address,t.corp_business_license
+			,t.corp_tax_code,t.corp_oragnization_code,t.corp_period_validity,t.corp_registe_address
+			,t.corp_work_address,t.corp_business_range,t.corp_company_zip,t.corp_company_website
+			,t.corp_other_massage,t.cust_level,t.remark,t.province_id,t.city_id, t.area_id,t.tax_code
+			,t.corp_company_email,TRADE_TYPE,pr_ar.[NAME] + '' + ct_ar.[NAME] + '' + isnull(aa_ar.[NAME], '') as 'CUST_AREA'
+			,x_point, y_point,t.CORP_REGISTE_CAPITAL_CURRENCY,t.CORP_PAICLUP_CAPITAL_CURRENCY
+			from t_cust_customer t 
+			left join T_AREA pr_ar on t.PROVINCE_ID = pr_ar.ID
+			left join T_AREA ct_ar on t.CITY_ID = ct_ar.ID
+			left join T_AREA aa_ar on t.area_id = aa_ar.ID
+        )k
+       on k.CUST_ID = t.CUST_ID
+       <!-- 客户状态   0-潜在客户   1-新客户   2-已提交客户  3-既有客户   4-其他 -->
+              left join 
+       (
+      select t.cust_id, max(
+      case 
+      when t1.ID is null
+      then '0'
+      when t1.ID is not null and t1.STATE=0
+      then '1'
+      when t1.ID is not null and t1.STATE=1 and (t1.WIND_STATE not in (1,2) or t1.WIND_STATE is null)
+      then '2'
+      when t1.ID is not null and (t1.WIND_STATE in (1,2) or t1.WIND_STATE is null)
+      then '3'
+      else '4' 
+      end
+      ) as stateType from T_CUST_CUSTOMER t
+      left join T_PRJT_CREDIT t1 on t.CUST_ID =t1.CUST_ID 
+      group by t.CUST_ID
+       )p
+       on p.CUST_ID=t.CUST_ID
+		   where t.status=0
+	     order by t.create_time desc
+	</select>
+	
+	<update id="updateVirtualCode" parameterClass="map">
+		update T_CUST_CUSTOMER
+		set VIRTUAL_CODE = #virtual_code#
+		where CUST_ID = #cust_id#
+	</update>
+	
+	<!-- add by ShenQi -->
+	<select id="checkCorpCust" resultClass="java.lang.String">
+		SELECT DISTINCT 'Y' FROM T_CUST_CUSTOMER 
+		 WHERE 1=1
+		 <isEqual property="custType" compareValue="1"><!-- 添加的客户是法人类型 -->
+		   AND (
+		   CUST_NAME=#originalCustName# <!-- 承租人名字在数据库中已经存在了就卡住,无论此承租人是什么类型 -->
+		   OR CORP_ORAGNIZATION_CODE=#originalOrgCode# <!-- 组织机构代码在数据库中已经存在了就卡住,无论此承租人是什么类型 -->
+		   )
+		 </isEqual>
+		 <isEqual property="custType" compareValue="0"><!-- 添加的客户是自然人类型 -->
+		   AND (
+		   (CUST_TYPE=1 AND CUST_NAME=#originalCustName#) <!-- 承租人名字在数据库中已经存在了,并且类型是法人类型的,就要卡住 -->
+		   OR
+		   (CUST_TYPE=0 AND NATU_IDCARD=#idCard#) <!-- 承租人名字在数据库中已经存在了,并且类型是自然人类型的,如果身份证再相同则需要卡住 -->
+		   )
+		 </isEqual>
+	</select>
+</sqlMap>

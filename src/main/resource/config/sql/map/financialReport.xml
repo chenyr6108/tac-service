@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="financialReport">
+	<select id="getHistoryInsuranceFeeRemainderPay" resultClass="java.util.HashMap">
+	SELECT TT.RECP_ID,TT.LEASE_TOPRIC,TT.LEASE_PERIOD,TT.PERIOD_NUM,TT.RECP_STATUS,
+		   TT.INSURE,TT.INSURE_BASE_RATE,TT.RECP_CODE,
+		   ROUND(TT.MONTH_INSURE*TT.INSURE_DAY,8) MONTH_INSURE,
+		   TT.PAY_DATE,TT.SETTLE_DATE,TT.INSURE_DAY
+	  FROM (
+	  SELECT TRCN.RECP_ID,TRCN.LEASE_TOPRIC,TRCN.LEASE_PERIOD,O.PERIOD_NUM,RECP_STATUS,
+             ROUND(TRCN.LEASE_TOPRIC*TRCN.INSURE_BASE_RATE/100*(TRCN.LEASE_PERIOD/12),8) INSURE, <!--保险总额,设备总价款*保险基本费率*合同年数-->
+             TRCN.INSURE_BASE_RATE,TRCN.RECP_CODE,
+             (TRCN.LEASE_TOPRIC*TRCN.INSURE_BASE_RATE/100/360) MONTH_INSURE, <!--每月的保险费, 每年的保险费用除以360天,算出每天的保险费,然后乘以天数,所以第一期需要特殊计算,其他期都是以30天计算-->
+             O.PAY_DATE,
+             CASE WHEN TRCN.RECP_STATUS=1 OR TRCN.RECP_STATUS=3 THEN O1.DATE
+                  ELSE '' 
+                   END SETTLE_DATE,
+             CASE WHEN O.PERIOD_NUM=1 AND DAY(FIRST_PAYDATE)!=1 <!-- 第一期如果不是1号,是不足30天的,所以需要用起租日开始计算,起租日到此月最后天有多少天 -->
+                  THEN DATEDIFF(DAY,FIRST_PAYDATE,CONVERT(DATE,CONVERT(VARCHAR,YEAR(DATEADD(M,1,FIRST_PAYDATE)))+'-'+CONVERT(VARCHAR,MONTH(DATEADD(M,1,FIRST_PAYDATE)))+'-'+'01'))
+                  ELSE 30  
+                   END INSURE_DAY
+        FROM T_RENT_COLLECTIONPLAN TRCN 
+   LEFT JOIN (SELECT CONVERT(DATE,PAY_DATE) PAY_DATE,PERIOD_NUM,RECP_ID,
+                     CASE WHEN PERIOD_NUM=1 AND DAY(PAY_DATE)!=1
+                          THEN DATEDIFF(DAY,PAY_DATE,CONVERT(DATE,CONVERT(VARCHAR,YEAR(DATEADD(M,1,PAY_DATE)))+'-'+CONVERT(VARCHAR,MONTH(DATEADD(M,1,PAY_DATE)))+'-'+'01'))
+                          ELSE 30
+                           END INSURE_DAY
+                FROM T_RENT_COLLECTIONDETAIL 
+               WHERE STATUS=0
+               <isNotEmpty property="recpId">
+               	 AND RECP_ID=#recpId#
+               </isNotEmpty>
+                 ) O ON O.RECP_ID=TRCN.RECP_ID  <!--O 里的逻辑是计算每期的保险天数,第一期是特殊情况,其余都以30天出-->
+   LEFT JOIN (SELECT RECP_ID,MAX(CHECK_DATE) DATE 
+			    FROM T_FINA_COLLECTIONBILL
+   			   WHERE STATUS=0
+		         AND FICB_TYPE=0
+		         AND FICB_STATE=5
+            GROUP BY RECP_ID) O1 ON O.RECP_ID=O1.RECP_ID
+       WHERE TRCN.STATUS=0 
+         AND TRCN.INSURE_BASE_RATE!=0  <!--保险费率为0的剔除-->
+       <isNotEmpty property="recpId">
+         AND TRCN.RECP_ID=#recpId#
+       </isNotEmpty>
+       <isNotEmpty property="recpCode">
+       	 AND TRCN.RECP_CODE=#recpCode#
+       </isNotEmpty>
+       <isNotEmpty property="startDate">
+         AND CONVERT(DATE,TRCN.CREATE_TIME)>=CONVERT(DATE,#startDate#)
+       </isNotEmpty>
+       <isNotEmpty property="endDate">
+         AND CONVERT(DATE,TRCN.CREATE_TIME)&lt;=CONVERT(DATE,#endDate#)
+       </isNotEmpty>
+    ) TT
+    ORDER BY TT.RECP_ID,TT.PAY_DATE
+	</select>
+	
+	<select id="checkHistoryInsuranceFeeRemainderPay" resultClass="java.lang.Integer">
+		SELECT COUNT(1) 
+		  FROM T_INSURANCE_FEE_REMAINDER_PAY_DETAIL 
+		 WHERE STATUS=0
+		   AND RECP_ID=#RECP_ID#
+	</select>
+	
+	<update id="cancelHistoryInsuranceFeeRemainderPay">
+		UPDATE T_INSURANCE_FEE_REMAINDER_PAY_DETAIL SET STATUS=-1,CREATE_BY=#s_employeeId#
+		 WHERE RECP_ID=#RECP_ID#
+	</update>
+	
+	<update id="cancelHistoryInsuranceFeeRemainderFinancial">
+		UPDATE T_INSURANCE_FEE_REMAINDER_REPORT SET STATUS=-1
+		 WHERE RECP_CODE=#recpCode# AND CONVERT(DATE,PAY_DATE)=
+		 		(SELECT DISTINCT T.PAY_DATE_1 FROM
+						 (SELECT CASE WHEN O1.FLAG IS NULL 
+		        			   		  THEN T1.PAY_DATE
+		        			   		  ELSE DATEADD(MM,NUM,CONVERT(DATE,T1.PAY_DATE))
+		        			   		   END PAY_DATE,T1.PAY_DATE PAY_DATE_1
+				          FROM T_INSURANCE_FEE_REMAINDER_REPORT T1   
+				     LEFT JOIN (SELECT START_DATE,PAY_DATE,RECP_CODE,'Y' FLAG,DATEDIFF(MM,PAY_DATE,START_DATE) NUM
+								  FROM T_INSURANCE_FEE_REMAINDER_REPORT 
+								 WHERE STATUS=0 
+								   AND CONVERT(DATE,START_DATE)&lt;CONVERT(DATE,PAY_DATE)
+								   AND ((MONTH(CONVERT(DATE,START_DATE))!=MONTH(CONVERT(DATE,PAY_DATE)))
+								   		OR (MONTH(CONVERT(DATE,START_DATE))=MONTH(CONVERT(DATE,PAY_DATE))
+								   			AND YEAR(CONVERT(DATE,START_DATE))!=YEAR(CONVERT(DATE,PAY_DATE))
+								   			)
+								    )
+								    
+								   AND PERIOD_NUM=1) O1 ON O1.RECP_CODE=T1.RECP_CODE
+				           WHERE T1.RECP_CODE=#recpCode#) T
+		           WHERE CONVERT(DATE,T.PAY_DATE)=CONVERT(DATE,#reportDate#))
+	</update>
+	
+	<insert id="generateHistoryInsuranceFeeRemainderPay">
+		INSERT INTO T_INSURANCE_FEE_REMAINDER_PAY_DETAIL
+		(RECP_ID,RECP_CODE,RECP_STATUS,LEASE_TOPRIC,LEASE_PERIOD,PERIOD_NUM,PAY_DATE,INSURE,MONTH_INSURE,INSURE_BASE_RATE,SETTLE_DATE,STATUS,CREATE_TIME,CREATE_BY)
+		VALUES
+		(#RECP_ID#,#RECP_CODE#,#RECP_STATUS#,#LEASE_TOPRIC#,#LEASE_PERIOD#,#PERIOD_NUM#,#PAY_DATE#,#INSURE#,#MONTH_INSURE#,#INSURE_BASE_RATE#,#SETTLE_DATE#,0,GETDATE(),#s_employeeId#)
+	</insert>
+	
+	<select id="getCurrentInsuranceFeeRemainderPay" resultClass="java.util.HashMap">
+		SELECT * FROM (
+				SELECT T.ID,T.RECP_ID,T.RECP_CODE,T.RECP_STATUS,T.LEASE_TOPRIC,T.LEASE_PERIOD,T.PERIOD_NUM,T.PAY_DATE,
+				       T.INSURE,T.MONTH_INSURE,T.INSURE_BASE_RATE,T.SETTLE_DATE,T.STATUS,T.CREATE_TIME,T.CREATE_BY,
+				       CASE WHEN O.FLAG IS NULL
+				            THEN T.PAY_DATE
+				            ELSE DATEADD(MM,NUM,CONVERT(DATE,T.PAY_DATE))
+				             END PAY_DATE_1,ISNULL(-NUM,0) NUM
+				          FROM T_INSURANCE_FEE_REMAINDER_PAY_DETAIL T
+				     LEFT JOIN (SELECT T1.FIRST_PAYDATE START_DATE,T2.PAY_DATE,T1.RECP_ID,'Y' FLAG,DATEDIFF(MM,T2.PAY_DATE,T1.FIRST_PAYDATE) NUM
+				        				  FROM T_RENT_COLLECTIONPLAN T1
+				             		 LEFT JOIN T_RENT_COLLECTIONDETAIL T2 ON T2.STATUS=0 AND T1.RECP_ID=T2.RECP_ID
+				        				 WHERE T1.STATUS=0 
+				        				   AND CONVERT(DATE,T1.FIRST_PAYDATE)&lt;CONVERT(DATE,T2.PAY_DATE)
+				        				   AND ((MONTH(CONVERT(DATE,T1.FIRST_PAYDATE))!=MONTH(CONVERT(DATE,T2.PAY_DATE)))
+				        				   		OR (MONTH(CONVERT(DATE,T1.FIRST_PAYDATE))=MONTH(CONVERT(DATE,T2.PAY_DATE))
+				        				   		    AND YEAR(CONVERT(DATE,T1.FIRST_PAYDATE))!=YEAR(CONVERT(DATE,T2.PAY_DATE))
+				        				   			)
+				        				   )  
+				        				   AND T2.PERIOD_NUM=1) O ON T.RECP_ID=O.RECP_ID
+			     WHERE T.STATUS=0) TT
+		 WHERE 1=1
+	     <isEmpty property="reportDate">
+           AND CONVERT(DATE,TT.PAY_DATE_1)=CONVERT(DATE,GETDATE()-1)
+         </isEmpty>
+         <isNotEmpty property="reportDate">
+           AND CONVERT(DATE,TT.PAY_DATE_1)=CONVERT(DATE,#reportDate#)
+         </isNotEmpty>
+         <isNotEmpty property="recpCode">
+           AND TT.RECP_CODE=#recpCode#
+         </isNotEmpty>
+	</select>
+	
+	<select id="getCurrentInsuranceFeeRemainderPayByRecpCode" resultClass="java.util.HashMap">
+		SELECT * 
+          FROM T_INSURANCE_FEE_REMAINDER_PAY_DETAIL
+         WHERE STATUS=0
+           AND RECP_CODE=#recpCode#
+           AND PERIOD_NUM&lt;=#periodNum#
+	</select>
+	
+	<select id="getCurrentInsuranceFeeRemainderPaySpecial" resultClass="java.util.HashMap">
+		SELECT * 
+          FROM T_INSURANCE_FEE_REMAINDER_PAY_DETAIL
+         WHERE STATUS=0
+           AND RECP_ID IN(SELECT T.RECP_ID
+                            FROM T_RENT_COLLECTIONPLAN T
+                       LEFT JOIN (SELECT RECP_ID,PAY_DATE FROM T_RENT_COLLECTIONDETAIL WHERE PERIOD_NUM=1) O ON T.RECP_ID = O.RECP_ID
+                           WHERE T.STATUS=0
+                             AND CONVERT(DATE,T.CREATE_TIME)>CONVERT(DATE,O.PAY_DATE)
+                             AND CONVERT(DATE,T.CREATE_TIME)=CONVERT(DATE,GETDATE()-1)
+                             AND PERIOD_NUM=1)
+	</select>
+	
+	<select id="getCurrentInsuranceFeeRemainderPayByRecpId" resultClass="java.util.HashMap">
+		SELECT *,CASE WHEN CONVERT(DATE,PAY_DATE)=
+				<isEmpty property="reportDate">DATEADD(MM,#NUM#,CONVERT(DATE,GETDATE()-1))</isEmpty>
+				<isNotEmpty property="reportDate">DATEADD(MM,#NUM#,CONVERT(DATE,#reportDate#))</isNotEmpty>
+				      THEN 'Y'
+				      ELSE 'N'
+				       END FLAG,
+			   DATEDIFF(DAY,PAY_DATE,SETTLE_DATE) [DAY]
+          FROM T_INSURANCE_FEE_REMAINDER_PAY_DETAIL
+         WHERE STATUS=0
+           AND RECP_ID=#RECP_ID#
+      ORDER BY PERIOD_NUM
+	</select>
+	
+	<select id="getOtherInformation" resultClass="java.util.HashMap">
+	      SELECT TOP 1 T4.CREDIT_RUNCODE,T3.CUST_NAME,T1.RECP_CODE,T5.NAME,T7.DECP_NAME_CN,T1.FIRST_PAYDATE START_DATE<!-- 使用top为了防止数据问题造成代码运行失败 -->
+	        FROM T_RENT_COLLECTIONPLAN T1
+	   LEFT JOIN T_RENT_CONTRACT T2 ON T1.RECT_ID=T2.RECT_ID AND T2.STATUS=0
+	   LEFT JOIN T_PRJT_CREDIT T4 ON T2.PRCD_ID=T4.ID AND T4.STATUS=0
+	   LEFT JOIN T_CUST_CUSTOMER T3 ON T2.CUST_ID=T3.CUST_ID AND T3.STATUS=0
+	   LEFT JOIN T_USER_USER T5 ON T4.SENSOR_ID=T5.ID
+	   LEFT JOIN T_DEPT_DEPARTMENT T6 ON T5.DEPT_ID=T6.ID AND T6.STATUS=0
+	   LEFT JOIN T_DEPT_COMPANY T7 ON T6.DECP_ID=T7.DECP_ID AND T7.STATUS=0
+	       WHERE T1.STATUS=0
+	         AND T1.RECP_ID=#RECP_ID#
+	</select>
+	
+	<insert id="generateInsuranceFeeRemainderReport">
+		INSERT INTO T_INSURANCE_FEE_REMAINDER_REPORT
+		(CREDIT_RUNCODE,CUST_NAME,RECP_CODE,NAME,DECP_NAME_CN,START_DATE,LEASE_TOPRIC,LEASE_PERIOD,PERIOD_NUM,RECP_STATUS,INSURE,BEGIN_MONEY,INCREASE_MONEY,REDUCE_MONEY,END_MONEY,PAY_DATE,STATUS,CREATE_TIME)
+		VALUES
+		(#CREDIT_RUNCODE#,#CUST_NAME#,#RECP_CODE#,#NAME#,#DECP_NAME_CN#,#START_DATE#,#LEASE_TOPRIC#,#LEASE_PERIOD#,#PERIOD_NUM#,#RECP_STATUS#,#INSURE#,#BEGIN_MONEY#,#INCREASE_MONEY#,#REDUCE_MONEY#,#END_MONEY#,#PAY_DATE#,0,GETDATE())
+	</insert>
+	
+	<select id="getLastDayOfMonth" resultClass="java.lang.Integer">
+  		      SELECT COUNT(1) 
+			   WHERE CONVERT(DATE,GETDATE()-1)=(SELECT TOP 1 CONVERT(DATE,[DATE])
+                FROM T_DAY_TYPE 
+               WHERE [YEAR]=YEAR(GETDATE()-1) 
+                 AND MONTH([DATE])=MONTH(GETDATE()-1)         
+            ORDER BY DATE DESC)
+	</select>
+	
+	<select id="getDateList" resultClass="java.lang.String">
+	   SELECT * FROM (
+		   SELECT * FROM
+	        (SELECT DISTINCT CONVERT(NVARCHAR,YEAR(PAY_DATE))+'-'+
+	        		CASE WHEN MONTH(PAY_DATE)&lt;10 THEN '0'+CONVERT(NVARCHAR,MONTH(PAY_DATE)) ELSE
+	        		CONVERT(NVARCHAR,MONTH(PAY_DATE)) END [DATE]
+	           FROM T_INSURANCE_FEE_REMAINDER_REPORT
+	          WHERE STATUS=0) O
+	          UNION
+	 		SELECT * FROM
+	        (SELECT DISTINCT CONVERT(NVARCHAR,YEAR(PAY_DATE))+'-'+
+	        		CASE WHEN MONTH(PAY_DATE)&lt;10 THEN '0'+CONVERT(NVARCHAR,MONTH(PAY_DATE)-1) ELSE
+	        		CONVERT(NVARCHAR,MONTH(PAY_DATE)) END [DATE]
+	           FROM T_INSURANCE_FEE_REMAINDER_REPORT
+	          WHERE STATUS=0) O
+	          ) T
+      ORDER BY CONVERT(DATE,T.DATE+'-01') DESC 
+	</select>
+	
+	<select id="queryInsuranceFeeRemainderReport" resultClass="java.util.HashMap">
+	SELECT * FROM (
+		SELECT T1.ID,T1.CREDIT_RUNCODE,T1.CUST_NAME,T1.RECP_CODE,T1.NAME,T1.DECP_NAME_CN,T1.START_DATE,
+			   T1.LEASE_TOPRIC,T1.LEASE_PERIOD,T1.PERIOD_NUM,T1.RECP_STATUS,T1.INSURE,BEGIN_MONEY,
+			   INCREASE_MONEY,REDUCE_MONEY,END_MONEY,T1.STATUS,O.SETTLE_DATE,T1.PAY_DATE,T1.CREATE_TIME,
+			   CASE WHEN O1.FLAG IS NULL 
+			   		THEN T1.PAY_DATE
+			   		ELSE DATEADD(MM,NUM,CONVERT(DATE,T1.PAY_DATE))
+			   		 END PAY_DATE_1
+		  FROM T_INSURANCE_FEE_REMAINDER_REPORT T1
+	 LEFT JOIN (SELECT MAX(SETTLE_DATE) SETTLE_DATE,RECP_CODE 
+	  			  FROM T_INSURANCE_FEE_REMAINDER_PAY_DETAIL 
+  			     WHERE STATUS=0 GROUP BY RECP_CODE) O ON O.RECP_CODE=T1.RECP_CODE
+	 LEFT JOIN (SELECT T1.FIRST_PAYDATE START_DATE,T2.PAY_DATE,T1.RECP_CODE,'Y' FLAG,DATEDIFF(MM,T2.PAY_DATE,T1.FIRST_PAYDATE) NUM
+   				  FROM T_RENT_COLLECTIONPLAN T1
+       		 LEFT JOIN T_RENT_COLLECTIONDETAIL T2 ON T2.STATUS=0 AND T1.RECP_ID=T2.RECP_ID
+   				 WHERE T1.STATUS=0 
+   				   AND CONVERT(DATE,T1.FIRST_PAYDATE)&lt;CONVERT(DATE,T2.PAY_DATE)
+   				   AND ((MONTH(CONVERT(DATE,T1.FIRST_PAYDATE))!=MONTH(CONVERT(DATE,T2.PAY_DATE)))
+   				   		OR (MONTH(CONVERT(DATE,T1.FIRST_PAYDATE))=MONTH(CONVERT(DATE,T2.PAY_DATE))
+   				   		    AND YEAR(CONVERT(DATE,T1.FIRST_PAYDATE))!=YEAR(CONVERT(DATE,T2.PAY_DATE))
+   				   			)
+   				   )  
+   				   AND T2.PERIOD_NUM=1) O1 ON O1.RECP_CODE=T1.RECP_CODE
+		 WHERE T1.STATUS=0
+	   ) TT
+	   WHERE <isNotEmpty property="date">YEAR(TT.PAY_DATE_1)=YEAR(CONVERT(DATE,#date#+'-01')) AND MONTH(TT.PAY_DATE_1)=MONTH(CONVERT(DATE,#date#+'-01'))</isNotEmpty>
+	 	     <isEmpty property="date">YEAR(TT.PAY_DATE_1)=YEAR(GETDATE()-1) AND MONTH(TT.PAY_DATE_1)=MONTH(GETDATE()-1)</isEmpty>
+      <isNotEmpty property="payDate">
+   	     AND CONVERT(DATE,TT.PAY_DATE)=CONVERT(DATE,#payDate#)
+      </isNotEmpty>
+      <isNotEmpty property="recpStatus">
+   	     AND TT.RECP_STATUS=#recpStatus#
+      </isNotEmpty>
+      <isNotEmpty property="content">
+	     AND (TT.RECP_CODE LIKE '%$content$%' OR
+	   		  TT.NAME LIKE '%$content$%' OR
+	   		  TT.CREDIT_RUNCODE LIKE '%$content$%' OR
+	   		  TT.CUST_NAME LIKE '%$content$%')
+      </isNotEmpty>
+	</select>
+	<select id="queryInsuranceFeeRemainderReportForIT" resultClass="java.util.HashMap">
+		SELECT T1.*,O.SETTLE_DATE
+		  FROM T_INSURANCE_FEE_REMAINDER_REPORT T1
+	 LEFT JOIN (SELECT MAX(SETTLE_DATE) SETTLE_DATE,RECP_CODE 
+	  			  FROM T_INSURANCE_FEE_REMAINDER_PAY_DETAIL 
+  			     WHERE STATUS=0 GROUP BY RECP_CODE) O ON O.RECP_CODE=T1.RECP_CODE
+		 WHERE T1.STATUS=-1
+	</select>
+	
+	<select id="getHistoryInterestIncomePay" resultClass="java.util.HashMap">
+       SELECT T.[DAY],T.RECP_ID,T.RECP_CODE,T.RECP_STATUS,T.REN_PRICE,T.NUM ADVANCED_MONTH,T.LEASE_PERIOD,T.PERIOD_NUM,
+              CASE WHEN T.RECP_STATUS=1 OR T.RECP_STATUS=3 THEN CONVERT(DATE,T.SETTLE_DATE)
+                   ELSE '' 
+                    END SETTLE_DATE,
+              CONVERT(DATE,T.START_DATE) START_DATE,
+              CONVERT(DATE,T.PAY_DATE) PAY_DATE,CONVERT(DATE,T.CREATE_TIME) CREATE_TIME,
+              CASE WHEN T.FLAG IS NULL 
+                   THEN CONVERT(DATE,T.PAY_DATE)
+                   ELSE CONVERT(DATE,DATEADD(MM,T.NUM,T.PAY_DATE)) 
+                    END FINANCE_DATE
+         FROM (SELECT DATEDIFF(DAY,FIRST_PAYDATE,CONVERT(DATE,CONVERT(VARCHAR,YEAR(DATEADD(M,1,FIRST_PAYDATE)))+'-'+CONVERT(VARCHAR,MONTH(DATEADD(M,1,FIRST_PAYDATE)))+'-'+'01')) [DAY],
+                      T1.RECP_ID,T1.RECP_STATUS,T1.LEASE_PERIOD,T2.PERIOD_NUM,T1.RECP_CODE,O1.DATE SETTLE_DATE,O.FLAG,
+                      T1.FIRST_PAYDATE START_DATE,T2.PAY_DATE,T2.REN_PRICE,ISNULL(O.NUM,0) NUM,T1.CREATE_TIME
+                 FROM T_RENT_COLLECTIONPLAN T1
+            LEFT JOIN (SELECT RECP_ID,MAX(CHECK_DATE) DATE 
+                         FROM T_FINA_COLLECTIONBILL
+                  	    WHERE STATUS=0
+                          AND FICB_TYPE=0
+                          AND FICB_STATE=5
+                     GROUP BY RECP_ID) O1 ON T1.RECP_ID=O1.RECP_ID
+            LEFT JOIN T_RENT_COLLECTIONDETAIL T2 ON T1.RECP_ID = T2.RECP_ID AND T2.STATUS=0
+            LEFT JOIN (SELECT T1.FIRST_PAYDATE START_DATE,T2.PAY_DATE,T1.RECP_CODE,'Y' FLAG,DATEDIFF(MM,T2.PAY_DATE,T1.FIRST_PAYDATE) NUM
+               				  FROM T_RENT_COLLECTIONPLAN T1
+                   		 LEFT JOIN T_RENT_COLLECTIONDETAIL T2 ON T2.STATUS=0 AND T1.RECP_ID=T2.RECP_ID
+               				 WHERE T1.STATUS=0 
+               				   AND CONVERT(DATE,T1.FIRST_PAYDATE)&lt;CONVERT(DATE,T2.PAY_DATE)
+               				   AND ((MONTH(CONVERT(DATE,T1.FIRST_PAYDATE))!=MONTH(CONVERT(DATE,T2.PAY_DATE)))
+               				   		OR (MONTH(CONVERT(DATE,T1.FIRST_PAYDATE))=MONTH(CONVERT(DATE,T2.PAY_DATE))
+               				   		    AND YEAR(CONVERT(DATE,T1.FIRST_PAYDATE))!=YEAR(CONVERT(DATE,T2.PAY_DATE))
+               				   			)
+               				   )  
+               				   AND T2.PERIOD_NUM=1) O ON O.RECP_CODE=T1.RECP_CODE
+                WHERE T1.STATUS=0) T
+        WHERE 1=1
+        <isNotEmpty property="startDate">
+          AND CONVERT(DATE,CREATE_TIME)>=CONVERT(DATE,#startDate#)
+        </isNotEmpty>
+        <isNotEmpty property="endDate">
+          AND CONVERT(DATE,CREATE_TIME)&lt;=CONVERT(DATE,#endDate#)
+        </isNotEmpty>
+        <isNotEmpty property="recpCode">
+       	  AND T.RECP_CODE=#recpCode#
+        </isNotEmpty>
+     ORDER BY T.RECP_CODE,T.PERIOD_NUM ASC
+	</select>
+	
+	<insert id="generateHistoryInterestIncomePay">
+		INSERT INTO T_INSURANCE_INCOME_DETAIL
+		(RECP_ID,RECP_CODE,RECP_STATUS,REN_PRICE,ADVANCED_MONTH,LEASE_PERIOD,PERIOD_NUM,SETTLE_DATE,START_DATE,PAY_DATE,FINANCE_DATE,DAY,STATUS,CREATE_BY,CREATE_TIME)
+		VALUES
+		(#RECP_ID#,#RECP_CODE#,#RECP_STATUS#,#REN_PRICE#,#ADVANCED_MONTH#,#LEASE_PERIOD#,#PERIOD_NUM#,#SETTLE_DATE#,#START_DATE#,#PAY_DATE#,#FINANCE_DATE#,#DAY#,0,#s_employeeId#,GETDATE())
+	</insert>
+	
+	<select id="checkHistoryInterestIncomePay" resultClass="java.lang.Integer">
+		SELECT COUNT(1) 
+		  FROM T_INSURANCE_INCOME_DETAIL 
+		 WHERE STATUS=0
+		   AND RECP_ID=#recpId#
+	</select>
+	
+	<update id="cancelHistoryInterestIncomePay">
+		UPDATE T_INSURANCE_INCOME_DETAIL SET STATUS=-1
+		 WHERE RECP_ID=#recpId#
+	</update>
+</sqlMap>

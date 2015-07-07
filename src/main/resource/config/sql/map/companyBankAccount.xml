@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="companyBankAccount">
+
+	
+	
+	<!-- 根据保险公司id 删除银行账户的信息 -->
+	 <update id="deleteCompanyBankAccount" parameterClass="map">
+	 	UPDATE 
+	 		t_insu_companybankaccount
+	 	SET
+	 		status = -2 ,
+	 		modify_id = #s_employeeId# ,
+	 		modify_date = getdate() 
+	 	where 
+	 		incp_id=#incp_id#
+	 </update>	 
+	 <!-- 根据保险公司ID删除该id下的所有其他账户 -->
+	 <delete id="deleteOtherCompanyBankAccount" parameterClass="map">
+	 	delete from t_insu_companybankaccount where state=1 and incp_id=#incp_id#
+	 </delete>
+	 
+	 <!-- 添加一条资信法人的银行账号信息 -->
+	 <insert id="createCompanyBankAccount" parameterClass="map">
+	 	insert into t_insu_companybankaccount
+			(
+			BANK_NAME,	
+			BANK_ACCOUNT,
+			STATE,
+			STATUS,
+			CREATE_DATE,
+			CREATE_ID,
+			INCP_ID
+			)
+			values
+			(
+			#BANK_NAME#,
+			#BANK_ACCOUNT#,
+			#STATE#,
+			0,
+			getdate(),
+			#s_employeeId# ,
+			#INCP_ID#
+			)
+			
+		<!-- <selectKey resultClass="int" keyProperty="incpba_id" >
+			SELECT @@IDENTITY AS incpba_id
+		</selectKey>  -->
+	 </insert>
+	 
+	 
+	  <!-- 根据保险公司id查询该ID下的所有银行账户 -->
+	 <select id="getCompanyBankAccountByCreditId" parameterClass="map" resultClass="hashmap">
+	 	select * from t_insu_companybankaccount where status=0 and INCP_ID=#INCP_ID#
+	 </select>
+</sqlMap>

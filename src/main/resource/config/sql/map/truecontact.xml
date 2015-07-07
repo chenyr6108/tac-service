@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="trueContact">
+	 
+	 <insert id="createTrueContact" parameterClass="map">
+	 	insert into T_PRJT_TRUECONTACT(
+				CREDIT_ID,
+				NAME,
+				CARD_ID,
+				CARD_FLAG,
+				TELEPHONE,
+				POSTCODE,
+				ADDRESS,
+				PHONE1,
+				PHONE2,
+				EMAIL,
+				MSN,
+				CREATE_DATE,
+				CREATE_ID,
+				MODIFY_DATE,
+				MODIFY_ID,
+				STATUS,
+				TYPE,
+				TPTC_STATUS,
+				TPTC_TYPE
+				)
+				values(
+				 #credit_id#,
+				 #TC_NAME#,
+				 #CARD_ID#,
+				 #CARD_FLAG#,
+				 #TC_TELEPHONE#,
+				 #TC_POSTCODE#,
+				 #TC_ADDRESS#,
+				 #TC_PHONE1#,
+				 #TC_PHONE2#,
+				 #TC_EMAIL#,
+				 #TC_MSN#,
+				 GETDATE(),
+				 #CREATE_ID#,
+				 GETDATE(),
+				 #MODIFY_ID#,
+				 0,
+				 #TYPE#,
+				 0,
+				 #TPTC_TYPE#
+				)
+	 </insert>
+	 
+	 <!-- 查找一条联系人 -->
+	 <select id="getTrueContactByCreditId" parameterClass="map" resultClass="hashmap">
+	 
+	 	select  t.ID,
+				t.NAME,
+				t.CARD_ID,
+				t.CARD_FLAG,
+				t.TELEPHONE,
+				t.POSTCODE,
+				t.ADDRESS,
+				t.PHONE1,
+				t.PHONE2,
+				t.EMAIL,
+				t.MSN
+			 	from T_PRJT_TRUECONTACT t where T.CREDIT_ID =#credit_id# AND T.STATUS = 0
+	 </select>
+	 
+	 <!-- 更新一条联系人 -->
+	<update id="updateTrueContact" parameterClass="map">
+		<![CDATA[
+		 	UPDATE T_PRJT_TRUECONTACT SET
+		 			NAME = #TC_NAME#,
+		 			CARD_ID = #CARD_ID#,
+		 			CARD_FLAG = #CARD_FLAG#,
+		 			TELEPHONE = #TC_TELEPHONE#,
+		 			POSTCODE = #TC_POSTCODE#,
+		 			ADDRESS = #TC_ADDRESS#,
+		 			PHONE1 = #TC_PHONE1#,
+		 			PHONE2 = #TC_PHONE2#,
+		 			EMAIL = #TC_EMAIL#,
+		 			MSN = #TC_MSN#
+		 			
+		 			WHERE ID = #trueContact_id# AND STATUS = 0
+		 			
+   	  	]]>
+	 </update>
+	 
+</sqlMap>

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="receivables">
+	<!-- 按年份分组查询每年的应收账款信息 -->
+	<select id="queryReceivablesByYear" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select pay_year,
+			       sum(month_price) month_price,
+			       sum(own_price) own_price,
+			       sum(ren_price) ren_price
+			  from (select recp.recp_id,
+			               recp.recp_code,
+			               year(recd.pay_date ) pay_year,
+			               recd.period_num,
+			               recd.month_price,
+			               recd.own_price,
+			               recd.ren_price
+			          from t_rent_collectiondetail recd
+			          left join (select recp.rect_id, recp.recp_id, recp.recp_code
+			                      from t_rent_collectionplan recp
+			                     where recp.status = 0
+			                       and recp.version_code =
+			                           (select max(recp2.version_code)
+			                              from t_rent_collectionplan recp2
+			                             where recp.recp_code = recp2.recp_code)) recp on recd.recp_id =
+			                                                                              recp.recp_id
+			         where year(recd.pay_date) = #search_year#) t
+			 group by pay_year
+			 order by pay_year
+		]]>
+	</select>
+	<!-- 根据年份查询该年每个季度的应收账款信息 -->
+	<select id="queryReceivablesByQuarter" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select pay_quarter,
+			       sum(month_price) month_price,
+			       sum(own_price) own_price,
+			       sum(ren_price) ren_price
+			  from (select recp.recp_id,
+			               recp.recp_code,
+			               datepart(qq,recd.pay_date) pay_quarter,
+			               recd.period_num,
+			               recd.month_price,
+			               recd.own_price,
+			               recd.ren_price
+			          from t_rent_collectiondetail recd
+			          left join (select recp.rect_id, recp.recp_id, recp.recp_code
+			                      from t_rent_collectionplan recp
+			                     where recp.status = 0
+			                       and recp.version_code =
+			                           (select max(recp2.version_code)
+			                              from t_rent_collectionplan recp2
+			                             where recp.recp_code = recp2.recp_code)) recp on recd.recp_id =
+			                                                                              recp.recp_id
+			         where year(recd.pay_date) = #search_year#) t1
+			 group by pay_quarter
+			 order by pay_quarter
+		]]>
+	</select>
+	<!-- 根据年份，季度查询每个月的应收账款信息 -->
+	<select id="queryReceivablesByMonth" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select pay_month,
+			       sum(month_price) month_price,
+			       sum(own_price) own_price,
+			       sum(ren_price) ren_price
+			  from (select recp.recp_id,
+			               recp.recp_code,
+			                MONTH(recd.pay_date ) pay_month,
+			               recd.period_num,
+			               recd.month_price,
+			               recd.own_price,
+			               recd.ren_price
+			          from t_rent_collectiondetail recd
+			          left join (select recp.rect_id, recp.recp_id, recp.recp_code
+			                      from t_rent_collectionplan recp
+			                     where recp.status = 0
+			                       and recp.version_code =
+			                           (select max(recp2.version_code)
+			                              from t_rent_collectionplan recp2
+			                             where recp.recp_code = recp2.recp_code)) recp on recd.recp_id =
+			                                                                              recp.recp_id
+			         where year(recd.pay_date ) = #search_year#) t
+			 group by pay_month
+			 order by pay_month
+		]]>
+	</select>
+</sqlMap>

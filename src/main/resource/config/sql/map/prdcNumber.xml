@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="productNumber">
+	<!--产品编号 -->
+	<select id="query_count" resultClass="java.lang.Integer" parameterClass="java.util.HashMap">
+		<!-- 
+					SELECT
+						count(t.id) 
+					FROM
+						t_prdc_number t
+						LEFT JOIN t_prdc_product t1 on t1.id = t.product_id
+						LEFT JOIN t_prdc_kind t2 on t2.id = t1.kind_id
+						LEFT JOIN t_prdc_type t3 on t3.id = t2.type_id
+					WHERE t.status = 0
+			<isNotEmpty prepend="and" property="searchValue">
+					(	t.name	 like '%$searchValue$%'
+					or	t1.name  like '%$searchValue$%'
+					or  t2.name  like '%$searchValue$%'
+					or  t3.name  like '%$searchValue$%'
+					)
+			</isNotEmpty>
+			-->
+				<![CDATA[
+			SELECT 
+				COUNT(1) 
+			FROM
+				T_EQMT_EQUIPMENT T 
+				LEFT JOIN T_SUPL_EQUIPMENT T1 ON T1.SUEQ_ID = T.SUEQ_ID AND T1.STATUS = 0
+				LEFT JOIN T_PRDC_PRODUCT T2 ON T2.ID = T1.PRODUCT_ID AND T2.STATUS = 0
+				LEFT JOIN T_PRDC_KIND T3 ON T3.ID = T2.KIND_ID AND T3.PRDC_KIND_STATUS = 0
+				LEFT JOIN T_PRDC_TYPE T4 ON T4.ID = T3.TYPE_ID AND T4.PRDC_TYPE_STATUS = 0
+				LEFT JOIN T_RENT_CONTRACTDETAIL  T5 ON T5.EQMT_ID = T.EQMT_ID AND T5.STATUS = 0
+				LEFT JOIN T_RENT_CONTRACT T6 ON T6.RECT_ID = T5.RECT_ID AND T6.STATUS = 0
+			WHERE 
+				T.STATUS = 0
+				AND T.THING_NUMBER IS NOT NULL 
+		]]>
+		<isNotEmpty prepend="and" property="searchValue">
+			<![CDATA[
+				(   T.THING_NUMBER LIKE '%$searchValue$%'
+						OR T2.NAME LIKE '%$searchValue$%'
+						OR t3.name LIKE '%$searchValue$%'
+						OR t4.name LIKE '%$searchValue$%'
+						OR T6.LEASE_CODE LIKE '%$searchValue$%' )
+			]]> 
+		</isNotEmpty>	
+	</select>
+	<!--查询全部产品编号  分页-->
+	<select id="query" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+			<!--
+				SELECT
+					t.id              id,
+					t.name            name,
+					t.memo            memo,
+					t.product_id      product_id,
+					t.create_date     create_date,
+					t.modify_date     modify_date,
+					t.remark1         remark1,
+					t.remark2         remark2,
+					t.remark3         remark3,
+					t.remark4         remark4,
+					t1.name           productName,
+					t2.name           kindName,
+					t3.name           typeName 
+					FROM
+						t_prdc_number t
+						LEFT JOIN t_prdc_product t1 on t1.id = t.product_id
+						LEFT JOIN t_prdc_kind t2 on t2.id = t1.kind_id
+						LEFT JOIN t_prdc_type t3 on t3.id = t2.type_id
+					WHERE t.status = 0	
+			<isNotEmpty prepend="and" property="searchValue" >
+				<![CDATA[
+					(	t.name	 like '%$searchValue$%'
+					or	t1.name  like '%$searchValue$%'
+					or  t2.name  like '%$searchValue$%'
+					or  t3.name  like '%$searchValue$%'
+					)
+				]]>
+			</isNotEmpty>	
+		-->
+		<![CDATA[
+			SELECT 
+				T.THING_NUMBER ,
+				T2.NAME productName ,
+				t3.name kindName,
+				t4.name typeName ,
+				T6.LEASE_CODE
+			FROM
+				T_EQMT_EQUIPMENT T 
+				LEFT JOIN T_SUPL_EQUIPMENT T1 ON T1.SUEQ_ID = T.SUEQ_ID AND T1.STATUS = 0
+				LEFT JOIN T_PRDC_PRODUCT T2 ON T2.ID = T1.PRODUCT_ID AND T2.STATUS = 0
+				LEFT JOIN T_PRDC_KIND T3 ON T3.ID = T2.KIND_ID AND T3.PRDC_KIND_STATUS = 0
+				LEFT JOIN T_PRDC_TYPE T4 ON T4.ID = T3.TYPE_ID AND T4.PRDC_TYPE_STATUS = 0
+				LEFT JOIN T_RENT_CONTRACTDETAIL  T5 ON T5.EQMT_ID = T.EQMT_ID AND T5.STATUS = 0
+				LEFT JOIN T_RENT_CONTRACT T6 ON T6.RECT_ID = T5.RECT_ID AND T6.STATUS = 0
+			WHERE 
+				T.STATUS = 0
+				AND T.THING_NUMBER IS NOT NULL 
+		]]>
+		<isNotEmpty prepend="and" property="searchValue">
+			<![CDATA[
+				(   T.THING_NUMBER LIKE '%$searchValue$%'
+						OR T2.NAME LIKE '%$searchValue$%'
+						OR t3.name LIKE '%$searchValue$%'
+						OR t4.name LIKE '%$searchValue$%' 
+						OR T6.LEASE_CODE LIKE '%$searchValue$%' )
+			]]> 
+		</isNotEmpty>
+		ORDER BY T.EQMT_ID DESC
+	</select>
+	<!-- 添加产品编号 -->
+	<insert id="create" parameterClass="map">
+		  <![CDATA[ 
+				INSERT INTO
+					t_prdc_number
+				(Name,Memo,product_id,create_id,create_date,status)
+					values
+				(#Name#,#Memo#,#product_id#,#s_employeeId#,getdate(),0) 
+	  ]]>
+	</insert>	
+	
+	<!-- 根据id查询 -->
+	<select id="queryByid" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		            select t.id              id,
+					       t.name            name,
+					       t.memo            memo,
+					       t.product_id      product_id,
+					       t.create_date     create_date,
+					       t.modify_date     modify_date,
+					       t.remark1         remark1,
+					       t.remark2         remark2,
+					       t.remark3         remark3,
+					       t.remark4         remark4,
+					       t1.name           productName,
+					       t2.name           kindName,
+					       t3.name           typeName,
+					       t2.type_id         type_id,
+					       t1.kind_id         kind_id
+					FROM
+						t_prdc_number t
+						LEFT JOIN t_prdc_product t1 on t1.id = t.product_id
+						LEFT JOIN t_prdc_kind t2 on t2.id = t1.kind_id
+						LEFT JOIN t_prdc_type t3 on t3.id = t2.type_id
+					WHERE t.status = 0	
+					AND t.id = #id#
+		]]>
+	</select>
+
+	<!--根据id删除-->
+	<update id="deleteById" parameterClass="map">
+		<![CDATA[
+			UPDATE
+				t_prdc_number 
+			SET
+				status = -2 ,
+				modify_id = #s_employeeId#,
+				modify_date = getdate()  
+			WHERE
+				id=#id#
+		]]>
+	</update>
+	
+	<!--根据id修改-->
+	<update id="updateById" parameterClass="map">
+		<![CDATA[
+			UPDATE
+				t_prdc_number 
+			SET
+				name=#updateName#,
+				Memo=#updateMemo#, 
+				product_id=#update_product_id#,
+				modify_id=#s_employeeId#,
+				modify_date=getdate() 
+			WHERE id=#id#
+		]]>
+	</update>
+			<!-- 查询一个产品下产品编号的个数 -->
+	<select id="getProductCount" parameterClass="map" resultClass="java.lang.Integer"> 
+		<![CDATA[
+			SELECT 
+				count(1) count 
+			FROM 
+				t_prdc_number t
+			WHERE
+				t.STATUS = 0  
+				AND	t.product_id = #product_id#
+		]]>
+	</select>
+	
+</sqlMap>

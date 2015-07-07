@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="insuranceExp">
+	 
+	 <select id="queryByEqmtId" parameterClass="map" resultClass="java.util.HashMap">
+	 <![CDATA[
+	 	select 
+	 		cucu.CUST_NAME,
+			eqmt.THING_NAME THING_NAME,
+			eqmt.MODEL_SPEC MODEL_SPEC,
+			recs.EQUPMENT_ADDRESS EQUPMENT_ADDRESS,
+			t.LEASE_CODE LEASE_CODE,
+			eqmt.THING_NUMBER
+			]]>
+			<!--2011/12/23 Yang Yun 增加 合同到期日期和保单到期日期 字段。Start  -->
+			<![CDATA[
+			,
+		    (select max(INSU_END_DATE) from T_INSU_INSURANCELIST
+		      where RECT_CODE = t.LEASE_CODE and STATUS = 0) as INSU_END_DATE,
+		    CONVERT(DATE,(select max(d.PAY_DATE) from T_RENT_COLLECTIONDETAIL d
+		      where d.STATUS = 0 and exists(select RECP_ID from T_RENT_COLLECTIONPLAN
+		      where t.RECT_ID = RECT_ID and STATUS = 0 and RECP_ID = d.RECP_ID))) as PAY_DATE
+		      ]]>
+			<!--2011/12/23 Yang Yun 增加 合同到期日期和保单到期日期 字段。Start  -->
+			<![CDATA[
+		from 
+	 		T_EQMT_EQUIPMENT eqmt
+	 		left join T_RENT_CONTRACTDETAIL recd on recd.eqmt_id=eqmt.eqmt_id
+	 		left join T_RENT_CONTRACTSCHEMA recs on recs.rect_id=recd.rect_id
+	 		left join T_RENT_CONTRACT t on t.rect_id=recd.rect_id
+	 		left join T_CUST_CUSTOMER cucu on cucu.CUST_ID=t.CUST_ID
+	 		where recd.RECD_ID=#recd_id#
+	 		]]>
+	 </select>
+	 
+	 <update id="expFlag" parameterClass="map">
+	 <![CDATA[
+	 	update T_RENT_CONTRACTDETAIL set output_status=#flag# where recd_id=#recd_id#
+	 	]]>
+	 </update>
+</sqlMap>

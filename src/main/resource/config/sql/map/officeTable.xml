@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="officeTable">
+		<select id="queryCompanys" parameterClass="map"	resultClass="java.util.HashMap">
+		<![CDATA[
+			select tdc.DECP_ID DECP_ID,
+			tdc.DECP_NAME_CN DECP_NAME_CN,
+			isnull(t1.visit,0) visit,
+			isnull(t2.todayvisit,0)  todayvisit,
+			isnull(t3.windone,0) windone,
+			isnull(t4.windcondition,0) windcondition,
+			isnull(t5.windnot,0) windnot,
+			isnull(t6.todaymemo,0) todaymemo,
+		    isnull(t7.memo,0) memo,
+	        (isnull(t7.memo,0)-isnull(t1.visit,0)) novisit,
+	        (isnull(t7.memo,0)-isnull(t3.windone,0)-isnull(windcondition,0)-isnull(windnot,0))  noapprove,
+	         cast(cast((isnull(t3.windone,0)+isnull(t4.windcondition,0)+isnull(t5.windnot,0)) as float)/isnull(t7.memo,1) as decimal(10,2)) completionrate,
+	         cast(cast(isnull(t3.windone,0) as float)/isnull(t7.memo,1) as decimal(10,2)) windonerate
+		       
+			from T_DEPT_COMPANY  tdc
+			left join (
+					select COUNT(t2.credit_id) visit,t.decp_id
+					from t_prjt_credit t
+			        left join (
+					select credit_id,max(t.prcm_id) prcm_id,max(t.tprc_id) tprc_id,MAX(t.CREATE_TIME) CREATE_TIME 
+					from t_prjt_creditmemo t 
+					group by t.credit_id,t.status,t.state
+					having t.status=0 and t.state=1
+					) t5 on t.id=t5.credit_id  
+					left join T_LOG_ACTIVITIESLOG  t2 on t2.credit_id=t.ID
+					where   t2.VISITFACTORYDATE <= cast(#TODAY# as datetime)
+					group by t.decp_id
+				) t1 on tdc.DECP_ID=t1.decp_id
+			left join 
+			(
+				select COUNT(t2.credit_id) todayvisit,t.decp_id
+				from t_prjt_credit t
+				left join (
+					select credit_id,max(t.prcm_id) prcm_id,max(t.tprc_id) tprc_id,MAX(t.CREATE_TIME) CREATE_TIME 
+					from t_prjt_creditmemo t 
+					group by t.credit_id,t.status,t.state
+					having t.status=0 and t.state=1
+				) t5 on t.id=t5.credit_id  
+				left join T_LOG_ACTIVITIESLOG  t2 on t2.credit_id=t.ID
+				where  cast(CONVERT(varchar(10), t2.VISITFACTORYDATE ,120) as datetime) = #TODAY# 
+				group by t.decp_id
+			) t2 on tdc.DECP_ID=t2.decp_id
+			left join (
+			      select COUNT(t.ID) windone,t.decp_id
+		          from t_prjt_credit t
+				  left join (
+						select credit_id,max(t.prcm_id) prcm_id,max(t.tprc_id) tprc_id,MAX(t.CREATE_TIME) CREATE_TIME 
+						from t_prjt_creditmemo t 
+						group by t.credit_id,t.status,t.state
+						having t.status=0 and t.state=1
+			       ) t5 on t.id=t5.credit_id 
+					where t5.CREATE_TIME   <= cast(#TODAY# as datetime) 
+					and t.WIND_STATE=1
+					 group by t.decp_id 
+			) t3 on tdc.DECP_ID=t3.decp_id
+			left join (
+			      select COUNT(t.ID) windcondition,t.decp_id
+		          from t_prjt_credit t
+				  left join (
+						select credit_id,max(t.prcm_id) prcm_id,max(t.tprc_id) tprc_id,MAX(t.CREATE_TIME) CREATE_TIME 
+						from t_prjt_creditmemo t 
+						group by t.credit_id,t.status,t.state
+						having t.status=0 and t.state=1
+			       ) t5 on t.id=t5.credit_id  
+					where t5.CREATE_TIME  <= cast(#TODAY# as datetime) 
+					and t.WIND_STATE=3
+					 group by t.decp_id
+			) t4 on tdc.DECP_ID=t4.decp_id
+			left join (
+			      select COUNT(t.ID) windnot,t.decp_id
+		          from t_prjt_credit t
+				  left join (
+						select credit_id,max(t.prcm_id) prcm_id,max(t.tprc_id) tprc_id,MAX(t.CREATE_TIME) CREATE_TIME 
+						from t_prjt_creditmemo t 
+						group by t.credit_id,t.status,t.state
+						having t.status=0 and t.state=1
+			       ) t5 on t.id=t5.credit_id 
+			       where t5.CREATE_TIME  <= cast(#TODAY# as datetime) 
+					and t.WIND_STATE=4
+					group by t.decp_id
+			) t5 on tdc.DECP_ID=t5.decp_id
+			left join (
+			    select COUNT(t.ID)  todaymemo,t.decp_id
+				from t_prjt_credit t
+				left join (
+					select credit_id,max(t.prcm_id) prcm_id,max(t.tprc_id) tprc_id,MAX(t.CREATE_TIME) CREATE_TIME 
+					from t_prjt_creditmemo t 
+					group by t.credit_id,t.status,t.state
+					having t.status=0 and t.state=1
+				) t5 on t.id=t5.credit_id  
+				where  cast(CONVERT(varchar(10), t5.CREATE_TIME,120) as datetime) = #TODAY#
+				 group by t.decp_id
+			) t6  on tdc.DECP_ID=t6.decp_id
+			left join (
+			    select COUNT(t.ID)  memo,t.decp_id
+				from t_prjt_credit t
+				left join (
+					select credit_id,max(t.prcm_id) prcm_id,max(t.tprc_id) tprc_id,MAX(t.CREATE_TIME) CREATE_TIME 
+					from t_prjt_creditmemo t 
+					group by t.credit_id,t.status,t.state
+					having t.status=0 and t.state=1
+				) t5 on t.id=t5.credit_id  
+				where cast(t5.CREATE_TIME as date)  <= cast(#TODAY# as date)
+				 group by t.decp_id
+			) t7  on tdc.DECP_ID=t7.decp_id
+			where tdc.STATUS=0
+			group by tdc.DECP_ID,tdc.DECP_NAME_CN,t1.visit,t2.todayvisit,t3.windone,t4.windcondition,t5.windnot,t6.todaymemo,t7.memo
+		]]>
+	</select>
+	<select id="queryMonthTable" parameterClass="map"	resultClass="java.util.HashMap">
+		<![CDATA[
+		 select tdc.DECP_ID DECP_ID,
+					tdc.DECP_NAME_CN DECP_NAME_CN,
+					isnull(t1.visit,0) visit,
+					isnull(t2.todayvisit,0)  todayvisit,
+					isnull(t3.windone,0) windone,
+					isnull(t4.windcondition,0) windcondition,
+					isnull(t5.windnot,0) windnot,
+					isnull(t6.todaymemo,0) todaymemo,
+				    isnull(t7.memo,0) memo,
+			        (isnull(t7.memo,0)-isnull(t1.visit,0)) novisit,
+			        (isnull(t7.memo,0)-isnull(t3.windone,0)-isnull(windcondition,0)-isnull(windnot,0))  noapprove,
+			         cast(cast((isnull(t3.windone,0)+isnull(t4.windcondition,0)+isnull(t5.windnot,0)) as float)/isnull(t7.memo,1) as decimal(10,2)) completionrate,
+			         cast(cast(isnull(t3.windone,0) as float)/isnull(t7.memo,1) as decimal(10,2)) windonerate ]]>
+			        <dynamic prepend=",">
+			        <isEqual compareValue="0" property="type">
+		   		         #TODAY#   NOWDAY
+		     	    </isEqual>
+		   		     <isEqual compareValue="1" property="type">
+		   		      DATEPART(month, cast(#TODAY# as datetime))    NOWDAY
+		     	    </isEqual>
+		     	    </dynamic> 
+			         
+				       
+		<![CDATA[from T_DEPT_COMPANY  tdc
+					left join (
+							select COUNT(t2.credit_id) visit,t.decp_id
+							from t_prjt_credit t
+					        left join (
+							select credit_id,max(t.prcm_id) prcm_id,max(t.tprc_id) tprc_id,MAX(t.CREATE_TIME) CREATE_TIME 
+							from t_prjt_creditmemo t 
+							group by t.credit_id,t.status,t.state
+							having t.status=0 and t.state=1
+							) t5 on t.id=t5.credit_id  
+							left join T_LOG_ACTIVITIESLOG  t2 on t2.credit_id=t.ID
+							where  t2.VISITFACTORYDATE >= cast(#BEGINDATE# as datetime)  and t2.VISITFACTORYDATE  < #TOMORROW#
+							group by t.decp_id
+						) t1 on tdc.DECP_ID=t1.decp_id
+					left join 
+					(
+						select COUNT(t2.credit_id) todayvisit,t.decp_id
+						from t_prjt_credit t
+						left join (
+							select credit_id,max(t.prcm_id) prcm_id,max(t.tprc_id) tprc_id,MAX(t.CREATE_TIME) CREATE_TIME 
+							from t_prjt_creditmemo t 
+							group by t.credit_id,t.status,t.state
+							having t.status=0 and t.state=1
+						) t5 on t.id=t5.credit_id  
+						left join T_LOG_ACTIVITIESLOG  t2 on t2.credit_id=t.ID
+						where ]]>
+			        <isEqual compareValue="0" property="type">
+		   		        cast(CONVERT(varchar(10), t2.VISITFACTORYDATE,120) as datetime) = #TODAY#
+		     	    </isEqual>
+		   		     <isEqual compareValue="1" property="type">
+		   		      DATEPART(month,t2.VISITFACTORYDATE)=DATEPART(month,cast(#TODAY# as datetime)) and DATEPART(year,t2.VISITFACTORYDATE)=DATEPART(year,cast(#TODAY# as datetime))
+		     	    </isEqual>
+			         
+				       
+		<![CDATA[ 
+			     	    group by t.decp_id
+					) t2 on tdc.DECP_ID=t2.decp_id
+					left join (
+					      select COUNT(t.ID) windone,t.decp_id
+				          from t_prjt_credit t
+						  left join (
+								select credit_id,max(t.prcm_id) prcm_id,max(t.tprc_id) tprc_id,MAX(t.CREATE_TIME) CREATE_TIME 
+								from t_prjt_creditmemo t 
+								group by t.credit_id,t.status,t.state
+								having t.status=0 and t.state=1
+					       ) t5 on t.id=t5.credit_id 
+							where t5.CREATE_TIME >= cast(#BEGINDATE# as datetime)  and t5.CREATE_TIME < #TOMORROW#
+							and t.WIND_STATE=1
+							 group by t.decp_id 
+					) t3 on tdc.DECP_ID=t3.decp_id
+					left join (
+					      select COUNT(t.ID) windcondition,t.decp_id
+				          from t_prjt_credit t
+						  left join (
+								select credit_id,max(t.prcm_id) prcm_id,max(t.tprc_id) tprc_id,MAX(t.CREATE_TIME) CREATE_TIME 
+								from t_prjt_creditmemo t 
+								group by t.credit_id,t.status,t.state
+								having t.status=0 and t.state=1
+					       ) t5 on t.id=t5.credit_id  
+							where t5.CREATE_TIME >= cast(#BEGINDATE# as datetime)  and t5.CREATE_TIME < #TOMORROW#
+							and t.WIND_STATE=3
+							 group by t.decp_id
+					) t4 on tdc.DECP_ID=t4.decp_id
+					left join (
+					      select COUNT(t.ID) windnot,t.decp_id
+				          from t_prjt_credit t
+						  left join (
+								select credit_id,max(t.prcm_id) prcm_id,max(t.tprc_id) tprc_id,MAX(t.CREATE_TIME) CREATE_TIME 
+								from t_prjt_creditmemo t 
+								group by t.credit_id,t.status,t.state
+								having t.status=0 and t.state=1
+					       ) t5 on t.id=t5.credit_id 
+					       where t5.CREATE_TIME >= cast(#BEGINDATE# as datetime)  and t5.CREATE_TIME < #TOMORROW#
+							and t.WIND_STATE=4
+							group by t.decp_id
+					) t5 on tdc.DECP_ID=t5.decp_id
+					left join (
+					    select COUNT(t.ID)  todaymemo,t.decp_id
+						from t_prjt_credit t
+						left join (
+							select credit_id,max(t.prcm_id) prcm_id,max(t.tprc_id) tprc_id,MAX(t.CREATE_TIME) CREATE_TIME 
+							from t_prjt_creditmemo t 
+							group by t.credit_id,t.status,t.state
+							having t.status=0 and t.state=1
+						) t5 on t.id=t5.credit_id  
+						where]]>
+			        <isEqual compareValue="0" property="type">
+		   		        cast(CONVERT(varchar(10), t5.CREATE_TIME,120) as datetime) = #TODAY#
+		     	    </isEqual>
+		   		     <isEqual compareValue="1" property="type">
+		   		      DATEPART(month,t5.CREATE_TIME)=DATEPART(month,cast(#TODAY# as datetime)) and DATEPART(year,t5.CREATE_TIME)=DATEPART(year,cast(#TODAY# as datetime))
+		     	    </isEqual>
+			         
+				       
+		<![CDATA[  
+			     	 		 group by t.decp_id
+					) t6  on tdc.DECP_ID=t6.decp_id
+					left join (
+					    select COUNT(t.ID)  memo,t.decp_id
+						from t_prjt_credit t
+						left join (
+							select credit_id,max(t.prcm_id) prcm_id,max(t.tprc_id) tprc_id,MAX(t.CREATE_TIME) CREATE_TIME 
+							from t_prjt_creditmemo t 
+							group by t.credit_id,t.status,t.state
+							having t.status=0 and t.state=1
+						) t5 on t.id=t5.credit_id  
+						where t5.CREATE_TIME >= cast(#BEGINDATE# as datetime)  and t5.CREATE_TIME < #TOMORROW#
+						 group by t.decp_id
+					) t7  on tdc.DECP_ID=t7.decp_id
+				
+					where tdc.STATUS=0 and tdc.DECP_ID=#id#
+					group by tdc.DECP_ID,tdc.DECP_NAME_CN,t1.visit,t2.todayvisit,t3.windone,t4.windcondition,t5.windnot,t6.todaymemo,t7.memo
+		
+		]]>
+	</select>
+	
+	
+</sqlMap>

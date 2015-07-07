@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="dunDaily">
+	<select id="queryDunDailyList" parameterClass="map"	resultClass="java.util.HashMap">
+			SELECT T1.RECP_STATE,
+			       T3.CUST_NAME,
+			       T3.CUST_CODE,
+			       T2.RECP_CODE,
+			       T1.SHOULD_PAYDATE,
+			       T1.DUN_MONTHPRICE,
+			       T1.DUN_DAY,
+			       T1.DUN_FINE,
+			       T1.DUN_FINEINTEREST,
+			       T1.DUN_MONTHPRICE + T1.DUN_FINE + T1.DUN_FINEINTEREST    TOTAL,
+			       T1.CREATE_DATE
+			FROM T_DUN_DAILY T1
+			LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECP_ID = T1.RECP_ID
+			LEFT JOIN T_CUST_CUSTOMER T3 ON T3.CUST_ID = T1.CUST_ID
+     	    LEFT JOIN T_RENT_CONTRACT T4 ON T4.RECT_ID = T1.RECT_ID
+			WHERE T1.STATUS  = 0 AND T2.STATUS = 0 AND T3.STATUS = 0 AND T4.STATUS = 0 			
+			 <dynamic>
+			<isEmpty prepend="and" property="create_date">
+		  		CONVERT(datetime,CONVERT(varchar,T1.CREATE_DATE,23)) = CONVERT(datetime,CONVERT(varchar,GETDATE(),23))
+		  	</isEmpty>
+			<isNotEmpty prepend="and" property="create_date">
+		  		CONVERT(datetime,CONVERT(varchar,T1.CREATE_DATE,23)) = CONVERT(datetime,CONVERT(varchar,#create_date#,23))
+		  	</isNotEmpty>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+			<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+		  	 	<![CDATA[ 
+		  	 		T4.SENSOR_ID = #s_employeeId#
+		  	 	]]>
+		  	 	-->
+		  	 	<![CDATA[ 
+		  	 	(T4.SENSOR_ID = #s_employeeId#
+		  	 	or T4.CLERK_ID = #s_employeeId#)
+		  	 	]]>
+	  		</isEqual>
+	  		<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = T4.SENSOR_ID)
+				]]>
+			</isEqual>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		  	<isNotEmpty prepend="and" property="content">
+		  		(T3.CUST_NAME like '%$content$%' or T2.RECP_CODE like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="sdun_day">
+		  		 T1.DUN_DAY&gt;= #sdun_day#
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="bdun_day">
+		  		T1.DUN_DAY&lt;= #bdun_day#
+		  	</isNotEmpty>
+			 </dynamic>
+			 ORDER BY T1.CREATE_DATE
+	</select>
+	<select id="queryDunRecordList" parameterClass="map"	resultClass="java.util.HashMap">
+		SELECT T2.CUST_NAME,
+		       T1.CALL_DATE,
+		       T1.ANSWERPHONE_NAME,
+		       T1.PHONE_NUMBER,
+		       T1.CALL_CONTENT,
+		       T1.FEEDBACK_CONTENT
+		FROM T_DUN_DUNNINGRECORD T1
+		LEFT JOIN T_CUST_CUSTOMER T2 ON T2.CUST_CODE = T1.CUST_CODE
+		WHERE T1.CUST_CODE = #CUST_CODE# AND T1.STATUS = 0 AND T2.STATUS = 0
+		ORDER BY T1.CALL_DATE
+	</select>
+	
+	<select id="selectIsSmsToDunTime" parameterClass="map"	resultClass="java.util.HashMap">
+				select t2.CUST_NAME,t2.CORP_COMPANY_EMAIL,t2.CORP_HEAD_SIGNATURE,
+				t2.CORP_HS_LINK_MODE,t1.LEASE_CODE,t.SHOULD_PAYDATE,t.DUN_DAY,t.DUN_MONTHPRICE from T_dun_daily t
+				left join T_RENT_CONTRACT t1 on t.RECT_ID=t1.RECT_ID and t1.STATUS=0
+				left join T_CUST_CUSTOMER t2 on t2.CUST_ID=t.CUST_ID and t1.STATUS=0
+				where t.STATUS=0 and DATEDIFF(day,t.CREATE_DATE,GETDATE())=0
+	</select>
+	
+	<select id="selectIsSmsToDunRentTime" parameterClass="map"	resultClass="java.util.HashMap">
+	<!-- <![CDATA[
+		select t3.RECT_ID,t3.LEASE_CODE,t2.RECP_CODE,t2.RECP_ID,t4.CUST_ID,t4.CUST_NAME,t5.LINK_MOBILE,t1.PAY_DATE,t1.IRR_MONTH_PRICE
+		from T_RENT_COLLECTIONDETAIL t1
+			left join T_RENT_COLLECTIONPLAN t2 on t1.RECP_ID=t2.RECP_ID and t2.STATUS=0
+			left join T_RENT_CONTRACT t3 on t2.RECT_ID=t3.RECT_ID and t3.STATUS=0
+			left join T_CUST_CUSTOMER t4 on t3.CUST_ID=t4.CUST_ID and t4.STATUS=0
+			left join t_cust_linkman t5 on t4.CUST_ID=t5.CUST_ID and t5.STATUS=0 and t5.LINK_TYPE=0
+		where t1.STATUS=0 and ISNULL(t1.REDUCE_LOSS_PRICE,0)+ISNULL(t1.REDUCE_OTHER_PRICE,0)+ISNULL(t1.REDUCE_OWN_PRICE,0)+ISNULL(t1.REDUCE_REN_PRICE,0)<=0
+		and isnull(t1.REDUCE_OWN_PRICE,0) < isnull(t1.IRR_MONTH_PRICE,0)
+		and DATEDIFF(day,t1.PAY_DATE,GETDATE())=#day# AND T2.RECP_STATUS = 0
+	]]> -->
+	<![CDATA[
+		select t3.RECT_ID,t3.LEASE_CODE,t2.RECP_CODE,t2.RECP_ID,t4.CUST_ID,t4.CUST_NAME,t5.LINK_MOBILE,
+			t1.PAY_DATE,
+			(t1.IRR_MONTH_PRICE + isnull(t1.VALUE_ADDED_TAX,0)) as IRR_MONTH_PRICE,
+			pc.CONTRACT_TYPE,u.MOBILE as user_MOBILE, 
+			DATEDIFF(day,t1.PAY_DATE,GETDATE()) as dun_day
+		from T_RENT_COLLECTIONDETAIL t1
+		  left join T_RENT_COLLECTIONPLAN t2 on t1.RECP_ID=t2.RECP_ID and t2.STATUS=0
+		  left join T_RENT_CONTRACT t3 on t2.RECT_ID=t3.RECT_ID and t3.STATUS=0
+		  left join T_PRJT_CREDIT pc on t3.PRCD_ID = pc.ID and pc.STATUS = 0
+		  left join T_USER_USER u on pc.SENSOR_ID = u.ID and u.STATUS = 0
+		  left join T_CUST_CUSTOMER t4 on t3.CUST_ID=t4.CUST_ID and t4.STATUS=0
+		  left join t_cust_linkman t5 on t4.CUST_ID=t5.CUST_ID and t5.STATUS=0 and t5.LINK_TYPE=0
+		where t1.STATUS=0 and ISNULL(t1.REDUCE_LOSS_PRICE,0)+ISNULL(t1.REDUCE_OTHER_PRICE,0)+ISNULL(t1.REDUCE_OWN_PRICE,0)+ISNULL(t1.REDUCE_REN_PRICE,0)<=0
+		  and isnull(t1.REDUCE_OWN_PRICE,0) < isnull(t1.IRR_MONTH_PRICE,0)
+		  and DATEDIFF(day,t1.PAY_DATE,GETDATE()) in $dun_day$
+		  AND T2.RECP_STATUS = 0
+		  and pc.PRODUCTION_TYPE = #production_type#
+	]]>
+	<!-- 
+		2012/02/03 Yang Yun 增加已拨款减和条件. 
+		2012/02/21 Yang Yun 修改已拨款减和条件,使用财务合同日.
+	-->
+	<![CDATA[
+		and pc.FINANCECONTRACT_DATE is not null
+		order by DATEDIFF(day,t1.PAY_DATE,GETDATE())
+	]]>
+	</select>
+	
+	<select id="selectIsSmsToDunRentTimeForCarBefore" parameterClass="map"	resultClass="java.util.HashMap">
+	<![CDATA[
+		select t3.RECT_ID,t3.LEASE_CODE,t2.RECP_CODE,t2.RECP_ID,t4.CUST_ID,t4.CUST_NAME,t5.LINK_MOBILE,
+			t1.PAY_DATE,
+			(t1.IRR_MONTH_PRICE + isnull(t1.VALUE_ADDED_TAX,0)) as IRR_MONTH_PRICE,
+			pc.CONTRACT_TYPE,u.MOBILE as user_MOBILE, 
+			DATEDIFF(day,t1.PAY_DATE,GETDATE()) as dun_day
+		from T_RENT_COLLECTIONDETAIL t1
+		  left join T_RENT_COLLECTIONPLAN t2 on t1.RECP_ID=t2.RECP_ID and t2.STATUS=0
+		  left join T_RENT_CONTRACT t3 on t2.RECT_ID=t3.RECT_ID and t3.STATUS=0
+		  left join T_PRJT_CREDIT pc on t3.PRCD_ID = pc.ID and pc.STATUS = 0
+		  left join T_USER_USER u on pc.SENSOR_ID = u.ID and u.STATUS = 0
+		  left join T_CUST_CUSTOMER t4 on t3.CUST_ID=t4.CUST_ID and t4.STATUS=0
+		  left join t_cust_linkman t5 on t4.CUST_ID=t5.CUST_ID and t5.STATUS=0 and t5.LINK_TYPE=0
+		where t1.STATUS=0
+		  and isnull(t1.REDUCE_OWN_PRICE,0) < isnull(t1.IRR_MONTH_PRICE,0) + isnull(t1.VALUE_ADDED_TAX,0)
+		  and DATEDIFF(day,t1.PAY_DATE,GETDATE()) in $dun_day$
+		  AND T2.RECP_STATUS = 0
+		  and pc.PRODUCTION_TYPE = #production_type#
+		and pc.FINANCECONTRACT_DATE is not null
+		order by DATEDIFF(day,t1.PAY_DATE,GETDATE())
+	]]>
+	</select>
+	
+	<!-- 乘用车逾期3个工作日发送逾期提醒 -->
+	<select id="selectIsSmsToDunRentTimeForCar"  parameterClass="map"	resultClass="java.util.HashMap">
+	<![CDATA[
+	select RECT_ID,LEASE_CODE,RECP_CODE,RECP_ID,CUST_ID,CUST_NAME,LINK_MOBILE,PAY_DATE,IRR_MONTH_PRICE,user_MOBILE,dun_day,count(0) as dun_days
+	from (
+		select t3.RECT_ID,t3.LEASE_CODE,t2.RECP_CODE,t2.RECP_ID,t4.CUST_ID,t4.CUST_NAME,t5.LINK_MOBILE,
+			t1.PAY_DATE,
+			(t1.IRR_MONTH_PRICE + isnull(t1.VALUE_ADDED_TAX,0)) as IRR_MONTH_PRICE,
+			pc.CONTRACT_TYPE,u.MOBILE as user_MOBILE, 
+			DATEDIFF(day,t1.PAY_DATE,GETDATE()) as dun_day,tt.wd
+		from T_RENT_COLLECTIONDETAIL t1
+		  left join T_RENT_COLLECTIONPLAN t2 on t1.RECP_ID=t2.RECP_ID and t2.STATUS=0
+		  left join T_RENT_CONTRACT t3 on t2.RECT_ID=t3.RECT_ID and t3.STATUS=0
+		  left join T_PRJT_CREDIT pc on t3.PRCD_ID = pc.ID and pc.STATUS = 0
+		  left join T_USER_USER u on pc.SENSOR_ID = u.ID and u.STATUS = 0
+		  left join T_CUST_CUSTOMER t4 on t3.CUST_ID=t4.CUST_ID and t4.STATUS=0
+		  left join t_cust_linkman t5 on t4.CUST_ID=t5.CUST_ID and t5.STATUS=0 and t5.LINK_TYPE=0     
+      left join ( 
+        select dt.DATE wd
+        from T_DAY_TYPE dt 
+        where dt.DAY_TYPE ='WD'  and dt.DATE < cast(getdate() as date)
+      ) tt on tt.wd >= t1.PAY_DATE 
+		  where t1.STATUS=0
+		  and isnull(t1.REDUCE_OWN_PRICE,0) < isnull(t1.IRR_MONTH_PRICE,0)+ isnull(t1.VALUE_ADDED_TAX,0)
+		  AND T2.RECP_STATUS = 0
+		  and pc.PRODUCTION_TYPE = #production_type# and t1.PAY_DATE <cast(getdate() as date)
+      and pc.FINANCECONTRACT_DATE is not null		 
+      ) x
+      group by RECT_ID,LEASE_CODE,RECP_CODE,RECP_ID,CUST_ID,CUST_NAME,LINK_MOBILE,PAY_DATE,IRR_MONTH_PRICE,user_MOBILE,dun_day
+      having count(0) =#dun_days#
+    order by DATEDIFF(day,x.PAY_DATE,GETDATE())
+	]]>
+	
+	</select>
+</sqlMap>

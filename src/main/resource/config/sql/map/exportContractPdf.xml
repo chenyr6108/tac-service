@@ -1,0 +1,1276 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="exportContractPdf">
+ 	<select id="queryContractByPrcdId" parameterClass="map" resultClass="java.lang.Integer">
+ 		<![CDATA[
+ 		SELECT PUCT_ID,
+		       RECT_ID,
+		       PRCD_ID,
+		       SUPL_ID,
+		       PUCT_CODE,
+		       TOTAL,
+		       DELIVERY_DATE,
+		       DELIVERY_ADDRESS,
+		       DELIVERY_TYPE,
+		       UNLOAD_TYPE,
+		       RECEIVING_UNIT,
+		       EQUPMENT_ADDRESS,
+		       LINKMAN,
+		       LINKMAN_MOBILE,
+		       LINKMAN_TEL,
+		       SELLER_UNIT_NAME,
+		       SELLER_UNIT_ADDR,
+		       SELLER_LEGAL_REPR,
+		       SELLER_AGENT,
+		       SELLER_PHONE,
+		       SELLER_FAX,
+		       SELLER_BANK_ACCO,
+		       SELLER_ACCOUNT,
+		       SELLER_CODE,
+		       BUYER_UNIT_NAME,
+		       BUYER_UNIT_ADDR,
+		       BUYER_LEGAL_REPR,
+		       BUYER_AGENT,
+		       BUYER_PHONE,
+		       BUYER_FAX,
+		       BUYER_BANK_ACCO,
+		       BUYER_ACCOUNT,
+		       BUYER_UNIT_TAX,
+		       BUYER_CODE,
+		       BUYER_IDCARD,
+		       BUYER_HOME_ADDR,
+		       CUST_UNIT_NAME,
+		       CUST_UNIT_ADDR,
+		       CUST_LEGAL_REPR,
+		       CUST_AGENT,
+		       CUST_PHONE,
+		       CUST_FAX,
+		       CUST_BANK_ACCO,
+		       CUST_ACCOUNT,
+		       CUST_UNIT_TAX,
+		       CUST_CODE,
+		       CUST_IDCARD,
+		       CUST_HOME_ADDR,
+		       SIGN_ADDRESS,
+		       SIGN_DATE
+		  FROM T_PUCS_CONTRACT T
+		 WHERE T.PUCT_ID = #PUCT_ID#
+ 		]]> 
+ 	</select>
+
+	<!-- 导出购销合同时查询相应的合同 -->
+	<statement id="queryContractByPrcdIds" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+			SELECT PUCT_ID,
+		       RECT_ID,
+		       PRCD_ID,
+		       SUPL_ID,
+		       PUCT_CODE,
+		       TOTAL,
+		       DELIVERY_DATE,
+		       DELIVERY_ADDRESS,
+		       DELIVERY_TYPE,
+		       UNLOAD_TYPE,
+		       RECEIVING_UNIT,
+		       EQUPMENT_ADDRESS,
+		       LINKMAN,
+		       LINKMAN_MOBILE,
+		       LINKMAN_TEL,
+		       SELLER_UNIT_NAME,
+		       SELLER_UNIT_ADDR,
+		       SELLER_LEGAL_REPR,
+		       SELLER_AGENT,
+		       SELLER_PHONE,
+		       SELLER_FAX,
+		       SELLER_BANK_ACCO,
+		       SELLER_ACCOUNT,
+		       SELLER_CODE,
+		       BUYER_UNIT_NAME,
+		       BUYER_UNIT_ADDR,
+		       BUYER_LEGAL_REPR,
+		       BUYER_AGENT,
+		       BUYER_PHONE,
+		       BUYER_FAX,
+		       BUYER_BANK_ACCO,
+		       BUYER_ACCOUNT,
+		       BUYER_UNIT_TAX,
+		       BUYER_CODE,
+		       BUYER_IDCARD,
+		       BUYER_HOME_ADDR,
+		       CUST_UNIT_NAME,
+		       CUST_UNIT_ADDR,
+		       CUST_LEGAL_REPR,
+		       CUST_AGENT,
+		       CUST_PHONE,
+		       CUST_FAX,
+		       CUST_BANK_ACCO,
+		       CUST_ACCOUNT,
+		       CUST_UNIT_TAX,
+		       CUST_CODE,
+		       CUST_IDCARD,
+		       CUST_HOME_ADDR,
+		       SIGN_ADDRESS,
+		       SIGN_DATE
+		  FROM T_PUCS_CONTRACT T
+		 WHERE T.PUCT_ID = #PUCT_ID#
+	]]>
+	</statement>
+    <!-- 查找购销合同的类型,合同编号以及签订日期 -->
+	<statement id="queryContractTypeByPrcdId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT		tpct.PUCT_ID PUCT_ID,
+					tpc.LEASE_CODE LEASE_CODE,
+					trct.LESSOR_TIME LESSOR_TIME,
+					tpc.CONTRACT_TYPE CONTRACT_TYPE	,
+					tpct.EQUPMENT_ADDRESS DELIVERY_ADDRESS	       
+		FROM T_PUCS_CONTRACT tpct
+		left join dbo.T_PRJT_CREDIT tpc
+		on tpct.PRCD_ID = tpc.ID
+		left join T_RENT_CONTRACT trct
+		on tpct.PRCD_ID = tpc.ID and tpc.ID=trct.PRCD_ID
+		WHERE tpct.PUCT_ID = #PUCT_ID#
+	]]>
+	</statement>
+	<statement id="queryPucsContractFlagByRectId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT COUNT(T1.RECD_ID)-COUNT(T3.PUCD_ID) AS SHORTFALL
+		  FROM T_RENT_CONTRACTDETAIL T1
+		  LEFT JOIN T_EQMT_EQUIPMENT T2 ON T2.EQMT_ID=T1.EQMT_ID
+		  LEFT JOIN T_PUCS_CONTRACTDETAIL T3 ON T3.EQMT_ID = T2.EQMT_ID
+		 WHERE T1.STATUS = 0
+		   AND T2.STATUS = 0
+		   AND T1.RECT_ID = #RECT_ID#
+	]]>
+	</statement>
+		<statement id="readPucsContractPlan" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT PUPP_ID,
+		       PUCT_ID,
+		       FIRST_PRICE_RATE,
+		       FIRST_PRICE,
+		       FIRST_PRICE_3DAYS,
+		       FIRST_PRICE_15DAYS,
+		       LAST_PRICE_RATE,
+		       LAST_PRICE,
+		       CUST_PRICE_RATE,
+		       CUST_PRICE,
+		       CUST_PRICE_3DAYS,
+		       CUST_PRICE_15DAYS
+		  FROM T_PUCS_PAYMENTPLAN T
+		 WHERE T.STATUS=0 AND T.PUCT_ID = #PUCT_ID#
+	]]>
+	</statement>
+	<statement id="readPucsContractDetail" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T1.PUCD_ID PUCD_ID,
+			   T1.EQMT_ID EQMT_ID,
+		       T1.THING_KIND THING_KIND,
+		       T1.THING_NAME THING_NAME,
+		       T1.MODEL_SPEC MODEL_SPEC,
+		       T1.BRAND BRAND,
+		       T1.UNIT_PRICE UNIT_PRICE,
+		       T1.AMOUNT AMOUNT,
+		       T1.UNIT UNIT,
+		       T1.STAYBUY_PRICE STAYBUY_PRICE,
+		       T1.MEMO MEMO
+		  FROM T_PUCS_CONTRACTDETAIL T1
+		 WHERE T1.STATUS = 0
+		   AND T1.PUCT_ID = #PUCT_ID#
+	]]>
+	</statement>
+	<!-- 支付表 -->
+	<statement id="queryPaylistByRectId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T.RECP_ID, T.RECP_CODE, T.CREATE_TIME
+		  FROM T_RENT_COLLECTIONPLAN T
+		 WHERE T.STATUS = 0
+		   AND T.RECT_ID =#RECT_ID#
+	]]>
+	</statement>
+	<!-- 导出起租检测书 -->
+	<statement id="queryCreditByCreditId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT DISTINCT t1.CUST_NAME CUST_NAME,
+			   t.CONTRACT_TYPE CONTRACT_TYPE,
+			   MAX(t2.BRAND) BRAND,
+			   t.LEASE_CODE LEASE_CODE 
+		from t_prjt_credit t
+		left join T_CUST_CUSTOMER t1 on t.CUST_ID=t1.CUST_ID
+		left join T_PRJT_CREDITEQUIPMENT t2 on t.ID=t2.CREDIT_ID
+		where t.ID= #credit_id#
+		GROUP BY 
+			t1.CUST_NAME,
+			t.CONTRACT_TYPE,
+			t.LEASE_CODE  
+	]]>
+	</statement>
+	
+	<!-- 导出密码作业通知说明书 -->
+	<statement id="queryPassWordByCreditId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT t.CREATE_DATE CREATE_DATE,
+			   t.CONTRACT_TYPE CONTRACT_TYPE,
+			   t.LEASE_CODE LEASE_CODE ,
+			   t1.RECT_ID RECT_ID,
+			   t1.CUST_NAME CUST_NAME,
+			   t1.CUST_ADDRESS CUST_ADDRESS,
+			   t2.THING_NAME THING_NAME,
+			   t2.MODEL_SPEC MODEL_SPEC,			   
+			   t2.BRAND BRAND,	
+			   t.credit_code CREDIT_CO,
+			   t2.THING_KIND THING_KIND
+			   
+			   	   
+		from t_prjt_credit t
+		left join T_RENT_CONTRACT t1 on t.ID=t1.PRCD_ID
+		left join T_RENT_CONTRACTDETAIL t2 on t1.RECT_ID=t2.RECT_ID
+		where t.ID= #credit_id#
+	]]>
+	</statement>
+	
+	
+	
+	<!-- 导出租赁物验收证明暨起租通知书 找出对应的合同以及租赁物-->
+	<statement id="queryLeaseHoldByCreditId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT t1.LESSOR_TIME CREATE_DATE,
+			   t.CONTRACT_TYPE CONTRACT_TYPE,
+			   t.LEASE_CODE LEASE_CODE ,
+			   t1.RECT_ID RECT_ID,
+			   t1.CUST_NAME CUST_NAME,
+			   t1.CUST_ADDRESS CUST_ADDRESS,
+			   t2.THING_NAME THING_NAME,
+			   t2.MODEL_SPEC MODEL_SPEC,			   
+			   t2.BRAND BRAND,
+			   t2.UNIT UNIT,
+			   t2.AMOUNT AMOUNT,
+			   t2.THING_KIND,
+			   t2.THING_NUMBER NAME,
+			   tpcs.EQUPMENT_ADDRESS,t2.CAR_COLOR,t2.CAR_RIGSTER_NUMBER,t2.CAR_ID_NUMBER,t2.CAR_ENGINE_NUMBER,t2.CAR_IMPORT_DOMESTIC	   
+		from t_prjt_credit t
+		left join T_RENT_CONTRACT t1 on t.ID=t1.PRCD_ID
+		left join T_RENT_CONTRACTDETAIL t2 on t1.RECT_ID=t2.RECT_ID
+		left join t_prjt_creditscheme tpcs on tpcs.CREDIT_ID = t.ID
+		where t.ID= #credit_id#
+	]]>
+	</statement>
+		<!-- 导出租赁物验收证明暨起租通知书 找出对应的报告以及租赁物-->
+		<!-- Modify by Michael 2012 4-18 增加重车相关资讯 -->
+	<statement id="queryLeaseHoldFromCreditByCreditId" parameterClass="map" resultClass="java.util.HashMap">
+	<!-- 
+	<![CDATA[
+		SELECT 
+			   t.CONTRACT_TYPE CONTRACT_TYPE,
+			   t.LEASE_CODE LEASE_CODE ,
+			   t2.CUST_NAME CUST_NAME,
+			   t2.CORP_HS_HOME_ADDRESS CUST_ADDRESS,
+			   t1.THING_NAME THING_NAME,
+			   t1.MODEL_SPEC MODEL_SPEC,			   
+			   t1.BRAND BRAND,
+			   t1.UNIT UNIT,
+			   t1.AMOUNT AMOUNT,
+			   t1.THING_KIND,
+			   '' name,
+			   tpcs.START_DATE,
+			   tpcs.EQUPMENT_ADDRESS	   
+		from t_prjt_credit t
+		left join T_PRJT_CREDITEQUIPMENT t1 on t.ID=t1.CREDIT_ID
+		left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+		left join t_prjt_creditscheme tpcs on tpcs.CREDIT_ID = t.ID
+		where t.ID= #credit_id#
+	]]>
+	 -->
+	 <![CDATA[
+	 	SELECT 
+			   t.CONTRACT_TYPE CONTRACT_TYPE,
+			   t.LEASE_CODE LEASE_CODE ,
+			   t2.CUST_NAME CUST_NAME,
+			   t2.CORP_HS_HOME_ADDRESS CUST_ADDRESS,
+			   t6.NAME THING_NAME,
+			   T5.NAME MODEL_SPEC,			   
+			   t1.BRAND BRAND,
+			   t1.UNIT UNIT,
+			   t1.AMOUNT AMOUNT,
+			   T7.NAME THING_KIND,
+			   '' name,
+			   tpcs.START_DATE,
+			   tpcs.EQUPMENT_ADDRESS,
+	  		   tpcs.LEASE_TERM	LEASE_PERIOD,
+	  		   t2.CORP_REGISTE_ADDRESS,
+	  		   T7.NAME TYPE_NAME,
+	  		   T7.Manufacturer,tpcs.LEASE_TOPRIC,t1.CAR_COLOR,t1.CAR_RIGSTER_NUMBER,t1.CAR_ID_NUMBER,t1.CAR_ENGINE_NUMBER,t1.CAR_IMPORT_DOMESTIC
+		from t_prjt_credit t
+		left join T_PRJT_CREDITEQUIPMENT t1 on t.ID=t1.CREDIT_ID 
+		left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+		left join t_prjt_creditscheme tpcs on tpcs.CREDIT_ID = t.ID
+		LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID = t1.SUEQ_ID and T4.STATUS=0
+		LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T4.PRODUCT_ID and T5.STATUS=0
+		LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID AND T6.PRDC_KIND_STATUS = 0
+		LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = T6.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+		where t.ID= #credit_id#
+	 ]]>
+	</statement>
+	
+	<statement id="queryPasswordNoteByCreditId" parameterClass="map" resultClass="java.util.HashMap">	
+		 <![CDATA[
+	 	SELECT 
+			   t.CONTRACT_TYPE CONTRACT_TYPE,
+			   t.LEASE_CODE LEASE_CODE ,
+			   t2.CUST_NAME CUST_NAME,
+			   t2.CORP_HS_HOME_ADDRESS CUST_ADDRESS,
+			   t6.NAME THING_NAME,
+			   T5.NAME MODEL_SPEC,			   
+			   t1.BRAND BRAND,
+			   t1.UNIT UNIT,
+			   t1.AMOUNT AMOUNT,
+			   T7.NAME THING_KIND,
+			   '' name,
+			   tpcs.START_DATE,
+			   tpcs.EQUPMENT_ADDRESS,
+	  		   tpcs.LEASE_TERM	LEASE_PERIOD,
+	  		   t2.CORP_REGISTE_ADDRESS,
+	  		   T7.NAME TYPE_NAME,
+	  		   T7.Manufacturer,tpcs.LEASE_TOPRIC,t1.CAR_COLOR,t1.CAR_RIGSTER_NUMBER,t1.CAR_ID_NUMBER,t1.CAR_ENGINE_NUMBER,t1.CAR_IMPORT_DOMESTIC
+		from t_prjt_credit t
+		left join T_PRJT_CREDITEQUIPMENT t1 on t.ID=t1.CREDIT_ID and t1.LOCK_CODE<>4
+		left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+		left join t_prjt_creditscheme tpcs on tpcs.CREDIT_ID = t.ID
+		LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID = t1.SUEQ_ID and T4.STATUS=0
+		LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T4.PRODUCT_ID and T5.STATUS=0
+		LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID AND T6.PRDC_KIND_STATUS = 0
+		LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = T6.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+		where t.ID= #credit_id#
+	 ]]>
+	</statement>
+	
+		<!-- 导出付款指示,两个合同表的信息-->
+		<!-- modify by Michael 2012 02/06 需要加上我司入供应商税金 -->
+	<statement id="queryTwoContractByPrcdId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		select top 1	T.PUCT_CODE PUCT_CODE,
+			T.SELLER_UNIT_NAME SELLER_UNIT_NAME,					
+			T1.CONTRACT_TYPE CONTRACT_TYPE,
+			T2.LEASE_CODE LEASE_CODE,
+			T2.LESSOR_TIME LESSOR_TIME,
+			T2.LESSEE_TIME LESSEE_TIME,
+			T2.CUST_NAME CUST_NAME ,
+			t7.BANK_ACCOUNT BANK_ACCOUNT,
+			t7.OPEN_ACCOUNT_BANK OPEN_ACCOUNT_BANK,
+			(T2.LEASE_TOPRIC - t3.PLEDGE_AVE_PRICE)+ (T3.PLEDGE_ENTER_MCTOAG+T3.PLEDGE_ENTER_MCTOAGRATE) AS MONEY 
+		from T_PUCS_CONTRACT T
+			left join T_PRJT_CREDIT T1
+			on T.PRCD_ID=T1.ID 
+			left join T_RENT_CONTRACT T2
+			on T1.ID=T2.PRCD_ID
+			left join T_RENT_CONTRACTSCHEMA t3
+		on t3.RECT_ID = T.RECT_ID
+		left join T_RENT_CONTRACTDETAIL t4 on t4.RECT_ID=T2.RECT_ID
+		left join T_EQMT_EQUIPMENT t5 on t5.EQMT_ID=t4.EQMT_ID
+		left join T_SUPL_EQUIPMENT t6 on t6.SUEQ_ID=t5.SUEQ_ID
+		left join T_SUPL_SUPPLIER t7 on t7.ID=t6.SUPPLIER_ID
+		where  T.PUCT_ID =#PUCT_ID#
+	]]>
+	</statement>
+	
+		<!-- 导出付款指示,两个合同表的信息  没有生成购销合同的  但生成了合同的 -->
+	<!-- Modify By Michael 2011 12/27 修正Money金额计算错误，加上我司入供应商税金 -->
+<statement id="queryTwoContractByPrcdIdNOT1" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		   
+      select top 1	T.PUCT_CODE PUCT_CODE,
+			T.SELLER_UNIT_NAME SELLER_UNIT_NAME,					
+			T1.CONTRACT_TYPE CONTRACT_TYPE,
+			T2.LEASE_CODE LEASE_CODE,
+			T2.LESSOR_TIME LESSOR_TIME,
+			T2.LESSEE_TIME LESSEE_TIME,
+			T2.CUST_NAME CUST_NAME ,
+			t7.BANK_ACCOUNT BANK_ACCOUNT,
+			t7.NAME NAME,
+			t7.OPEN_ACCOUNT_BANK OPEN_ACCOUNT_BANK,
+			ROUND((T2.LEASE_TOPRIC - isnull(t3.PLEDGE_AVE_PRICE,0))+ isnull(T3.PLEDGE_ENTER_MCTOAG,0)+isnull(t3.PLEDGE_ENTER_MCTOAGRATE,0),0) AS MONEY   
+       from  T_PRJT_CREDIT t1
+       left join T_PUCS_CONTRACT t on  T.PRCD_ID=T1.ID 
+       left join T_RENT_CONTRACT t2 on T1.ID=T2.PRCD_ID
+       left join T_RENT_CONTRACTSCHEMA t3 on t3.RECT_ID = T2.RECT_ID 
+       left join T_RENT_CONTRACTDETAIL t4 on t4.RECT_ID=T2.RECT_ID
+       left join T_EQMT_EQUIPMENT t5 on t5.EQMT_ID=t4.EQMT_ID
+	   left join T_SUPL_EQUIPMENT t6 on t6.SUEQ_ID=t5.SUEQ_ID
+	   left join T_SUPL_SUPPLIER t7 on t7.ID=t6.SUPPLIER_ID
+	   where   t1.ID=#PRCD_ID#
+	]]>
+	</statement>
+	
+			<!-- 导出付款指示,两个合同表的信息  没有生成购销合同的  也没有生成了合同 -->
+		<!-- Modify By Michael 2011 12/27 修正Money金额计算错误，加上我司入供应商税金 -->
+	<statement id="queryTwoContractByPrcdIdNOT2" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		   
+select 	top 1    T.PUCT_CODE PUCT_CODE,
+			T4.BRAND SELLER_UNIT_NAME,					
+			T1.CONTRACT_TYPE CONTRACT_TYPE,
+			t88.BANK_ACCOUNT BANK_ACCOUNT,
+			t88.OPEN_ACCOUNT_BANK OPEN_ACCOUNT_BANK,
+			t88.NAME NAME,
+			T3.CUST_NAME CUST_NAME ,	
+			T2.LESSOR_TIME LESSOR_TIME,
+			T2.LESSEE_TIME LESSEE_TIME,
+			T1.LEASE_CODE LEASE_CODE,
+			ROUND((T8.LEASE_TOPRIC - isnull(t8.PLEDGE_AVE_PRICE,0))+ isnull(T8.PLEDGE_ENTER_MCTOAG,0)+isnull(T8.PLEDGE_ENTER_MCTOAGRATE,0),0) AS MONEY  
+       from  T_PRJT_CREDIT t1
+      	left join T_PRJT_CREDITSCHEME t8  on t8.CREDIT_ID=T1.ID  
+       left join T_PRJT_CREDITEQUIPMENT  t4 on t4.CREDIT_ID=T1.ID
+       	   left join T_SUPL_EQUIPMENT t77 on t4.SUEQ_ID=t77.SUEQ_ID
+	   left join T_SUPL_SUPPLIER t88 on t77.SUPPLIER_ID=t88.ID
+	   left join T_PUCS_CONTRACT t on  T.PRCD_ID=T1.ID
+	   LEFT JOIN T_CUST_CUSTOMER T3 ON T1.CUST_ID = T3.CUST_ID
+	   left join T_RENT_CONTRACT t2 on t2.PRCD_ID=t1.ID
+	   where    t1.ID=#PRCD_ID# 
+	]]>
+	</statement>
+	<statement id="queryTwoContractByReportId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		select 	T.PUCT_CODE PUCT_CODE,
+				T.PUCT_ID PUCT_ID,
+				T.SELLER_UNIT_NAME SELLER_UNIT_NAME,				
+				T1.CONTRACT_TYPE CONTRACT_TYPE,
+				T2.LEASE_CODE LEASE_CODE,
+				T2.LESSOR_TIME LESSOR_TIME,
+				T2.LESSEE_TIME LESSEE_TIME,
+				T2.CUST_NAME CUST_NAME
+		from T_PUCS_CONTRACT T
+		left join T_PRJT_CREDIT T1
+		on T.PRCD_ID=T1.ID 
+		left join T_RENT_CONTRACT T2
+		on T1.ID=T2.PRCD_ID
+		where T1.ID =#credit_id#
+	]]>
+	</statement>
+
+	<!-- 发货 -->
+	<statement id="queryDeliveryNoticesByRectId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T3.DELV_ID, T3.DELV_CODE, T3.DELIVERY_DATE CREATE_TIME 
+			  FROM T_RENT_CONTRACTDETAIL T1
+			  LEFT JOIN T_DELV_DELIVERYLOG2EQUIP T2 ON T2.EQMT_ID = T1.EQMT_ID
+			  LEFT JOIN T_DELV_DELIVERYLOG T3 ON T3.DELV_ID = T2.DELV_ID
+			 WHERE T1.STATUS = 0
+			   AND T2.STATUS = 0
+			   AND T3.STATUS = 0
+			   AND T1.RECT_ID = #RECT_ID#
+	]]>
+	</statement>
+	<!-- 付款 -->
+	<statement id="queryPaymentsByRectId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T3.PUPL_ID, T3.CREATE_TIME, T3.PUPL_CODE
+		  FROM T_PUCS_CONTRACT T1
+		  LEFT JOIN T_PUCS_PAYMENTPLAN T2 ON T2.PUCT_ID = T1.PUCT_ID
+		  LEFT JOIN T_PUCS_PAYMENTLOG T3 ON T3.PUPP_ID = T2.PUPP_ID
+		 WHERE T1.RECT_ID = #RECT_ID#
+		   AND T1.STATUS = 0
+		   AND T2.STATUS = 0
+		   AND T3.STATUS = 0
+	]]>
+	</statement>
+	<statement id="queryUploadByRectId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+				select t.syup_id,
+				       t.create_time,
+				       t.file_name,
+				       replace(t.path,'\','\\') path 
+				from t_sys_upload  t
+				where t.parent_id = #RECT_ID#
+	]]>
+	</statement>
+
+
+	<!-- 添加备注信息 -->
+	<insert id="insertMemo"   parameterClass="map">
+			insert into t_rent_contractremark
+			  (
+			   create_user_id,
+			   prcd_id,
+			   remark)
+			values
+			  (
+			   #s_employeeId#,
+			   #PRCD_ID#,
+			   #cont#)
+	</insert>
+
+	<!-- 最新备注 -->
+	<select id="selectNewMemo" parameterClass="map" resultClass="hashmap">
+		select top 1 * from (
+		select trcrk.recr_id,
+		       trcrk.create_time CREATE_TIME,
+		       trcrk.create_user_id CREATE_USER_ID,
+		       trcrk.modify_time,
+		       trcrk.modify_user_id,
+		       trcrk.status,
+		       trcrk.type,
+		       trcrk.rect_id,
+		       trcrk.prcd_id,
+		       trcrk.remark  REMARK,
+           	   tuu.name      NAME
+		  from t_rent_contractremark trcrk
+      	  left join t_user_user tuu ON tuu.id=trcrk.create_user_id
+		  ) c
+		  where  c.prcd_id=#PRCD_ID# 
+		   order by  c.create_time desc
+	</select>	
+	<!-- 更多备注 -->
+	<select id="selectMemo" parameterClass="map" resultClass="hashmap">
+		select * from (
+		select trcrk.recr_id,
+		       trcrk.create_time CREATE_TIME,
+		       trcrk.create_user_id CREATE_USER_ID,
+		       trcrk.modify_time,
+		       trcrk.modify_user_id,
+		       trcrk.status,
+		       trcrk.type,
+		       trcrk.rect_id,
+		       trcrk.prcd_id,
+		       trcrk.remark  REMARK,
+           	   tuu.name      NAME
+		  from t_rent_contractremark trcrk
+      	  left join t_user_user tuu ON tuu.id=trcrk.create_user_id
+		  ) c
+		  where  c.prcd_id=#PRCD_ID# 
+		  order by  c.create_time desc
+	</select>	
+		<select id="selectRentEquipment" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t1.eqmt_id,t2.model_spec, t2.thing_name, t2.amount, t2.create_time,t1.recp_id
+			  from t_rent_contractdetail t1
+			  left join t_eqmt_equipment t2 on t2.eqmt_id = t1.eqmt_id
+			 where t1.rect_id = #RECT_ID#
+			   and t1.status = 0
+		]]>
+	</select>
+	<select id="selectRectInfoByPrcdId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+	select top 1 t5.NAME APPLYNAME,
+	   t5.Licence_address CORPORATION_ADDRESS,
+	   t5.COMPANY_CORPORATION COMPANY_CORPORATION,
+	   t5.LINKMAN_NAME LINKMAN_NAME,
+	   t5.LINKMAN_TELPHONE LINKMAN_TELPHONE,
+	   t5.LINKMAN_MOBILE LINKMAN_TELPHONE,
+	   t5.LINKMAN_ZIP LINKMAN_ZIP,
+	   t6.CUST_NAME CUST_NAME,
+	   t1.LESSEE_TIME CREATE_TIME,
+	   t1.LEASE_CODE LEASE_CODE,t5.LINKMAN_FAX	   
+	from T_RENT_CONTRACT t1
+	left join T_RENT_CONTRACTDETAIL t2 on t2.RECT_ID=t1.RECT_ID
+	left join T_EQMT_EQUIPMENT t3 on t3.EQMT_ID=t2.EQMT_ID
+	left join T_SUPL_EQUIPMENT t4 on t4.SUEQ_ID=t3.SUEQ_ID
+	left join T_SUPL_SUPPLIER t5 on t5.ID=t4.SUPPLIER_ID
+	left join T_CUST_CUSTOMER t6 on t6.CUST_ID=t1.CUST_ID
+	where t1.PRCD_ID=#PRCD_ID#
+		]]>
+	</select>
+		<select id="selectCreditInfoByPrcdId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+	select top 1 t5.NAME APPLYNAME,
+	   t5.Licence_address CORPORATION_ADDRESS,
+	   t5.COMPANY_CORPORATION COMPANY_CORPORATION,
+	   t5.LINKMAN_NAME LINKMAN_NAME,
+	   t5.LINKMAN_TELPHONE LINKMAN_TELPHONE,
+	   t5.LINKMAN_MOBILE LINKMAN_TELPHONE,
+	   t5.LINKMAN_ZIP LINKMAN_ZIP,
+	   t6.CUST_NAME CUST_NAME,
+	   t1.CREDIT_CODE CREDIT_CODE,
+	   t1.LEASE_CODE LEASE_CODE,t5.LINKMAN_FAX
+	   
+	from 
+	T_PRJT_CREDIT t1
+	left join T_PRJT_CREDITEQUIPMENT t2 on t2.CREDIT_ID=t1.ID
+	left join T_PRJT_CREDITSCHEME t3 on t3.CREDIT_ID=t1.ID
+	left join T_SUPL_EQUIPMENT t4 on t4.SUEQ_ID=t2.SUEQ_ID
+	left join T_SUPL_SUPPLIER t5 on t5.ID=t4.SUPPLIER_ID
+	left join T_CUST_CUSTOMER t6 on t6.CUST_ID=t1.CUST_ID
+	where t1.ID=#PRCD_ID#
+		]]>
+	</select>
+	<select id="queryCreditInfoByCreditIds" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		select top 1
+	   		t6.CUST_NAME CUST_UNIT_NAME,
+	   		t6.CORP_HEAD_SIGNATURE BUYER_AGENT,
+	   		t6.CORP_HS_HOME_ADDRESS BUYER_UNIT_ADDR,
+	   		t6.NATU_FAX BUYER_PHONE,
+	   		T6.CORP_REGISTE_ADDRESS REGISTERED_OFFICE_ADDRESS,
+	   		t2.TELEPHONE,
+	   		t2.FAX
+		from 
+			T_PRJT_CREDIT t1
+			left join T_CUST_CUSTOMER t6 on t6.CUST_ID=t1.CUST_ID
+			LEFT JOIN T_PRJT_CREDITCUSTOMERCORP T2 ON  T2.CREDIT_ID = T1.ID
+			where t1.ID=#PRCD_ID#
+		]]>
+	</select>
+	
+		<select id="queryCreditTypeByPrcdId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		SELECT 
+			tpct.CONTRACT_TYPE CONTRACT_TYPE,
+			tpct.LEASE_CODE LEASE_CODE,
+			T2.EQUPMENT_ADDRESS DELIVERY_ADDRESS,LEASE_TOPRIC		       
+		FROM T_PRJT_CREDIT tpct
+		LEFT JOIN T_PRJT_CREDITSCHEME T2 ON T2.CREDIT_ID=tpct.ID
+		WHERE tpct.ID = #PRCD_ID#
+		]]>
+	</select>
+	
+	<select id="readCreditInfoDetail" parameterClass="map" resultClass="java.util.HashMap">
+	<!-- 
+		<![CDATA[
+		SELECT 
+		       T1.THING_KIND THING_KIND,
+		       T1.THING_NAME THING_NAME,
+		       T1.MODEL_SPEC MODEL_SPEC,
+		       T1.BRAND BRAND,
+		       T1.UNIT_PRICE UNIT_PRICE,
+		       count(T1.AMOUNT) AMOUNT,
+		       T1.UNIT UNIT,
+		       T1.STAYBUY_PRICE STAYBUY_PRICE
+		  FROM T_PRJT_CREDIT T2
+		  LEFT JOIN T_PRJT_CREDITEQUIPMENT T1 on T2.ID=T1.CREDIT_ID
+		  LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.SUEQ_ID=T1.SUEQ_ID
+		  LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.ID=T3.SUPPLIER_ID
+		 WHERE T2.STATUS = 0
+		   AND T2.ID = #PRCD_ID#
+		   
+		   group by T1.THING_KIND,
+		       T1.THING_NAME,
+		       T1.MODEL_SPEC,
+		       T1.BRAND,
+		       T1.UNIT_PRICE,
+		       T1.AMOUNT,
+		       T1.UNIT,
+		       T1.STAYBUY_PRICE 
+		]]>
+		 -->
+		 <![CDATA[
+		SELECT 
+		       T1.THING_KIND THING_KIND,
+		       T6.NAME THING_NAME,
+		       T5.NAME MODEL_SPEC,
+		       T1.BRAND BRAND,
+		       T1.UNIT_PRICE UNIT_PRICE,
+		       count(T1.AMOUNT) AMOUNT,
+		       T1.UNIT UNIT,
+		       T1.STAYBUY_PRICE STAYBUY_PRICE,
+		       T7.Manufacturer,
+		       T7.NAME TYPE_NAME
+		  FROM T_PRJT_CREDIT T2
+		  LEFT JOIN T_PRJT_CREDITEQUIPMENT T1 on T2.ID=T1.CREDIT_ID 
+		  LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.SUEQ_ID=T1.SUEQ_ID AND T3.STATUS = 0
+		  LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.ID=T3.SUPPLIER_ID AND T4.STATUS = 0
+		  LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T3.PRODUCT_ID and T3.STATUS=0
+		LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID AND T6.PRDC_KIND_STATUS = 0
+		LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = T6.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+		 WHERE T2.STATUS = 0
+		   AND T2.ID = #PRCD_ID#
+		   group by T1.THING_KIND,
+		       T6.NAME,
+		       T5.NAME,
+		       T1.BRAND,
+		       T1.UNIT_PRICE,
+		       T1.AMOUNT,
+		       T1.UNIT,
+		       T1.STAYBUY_PRICE ,
+		       T7.Manufacturer,
+		       T7.NAME
+		]]>
+	</select>
+	<select id="judgeExitContract" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		SELECT 
+			tpct.RECT_ID RECT_ID	       
+		FROM T_RENT_CONTRACT tpct
+		WHERE tpct.PRCD_ID = #PRCD_ID#
+		]]>
+	</select>
+	<!-- Modify By Michael 2011 12/6 修正导出购买合同时，地址和合同号为空Bug -->
+	<select id="findContractInfoByPrcdidnew" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		SELECT 	  TOP 1     T.RECT_ID RECT_ID,
+		       T.PRCD_ID RECT_ID,
+		       T2.EQUPMENT_ADDRESS  DELIVERY_ADDRESS,
+		       T.LEASE_CODE LEASE_CODE,
+		       T.LEASE_TOPRIC TOTAL,
+		       T5.CONTRACT_TYPE CONTRACT_TYPE,
+		       T.CREATE_TIME LESSOR_TIME,
+		       T3.BRAND SELLER_UNIT_NAME,
+		       T4.CUST_NAME BUYER_UNIT_NAME,
+		       T.CUST_NAME CUST_UNIT_NAME,
+	   		   T4.CORP_HEAD_SIGNATURE BUYER_AGENT,
+	   		   T4.CORP_REGISTE_ADDRESS REGISTERED_OFFICE_ADDRESS,
+	   		   T.CUST_PHONE CUST_PHONE,
+	   		   T.CUST_FAX FAX
+		  FROM T_RENT_CONTRACT T
+		  LEFT JOIN T_RENT_CONTRACTSCHEMA T2 ON T2.RECT_ID=T.RECT_ID
+		  LEFT JOIN T_RENT_CONTRACTDETAIL T3 ON T3.RECT_ID=T.RECT_ID
+		  LEFT JOIN T_CUST_CUSTOMER T4 ON T4.CUST_ID=T.CUST_ID
+		  LEFT JOIN T_PRJT_CREDIT T5 ON T5.ID=T.PRCD_ID
+		 WHERE T.PRCD_ID = #PRCD_ID# 
+		]]>
+	</select>
+	<select id="findContractEquipmentByPrcdidnew" parameterClass="map" resultClass="java.util.HashMap">
+	<!-- 
+		<![CDATA[
+		SELECT 
+		       T1.THING_KIND THING_KIND,
+		       T1.THING_NAME THING_NAME,
+		       T1.MODEL_SPEC MODEL_SPEC,
+		       T1.BRAND BRAND,
+		       T1.UNIT_PRICE UNIT_PRICE,
+		       T1.AMOUNT AMOUNT,
+		       T1.UNIT UNIT,
+		       T1.STAYBUY_PRICE STAYBUY_PRICE
+		  FROM T_RENT_CONTRACTDETAIL T1
+		  LEFT JOIN T_RENT_CONTRACT T ON T.RECT_ID=T1.RECT_ID
+		  WHERE T1.STATUS = 0
+		  AND T.PRCD_ID = #PRCD_ID#
+		]]>
+		 -->
+		 <![CDATA[
+		SELECT 
+		       T1.THING_KIND THING_KIND,
+		       T6.NAME THING_NAME,
+		      T5.NAME MODEL_SPEC,
+		       T1.BRAND BRAND,
+		       T1.UNIT_PRICE UNIT_PRICE,
+		       T1.AMOUNT AMOUNT,
+		       T1.UNIT UNIT,
+		       T1.STAYBUY_PRICE STAYBUY_PRICE,
+		       T7.Manufacturer,
+		       T7.NAME TYPE_NAME
+		  FROM T_RENT_CONTRACTDETAIL T1
+		  LEFT JOIN T_RENT_CONTRACT T ON T.RECT_ID=T1.RECT_ID
+		  LEFT JOIN T_EQMT_EQUIPMENT T3 ON T3.EQMT_ID = T1.EQMT_ID and T3.STATUS=0
+			  LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID = T3.SUEQ_ID and T4.STATUS=0
+			  LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T4.PRODUCT_ID and T5.STATUS=0
+			  LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID AND T6.PRDC_KIND_STATUS = 0
+			  LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = T6.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+		  WHERE T1.STATUS = 0
+		  AND T.PRCD_ID = #PRCD_ID#
+		]]>
+	</select>
+	<select id="queryEquipmentByRectIdHu" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		SELECT T1.RECD_ID,
+	       T1.THING_KIND,
+	       T1.THING_NAME,
+	       T1.MODEL_SPEC,
+	       T1.BRAND,
+	       T1.SHUI_PRICE,
+	       T1.UNIT_PRICE,
+	       T1.AMOUNT,
+	       T1.UNIT,
+	       T1.MEMO
+	  FROM T_RENT_CONTRACTDETAIL T1
+	  LEFT JOIN T_RENT_CONTRACT T ON T1.RECT_ID=T.RECT_ID	  
+	  WHERE T1.STATUS=0 AND T.PRCD_ID=#PRCD_ID#
+		]]>
+	</select>
+	<select id="queryEquipmentByRectIdForleaseholds" parameterClass="map" resultClass="java.util.HashMap">
+		<!-- 
+		<![CDATA[
+		SELECT t.LESSEE_TIME CREATE_DATE,
+			   t.RECT_TYPE CONTRACT_TYPE,
+			   t.LEASE_CODE LEASE_CODE ,
+			   t2.CUST_NAME CUST_NAME,
+			   t2.CORP_HS_HOME_ADDRESS CUST_ADDRESS,
+			   t1.THING_NAME THING_NAME,
+			   t1.MODEL_SPEC MODEL_SPEC,			   
+			   t1.BRAND BRAND,
+			   t1.UNIT UNIT,
+			   t1.AMOUNT AMOUNT,
+			   t1.THING_KIND,
+			   t1.THING_NUMBER NAME,
+			   tpcs.START_DATE,
+			   tpcs.EQUPMENT_ADDRESS	   
+		from T_RENT_CONTRACT t
+		left join T_RENT_CONTRACTDETAIL t1 on t.RECT_ID=t1.RECT_ID
+		left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+		LEFT JOIN T_EQMT_EQUIPMENT T4 ON T1.EQMT_ID = T4.EQMT_ID
+		left join T_RENT_CONTRACTSCHEMA tpcs on tpcs.RECT_ID = t.RECT_ID
+		where t.PRCD_ID= #credit_id# and t1.STATUS=0
+		]]>
+		 -->
+		<![CDATA[
+		SELECT t.LESSEE_TIME CREATE_DATE,
+			   t.RECT_TYPE CONTRACT_TYPE,
+			   t.LEASE_CODE LEASE_CODE ,
+			   t2.CUST_NAME CUST_NAME,
+			   t2.CORP_HS_HOME_ADDRESS CUST_ADDRESS,
+			   t6.NAME THING_NAME,
+			   t5.NAME MODEL_SPEC,			   
+			   t1.BRAND BRAND,
+			   t1.UNIT UNIT,
+			   t1.AMOUNT AMOUNT,
+			   t1.THING_KIND,
+			   t1.THING_NUMBER NAME,
+			   tpcs.START_DATE,
+			   tpcs.EQUPMENT_ADDRESS,
+			   T8.LEASE_PERIOD	LEASE_PERIOD,
+			   t2.CORP_REGISTE_ADDRESS,
+			   T9.NAME TYPE_NAME,
+			   T9.MANUFACTURER,tpcs.LEASE_TOPRIC,t1.CAR_COLOR,t1.CAR_RIGSTER_NUMBER,t1.CAR_ID_NUMBER,t1.CAR_ENGINE_NUMBER,t1.CAR_IMPORT_DOMESTIC	   
+		from	T_RENT_CONTRACT t
+				left join T_RENT_CONTRACTDETAIL t1 on t.RECT_ID=t1.RECT_ID 
+				left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+				LEFT JOIN T_EQMT_EQUIPMENT T4 ON T1.EQMT_ID = T4.EQMT_ID
+				left join T_RENT_CONTRACTSCHEMA tpcs on tpcs.RECT_ID = t.RECT_ID
+				LEFT JOIN T_SUPL_EQUIPMENT T7 ON T7.SUEQ_ID = T4.SUEQ_ID and T7.STATUS=0
+				LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T7.PRODUCT_ID and T5.STATUS=0
+				LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID
+				LEFT JOIN T_RENT_COLLECTIONPLAN T8 ON T8.RECT_ID = T.RECT_ID AND T8.STATUS = 0
+				LEFT JOIN T_PRDC_TYPE T9 ON T9.ID = T6.TYPE_ID AND T9.PRDC_TYPE_STATUS = 0
+		where t.PRCD_ID= #credit_id# and t1.STATUS=0
+		]]>
+	</select>
+	
+	<select id="queryPasswordNoteEquipmentByRectId" parameterClass="map" resultClass="java.util.HashMap">	
+		<![CDATA[
+		SELECT t.LESSEE_TIME CREATE_DATE,
+			   t.RECT_TYPE CONTRACT_TYPE,
+			   t.LEASE_CODE LEASE_CODE ,
+			   t2.CUST_NAME CUST_NAME,
+			   t2.CORP_HS_HOME_ADDRESS CUST_ADDRESS,
+			   t6.NAME THING_NAME,
+			   t5.NAME MODEL_SPEC,			   
+			   t1.BRAND BRAND,
+			   t1.UNIT UNIT,
+			   t1.AMOUNT AMOUNT,
+			   t1.THING_KIND,
+			   t1.THING_NUMBER NAME,
+			   tpcs.START_DATE,
+			   tpcs.EQUPMENT_ADDRESS,
+			   T8.LEASE_PERIOD	LEASE_PERIOD,
+			   t2.CORP_REGISTE_ADDRESS,
+			   T9.NAME TYPE_NAME,
+			   T9.MANUFACTURER,tpcs.LEASE_TOPRIC,t1.CAR_COLOR,t1.CAR_RIGSTER_NUMBER,t1.CAR_ID_NUMBER,t1.CAR_ENGINE_NUMBER,t1.CAR_IMPORT_DOMESTIC	   
+		from	T_RENT_CONTRACT t
+				left join T_RENT_CONTRACTDETAIL t1 on t.RECT_ID=t1.RECT_ID and t1.LOCK_CODE<>4
+				left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+				LEFT JOIN T_EQMT_EQUIPMENT T4 ON T1.EQMT_ID = T4.EQMT_ID
+				left join T_RENT_CONTRACTSCHEMA tpcs on tpcs.RECT_ID = t.RECT_ID
+				LEFT JOIN T_SUPL_EQUIPMENT T7 ON T7.SUEQ_ID = T4.SUEQ_ID and T7.STATUS=0
+				LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T7.PRODUCT_ID and T5.STATUS=0
+				LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID
+				LEFT JOIN T_RENT_COLLECTIONPLAN T8 ON T8.RECT_ID = T.RECT_ID AND T8.STATUS = 0
+				LEFT JOIN T_PRDC_TYPE T9 ON T9.ID = T6.TYPE_ID AND T9.PRDC_TYPE_STATUS = 0
+		where t.PRCD_ID= #credit_id# and t1.STATUS=0
+		]]>
+	</select>	
+		<select id="queryEquipmentByRectIdForConfrimationletter" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			 SELECT top 1
+		       t2.BRAND,
+		       t3.CUST_NAME,
+		       t2.UNIT_PRICE*t2.AMOUNT LEASE_PRICE,
+		       t2.THING_NAME,
+		       t2.THING_KIND,
+		       t2.MODEL_SPEC,
+		       t2.AMOUNT,
+		       t2.UNIT_PRICE,
+		       t2.SHUI_PRICE,
+		       t1.LEASE_CODE,
+		       t6.PLEDGE_ENTER_AG,
+		       t6.PLEDGE_ENTER_AGRATE
+		  FROM T_RENT_CONTRACT t1
+		  LEFT JOIN T_RENT_CONTRACTDETAIL t2 ON t2.RECT_ID = t1.RECT_ID
+          LEFT JOIN T_CUST_CUSTOMER t3 ON t3.CUST_ID = t1.CUST_ID
+          LEFT JOIN T_RENT_CONTRACTSCHEMA t6 ON t6.RECT_ID = t1.RECT_ID
+		 WHERE t1.STATUS = 0
+		   AND t1.PRCD_ID =#PRCD_ID#
+		]]>
+	</select>
+	<select id="queryAllCommendContractFileNames" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		select t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE from T_RENT_FILE t where  t.FILE_STATUS=0 and t.FILE_CONTRACT_TYPE=1 
+		]]>
+	</select>
+	<select id="queryAllSpecialContractFileNames" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		select t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE from T_RENT_FILE t where  t.FILE_STATUS=0 and t.FILE_CONTRACT_TYPE=2 
+		]]>
+	</select>
+	<select id="queryAllCommandRentFiles" parameterClass="map" resultClass="java.util.HashMap">
+	  <![CDATA[select t4.ID PRCD_ID,t5.FILE_COUNT,t5.COPYSIGN_COUNT ,t.WANT_COUNT,t.FILE_NAME,
+		            (case
+		            when (ISNULL(COPYSIGN_COUNT,0)-ISNULL(t.WANT_COUNT,0))>=0 then 'Y'
+		            else 'N'
+		            end)  CHA,
+		            (select  count(*) from (
+				        select t4.ID PRCD_ID,t5.FILE_COUNT,t5.COPYSIGN_COUNT ,t.WANT_COUNT,t.FILE_NAME      
+						from  T_PRJT_CREDIT t4 
+						left join T_RENT_FILEDETAIL t5 on t4.ID=t5.PRCD_ID and t5.STATUS=0 
+						left join T_RENT_FILE t on t.REFI_ID=t5.REFI_ID and t.FILE_STATUS=0	     
+						where  t4.CONTRACT_TYPE=0 and t.FILE_CONTRACT_TYPE=1 and t4.state=1 and t4.ID=#ID# AND ISNULL(COPYSIGN_COUNT,0)-ISNULL(t.WANT_COUNT,0)>=0 )  ttt
+						)-(select COUNT(*) from  T_RENT_FILE t where t.FILE_CONTRACT_TYPE=1 And t.FILE_STATUS=0 )  equl
+				from  T_PRJT_CREDIT t4 
+				left join T_RENT_FILEDETAIL t5 on t4.ID=t5.PRCD_ID and t5.STATUS=0 
+				left join T_RENT_FILE t on t.REFI_ID=t5.REFI_ID and t.FILE_STATUS=0
+				where  t4.CONTRACT_TYPE=0 and t.FILE_CONTRACT_TYPE=1  and t4.ID=#ID# ]]>
+	<!-- 
+	  <![CDATA[select t4.ID PRCD_ID, t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE,count(t1.TRFU_ID) upFileCount
+		from  T_PRJT_CREDIT t4 
+		left join T_RENT_FILEUP t1 on t4.ID=t1.PRCD_ID	
+		left join T_RENT_FILE t on t.REFI_ID=t1.REFI_ID and t1.status=0
+		where t.FILE_STATUS=0 and t4.CONTRACT_TYPE=0 and t.FILE_CONTRACT_TYPE=1 and t4.state=1 and t4.ID=#ID# 
+		group by  t4.ID,t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE,CONTRACT_TYPE	]]> -->
+	
+	<!-- 
+		<![CDATA[
+		select t4.PRCD_ID,t4.RECT_ID, t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE,count(t1.TRFU_ID) upFileCount
+		from (select t2.*,t3.CONTRACT_TYPE from T_RENT_CONTRACT t2
+		left join T_PRJT_CREDIT t3 on t3.ID=t2.PRCD_ID) t4
+		left join T_RENT_FILEUP t1 on t4.PRCD_ID=t1.PRCD_ID	
+		left join T_RENT_FILE t on t.REFI_ID=t1.REFI_ID and t1.status=0
+		where t.FILE_STATUS=0 and t4.CONTRACT_TYPE=0 and t.FILE_CONTRACT_TYPE=1 and t4.PRCD_ID=#ID#
+		group by  t4.PRCD_ID,t4.RECT_ID,t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE	
+		]]> -->
+	</select>
+	<select id="queryAllSpecialRentFiles" parameterClass="map" resultClass="java.util.HashMap">
+	 <![CDATA[select t4.ID PRCD_ID,t5.FILE_COUNT,t5.COPYSIGN_COUNT ,t.WANT_COUNT,t.FILE_NAME,
+		            (case
+		            when (ISNULL(COPYSIGN_COUNT,0)-ISNULL(t.WANT_COUNT,0))>=0 then 'Y'
+		            else 'N'
+		            end)  CHA,
+		            (select  count(*) from (
+				        select t4.ID PRCD_ID,t5.FILE_COUNT,t5.COPYSIGN_COUNT ,t.WANT_COUNT,t.FILE_NAME      
+						from  T_PRJT_CREDIT t4 
+						left join T_RENT_FILEDETAIL t5 on t4.ID=t5.PRCD_ID and t5.STATUS=0 
+						left join T_RENT_FILE t on t.REFI_ID=t5.REFI_ID and t.FILE_STATUS=0	     
+						where  t4.CONTRACT_TYPE=1 and t.FILE_CONTRACT_TYPE=2 and t4.state=1 and t4.ID=#ID# AND ISNULL(COPYSIGN_COUNT,0)-ISNULL(t.WANT_COUNT,0)>=0)  ttt
+						)-(select COUNT(*) from  T_RENT_FILE t where t.FILE_CONTRACT_TYPE=2 And t.FILE_STATUS=0 )  equl
+				from  T_PRJT_CREDIT t4 
+				left join T_RENT_FILEDETAIL t5 on t4.ID=t5.PRCD_ID and t5.STATUS=0 
+				left join T_RENT_FILE t on t.REFI_ID=t5.REFI_ID and t.FILE_STATUS=0
+				where  t4.CONTRACT_TYPE=1 and t.FILE_CONTRACT_TYPE=2  and t4.ID=#ID# ]]>
+	
+	 
+	<!--  <![CDATA[select t4.ID PRCD_ID, t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE,count(t1.TRFU_ID) upFileCount
+		from  T_PRJT_CREDIT t4 
+		left join T_RENT_FILEUP t1 on t4.ID=t1.PRCD_ID	
+		left join T_RENT_FILE t on t.REFI_ID=t1.REFI_ID and t1.status=0
+		where t.FILE_STATUS=0 and t4.CONTRACT_TYPE=1 and t.FILE_CONTRACT_TYPE=2 and t4.state=1 and t4.ID=#ID# 
+		group by  t4.ID,t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE,CONTRACT_TYPE	]]>  -->
+		<!-- <![CDATA[
+		select t4.PRCD_ID,t4.RECT_ID, t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE,count(t1.TRFU_ID) upFileCount
+		from (select t2.*,t3.CONTRACT_TYPE from T_RENT_CONTRACT t2
+		left join T_PRJT_CREDIT t3 on t3.ID=t2.PRCD_ID) t4
+		left join T_RENT_FILEUP t1 on t4.PRCD_ID=t1.PRCD_ID	
+		left join T_RENT_FILE t on t.REFI_ID=t1.REFI_ID and t1.status=0
+		where t.FILE_STATUS=0 and t4.CONTRACT_TYPE=1 and t.FILE_CONTRACT_TYPE=2 and t4.PRCD_ID=#ID#
+		group by  t4.PRCD_ID,t4.RECT_ID,t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE	
+		]]> -->
+	</select>
+	<select id="queryAllCommandRent" parameterClass="map" resultClass="java.util.HashMap">
+	SELECT 
+					T1.ID,T1.LEASE_CODE,T3.CUST_NAME
+				  FROM T_PRJT_CREDIT T1
+				  LEFT JOIN T_RENT_CONTRACT T2 ON T1.ID = T2.PRCD_ID
+				  LEFT JOIN T_CUST_CUSTOMER T3 ON T1.CUST_ID = T3.CUST_ID
+				   LEFT JOIN T_AREA T4 ON T1.PROVINCE_ID = T4.ID
+				  LEFT JOIN T_USER_USER T5 ON T1.CLERK_ID = T5.ID
+				  LEFT JOIN T_USER_USER T6 ON T1.SENSOR_ID = T6.ID
+				  LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON T1.ID = T7.CREDIT_ID
+				  LEFT JOIN ( SELECT COUNT(1) PAYLISTFLAG,T8.RECT_ID FROM T_RENT_CONTRACTDETAIL T8 WHERE T8.STATUS=0  
+				               AND T8.RECP_ID IS NULL GROUP BY T8.RECT_ID) T8 ON T8.RECT_ID=T2.RECT_ID
+		       WHERE T1.STATUS=0 AND (T1.WIND_STATE=1 OR T1.WIND_STATE=2)
+  			                 AND (T2.STATUS!=-2 OR T2.STATUS IS NULL)   AND   t1.CONTRACT_TYPE=0	
+  			<dynamic>
+		  	<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+		  	 	<![CDATA[ T1.sensor_id = #s_employeeId# ]]> -->
+		  	 	<![CDATA[ 
+		  	 	(T1.SENSOR_ID = #s_employeeId#
+		  	 	or T1.CLERK_ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+		  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = T1.SENSOR_ID)
+				]]>
+			</isEqual>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		  	<isNotEmpty prepend="and" property="content">
+		  		(T1.lease_code like '%$content$%' 
+		  		or T1.type like '%$content$%' 
+		  		or T3.cust_name like '%$content$%' 
+		  		or t5.name like '%$content$%'
+		  		or t6.name like '%$content$%' 
+		  		or t4.name like '%$content$%' 
+		  		or T3.cust_code like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		T1.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		T1.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+            <isNotEmpty prepend="" property="QSELECT_STATUS">
+				<isNotEqual prepend="" property="QSELECT_STATUS" compareValue="-2">
+					<isEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS is null ]]>
+					</isEqual>
+					<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS = #QSELECT_STATUS# ]]>
+					</isNotEqual>
+				</isNotEqual>
+			 </isNotEmpty>
+			 <isNotEmpty property="RENTSTAUTS">
+		  	<isNotEqual prepend="and" property="RENTSTAUTS" compareValue="-3">
+		  		 t2.status=#RENTSTAUTS#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	  <isNotEmpty prepend="" property="QSELECT_STATUS">
+				<isNotEqual prepend="" property="QSELECT_STATUS" compareValue="-2">
+					<isEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS is null ]]>
+					</isEqual>
+					<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS = #QSELECT_STATUS# ]]>
+					</isNotEqual>
+				</isNotEqual>
+			 </isNotEmpty>
+			 <isNotEmpty property="RENTSTAUTS">
+		  	<isNotEqual prepend="and" property="RENTSTAUTS" compareValue="-3">
+		  		 t2.status=#RENTSTAUTS#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic> 
+  			   GROUP BY T1.ID,T1.LEASE_CODE,T3.CUST_NAME,T2.RECT_STATUS
+  			   ORDER BY  T1.ID DESC,T2.RECT_STATUS
+	
+	<!--  	<![CDATA[  
+		       select t.*,tcc.CUST_NAME  CUST_NAME from T_PRJT_CREDIT  t 
+	           left join t_cust_customer tcc on t.cust_id = tcc.cust_id
+		       left join t_area ta on ta.id = t.province_id
+		       left join t_user_user tuu on tuu.id = t.clerk_id
+		       left join t_user_user tuu2 on tuu2.id = t.sensor_id
+		     where t.STATUS=0 and CONTRACT_TYPE=0	and	t.state = 1 ]]>
+		 <dynamic>
+		  	<isNotEmpty prepend="and" property="content">
+		  		(t.lease_code like '%$content$%' or t.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		t.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		t.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 t.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic>  -->
+		<!-- <![CDATA[
+		select * from T_RENT_CONTRACT where STATUS=0 and RECT_TYPE=0
+		]]> -->
+	</select>
+	<select id="queryAllSpecialRent" parameterClass="map" resultClass="java.util.HashMap">
+		     
+		     SELECT 
+					T1.ID,T1.LEASE_CODE,T3.CUST_NAME
+				  FROM T_PRJT_CREDIT T1
+				  LEFT JOIN T_RENT_CONTRACT T2 ON T1.ID = T2.PRCD_ID
+				  LEFT JOIN T_CUST_CUSTOMER T3 ON T1.CUST_ID = T3.CUST_ID
+				   LEFT JOIN T_AREA T4 ON T1.PROVINCE_ID = T4.ID
+				  LEFT JOIN T_USER_USER T5 ON T1.CLERK_ID = T5.ID
+				  LEFT JOIN T_USER_USER T6 ON T1.SENSOR_ID = T6.ID
+				  LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON T1.ID = T7.CREDIT_ID
+				  LEFT JOIN ( SELECT COUNT(1) PAYLISTFLAG,T8.RECT_ID FROM T_RENT_CONTRACTDETAIL T8 WHERE T8.STATUS=0  
+				               AND T8.RECP_ID IS NULL GROUP BY T8.RECT_ID) T8 ON T8.RECT_ID=T2.RECT_ID
+		       WHERE T1.STATUS=0 AND (T1.WIND_STATE=1 OR T1.WIND_STATE=2)
+  			                 AND (T2.STATUS!=-2 OR T2.STATUS IS NULL)   AND   t1.CONTRACT_TYPE=1	
+  			<dynamic>
+		  	<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+		  	 	<![CDATA[ T1.sensor_id = #s_employeeId# ]]> -->
+		  	 	<![CDATA[ 
+		  	 	(T1.SENSOR_ID = #s_employeeId#
+		  	 	or T1.CLERK_ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+		  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = T1.SENSOR_ID)
+				]]>
+			</isEqual>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		  	<isNotEmpty prepend="and" property="content">
+		  		(T1.lease_code like '%$content$%' 
+		  		or T1.type like '%$content$%' 
+		  		or T3.cust_name like '%$content$%' 
+		  		or t5.name like '%$content$%'
+		  		or t6.name like '%$content$%' 
+		  		or t4.name like '%$content$%' 
+		  		or T3.cust_code like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		T1.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		T1.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+            <isNotEmpty prepend="" property="QSELECT_STATUS">
+				<isNotEqual prepend="" property="QSELECT_STATUS" compareValue="-2">
+					<isEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS is null ]]>
+					</isEqual>
+					<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS = #QSELECT_STATUS# ]]>
+					</isNotEqual>
+				</isNotEqual>
+			 </isNotEmpty>
+			 <isNotEmpty property="RENTSTAUTS">
+		  	<isNotEqual prepend="and" property="RENTSTAUTS" compareValue="-3">
+		  		 t2.status=#RENTSTAUTS#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	  <isNotEmpty prepend="" property="QSELECT_STATUS">
+				<isNotEqual prepend="" property="QSELECT_STATUS" compareValue="-2">
+					<isEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS is null ]]>
+					</isEqual>
+					<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS = #QSELECT_STATUS# ]]>
+					</isNotEqual>
+				</isNotEqual>
+			 </isNotEmpty>
+			 <isNotEmpty property="RENTSTAUTS">
+		  	<isNotEqual prepend="and" property="RENTSTAUTS" compareValue="-3">
+		  		 t2.status=#RENTSTAUTS#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic> 
+  			   GROUP BY T1.ID,T1.LEASE_CODE,T3.CUST_NAME,T2.RECT_STATUS
+	         ORDER BY  T1.ID DESC,T2.RECT_STATUS
+	
+	
+	   <!--    <![CDATA[  
+		       select t.*,tcc.CUST_NAME  CUST_NAME from T_PRJT_CREDIT  t 
+	           left join t_cust_customer tcc on t.cust_id = tcc.cust_id
+		       left join t_area ta on ta.id = t.province_id
+		       left join t_user_user tuu on tuu.id = t.clerk_id
+		       left join t_user_user tuu2 on tuu2.id = t.sensor_id
+		     where t.STATUS=0 and CONTRACT_TYPE=1	and	t.state = 1 ]]>
+		 <dynamic>
+		  	<isNotEmpty prepend="and" property="content">
+		  		(t.lease_code like '%$content$%' or t.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		t.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		t.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 t.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic>   -->
+		<!-- <![CDATA[
+		select * from T_RENT_CONTRACT where STATUS=0 and RECT_TYPE=1
+		]]> -->
+	</select>
+	
+	<select id="queryAllBankAccount1" parameterClass="map" resultClass="java.util.HashMap">
+	        SELECT DISTINCT t7.NAME NAME,t7.BANK_ACCOUNT BANK_ACCOUNT,t7.OPEN_ACCOUNT_BANK OPEN_ACCOUNT_BANK,ROUND((T2.LEASE_TOPRIC - isnull(t3.PLEDGE_AVE_PRICE,0))+ isnull(T3.PLEDGE_ENTER_MCTOAG,0)+isnull(t3.PLEDGE_ENTER_MCTOAGRATE,0),0) AS MONEY
+		      FROM  T_PRJT_CREDIT t1
+		      left join T_RENT_CONTRACT t2 on T1.ID=T2.PRCD_ID
+		      left join T_RENT_CONTRACTSCHEMA t3 on T2.RECT_ID=t3.RECT_ID  
+		      left join T_RENT_CONTRACTDETAIL t4 on T2.RECT_ID=t4.RECT_ID
+		      left join T_EQMT_EQUIPMENT t5 on t4.EQMT_ID=t5.EQMT_ID
+			    left join T_SUPL_EQUIPMENT t6 on t5.SUEQ_ID=t6.SUEQ_ID
+			    left join T_SUPL_SUPPLIER t7 on t6.SUPPLIER_ID=t7.ID
+		     WHERE t1.ID=#PRCD_ID#
+	</select>
+	
+	<select id="queryAllBankAccount2" parameterClass="map" resultClass="java.util.HashMap">
+			SELECT DISTINCT T88.NAME NAME,T88.BANK_ACCOUNT BANK_ACCOUNT,T88.OPEN_ACCOUNT_BANK OPEN_ACCOUNT_BANK
+		                   ,ROUND((T8.LEASE_TOPRIC - isnull(T8.PLEDGE_AVE_PRICE,0))+ isnull(T8.PLEDGE_ENTER_MCTOAG,0)+isnull(T8.PLEDGE_ENTER_MCTOAGRATE,0),0) AS MONEY
+		      FROM T_PRJT_CREDIT T1
+		         LEFT JOIN T_PRJT_CREDITSCHEME T8 on T1.ID=t8.CREDIT_ID
+		         LEFT JOIN T_PRJT_CREDITEQUIPMENT T4 on T1.ID=T4.CREDIT_ID
+		         LEFT JOIN T_SUPL_EQUIPMENT T77 on T4.SUEQ_ID=T77.SUEQ_ID
+		         LEFT JOIN T_SUPL_SUPPLIER T88 on T77.SUPPLIER_ID=T88.ID
+		             WHERE T1.ID=#PRCD_ID# 
+	</select>
+	
+	<select id="getBankAccount" parameterClass="map" resultClass="java.util.HashMap">
+			SELECT BANK_NAME OPEN_ACCOUNT_BANK,BANK_ACCOUNT BANK_ACCOUNT, 0 as 'type'
+			  FROM T_SUPL_SUPPLIERBANKACCOUNT
+			 WHERE STATUS=0 AND SUPL_ID IN (
+						SELECT DISTINCT T4.ID 
+						  FROM T_PRJT_CREDIT T1,T_PRJT_CREDITEQUIPMENT T2,T_SUPL_EQUIPMENT T3,T_SUPL_SUPPLIER T4
+						 WHERE T1.ID=T2.CREDIT_ID 
+						   AND T2.SUEQ_ID=T3.SUEQ_ID 
+						   AND T3.SUPPLIER_ID=T4.ID
+						   AND T1.ID=#PRCD_ID#
+			 )
+        union all 
+       select BANK_NAME OPEN_ACCOUNT_BANK,BANK_ACCOUNT BANK_ACCOUNT , 1 as 'type'
+       from t_prjt_creditcorpbankaccount where status=0 and credit_id=#PRCD_ID#
+	</select>
+
+	<select id="getPRJTLeaseCodeBYCredit" parameterClass="map" resultClass="java.util.HashMap">
+		select t1.LEASE_CODE,t2.CUST_NAME from T_PRJT_CREDIT t1
+		left join T_CUST_CUSTOMER t2
+		on t1.CUST_ID=t2.CUST_ID and t2.STATUS=0
+		where t1.ID=#credit_id#
+	</select>
+	
+	<select id="queryValueAddInvoiceData" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+ 	  		select tcc.CUST_NAME,tcc.CORP_TAX_CODE,tpcc.REGISTERED_OFFICE_ADDRESS LINK_WORK_ADDRESS,
+	    	tpcc.TELEPHONE LINK_PHONE,tpcb.BANK_NAME,tpcb.BANK_ACCOUNT from t_prjt_credit  tpc
+			left join t_prjt_creditcorpbankaccount tpcb  on tpc.ID=tpcb.CREDIT_ID and tpcb.status=0 and tpcb.state='0'
+      		left join T_PRJT_CREDITCUSTOMERCORP tpcc on tpcc.credit_id=tpc.id and tpcc.status=0
+			left join T_CUST_CUSTOMER tcc on tpc.CUST_ID=tcc.CUST_ID  
+			where tpc.ID = #PRCD_ID#
+		]]>
+	</select>
+ 	<select id="queryVouchCorpList" parameterClass="map" resultClass="java.util.HashMap">
+	    select  CORP_NAME_CN,tcc.CUST_NAME,tpc.LEASE_CODE from T_PRJT_VOUCHCUSTOMERCORP tpvc
+	    left join T_PRJT_CREDIT tpc on tpc.id=tpvc.PRCD_ID
+	    left join T_CUST_CUSTOMER tcc on tpc.CUST_ID = tcc.CUST_ID
+	    where PRCD_ID=#credit_id# and tpvc.STATUS=0 
+	</select> 
+
+    <select id="isVouch" parameterClass="map" resultClass="java.lang.Integer">
+			select COUNT(*)  from  T_PRJT_VOUCHCUSTOMERCORP where PRCD_ID=#PRCD_ID# AND STATUS = 0
+	</select> 
+
+ 	<select id="queryAdvanceMachineDetail" parameterClass="map" resultClass="java.util.HashMap">
+		select tpca.*,tpc.LEASE_CODE,tcc.CUST_NAME from T_PRJT_CREDITAPPROPIATE  tpca
+		left join T_PRJT_CREDIT tpc on tpca.CREDIT_ID = tpc.ID
+		left join T_CUST_CUSTOMER tcc on tpc.CUST_ID=tcc.CUST_ID 
+		where tpca.TYPE='0' and tpca.status=0 and tpca.CREDIT_ID=#credit_id#
+	</select> 
+
+    <select id="isAdvanceMachine" parameterClass="map" resultClass="java.lang.Integer">
+			select COUNT(*)  from  T_PRJT_CREDITAPPROPIATE where CREDIT_ID=#PRCD_ID# AND STATUS = 0 and TYPE='0'
+	</select> 			
+</sqlMap>

@@ -1,0 +1,1853 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="dunTask"> 
+	
+	<!-- 催收任务管理 获取所有逾期的数据 -->
+	<!-- Modify by Michael 2012 1/9  修改逾期统计总数无法统计离职人员数量Bug -->
+	<select id="getAllDunData_count" parameterClass="map" resultClass="int">
+ 		select count(tcct.cust_code) cnt  
+		  from t_dun_daily tdd
+		  left join t_cust_customer tcct on tdd.cust_id = tcct.cust_id AND TCCT.STATUS = 0
+		  left join t_rent_contract trct on tdd.rect_id = trct.rect_id AND TRCT.STATUS = 0
+		  left join t_rent_collectionplan trcp on tdd.recp_id=trcp.recp_id AND TRCP.STATUS = 0
+		  LEFT JOIN T_USER_USER T ON T.ID = trct.SENSOR_ID 
+		  left join T_DEPT_DEPARTMENT dept on dept.ID = T.DEPT_ID and dept.STATUS = 0
+		  left join T_DEPT_COMPANY decp on decp.DECP_ID = dept.DECP_ID AND DECP.STATUS = 0
+		  LEFT JOIN (SELECT RECT_ID,MAX(T.BRAND) BRAND FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) T1
+						ON T1.RECT_ID = trct.RECT_ID 
+		  where tdd.status=0 
+			<isEqual property="p_usernode" compareValue="1">
+			 		<![CDATA[
+			  			AND( trct.sensor_id = #s_employeeId#
+			  			OR T.upper_user = #s_employeeId#)
+			  		]]>
+			</isEqual>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = trct.SENSOR_ID)
+				]]>
+			</isEqual>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		  <dynamic prepend="and">
+		  	<isNotEmpty prepend="and" property="dun_date">
+		  		convert(datetime,convert(varchar,tdd.create_date,23))=convert(datetime,convert(varchar,#dun_date#,23))
+		  	</isNotEmpty> 
+		  	<isNotEmpty prepend="and" property="content">
+		  		(tcct.cust_name like '%$content$%' or trct.lease_code like '%$content$%'
+		  		 or trcp.recp_code like '%$content$%'
+		  		 or T1.BRAND like '%$content$%')
+		  	</isNotEmpty>
+	  	    <isNotEmpty prepend="and" property="startrange">
+		  	  <![CDATA[ dun_day >=#startrange#  ]]>
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="endrange">
+		  	  <![CDATA[  dun_day  < #endrange#]]>
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="NAME">
+				  	  <![CDATA[  T.NAME  LIKE '%$NAME$%']]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="COMPANY">
+				  	  <![CDATA[  decp.DECP_ID = #COMPANY#]]>
+				  	</isNotEmpty>
+		  </dynamic>
+	</select>
+	
+	<select id="getAllDunData" parameterClass="map" resultClass="hashmap">
+		 <![CDATA[
+			select 
+				trct.sensor_id,
+				tcct.cust_id,
+				tcct.cust_code,
+				trcp.recp_id,
+				trct.lease_code,
+				tcct.cust_name,
+				tcct.CORP_HEAD_SIGNATURE,
+				tcct.CORP_HS_LINK_MODE, 
+				convert(varchar,min(tdd.should_paydate),23 ) should_paydate,
+				max(tdd.dun_day) DUN_DAY,
+				MAX(TDD.PERIOD_NUM)   PERIOD_NUM
+				,FIRSTDUNDATE.FIRSTDUNPERIOD as FIRSTDUNPERIOD,
+				sum(tdd.dun_monthprice) dun_monthprice,
+				count(trcp.recp_id) recp_count,
+				sum(tdd.dun_ownprice) dun_ownprice,
+				sum(tdd.dun_renprice) dun_renprice,
+				sum(tdd.dun_otherprice) dun_otherprice,
+				sum(tdd.dun_fine) dun_fine,
+				sum(tdd.dun_fineinterest) dun_fineinterest,
+				sum(tdd.dun_monthprice)+
+				sum(tdd.dun_fineinterest)+sum(tdd.dun_fine) dun_totalprice,
+		        max(tdd.recp_state) recp_state,
+		        max(comp.DECP_NAME_CN) as DECP_NAME_CN,
+		        T.NAME,
+		        CASE WHEN T.JOB = 1 THEN (SELECT NAME FROM t_user_user WHERE STATUS = 0 AND ID = T.upper_user) ELSE T.NAME END UPNAME,
+				T1.BRAND,
+				trcp.recp_code,
+				TDSUPL.FLAG SUPL_TRUE,
+				TDLOCK.FLAG LOCK_CODE,
+				prcd.ID as CREDIT_ID,
+				trct.rect_id,
+				OT.NAME as 'ORGNAME',
+				HE.[NAME] AS HNAME,
+				UP.NAME ORGUPUSERNAME,
+				MAX(PRCD.ORG_DECP_ID) ORG_DECP_ID,
+				MAX(ORG_COMP.DECP_NAME_CN) ORG_DECP_NAME_CN
+				, tdd.CREATE_DATE
+		  from t_dun_daily tdd
+		  left join t_cust_customer tcct on tdd.cust_id = tcct.cust_id AND TCCT.STATUS = 0
+		  left join t_rent_contract trct on tdd.rect_id = trct.rect_id AND TRCT.STATUS = 0
+		  left join t_prjt_credit prcd on trct.PRCD_ID = prcd.ID
+		  LEFT JOIN T_USER_USER UP ON UP.ID = PRCD.ORG_UP_USER
+		  left join t_rent_collectionplan trcp on tdd.recp_id=trcp.recp_id AND TRCP.STATUS = 0
+		  ]]>
+		  <!-- Add by Michael 2012 09-07 增加供应商连保方式 和锁码方式 -->
+  		  <![CDATA[
+		  LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE = '供应商保证' and  TDSUPL.CODE = trcp.SUPL_TRUE 
+		  LEFT JOIN (SELECT RECT_ID,MIN(LOCK_CODE) LOCK_CODE FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) TLOCK
+						ON TLOCK.RECT_ID = trct.RECT_ID 
+		  LEFT JOIN T_DATA_DICTIONARY TDLOCK ON TDLOCK.TYPE = '锁码方式' and  TDLOCK.CODE = TLOCK.LOCK_CODE 
+		  ]]>
+		  <!-- 2012/01/17 Yang Yun 办事处抓取方式修改
+		  left join T_DEPT_COMPANY decp on decp.DECP_ID = trct.DECP_ID AND DECP.STATUS = 0 -->
+		  <![CDATA[
+		  LEFT JOIN T_USER_USER T ON T.ID = trct.SENSOR_ID 
+		  LEFT JOIN T_USER_USER OT ON OT.ID = trct.ORG_SENSOR_ID 
+		  ]]>
+		  <!-- ************************************* -->
+		  <![CDATA[
+		  left join T_DEPT_DEPARTMENT dept on dept.ID = T.DEPT_ID and dept.STATUS = 0
+      	  left join T_DEPT_COMPANY comp on dept.DECP_ID = comp.DECP_ID and comp.STATUS = 0
+      	  LEFT JOIN T_DEPT_COMPANY ORG_COMP ON PRCD.ORG_DECP_ID = ORG_COMP.DECP_ID AND ORG_COMP.STATUS = 0
+		  ]]>
+		  <!-- ************************************* -->
+		  <![CDATA[
+		  LEFT JOIN (SELECT RECT_ID,MAX(T.BRAND) BRAND FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) T1
+						ON T1.RECT_ID = trct.RECT_ID 
+		  LEFT JOIN (
+                SELECT TFCBD.RECD_PERIOD AS FIRSTDUNPERIOD, TFCBD.RECP_ID AS RECP_ID
+                    FROM              
+                      (
+                        SELECT TFCB.RECP_ID,MIN(TFCB.RECD_PERIOD)AS RECD_PERIOD
+                         FROM T_FINA_COLLECTIONBILL TFCB
+                         LEFT JOIN T_FINA_INCOME TFI ON TFCB.FIIN_ID = TFI.FIIN_ID
+                         WHERE  (TFCB.FICB_STATE=4 OR TFCB.FICB_STATE=5) AND TFI.RED_TYPE IS NULL AND TFCB.FICB_TYPE='0' 	
+                         AND (TFCB.FICB_ITEM='租金' OR TFCB.FICB_ITEM='增值税') AND DATEDIFF(D,TFCB.PAY_DATE,OPPOSING_DATE)>0 
+                        
+                         GROUP BY RECP_ID
+                        
+                       )  TFCBD
+				        ) FIRSTDUNDATE ON  FIRSTDUNDATE.RECP_ID=TRCP.RECP_ID  	
+		  ]]>			
+		  <!-- **********核准人********** -->
+		  <![CDATA[
+		  LEFT JOIN
+		  (SELECT RISK.CREDIT_ID, RM.CREATE_USER_ID, U.[NAME]
+		      FROM T_PRJT_RISK_CONTROL RISK
+		      LEFT JOIN (
+		      SELECT M1.PRC_ID, M1.CREATE_USER_ID
+		      FROM T_PRJT_RISK_CONTROLMEMO M1
+		      WHERE M1.CREATE_TIME = (
+			      SELECT TOP 1 M2.CREATE_TIME FROM T_PRJT_RISK_CONTROLMEMO M2
+			      WHERE M2.PRC_ID = M1.PRC_ID
+			      ORDER BY M2.CREATE_TIME DESC
+		      )
+		      	  AND M1.STATUS = 0
+		      ) RM ON RM.PRC_ID = RISK.PRC_ID
+		      LEFT JOIN T_USER_USER U ON RM.CREATE_USER_ID = U.ID
+		      WHERE RISK.STATE = 1 AND RISK.STATUS = 0
+	      ) HE ON HE.CREDIT_ID = PRCD.ID
+	      ]]>	
+		  <!-- **********核准人********** -->
+		  <!-- **********金额********** -->
+		  LEFT JOIN T_PRJT_CREDITSCHEME TPCS ON TPCS.CREDIT_ID = PRCD.ID
+		  <!-- **********金额********** -->
+		  where tdd.status=0 and prcd.FINANCECONTRACT_DATE is not null
+			  <isEqual property="p_usernode" compareValue="1">
+			  		<![CDATA[
+			  			AND( trct.sensor_id = #s_employeeId#
+			  			OR T.upper_user = #s_employeeId#)
+			  		]]>
+			  	</isEqual>
+			  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = trct.SENSOR_ID)
+				]]>
+			</isEqual>
+			<isNotEmpty property="vip_flag">
+				and isnull(prcd.VIP_FLAG, 0) = #vip_flag#
+			</isNotEmpty>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		 	 <dynamic prepend="and">
+				  	<isNotEmpty prepend="and" property="dun_date">
+				  	convert(datetime,convert(varchar,tdd.create_date,23))=convert(datetime,convert(varchar,#dun_date#,23))
+				  	</isNotEmpty>
+				  <isNotEmpty prepend="and" property="content">
+				  		(tcct.cust_name like '%$content$%' or trct.lease_code like '%$content$%'
+				  		 or trcp.recp_code like '%$content$%' 
+				  		 or T1.BRAND like '%$content$%')
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="startrange">
+				  	  <![CDATA[ dun_day >=#startrange#  ]]>
+				  	</isNotEmpty>
+  				  	<isNotEmpty prepend="and" property="endrange">
+				  	  <![CDATA[  dun_day  <= #endrange#]]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="NAME">
+				  	  <![CDATA[  T.NAME  LIKE '%$NAME$%']]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="COMPANY">
+				  	  <![CDATA[  comp.DECP_ID = #COMPANY#]]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="ORG_COMPANY">
+				  	  <![CDATA[  PRCD.ORG_DECP_ID = #ORG_COMPANY#]]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="orgUserName">
+				  	  <![CDATA[  OT.NAME LIKE '%$orgUserName$%']]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="orgUpUserName">
+				  	  <![CDATA[  UP.NAME LIKE '%$orgUpUserName$%']]>
+				  	</isNotEmpty>
+				  	<isNotEmpty property="CREDIT_SPECIAL_CODE">
+						<isEqual prepend="and" property="CREDIT_SPECIAL_CODE" compareValue="-1">
+				  	  		<![CDATA[  (PRCD.CREDIT_SPECIAL_CODE IS NULL OR PRCD.CREDIT_SPECIAL_CODE = '')]]>
+			  	  		</isEqual>
+			  	  		<isNotEqual prepend="and" property="CREDIT_SPECIAL_CODE" compareValue="-1">
+			  	  			<![CDATA[  PRCD.CREDIT_SPECIAL_CODE = #CREDIT_SPECIAL_CODE#]]>
+			  	  		</isNotEqual>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="approvalUserName">
+				  	  <![CDATA[  HE.NAME LIKE '%$approvalUserName$%']]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="moneyBegin">
+				  	  <![CDATA[  TPCS.LEASE_RZE >= #moneyBegin#]]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="moneyEnd">
+				  	  <![CDATA[  TPCS.LEASE_RZE < #moneyEnd#]]>
+				  	</isNotEmpty>
+		  </dynamic>
+		  group by tcct.cust_id,tcct.cust_code,trcp.recp_id,trct.rect_id,trct.lease_code,
+		       tcct.cust_name, tcct.CORP_HEAD_SIGNATURE,prcd.ID,FIRSTDUNPERIOD,
+		       tcct.CORP_HS_LINK_MODE,trct.sensor_id,T.NAME,OT.NAME,T.JOB,T.upper_user,T1.BRAND,trcp.recp_code,TDSUPL.FLAG,TDLOCK.FLAG,UP.NAME,HE.[NAME]
+		       , tdd.CREATE_DATE
+	</select>
+	
+	<!-- 根据rectid获取最小锁码方式 -->
+	<select id="getLockCodeByRectId" parameterClass="map" resultClass="hashmap">
+		SELECT T.*, D.FLAG
+		FROM(
+			SELECT RECT_ID, MIN(LOCK_CODE) LOCK_CODE 
+			FROM T_RENT_CONTRACTDETAIL
+			WHERE STATUS = 0 AND RECT_ID = #RECTID# GROUP BY RECT_ID) T
+		LEFT JOIN T_DATA_DICTIONARY D ON D.CODE = T.LOCK_CODE AND D.[TYPE] = '锁码方式'
+	</select>
+	
+	<!-- 根据客户编号 获取该客户的逾期情况 -->
+	<select id="getDunDataByCustCode" parameterClass="map" resultClass="hashmap">
+		select tcct.cust_id,
+		       tcct.cust_code,
+		       tcct.cust_name,
+		       convert(varchar,tdd.should_paydate,23) should_paydate,
+		       tdd.dun_day dun_day,
+		       trct.lease_code,
+		       trcp.recp_code,
+		       trcp.recp_id,
+		       tdd.dun_monthprice dun_monthprice,
+		       tdd.dun_ownprice dun_ownprice,
+		       tdd.dun_renprice dun_renprice,
+		       tdd.dun_otherprice dun_otherprice,
+		       tdd.dun_fine dun_fine,
+		       tdd.dun_fineinterest dun_fineinterest,
+		       tdd.recp_state recp_state,
+		       tdd.dun_monthprice+tdd.dun_fine+tdd.dun_fineinterest dun_totalprice
+		  from t_dun_daily tdd
+		  left join t_cust_customer tcct on tdd.cust_id = tcct.cust_id
+		  left join t_rent_contract trct on tdd.rect_id = trct.rect_id
+		  left join t_rent_collectionplan trcp on tdd.recp_id = trcp.recp_id
+		 where tdd.status = 0
+		   and convert(varchar,tdd.create_date,23) =  convert(varchar,getdate(),23)
+		   and tcct.cust_code=#cust_code#
+		   order by  trct.lease_code,trcp.recp_code  ,tdd.dun_monthprice desc
+	</select>
+	
+	<!-- 插入一条催收记录 -->
+	<insert id="addDunRecord" parameterClass="map">
+		insert into t_dun_dunningrecord 
+			(
+				call_user_id,
+				answerphone_name,
+				phone_number,
+				result,
+				call_content,
+				call_date, 
+				status,
+				cust_code
+			)
+			values
+			(	
+				#clerk_id#,
+				#ANSWERPHONE_NAME#,
+				#PHONE_NUMBER#,
+				#RESULT#,
+				#CALL_CONTENT#,
+				<isNotEmpty property="CALL_DATE">
+				#CALL_DATE#,
+				</isNotEmpty>
+				<isEmpty property="CALL_DATE">
+				getdate(),
+				</isEmpty>
+				0,
+				#CUST_CODE#
+			)
+	</insert>
+	
+	<!-- 插入一条扣款记录 -->
+	<insert id="addDunRecordForDun" parameterClass="map">
+		insert into t_dun_dunningrecord 
+			(
+				call_user_id,
+				answerphone_name,
+				phone_number,
+				result,
+				call_content,
+				call_date, 
+				status,
+				cust_code
+			)
+			values
+			(	
+				#user_id#,
+				000,
+				000,
+				16,
+				#context#,
+				getdate(),
+				0,
+				#CUST_CODE#
+			)
+	</insert>
+	
+	<!-- 根据承租人编号获取该承租人最新5条催收记录 -->
+	<select id="getFiveDunRecords" parameterClass="map" resultClass="hashmap">
+		select top 5 dudr_id,
+		       call_user_name,
+		       answerphone_name,
+		       phone_number,
+		       call_content,
+		       call_date,
+		       feedback_content,
+		      feedback_user_name,
+		       feedback_date,
+		      cust_code,
+		       result
+		  from (select tddr.dudr_id,
+				       tuu.name call_user_name,
+				       tddr.answerphone_name,
+				       tddr.phone_number,
+				       tddr.call_content,
+				       tddr.call_date,
+				       tddr.feedback_content,
+				       tuu2.name feedback_user_name,
+				       tddr.feedback_date,
+				       tddr.cust_code,
+				       tddr.result
+				  from t_dun_dunningrecord tddr
+				  left join t_user_user tuu on tddr.call_user_id = tuu.id
+				  left join t_user_user tuu2 on tddr.feedback_user_id = tuu2.id
+				  where tddr.status=0 and tddr.cust_code=#cust_code#
+			) t
+		  order by t.call_date desc
+	</select>
+	
+	<!-- 根据承租人编号 查询该承租人的所有逾期催收记录 -->
+	<select id="getAllDunRecords" parameterClass="map" resultClass="hashmap">
+		select tcc.cust_name,
+		       tddr.dudr_id,
+		       tuu.name call_user_name,
+		       tddr.answerphone_name,
+		       tddr.phone_number,
+		       tddr.call_content,
+		       tddr.call_date,
+		       tddr.feedback_content,
+		       tuu2.name feedback_user_name,
+		       tddr.feedback_date,
+		       tddr.cust_code
+		  from t_dun_dunningrecord tddr
+		  left join t_user_user tuu on tddr.call_user_id = tuu.id
+		  left join t_user_user tuu2 on tddr.feedback_user_id = tuu2.id
+		  left join t_cust_customer tcc on tcc.cust_code=tddr.cust_code
+		 where tddr.status = 0
+		   and tddr.cust_code = #cust_code#
+		 order by tddr.call_date desc
+	</select>
+	
+	<!-- 删除一条催收记录 -->
+	<update id="deleteDunRecord" parameterClass="map">
+		update t_dun_dunningrecord set status=1 where dudr_id=#dudr_id#
+	</update>
+	
+	<!-- 根据支付表ID获取该支付表的逾期信息 -->
+	<select id="getDunInfoByRecp_id" parameterClass="map" resultClass="hashmap">
+		select tcct.cust_id,
+		       tcct.cust_code,
+		       tcct.cust_name,
+		    convert(varchar,tdd.should_paydate,23) should_paydate,
+		       tdd.dun_day dun_day,
+		       trct.lease_code,
+		       trcp.recp_code,
+		       trcp.recp_id,
+		       tdd.dun_monthprice dun_monthprice,
+		       tdd.dun_ownprice dun_ownprice,
+		       tdd.dun_renprice dun_renprice,
+		       tdd.dun_otherprice dun_otherprice,
+		       tdd.dun_fine dun_fine,
+		       tdd.dun_fineinterest dun_fineinterest,
+		       tdd.recp_state recp_state,
+		       tdd.dun_monthprice+tdd.dun_fine+tdd.dun_fineinterest dun_totalprice,
+		       convert(varchar,tdd.create_date,23) reduce_date
+		  from t_dun_daily tdd
+		  left join t_cust_customer tcct on tdd.cust_id = tcct.cust_id
+		  left join t_rent_contract trct on tdd.rect_id = trct.rect_id
+		  left join t_rent_collectionplan trcp on tdd.recp_id = trcp.recp_id
+		 where tdd.status = 0
+       		and  tdd.recp_id = #recp_id#
+		   and  convert(varchar,tdd.create_date,23) = convert(varchar,#reduce_date#, 23)
+	</select>
+	
+	<!-- 保存减免罚息的信息 -->
+	<insert id="saveDerate" parameterClass="map">
+		<![CDATA[
+			insert into t_dun_finederate 
+			(
+			  REPC_ID,
+			  PAY_DATE,
+			  DUN_TOTALPRICE,
+			  DUN_MONTHPRICE,
+			  DUN_DAY,
+			  FINE,
+			  FINEINTEREST,
+			  DERATE_FINE_RATE,
+			   DERATE_FINE,
+			  DERATE_FINEINTEREST_RATE,
+			   DERATE_FINEINTEREST,
+			  APPLY_USER_ID,
+			  APPLY_DATE,
+			  APPLY_CONTET,
+			  STATUS,
+			  STATE,
+			  DERATE_DATE
+			)
+			values
+			(
+				#reduce_paylistId#,
+				cast(#derateFineShouldPayDate# as datetime),
+				#derateFineShouldPayPirce#,
+				#derateFineDunPrice#,
+				#derateFineDunDay#,
+				#derateFineDunFine#, 
+				#derateFineDunFineRate#,
+				#dunFine_rate#,
+				 #dunFine#,
+				 #dunFineRate_rate#,
+				 #dunFineRate#,
+				#s_employeeId#,
+				cast(#apply_date# as datetime),
+				#reduce_mome#,
+				0,
+				0,
+				cast(#reduce_date#	as datetime)
+			)
+		]]>
+	</insert>
+	 
+	<update id="updateDerate" parameterClass="map">
+		<![CDATA[
+			update t_dun_finederate 
+			set
+			  derate_fine_rate=  #dunFine_rate#  ,
+			  derate_fine= #dunFine#,
+			  derate_fineinterest_rate= #dunFineRate_rate#,
+			  derate_fineinterest= #dunFineRate#,
+			  apply_contet=#apply_contet#
+			  where dufd_id=#dufd_id#
+			
+		]]>
+	</update>
+	<update id="repealDerate" parameterClass="map">
+		<![CDATA[
+			update t_dun_finederate 
+			set
+			   state = 3
+			  where dufd_id=#dufd_id#
+			
+		]]>
+	</update>
+	
+	<!-- 查询所有减免罚息信息 -->
+	<select id="getAllFineDerate_count" parameterClass="map" resultClass="int"> 
+		  select count(tdfd.dufd_id) cnt 
+		  from t_dun_finederate tdfd
+		  left join t_rent_collectionplan trcp on tdfd.repc_id=trcp.recp_id
+		  left join t_rent_contract trc on trcp.rect_id=trc.rect_id
+		  left join t_user_user tuu on tuu.id=tdfd.apply_user_id
+		  left join t_user_user tuu2 on tuu2.id=tdfd.examine_user_id
+		  where tdfd.status=0
+		  <dynamic> 	   
+		  	   <isNotEmpty prepend="and" property="content">
+		  	   		(trcp.recp_code like '%$content$%' or
+		  	   		 trc.lease_code like '%$content$%' or
+		  	   		 trc.cust_name like '%$content$%' or 
+		  	   		 tuu.name like '%$content$%' or 
+		  	   		 tuu2.name like '%$content$%')
+		  	   </isNotEmpty>
+		  	   <isNotEmpty property="state" prepend="and">
+		  	   		tdfd.state=#state#
+		  	   </isNotEmpty>
+		  	   <isNotEmpty prepend="and" property="start_date">
+		  	   		tdfd.apply_date&gt;=CONVERT(datetime,#start_date#)
+		  	   </isNotEmpty>
+		  	   <isNotEmpty prepend="and" property="end_date">
+		  	   		tdfd.apply_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	   </isNotEmpty>
+		  </dynamic> 
+	</select>
+	
+	<select id="getAllFineDerate" parameterClass="map" resultClass="hashmap"> 
+		   select  tdfd.dufd_id,
+			       tdfd.repc_id,
+			       tdfd.pay_date,
+			       tdfd.dun_totalprice,
+			       tdfd.dun_monthprice,
+			       tdfd.dun_day,
+			       tdfd.fine,
+			       tdfd.fineinterest,
+			       tdfd.derate_fine_rate,
+			       tdfd.derate_fine,
+			       tdfd.derate_fineinterest_rate,
+			       tdfd.derate_fineinterest,
+			       tdfd.apply_user_id,
+			       tdfd.apply_date,
+			       tdfd.apply_contet,
+			       tdfd.state,
+			       tdfd.examine_user_id,
+			       tdfd.examine_content,
+			       tdfd.examine_date,
+			       tdfd.derate_date,
+			       trcp.recp_code,
+			       trc.lease_code,
+			       trc.cust_name,
+			       tuu.name as apply_user_name,
+			       tuu2.name as examine_user_name
+		  from t_dun_finederate tdfd
+		  left join t_rent_collectionplan trcp on tdfd.repc_id=trcp.recp_id
+		  left join t_rent_contract trc on trcp.rect_id=trc.rect_id
+		  left join t_user_user tuu on tuu.id=tdfd.apply_user_id
+		  left join t_user_user tuu2 on tuu2.id=tdfd.examine_user_id
+		  where tdfd.status=0
+		  <dynamic>  	   
+		  	   <isNotEmpty prepend="and" property="content">
+		  	   		(trcp.recp_code like '%$content$%' or
+		  	   		 trc.lease_code like '%$content$%' or
+		  	   		 trc.cust_name like '%$content$%' or 
+		  	   		 tuu.name like '%$content$%' or 
+		  	   		 tuu2.name like '%$content$%')
+		  	   </isNotEmpty>
+		  	   <isNotEmpty property="state" prepend="and">
+		  	   		tdfd.state=#state#
+		  	   </isNotEmpty>
+		  	   <isNotEmpty prepend="and" property="start_date">
+					tdfd.apply_date&gt;=CONVERT(datetime,#start_date#)
+		  	   </isNotEmpty>
+		  	   <isNotEmpty prepend="and" property="end_date">
+					tdfd.apply_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	   </isNotEmpty>
+		  </dynamic>
+		  order by tdfd.state, tdfd.apply_date desc
+	</select>
+	
+	<!-- 查询一条减免罚息明细 -->
+	
+	<select id="getDerateFineInfo" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select tdfd.dufd_id,
+	       tdfd.repc_id,
+	       trc.cust_name, 
+	       trcp.recp_code,
+	       trc.lease_code,
+	       tdfd.pay_date,
+	       tdfd.dun_totalprice,
+	       tdfd.dun_monthprice,
+	       tdfd.dun_day,
+	       tdfd.dun_day,
+	       tdfd.fine,
+	       tdfd.fineinterest,
+	       tdfd.derate_fine_rate,
+	       tdfd.derate_fine,
+	       tdfd.derate_fineinterest_rate,
+	       tdfd.derate_fineinterest,
+	       tdfd.apply_user_id,
+	       tuu.name as apply_user_name,
+	       tdfd.apply_date,
+	       tdfd.apply_contet,
+	       tdfd.state,
+	       tdfd.examine_user_id,
+	       tdfd.examine_content,
+	      tuu2.name as examine_user_name,
+	       tdfd.examine_date,
+	       tdfd.examine_content,
+	       tdfd.examine_boss,
+	       tdfd.boss_examine_date,
+	       tuu3.name as examine_boss_name,
+	       tdfd.derate_date
+		  from t_dun_finederate tdfd
+		  left join t_rent_collectionplan trcp on trcp.recp_id=tdfd.repc_id
+		  left join t_rent_contract trc on trc.rect_id=trcp.rect_id
+		  left join t_user_user tuu on tuu.id = tdfd.apply_user_id
+		  left join t_user_user tuu2 on tuu2.id=tdfd.examine_user_id
+		left join t_user_user tuu3 on tuu3.id=tdfd.examine_boss_id
+		  where tdfd.dufd_id=#dufd_id#
+		 ]]>
+	</select>
+	
+	<!-- 审批 -->
+	<update id="examine" parameterClass="map">
+		  	update t_dun_finederate 
+			   set state= #state#,
+			   		<isNotEmpty  property="examine_user_id">
+			   			   examine_user_id = #s_employeeId#,
+					</isNotEmpty>
+						<isNotEmpty  property="examine_date">
+			   			   examine_date  = getdate(),
+					</isNotEmpty>
+			   		<isNotEmpty property="examine_content">
+			   			 examine_content = #examine_content#,
+					</isNotEmpty>
+			   		<isNotEmpty property="examine_boss">
+			   			examine_boss=#examine_boss#,
+					</isNotEmpty>
+			   		<isNotEmpty property="boss_examine_date">
+			   			boss_examine_date=getdate(),
+					</isNotEmpty>
+			   		<isNotEmpty property="examine_boss_id">
+			   			examine_boss_id=#s_employeeId#,
+					</isNotEmpty>
+			   		<isNotEmpty property="dunFine_rate">
+			   			derate_fine_rate=#dunFine_rate#,
+					</isNotEmpty>
+			   		<isNotEmpty property="dunFineRate_rate">
+			   			derate_fineinterest_rate=#dunFineRate_rate#,
+					</isNotEmpty>
+			   		<isNotEmpty property="dunFine">
+			   			derate_fine=#dunFine#,
+					</isNotEmpty>
+			   		<isNotEmpty property="dunFineRate">
+			   			derate_fineinterest=#dunFineRate#,
+					</isNotEmpty>
+				   modify_user_id = #s_employeeId#,
+				   modify_date =getdate()
+			 where dufd_id = #dufd_id#
+		  
+	</update>
+	
+	<!-- 根据承租人编号和日期获取该承租人的逾期明细 -->
+	
+	<select id="getDunDetailByCust_codeAndDate" parameterClass="map" resultClass="hashmap">
+	  <![CDATA[
+		 select  t1.cust_id, 
+		           t1.cust_name,
+				   t1.recp_id,
+                   t1.rect_id,
+                   t1.recp_code,
+                   t1.lease_code,
+                   t1.warn_status recp_status,
+                   t1.fine_type,
+                   t1.fine_rate,
+				   t1.last_date,
+				   t1.dun_day,
+				   t1.month_price should_pay,
+                   t1.reduce_price real_pay,
+				   t1.dun_price,
+				   t1.opposing_date,
+				   t1.pay_date,
+                   t1.period_num,
+				(case
+                 when fine_type = 2 then
+                  round(dun_price *
+                        power(1 + fine_rate / 100, dun_day) -
+                        dun_price,2)
+                 else
+                  round(dun_price * dun_day * fine_rate / 100,
+                        2)
+               end) fine
+                  from (
+                  select trcp.cust_id,
+                         trcp.cust_name,
+                         trcp.recp_id,
+                         trcp.rect_id,
+                         trcp.recp_code,
+                         trcp.lease_code,
+                         trcp.warn_status,
+                         trcp.fine_type,
+                         trcp.fine_rate,
+                         trcp.pay_date,
+                         tfcd.opposing_date,
+                         (case
+                         when tfcd.opposing_date is null or
+                              tfcd.opposing_date <= trcp.pay_date then
+                          trcp.pay_date
+                         else
+                          tfcd.opposing_date
+                       end) last_date,
+                       (case
+                         when tfcd.opposing_date is null or
+                              tfcd.opposing_date <= trcp.pay_date then
+                          datediff(d,trcp.pay_date,#income_date#)
+                         else
+                          datediff(d,tfcd.opposing_date,#income_date#)
+                       end) dun_day,
+                       trcp.month_price,
+                       trcp.reduce_price,
+					   trcp.month_price-reduce_price as dun_price,
+                       trcp.period_num
+                                from (
+                               select trc.cust_id,
+                               trc.cust_name,
+                               trcp.recp_id,
+                               trcp.recp_code,
+                               trcp.rect_id,
+                               trc.lease_code,
+                               trcp.warn_status,
+                               trcd.pay_date,
+                               trcd.period_num, 
+                               trcp.fine_type,
+                               trcp.fine_rate,
+                               isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+                               isnull(trcd.reduce_own_price, 0) reduce_price 
+                          from t_rent_collectionplan trcp
+                          left join t_rent_contract trc on trcp.rect_id =
+                                                           trc.rect_id
+                          left join t_rent_collectiondetail trcd on trcp.recp_id =
+                                                                    trcd.recp_id
+                         where trcp.status = 0 and trc.status=0
+                            and (trcp.fund_status=0 or trcp.fund_status=1)
+                           and  trcd.pay_date < = cast(#income_date# as datetime)-1
+							 and trcp.rect_id in
+	                           (
+	                               select trc.rect_id from t_rent_contract trc 
+	                               where trc.cust_code =#cust_code#  
+	                           ) 
+                         and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+                          left join  (select tfcb.recp_id, max(tfi.opposing_date) opposing_date
+                            from t_fina_collectionbill tfcb
+                            left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+                           where tfi.opposing_date <= cast(#income_date# as datetime)
+                           and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+                           and tfi.red_type is null
+						   and tfcb.cust_code=#cust_code#  
+                           group by tfcb.recp_id ) tfcd 
+                          on trcp.recp_id = tfcd.recp_id
+                      where (case when tfcd.opposing_date is null or
+                        tfcd.opposing_date <= trcp.pay_date then
+                       datediff(d,trcp.pay_date,#income_date#) else
+                         datediff(d,tfcd.opposing_date,#income_date#) end) > 0 ) t1  
+                       order by recp_code, period_num
+
+	  ]]>	       
+	</select>
+	<select id="expDunTaskDetails" parameterClass="map" resultClass="hashmap"> 
+		<!-- 2011/12/28 Yang Yun 导出逾期催收报表 数据抓取 SQL重写。 -->
+		<!-- modify by Shen Qi 修改拿最新联络人的数据 -->
+		<![CDATA[
+			select tddr.CALL_USER_ID,decp.DECP_NAME_CN,
+            T.NAME,
+            CASE 
+		        WHEN T.JOB = 1 
+		        THEN (SELECT NAME FROM t_user_user WHERE STATUS = 0 AND ID = T.upper_user)
+		        ELSE T.NAME
+				    END UPNAME,
+			max(trcp.recp_id) as RECP_ID,
+            max(trct.LEASE_CODE) as LEASE_CODE,
+            max(tcct.CORP_ENTERPRISES_PROPERTY) as CORP_TYPE,
+            max(t2.min_PERIOD_NUM)as min_PERIOD_NUM,
+				    max(t2.max_PERIOD_NUM)as max_PERIOD_NUM,
+            max(rcd.IRR_MONTH_price)as IRR_MONTH_price,
+            max(t2.AL_PERIOD_NUM) as AL_PERIOD_NUM,
+            max(rcd.LAST_PRICE)as LAST_PRICE,
+            max(t2.PAY_DATE) as PAY_DATE,
+            max(t2.DUN_DAY) as DUN_DAY,
+            max(tdd.DUN_MONTHPRICE) as DUN_MONTHPRICE,
+            isnull((select NAME from T_USER_USER where ID = tddr.CALL_USER_ID),'') as answerphone_name,
+            max(trct.RECT_TYPE) as RECT_TYPE,
+            max(lm.LOCK_DATE) as LOCK_DATE,
+            max(tddr.CALL_DATE) as CALL_DATE,
+            max(tddr.RESULT) as RESULT,
+            max(T_VISIT.VISIT_DATE)VISIT_DATE,max(T_VISIT.VISIT_TIMES)VISIT_TIMES,max(tuu_visit.name) VISIT_NAME,
+		    tcct.cust_name,
+            T1.BRAND,
+  			TDSUPL.FLAG SUPL_TRUE,
+			TDLOCK.FLAG LOCK_CODE,trcp.LEASE_PERIOD,tddr.CALL_CONTENT,SUM_PRICE.TOTAL_RENT_PRICE
+			  ,FIRSTDUNDATE.FIRSTDUNPERIOD, FIRSTDUNDATE.FIRSTDUNDATE,
+			  MAX(tpcs.LEASE_TOPRIC - tpcs.PLEDGE_ENTER_MCTOAG - tpcs.PLEDGE_ENTER_AG) as payMoney  
+			, max(tpc.FINANCECONTRACT_DATE) as FINANCECONTRACT_DATE,tpc.company_code
+			from t_dun_daily tdd
+			left join t_cust_customer tcct on tdd.cust_id = tcct.cust_id AND TCCT.STATUS = 0
+			left join t_dun_dunningrecord tddr  on tcct.cust_code=tddr.cust_code and tddr.STATUS = 0 
+			and tddr.CALL_DATE=(SELECT MAX(tddr1.CALL_DATE) FROM t_dun_dunningrecord tddr1 where tddr1.STATUS=tddr.STATUS and tddr1.cust_code=tddr.cust_code)
+			left join t_rent_contract trct on tdd.rect_id = trct.rect_id AND TRCT.STATUS = 0
+			left join t_rent_collectionplan trcp on tdd.recp_id=trcp.recp_id AND TRCP.STATUS = 0
+			]]>
+		  <!-- Add by Michael 2012 09-07 增加供应商连保方式 和锁码方式 -->
+  		  <![CDATA[
+  		  LEFT JOIN (select sum(IRR_MONTH_PRICE+isnull(VALUE_ADDED_TAX,0))-sum(isnull(REDUCE_OWN_PRICE,0)) TOTAL_RENT_PRICE,RECP_ID  from T_RENT_COLLECTIONDETAIL
+			where status='0' group by RECP_ID) SUM_PRICE on trcp.recp_id=SUM_PRICE.RECP_ID
+		  LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE = '供应商保证' and  TDSUPL.CODE = trcp.SUPL_TRUE 
+		  LEFT JOIN (SELECT RECT_ID,MIN(LOCK_CODE) LOCK_CODE FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) TLOCK
+						ON TLOCK.RECT_ID = trct.RECT_ID 
+		  LEFT JOIN T_DATA_DICTIONARY TDLOCK ON TDLOCK.TYPE = '锁码方式' and  TDLOCK.CODE = TLOCK.LOCK_CODE 
+		  ]]>
+		  <![CDATA[			
+			left join T_RENT_COLLECTIONDETAIL rcd on rcd.RECP_ID=tdd.RECP_ID and rcd.PERIOD_NUM=tdd.PERIOD_NUM
+			left join T_LOCK_MANAGEMENT lm on lm.RENT_ID=rcd.RECD_ID
+			]]>
+			<!-- left join T_DEPT_COMPANY decp on decp.DECP_ID = trct.DECP_ID AND DECP.STATUS = 0 -->
+			<![CDATA[
+			LEFT JOIN T_USER_USER T ON T.ID = trct.SENSOR_ID
+			]]>
+			  <!-- 2012/01/18 Yang Yun 修改办事处的抓取方式. -->
+			  <![CDATA[
+			  left join T_USER_USER upper on upper.id = T.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T.DEPT_ID and dept.STATUS = 0
+	     	  	  left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID and decp.STATUS = 0
+			  ]]>
+			  <!-- 2012/01/18 Yang Yun 修改办事处的抓取方式. -->
+			  <![CDATA[
+			LEFT JOIN (SELECT RECT_ID,MAX(T.BRAND) BRAND FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) T1
+						ON T1.RECT_ID = trct.RECT_ID 
+			left join (
+				select  MIN(t2.PERIOD_NUM) min_PERIOD_NUM,
+					MAX(t2.PERIOD_NUM) max_PERIOD_NUM,
+					MAX(t2.SHOULD_PAYDATE) PAY_DATE,
+				   (MIN(t2.PERIOD_NUM)-1)   AL_PERIOD_NUM,
+					MAX(t2.DUN_DAY) DUN_DAY, t2.RECP_ID
+				   from T_RENT_COLLECTIONDETAIL t1
+					   left join T_DUN_DAILY t2 on t1.RECP_ID=t2.RECP_ID and t1.PERIOD_NUM=t2.PERIOD_NUM
+					   join t_rent_contract t4 on t4.rect_id = t2.rect_id					   
+					where  t2.PERIOD_NUM is not null 
+					and convert(datetime,convert(varchar,t2.CREATE_DATE,23))=convert(datetime,convert(varchar,#dun_date#,23))
+					group by t2.RECP_ID 
+				) t2 on  t2.RECP_ID=trcp.RECP_ID
+				
+			LEFT JOIN (
+                          SELECT MIN(TFCBD.RECD_PERIOD) AS FIRSTDUNPERIOD,CONVERT(VARCHAR,MIN(TFCBD.PAY_DATE), 23) AS FIRSTDUNDATE,TFCBD.RECP_ID AS RECP_ID
+           			     FROM   (
+			           			     SELECT TRDSE.RECP_ID,MIN(TRDSE.PAY_DATE) AS PAY_DATE,MIN(TRDSE.PERIOD_NUM ) AS RECD_PERIOD
+			                         FROM T_RENT_DECOMPOSE TRDSE
+			                         LEFT JOIN T_RENT_INCOME TRI ON TRI.INCOME_ID =TRDSE.INCOME_ID
+			                         WHERE  (TRDSE.DECOMPOSE_STATUS=2) AND TRDSE.HAS_RED_DECOMPOSE=0 AND TRDSE.DECOMPOSE_TYPE='0' 	 
+						                           AND (TRDSE.BILL_CODE ='VALUE_ADD_TAX' OR TRDSE.BILL_CODE='RENT') 
+						                           AND DATEDIFF(D,TRDSE.PAY_DATE ,TRI.INCOME_DATE )>0 
+			                         GROUP BY RECP_ID
+			                         UNION ALL
+			                         SELECT  RECP_ID, MIN(PAY_DATE) AS PAY_DATE,MIN(PERIOD_NUM) RECD_PERIOD  
+			                         FROM T_RENT_COLLECTIONDETAIL 
+			                         WHERE  ISNULL(IRR_MONTH_PRICE, 0)+ISNULL(VALUE_ADDED_TAX, 0)-ISNULL(REDUCE_OWN_PRICE, 0)>0.001 
+			                         AND  DATEDIFF(D,PAY_DATE,GETDATE() )>0  
+			                         GROUP BY RECP_ID
+                   			 )TFCBD
+                      GROUP BY TFCBD.RECP_ID
+                        
+                     
+				        ) FIRSTDUNDATE ON  FIRSTDUNDATE.RECP_ID=TRCP.RECP_ID  
+				
+			left join T_PRJT_CREDIT tpc on tpc.id=trct.prcd_id
+			left join T_PRJT_CREDITSCHEME  tpcs on tpc.id=tpcs.CREDIT_ID
+			left join (select MAX(VISIT_DATE)VISIT_DATE,MAX(VISIT_ID) VISIT_ID,RECT_ID,COUNT(*) VISIT_TIMES from T_VISIT_REVIEWRECORDS
+			where STATUS=0 group by RECT_ID) T_VISIT on trct.RECT_ID=T_VISIT.RECT_ID
+			left join T_VISIT_REVIEWRECORDS tvrcds on T_VISIT.VISIT_ID=tvrcds.VISIT_ID
+			left join T_USER_USER tuu_visit on tvrcds.VISIT_USER_ID=tuu_visit.ID
+			LEFT JOIN (
+		      SELECT RISK.CREDIT_ID, RM.CREATE_USER_ID, U.[NAME]
+		      FROM T_PRJT_RISK_CONTROL RISK
+		      LEFT JOIN (
+		      SELECT M1.PRC_ID, M1.CREATE_USER_ID
+		      FROM T_PRJT_RISK_CONTROLMEMO M1
+		      WHERE M1.CREATE_TIME = (
+			      SELECT TOP 1 M2.CREATE_TIME FROM T_PRJT_RISK_CONTROLMEMO M2
+			      WHERE M2.PRC_ID = M1.PRC_ID
+			      ORDER BY M2.CREATE_TIME DESC
+		      )
+		      	  AND M1.STATUS = 0
+		      ) RM ON RM.PRC_ID = RISK.PRC_ID
+		      LEFT JOIN T_USER_USER U ON RM.CREATE_USER_ID = U.ID
+		      WHERE RISK.STATE = 1 AND RISK.STATUS = 0
+		  ) HE ON HE.CREDIT_ID = TPC.ID
+     
+		LEFT JOIN T_USER_USER OT ON OT.ID = TRCT.ORG_SENSOR_ID 
+	    LEFT JOIN T_DEPT_COMPANY ORG_COMP ON TPC.ORG_DECP_ID = ORG_COMP.DECP_ID AND ORG_COMP.STATUS = 0
+        LEFT JOIN T_USER_USER UP ON UP.ID = TPC.ORG_UP_USER
+		where tdd.status=0 and tpc.FINANCECONTRACT_DATE is not null
+		]]>
+		<isNotEmpty prepend="and" property="companyCode">
+			tpc.company_code = #companyCode#
+		</isNotEmpty>
+			
+			<isEqual property="p_usernode" compareValue="1">
+		  		<![CDATA[
+		  			AND( trct.sensor_id = #s_employeeId#
+		  			OR T.upper_user = #s_employeeId#)
+		  		]]>
+		  	</isEqual>
+		  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = trct.SENSOR_ID)
+				]]>
+			</isEqual>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		  	<isNotEmpty prepend="and" property="dun_date">
+		  	<![CDATA[
+		  		convert(datetime,convert(varchar,tdd.create_date,23))=convert(datetime,convert(varchar,#dun_date#,23))
+		  	]]>
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="content">
+		  		<![CDATA[
+		  		(tcct.cust_name like '%$content$%' 
+		  		or trct.lease_code like '%$content$%'
+		  		or trcp.recp_code like '%$content$%'
+		  		OR T1.BRAND LIKE '%$content$%')
+		  		]]>
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="startrange">
+		  	  <![CDATA[ tdd.dun_day >= #startrange#  ]]>
+		  	</isNotEmpty>
+			<isNotEmpty prepend="and" property="endrange">
+		  	  <![CDATA[ tdd.dun_day <= #endrange#]]>
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="NAME">
+		  	  <![CDATA[  T.NAME  LIKE '%$NAME$%']]>
+		  	</isNotEmpty>
+		  	<!-- <isNotEmpty prepend="and" property="COMPANY">
+		  	  <![CDATA[  decp.DECP_ID = #COMPANY#]]>
+		  	</isNotEmpty>
+		  	
+		  	<isNotEmpty prepend="and" property="ORG_COMPANY">
+				  <![CDATA[  TPC.ORG_DECP_ID = #ORG_COMPANY#]]>
+		    </isNotEmpty> -->
+		    <isNotEmpty prepend="and" property="COMPANY">
+		  	  decp.DECP_ID in
+		  	  <iterate open="(" close=")" property="COMPANY" conjunction=",">
+		  	  		#COMPANY[]#
+		  	  </iterate>
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="ORG_COMPANY">
+		  	  TPC.ORG_DECP_ID in
+		  	  <iterate open="(" close=")" property="ORG_COMPANY" conjunction=",">
+		  	  		#ORG_COMPANY[]#
+		  	  </iterate>
+		  	</isNotEmpty>
+			<isNotEmpty prepend="and" property="orgUserName">
+				  	  <![CDATA[  OT.NAME LIKE '%$orgUserName$%']]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="orgUpUserName">
+				  	  <![CDATA[  UP.NAME LIKE '%$orgUpUserName$%']]>
+			</isNotEmpty>
+			<isNotEmpty property="CREDIT_SPECIAL_CODE">
+						<isEqual prepend="and" property="CREDIT_SPECIAL_CODE" compareValue="-1">
+				  	  		<![CDATA[  (TPC.CREDIT_SPECIAL_CODE IS NULL OR TPC.CREDIT_SPECIAL_CODE = '')]]>
+			  	  		</isEqual>
+			  	  		<isNotEqual prepend="and" property="CREDIT_SPECIAL_CODE" compareValue="-1">
+			  	  			<![CDATA[  TPC.CREDIT_SPECIAL_CODE = #CREDIT_SPECIAL_CODE#]]>
+			  	  		</isNotEqual>
+			</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="approvalUserName">
+				  	  <![CDATA[  HE.NAME LIKE '%$approvalUserName$%']]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="moneyBegin">
+				  	  <![CDATA[  TPCS.LEASE_RZE >= #moneyBegin#]]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="moneyEnd">
+				  	  <![CDATA[  TPCS.LEASE_RZE < #moneyEnd#]]>
+				  	</isNotEmpty>
+		  	<!-- Modify by Michael 2012 4-18 按逾期天数排序 -->
+			<![CDATA[
+			group by tddr.CALL_USER_ID,tcct.cust_id,tcct.cust_code,trcp.recp_id,
+			      tcct.cust_name, tcct.CORP_HEAD_SIGNATURE,
+			      tcct.CORP_HS_LINK_MODE,trct.sensor_id,decp.DECP_NAME_CN,T.NAME,T.JOB,T.upper_user,T1.BRAND,trcp.recp_code,
+			      TDSUPL.FLAG,TDLOCK.FLAG,trcp.LEASE_PERIOD,tddr.CALL_CONTENT,SUM_PRICE.TOTAL_RENT_PRICE
+			      ,FIRSTDUNDATE.FIRSTDUNPERIOD, FIRSTDUNDATE.FIRSTDUNDATE,tpc.company_code
+			order by  max(t2.DUN_DAY)  desc 
+		]]>	   
+	</select>
+	
+	<!-- 查找合同好和承租人，为发短信用 -->
+	<select id="codeAndName" parameterClass="map" resultClass="hashmap">
+		select trc.LEASE_CODE,trc.CUST_NAME from t_rent_collectionplan trcp
+					
+					left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID
+
+					where trcp.RECP_ID = #recp_id#
+	</select>
+	
+	<select id="getPrcId" parameterClass="map" resultClass="java.lang.String">
+		select max(PRC_ID) as PRC_ID
+		from T_PRJT_RISK_CONTROL
+		where CREDIT_ID = #credit_id#
+	</select>
+	<!-- 以下每日逾期报表 zhangbo-->
+	<select id="getEveryDayOverDue" parameterClass="map" resultClass="com.brick.dun.to.DunTaskEveryTo"> 
+	
+		SELECT DISTINCT 
+		       TCCT.CUST_NAME as custName,
+		       TDD.DUN_DAY as dunDay,
+		       TRCT.LEASE_CODE as leaseCode,
+           TUU.[NAME]  as callUser,
+           TDUN.CALL_DATE as callTime,
+           TDUN.RESULT as callResult,
+         TUUU.NAME as manager,
+         COMP.DECP_NAME_CN AS  area,
+         VISIT1.VISIT_DATE as visitDate,
+         TUUV.NAME as visitUser,
+         TPLAN.LEASE_PERIOD as leasePeriod,
+         BILL.PERIOD as period
+        
+		  FROM T_DUN_DAILY TDD
+		  LEFT JOIN T_CUST_CUSTOMER TCCT ON TDD.CUST_ID = TCCT.CUST_ID
+		  LEFT JOIN T_RENT_CONTRACT TRCT ON TDD.RECT_ID = TRCT.RECT_ID
+      LEFT JOIN T_RENT_COLLECTIONPLAN TPLAN ON TPLAN.RECT_ID = TRCT.RECT_ID
+      LEFT JOIN (SELECT RECP_ID RECP_ID,MAX(RECD_PERIOD) PERIOD FROM T_FINA_COLLECTIONBILL where ficb_item='租金'
+       GROUP BY RECP_ID) BILL ON TPLAN.RECP_ID=BILL.RECP_ID
+      LEFT JOIN T_DUN_DUNNINGRECORD  TDUN ON TCCT.CUST_CODE = TDUN.CUST_CODE   AND CONVERT(VARCHAR,TDUN.CALL_DATE,23) =  CONVERT(VARCHAR,#date#,23)
+      LEFT JOIN T_USER_USER TUU ON TUU.ID =TDUN.CALL_USER_ID
+      LEFT JOIN T_USER_USER TUUU ON TUUU.ID =  TRCT.SENSOR_ID
+      LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = TUUU.DEPT_ID AND DEPT.STATUS = 0
+      LEFT JOIN T_DEPT_COMPANY COMP ON DEPT.DECP_ID = COMP.DECP_ID AND COMP.STATUS = 0
+
+        LEFT JOIN  (
+           SELECT O.RECT_ID,T.VISIT_USER_ID,O.VISIT_DATE
+        FROM T_VISIT_REVIEWRECORDS T
+        LEFT JOIN  (SELECT MAX(T.VISIT_DATE) VISIT_DATE,T.RECT_ID
+                      FROM T_VISIT_REVIEWRECORDS T
+                     WHERE STATUS=0
+                  GROUP BY T.RECT_ID) O ON T.RECT_ID=O.RECT_ID AND T.VISIT_DATE=O.VISIT_DATE
+                   WHERE T.STATUS=0
+        GROUP BY O.RECT_ID,T.VISIT_USER_ID,O.VISIT_DATE
+       HAVING O.VISIT_DATE IS NOT NULL 
+       )  VISIT1  ON VISIT1.RECT_ID =TRCT.RECT_ID 
+       LEFT JOIN  T_USER_USER TUUV ON VISIT1.VISIT_USER_ID=TUUV.ID
+		  WHERE TDD.STATUS = 0
+		   AND CONVERT(VARCHAR,TDD.CREATE_DATE,23) =  CONVERT(VARCHAR,#date#,23)
+       AND TDD.DUN_DAY>=8
+	</select>
+	
+	<!-- 以上每日逾期报表 -->
+	<!-- 以下每日逾期报表催收总数 zhangbo-->
+	<select id="getEveryDayOverDueCount" parameterClass="com.brick.base.to.BaseTo" resultClass="java.lang.Integer">
+		select count(*) from T_DUN_DAILY  TDD
+   		WHERE TDD.STATUS = 0
+		   AND CONVERT(VARCHAR,TDD.CREATE_DATE,23) =  CONVERT(VARCHAR,#key_value#,23)
+       AND TDD.DUN_DAY>=8
+	</select>
+	<select id="getEveryDayOverDueCallCount" parameterClass="com.brick.base.to.BaseTo" resultClass="java.lang.Integer">
+		select count(TDUN.callDate) from T_DUN_DAILY  TDD
+		LEFT JOIN T_CUST_CUSTOMER TCCT ON TDD.CUST_ID = TCCT.CUST_ID
+		LEFT JOIN  (   select DISTINCT tdun1.CUST_CODE as CUST_CODE,Max(tdun1.CALL_DATE) callDate
+		                    from T_DUN_DUNNINGRECORD tdun1 
+		                where CONVERT(VARCHAR,tdun1.CALL_DATE,23) =  CONVERT(VARCHAR,#key_value#,23)
+		                group by tdun1.CUST_CODE
+		) TDUN ON TCCT.CUST_CODE = TDUN.CUST_CODE   
+		WHERE TDD.STATUS = 0
+				   AND CONVERT(VARCHAR,TDD.CREATE_DATE,23) =  CONVERT(VARCHAR,#key_value#,23)
+		       AND TDD.DUN_DAY>=8
+	</select>
+	
+	<!-- 以上每日逾期报表催收总数 -->
+	
+	<!-- 以下查询登录者的权限zhangbo -->
+		<select id="getResourceIdListByEmplId" parameterClass="map" resultClass="java.lang.String">
+					SELECT PERMISSION_CODE FROM FIL_PERMISSION_RESOURCE WHERE ID IN
+					(
+					SELECT re.RESOURCE_ID
+					             FROM fil_permission_resource2role re
+					            WHERE EXISTS 
+					                   (SELECT 1 
+					                      FROM FIL_PERMISSION_ROLE roles
+					                     WHERE EXISTS
+					                             (SELECT 1 
+					                                FROM t_user_user2role users 
+					                               WHERE roles.ID=users.ROLE_ID
+					                                 AND roles.STATUS=users.STATUS
+					                                 AND users.EMPLOYEE_ID=#s_employeeId#
+					                                 AND users.STATUS=0)
+					                         AND roles.ID=re.ROLE_ID
+					                         AND roles.STATUS=re.STATUS)
+					      )
+		      AND PERMISSION_CODE IS NOT NULL AND PERMISSION_CODE!=''
+		
+		</select>
+	
+	<!-- 以上查询登录者的权限 -->
+	
+		<!-- 资产催收保证人 -->
+		<select id="getNatureListByCustId" parameterClass="map" resultClass="hashmap">
+			SELECT DISTINCT TPCC.CUST_NAME,TPCC.NATU_MOBILE,TPCC.NATU_GENDER ,TPCC.NATU_PHONE
+			,TPCC.STATUS,TPCC.NATU_IDCARD,TPCC.NATU_HOME_ADDRESS, TPCC.NATU_IDCARD_ADDRESS
+			FROM T_PRJT_CREDIT  TPC
+			LEFT JOIN T_PRJT_CREDITVOUCHNATU TPCC ON TPCC.PRCD_ID=TPC.ID
+			WHERE TPC.CUST_ID=#custId# and (len(NATU_IDCARD) =15 or len(NATU_IDCARD)=18)
+		</select>
+		<!-- 资产催收保证人 -->
+		<!-- 律师函保证人 -->
+		<select id="getNatureListByRectId" parameterClass="map" resultClass="hashmap">
+			SELECT DISTINCT TPCC.CUST_NAME,TPCC.NATU_MOBILE,TPCC.NATU_GENDER ,TPCC.NATU_PHONE
+			,TPCC.STATUS,TPCC.NATU_IDCARD,TPCC.NATU_HOME_ADDRESS, TPCC.NATU_IDCARD_ADDRESS
+			FROM T_PRJT_CREDITVOUCHNATU  TPCC
+			LEFT JOIN T_PRJT_CREDIT TPC ON TPCC.PRCD_ID=TPC.ID
+			left join  T_RENT_CONTRACT trc on  trc.PRCD_ID = TPC.ID
+			WHERE trc.RECT_ID=#rectId# AND (LEN(TPCC.NATU_IDCARD) =15 OR LEN(TPCC.NATU_IDCARD)=18)
+		</select>
+		<!-- 律师函保证人-->
+		<!-- 连保公司 -->
+		<select id="getCompanyListByRectId" parameterClass="map" resultClass="hashmap">
+			 select  DISTINCT tpv.CORP_NAME_CN ,tpv.REGISTERED_OFFICE_ADDRESS,tpv.LINK_MAILING_ADDRESS
+	 		 ,tpv.LEGAL_PERSON,tpv.LEGAL_MOBILE_NUMBER1
+	 		 from T_PRJT_VOUCHCUSTOMERCORP tpv 
+		     LEFT JOIN  T_PRJT_CREDIT tpc on tpv.PRCD_ID = tpc.ID
+         	left join  T_RENT_CONTRACT trc on  trc.PRCD_ID = TPC.ID
+		 	 where trc.RECT_ID=#rectId# and tpc.STATUS=0 and tpv.STATUS=0 
+      
+		</select>
+		
+		<!-- 根据客户编号 获取该客户的逾期情况 -->
+	<select id="getDunDataByCustCodeDate" parameterClass="map" resultClass="hashmap">
+		select tcct.cust_id,
+		  trct.RECT_ID,
+		       tcct.cust_code,
+		       tcct.cust_name,
+		        tcct.CORP_HEAD_SIGNATURE,
+          		 tcct.CORP_HS_LINK_MODE,
+		       convert(varchar,tdd.should_paydate,23) should_paydate,
+		       tdd.dun_day dun_day,
+		       trct.lease_code,
+		       trcp.recp_code,
+		       trcp.recp_id,
+		       tdd.dun_monthprice dun_monthprice,
+		       tdd.dun_ownprice dun_ownprice,
+		       tdd.dun_renprice dun_renprice,
+		       tdd.dun_otherprice dun_otherprice,
+		       tdd.dun_fine dun_fine,
+		       tdd.dun_fineinterest dun_fineinterest,
+		       tdd.recp_state recp_state,
+		       tdd.dun_monthprice+tdd.dun_fine+tdd.dun_fineinterest dun_totalprice
+		  from t_dun_daily tdd
+		  left join t_cust_customer tcct on tdd.cust_id = tcct.cust_id
+		  left join t_rent_contract trct on tdd.rect_id = trct.rect_id
+		  left join t_rent_collectionplan trcp on tdd.recp_id = trcp.recp_id
+		 where tdd.status = 0
+		   and convert(varchar,tdd.create_date,23) =  convert(varchar,#dunDate#,23)
+		   and tcct.cust_code=#cust_code#
+		   order by  trct.lease_code,trcp.recp_code  ,tdd.dun_monthprice desc
+	</select>
+	<!-- 查询合同详情 -->
+	<select id="getContractById" parameterClass="map" resultClass="hashmap">
+			SELECT TRCP.RECP_ID, TRC.CUST_NAME,TRC.CUST_CODE,  TRC.RECT_ID, 
+			TRC.CUST_ID, TRC.LEASE_CODE ,TCCT.CORP_HEAD_SIGNATURE, TCCT.CORP_HS_LINK_MODE,TRC.PRCD_ID
+			FROM T_RENT_CONTRACT TRC 
+			LEFT JOIN T_RENT_COLLECTIONPLAN TRCP ON TRCP.RECT_ID =TRC.RECT_ID
+			LEFT JOIN T_CUST_CUSTOMER TCCT ON TRC.CUST_ID = TCCT.CUST_ID
+			WHERE TRC.LEASE_CODE=#lease_code#
+	</select>
+	<!-- 查询律师函 -->
+	 <select id="getLetterList" parameterClass="map" resultClass="com.brick.dun.to.DunLetterTo"> 
+		 SELECT
+		  TRCT.SENSOR_ID as sensorId, 
+		  CONVERT(VARCHAR,MIN(TDD.SHOULD_PAYDATE),23 )  as shouldPayDate, 
+		  TCCT.CUST_ID as custId ,
+		  TCCT.CUST_CODE as custCode,
+		  TRCT.LEASE_CODE as leaseCode, 
+     		 TRCT.RECT_ID as rectId, 
+		  TCCT.CUST_NAME as custName,  
+		  MAX(TDD.DUN_DAY) as dunDay, 
+		  TDSUPL.FLAG  as suplTrue,
+		  T.NAME as [name],
+		  CASE  WHEN T.JOB = 1   THEN (SELECT NAME FROM T_USER_USER WHERE STATUS = 0 AND ID = T.UPPER_USER)
+		  ELSE T.NAME
+		  END upName ,
+		  T1.BRAND as brand
+		  FROM T_DUN_DAILY TDD
+		  LEFT JOIN T_RENT_COLLECTIONPLAN TRCP ON TDD.RECP_ID=TRCP.RECP_ID AND TRCP.STATUS = 0
+		  LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE = '供应商保证' AND  TDSUPL.CODE = TRCP.SUPL_TRUE 
+		  LEFT JOIN T_RENT_CONTRACT TRCT ON TDD.RECT_ID = TRCT.RECT_ID AND TRCT.STATUS = 0
+		  LEFT JOIN T_PRJT_CREDIT PRCD ON TRCT.PRCD_ID = PRCD.ID
+		  LEFT JOIN T_USER_USER T ON T.ID = TRCT.SENSOR_ID 
+		  LEFT JOIN T_CUST_CUSTOMER TCCT ON TDD.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+		  LEFT JOIN (SELECT RECT_ID,MAX(T.BRAND) BRAND FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) T1 ON T1.RECT_ID = TRCT.RECT_ID 
+		  WHERE TDD.STATUS=0 AND PRCD.FINANCECONTRACT_DATE IS NOT NULL
+		  AND CONVERT(DATETIME,CONVERT(VARCHAR,TDD.CREATE_DATE,23))=CONVERT(DATETIME,CONVERT(VARCHAR,#dun_date#,23))
+				  	<isNotEmpty prepend="and" property="dun_date">
+				  	convert(datetime,convert(varchar,tdd.create_date,23))=convert(datetime,convert(varchar,#dun_date#,23))
+				  	</isNotEmpty>
+				  <isNotEmpty prepend="and" property="content">
+				  		(tcct.cust_name like '%$content$%' or trct.lease_code like '%$content$%'
+				  		 or trcp.recp_code like '%$content$%' 
+				  		 or T1.BRAND like '%$content$%')
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="startrange">
+				  	  <![CDATA[ dun_day >=#startrange#  ]]>
+				  	</isNotEmpty>
+  				  	<isNotEmpty prepend="and" property="endrange">
+				  	  <![CDATA[  dun_day  < #endrange#]]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="NAME">
+				  	  <![CDATA[  T.NAME  LIKE '%$NAME$%']]>
+				  	</isNotEmpty>
+		  GROUP BY TCCT.CUST_ID,TCCT.CUST_CODE,TRCT.LEASE_CODE,  TCCT.CUST_NAME,T.UPPER_USER,TRCT.SENSOR_ID,TDSUPL.FLAG,
+		  T.NAME,T.UPPER_USER,T1.BRAND,T.JOB,TRCT.RECT_ID
+		
+	</select> 
+	<!-- 根据合同号查询合同内的设备 -->
+	<select id="getSueqListByRectId" parameterClass="map" resultClass="hashmap">
+		  SELECT TPCE.SUEQ_ID SUEQ_ID,  T6.NAME THING_NAME,   TPCE.BRAND BRAND,  T5.NAME MODEL_SPEC, 
+	       TPCE.UNIT_PRICE UNIT_PRICE,  TPCE.MEMO MEMO,    TPCE.STAYBUY_PRICE STAYBUY_PRICE,
+	       SUM(TPCE.AMOUNT) AMOUNT,   SUM(TPCE.UNIT_PRICE * TPCE.AMOUNT) TOTAL,  
+	       TPCE.UNIT UNIT,    TPCE.THING_KIND THING_KIND,   T7.MANUFACTURER ,    T7.NAME TYPE_NAME,  TPCE.LOCK_CODE LOCK_CODE,  TPCE.SHUI_PRICE  SHUI_PRICE,   TSS.SUPP_LEVEL,   TSS.BUY_BACK,  
+	       SUM(TPCE.AMOUNT)*TPCE.SHUI_PRICE DENOMINATOR,   T4.SUPPLIER_ID SUPPLIER_ID   , TPCE.CAR_RIGSTER_NUMBER
+	 		 FROM T_PRJT_CREDITEQUIPMENT TPCE
+			  LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID = TPCE.SUEQ_ID AND T4.STATUS=0
+				LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T4.PRODUCT_ID AND T5.STATUS=0
+				LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID
+				LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = T6.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+				LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.ID=T4.SUPPLIER_ID
+		    LEFT JOIN T_RENT_CONTRACT TRC ON TRC.PRCD_ID=TPCE.CREDIT_ID
+			 WHERE TRC.RECT_ID=#rectId#
+			   AND TPCE.EQMT_STATUS = 0
+			 GROUP BY TPCE.SUEQ_ID, T6.NAME,   TPCE.BRAND, T5.NAME,  TPCE.UNIT_PRICE,TPCE.MEMO,  TPCE.STAYBUY_PRICE,
+		            TPCE.UNIT, TPCE.THING_KIND, TPCE.LOCK_CODE, TPCE.SHUI_PRICE, T7.MANUFACTURER, T7.NAME, 
+		            TSS.SUPP_LEVEL, TSS.BUY_BACK,T4.SUPPLIER_ID, TPCE.CAR_RIGSTER_NUMBER
+		</select>
+	<select id="getLetterContentByRectId" parameterClass="map" resultClass="hashmap">
+		 SELECT     
+		 	TDD.DAILY_ID, 
+		 	TRCT.LEASE_CODE,  
+		 	TCCT.CUST_NAME, 
+		 	TDD.CUST_ID,
+		 	TRCT.RECT_ID,
+		 	TCCT.CORP_WORK_ADDRESS ,
+		 	TCCT.CORP_HEAD_SIGNATURE,
+	 		CONVERT(VARCHAR,MIN(TDD.SHOULD_PAYDATE),23 ) SHOULD_PAYDATE,
+	 		TCCT.CORP_HS_LINK_MODE,
+		    MAX(TDD.DUN_DAY) DUN_DAY,
+           	MAX(TDD.PERIOD_NUM) PERIOD_NUM,
+	      	TDD.DUN_MONTHPRICE DUN_MONTHPRICE,
+	       	SUM(TDD.DUN_OWNPRICE) DUN_OWNPRICE,
+	        SUM(TDD.DUN_RENPRICE) DUN_RENPRICE,
+	        SUM(TDD.DUN_OTHERPRICE) DUN_OTHERPRICE,
+	        SUM(TDD.DUN_FINE) DUN_FINE,
+	        SUM(TDD.DUN_FINEINTEREST) DUN_FINEINTEREST,
+	        SUM(TDD.DUN_MONTHPRICE)+SUM(TDD.DUN_FINEINTEREST)+SUM(TDD.DUN_FINE) DUN_TOTALPRICE,
+	        MAX(TDD.RECP_STATE) RECP_STATE,
+			PRCD.ID AS CREDIT_ID, 	
+			TRCT.RECT_ID,
+          	T.EMAIL AS EMAIL,
+		   	T.NAME as [name],
+		  	TDC.DECP_NAME_CN,
+		  	TDC.DECP_ID,
+        	CASE  WHEN T.JOB = 1   THEN (SELECT  EMAIL FROM T_USER_USER WHERE STATUS = 0 AND ID = T.UPPER_USER) ELSE T.EMAIL END UPEMAIL,
+        	PRCD.COMPANY_CODE
+		FROM 
+		  	T_DUN_DAILY TDD
+		LEFT JOIN T_CUST_CUSTOMER TCCT ON TDD.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+		LEFT JOIN T_RENT_CONTRACT TRCT ON TDD.RECT_ID = TRCT.RECT_ID AND TRCT.STATUS = 0
+		LEFT JOIN T_PRJT_CREDIT PRCD ON TRCT.PRCD_ID = PRCD.ID
+     	LEFT JOIN T_USER_USER T ON T.ID = TRCT.SENSOR_ID 
+       	LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = T.DEPT_ID AND DEPT.STATUS = 0
+       	LEFT JOIN  T_DEPT_COMPANY TDC ON TDC.DECP_ID=DEPT.DECP_ID
+		WHERE 
+			TDD.STATUS=0 AND PRCD.FINANCECONTRACT_DATE IS NOT NULL AND
+    		CONVERT(DATETIME,CONVERT(VARCHAR,TDD.CREATE_DATE,23))=CONVERT(DATETIME,CONVERT(VARCHAR,#dun_date#,23))
+        	AND TRCT.RECT_ID=#rectId#
+       GROUP BY  
+       		TCCT.CORP_HS_LINK_MODE,TCCT.CORP_WORK_ADDRESS ,TCCT.CORP_HEAD_SIGNATURE, 
+       		TDD.DAILY_ID, TRCT.RECT_ID,TRCT.LEASE_CODE, TCCT.CUST_NAME,TDC.DECP_NAME_CN,TDC.DECP_ID,
+       		PRCD.ID,TRCT.RECT_ID,DUN_MONTHPRICE,T.EMAIL,T.NAME,T.UPPER_USER,T.JOB,TDD.CUST_ID,PRCD.COMPANY_CODE
+	</select>	
+	  <!-- 增加律师函审批 -->
+		<insert id="insertDunAudit" parameterClass="map">
+			 insert  INTO T_DUN_AUDIT (
+					   DAILY_ID
+					  ,APPLY_ID
+					  ,APPLY_NAME
+					  ,CREATE_DATE
+					  ,STATUS
+					  ,UPPER_ID
+					  ,SEND_NUM
+					  ,AUDIT_TYPE
+					) VALUES (
+					 #DAILY_ID#,
+					 #APPLY_ID#,
+					 #APPLY_NAME#,
+					 getdate(),
+					 #STATUS#,
+					 #UPPER_ID#,
+					 #SEND_NUM#,
+					 #AUDIT_TYPE#
+					)
+		</insert>
+		<!-- 审批律师函 -->
+		<update id="updateDunAudit" parameterClass="map">
+			update T_DUN_AUDIT  SET
+			 AUDIT_DATE = getdate()
+			<isNotEmpty prepend="," property="STATUS">
+				  STATUS = #STATUS#
+			</isNotEmpty>
+			<isNotEmpty prepend="," property="UPPER_ID">
+				  UPPER_ID = #UPPER_ID#
+			</isNotEmpty>
+  			WHERE AUDIT_ID =#AUDIT_ID#
+		</update>
+		<select id="getAuditLetterList" parameterClass="map"  resultClass="hashmap">
+			SELECT TDD.CREATE_DATE as TDDCREATEDATE, TRC.LEASE_CODE,TDA.AUDIT_ID,TCCT.CUST_NAME ,isnull(TDA.SEND_NUM,0) as SEND_NUM,TDA.APPLY_NAME, TDA.STATUS,TDA.CREATE_DATE FROM  T_DUN_AUDIT TDA
+			LEFT JOIN  T_DUN_DAILY TDD ON TDD.DAILY_ID=TDA.DAILY_ID
+ 			 LEFT JOIN T_CUST_CUSTOMER TCCT ON TDD.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+ 			  LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID=TDD.RECT_ID
+ 			  where (TDA.STATUS='0' or TDA.STATUS='1' or TDA.STATUS='2') and TDA.AUDIT_TYPE='01'
+				  <isNotEmpty prepend="and" property="content">
+				  		(tcct.cust_name like '%$content$%' or TRC.lease_code like '%$content$%')
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="SELECT_STATUS">
+				  		TDA.STATUS=#SELECT_STATUS#
+				  	</isNotEmpty>
+		</select>
+		<!-- 律师函保证人 -->
+		<select id="getNatureCountByRectId" parameterClass="map" resultClass="int">
+			SELECT count(TPCC.CUST_NAME)
+			FROM T_PRJT_CREDITVOUCHNATU  TPCC
+			LEFT JOIN T_PRJT_CREDIT TPC ON TPCC.PRCD_ID=TPC.ID
+			left join  T_RENT_CONTRACT trc on  trc.PRCD_ID = TPC.ID
+			WHERE trc.RECT_ID=#rectId# AND (LEN(TPCC.NATU_IDCARD) =15 OR LEN(TPCC.NATU_IDCARD)=18)
+		</select>
+		<!-- 律师函保证人-->
+		<!-- 连保公司 -->
+		<select id="getCompanyCountByRectId" parameterClass="map" resultClass="int">
+			  select  count( tpv.CORP_NAME_CN ) as num 
+	 		 from T_PRJT_VOUCHCUSTOMERCORP tpv 
+		     LEFT JOIN  T_PRJT_CREDIT tpc on tpv.PRCD_ID = tpc.ID
+         	left join  T_RENT_CONTRACT trc on  trc.PRCD_ID = TPC.ID
+		 	 where trc.RECT_ID=#rectId# and tpc.STATUS=0 and tpv.STATUS=0 
+		</select>
+		<!-- 查询申请详情 -->
+		<select id="getAuditByAuditId" parameterClass="map"  resultClass="hashmap">
+			SELECT TCCT.CUST_CODE,TDD.RECP_ID,TDA.APPLY_ID,TDA.DAILY_ID, TDA.AUDIT_ID,TCCT.CUST_NAME ,isnull(TDA.SEND_NUM,0) as SEND_NUM,TDA.APPLY_NAME, TDA.STATUS,TDA.CREATE_DATE FROM  T_DUN_AUDIT TDA
+			LEFT JOIN  T_DUN_DAILY TDD ON TDD.DAILY_ID=TDA.DAILY_ID
+ 			 LEFT JOIN T_CUST_CUSTOMER TCCT ON TDD.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+      		 where  TDA.AUDIT_ID=#AUDIT_ID#
+		</select>
+		
+		<!-- 查询总罚息  根据合同标识 -->
+		<select id="getAllFineByRectId" parameterClass="map"  resultClass="hashmap">
+		<![CDATA[	 	
+				SELECT ISNULL (SUM(FINE),0) AS FINE FROM (
+			      SELECT (ROUND(TFCBD.REAL_PRICE * TFCBD.DUN_DAY * TRCP.FINE_RATE / 100,2)) FINE
+						FROM              
+						(SELECT TRDSE.RECP_ID ,TRDSE.PERIOD_NUM,SUM(TRDSE.DECOMPOSE_PRICE*(-1)) REAL_PRICE
+			      ,DATEDIFF(D,TRDSE.PAY_DATE ,TRI.INCOME_DATE )DUN_DAY
+			      FROM  T_RENT_DECOMPOSE TRDSE
+						LEFT JOIN  T_RENT_INCOME TRI ON TRI.INCOME_ID =TRDSE.INCOME_ID
+						WHERE
+						 (TRDSE.DECOMPOSE_STATUS=2) AND TRDSE.HAS_RED_DECOMPOSE=0 AND TRDSE.DECOMPOSE_TYPE='0' 	 
+			        AND (TRDSE.BILL_CODE ='VALUE_ADD_TAX' OR TRDSE.BILL_CODE='RENT') 
+			        AND DATEDIFF(D,TRDSE.PAY_DATE ,TRI.INCOME_DATE )>0 
+			        GROUP BY TRDSE.RECP_ID,TRDSE.PERIOD_NUM,DATEDIFF(D,TRDSE.PAY_DATE ,TRI.INCOME_DATE )
+			       ) TFCBD
+						LEFT JOIN T_RENT_COLLECTIONPLAN  TRCP ON TFCBD.RECP_ID=TRCP.RECP_ID AND TRCP.STATUS=0
+						LEFT JOIN T_RENT_CONTRACT TRC  ON TRCP.RECT_ID =TRC.RECT_ID AND TRC.STATUS=0
+						LEFT JOIN T_RENT_COLLECTIONDETAIL TRCD ON TRCD.RECP_ID = TRCP.RECP_ID AND TRCD.PERIOD_NUM=TFCBD.PERIOD_NUM AND TRCD.STATUS=0
+						WHERE TRCP.RECT_ID=#rectId#
+						UNION ALL
+						SELECT   ROUND((TRCP.MONTH_PRICE-REDUCE_PRICE) * DATEDIFF(D,TRCP.PAY_DATE,GETDATE()) * FINE_RATE / 100,2) FINE
+						FROM (          
+						 SELECT  TRCP.RECP_ID,  TRCP.RECT_ID,TRCP.FINE_RATE,TRCD.PAY_DATE,
+						     ISNULL(TRCD.IRR_MONTH_PRICE, 0)+ISNULL(TRCD.VALUE_ADDED_TAX, 0) MONTH_PRICE,  
+						     ISNULL(TRCD.REDUCE_OWN_PRICE, 0) REDUCE_PRICE 
+						FROM T_RENT_COLLECTIONPLAN TRCP
+						LEFT JOIN T_RENT_CONTRACT TRC ON TRCP.RECT_ID = TRC.RECT_ID
+						LEFT JOIN T_RENT_COLLECTIONDETAIL TRCD ON TRCP.RECP_ID = TRCD.RECP_ID
+						WHERE TRCP.STATUS = 0 AND TRC.STATUS=0  AND (TRCP.FUND_STATUS=0 OR TRCP.FUND_STATUS=1)
+						 AND  TRCD.PAY_DATE < = CAST(GETDATE() AS DATETIME)-1
+						 AND ISNULL(TRCD.IRR_MONTH_PRICE, 0)+ISNULL(TRCD.VALUE_ADDED_TAX, 0)-ISNULL(TRCD.REDUCE_OWN_PRICE, 0)>0.001
+			       and TRC.RECT_ID=#rectId#
+			      ) TRCP 
+ 			 ) FINEALL
+		]]>
+		</select>
+		<!-- 查询已缴罚息  根据合同标识 -->
+		<select id="getinComeFineByRectId" parameterClass="map"  resultClass="hashmap">
+					SELECT ISNULL( SUM(REAL_PRICE),0) AS DIFF_DUN FROM (
+			            SELECT  CONVERT(DECIMAL(18,2),SUM(TRDSE.DECOMPOSE_PRICE *-1))  REAL_PRICE
+			        		FROM T_RENT_DECOMPOSE TRDSE
+			        		LEFT JOIN  T_RENT_INCOME TRI ON TRI.INCOME_ID=TRDSE.INCOME_ID
+			            LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TRDSE.RECP_ID = TRC.RECP_ID
+			        		WHERE(TRDSE.DECOMPOSE_STATUS=2) AND TRDSE.HAS_RED_DECOMPOSE=0 AND TRDSE.DECOMPOSE_TYPE='0' 	   
+			        		AND (TRDSE.BILL_CODE ='SETTLEMENT_RENT_FINE' OR TRDSE.BILL_CODE='RENT_FINE') 
+			            AND TRC.RECT_ID=#rectId#
+					   UNION ALL   
+				  		SELECT  TDFDR.DIFF_DUN_PRICE AS REAL_PRICE
+				  		FROM T_RENT_SETTLE  TDFDR
+				      LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TDFDR.RECP_ID = TRC.RECP_ID
+				  		WHERE TDFDR.STATUS = 0 AND TDFDR.STATE = 1
+				  		AND TRC.RECT_ID =#rectId#
+				    ) FICBPRICE
+           
+		</select>
+		<!-- 查询委外回访信息列表 -->
+		<select id="getoutVisitList" parameterClass="map" resultClass="com.brick.dun.to.DunLetterTo"> 
+		  SELECT  TCL.LINK_NAME as linkName,TRCT.SENSOR_ID as sensorId,CONVERT(VARCHAR,MIN(TDD.SHOULD_PAYDATE),23 )  as shouldPayDate, 
+				  TCCT.CUST_ID as custId , TCCT.CUST_CODE as custCode, TRCT.LEASE_CODE as leaseCode, 
+		      	  TRCT.RECT_ID as rectId,   TCCT.CUST_NAME as custName,   MAX(TDD.DUN_DAY) as dunDay,   T.NAME as [name], 
+				  CASE  WHEN T.JOB = 1   THEN (SELECT NAME FROM T_USER_USER WHERE STATUS = 0 AND ID = T.UPPER_USER) ELSE T.NAME  END upName ,
+    			  MAX(TDD.DUN_MONTHPRICE) as dunAllPrice,
+     			  MAX(tdd.dun_fine) dunFine,
+			      SUM( (CASE WHEN TRCP.FINE_TYPE = 2 THEN
+			    			 ROUND(CONVERT(DECIMAL(18,2),TFCBD.REAL_PRICE) * POWER(1 + TRCP.FINE_RATE / 100, TFCBD.DUN_DAY) -CONVERT(DECIMAL(18,2),TFCBD.REAL_PRICE),2)
+			    			 ELSE
+			    			 ROUND(CONVERT(DECIMAL(18,2),TFCBD.REAL_PRICE) * TFCBD.DUN_DAY * FINE_RATE / 100,2)
+			    			 END) ) as noDunFine
+		  FROM T_DUN_DAILY TDD
+		  LEFT JOIN T_RENT_COLLECTIONPLAN TRCP ON TDD.RECP_ID=TRCP.RECP_ID AND TRCP.STATUS = 0
+		  LEFT JOIN T_RENT_CONTRACT TRCT ON TDD.RECT_ID = TRCT.RECT_ID AND TRCT.STATUS = 0
+		  LEFT JOIN T_PRJT_CREDIT PRCD ON TRCT.PRCD_ID = PRCD.ID
+		  LEFT JOIN T_USER_USER T ON T.ID = TRCT.SENSOR_ID 
+		  LEFT JOIN T_CUST_CUSTOMER TCCT ON TDD.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+		  LEFT JOIN T_CUST_LINKMAN TCL ON TCL.CUST_ID=TCCT.CUST_ID AND TCL.LINK_TYPE=0 AND TCL.STATUS=0
+          LEFT JOIN
+	      (
+	        SELECT TRDSE.RECP_ID,TRDSE.PAY_DATE,TRDSE.PERIOD_NUM RECD_PERIOD,
+  	  SUM(TRDSE.DECOMPOSE_PRICE *-1 ) REAL_PRICE,TRI.INCOME_DATE OPPOSING_DATE,DATEDIFF(D,TRDSE.PAY_DATE,TRI.INCOME_DATE ) DUN_DAY
+  	  FROM T_RENT_DECOMPOSE TRDSE
+      LEFT JOIN T_RENT_INCOME TRI ON TRDSE.INCOME_ID=TRI.INCOME_ID
+  		WHERE
+  		 (TRDSE.DECOMPOSE_STATUS=2) AND TRDSE.HAS_RED_DECOMPOSE=0 AND TRDSE.DECOMPOSE_TYPE='0' 	 
+       AND (TRDSE.BILL_CODE ='VALUE_ADD_TAX' OR TRDSE.BILL_CODE='RENT') 	AND DATEDIFF(D,TRDSE.PAY_DATE,TRI.INCOME_DATE )>0 
+  		GROUP BY RECP_ID,TRDSE.PAY_DATE,PERIOD_NUM ,TRI.INCOME_DATE,DATEDIFF(D,TRDSE.PAY_DATE,TRI.INCOME_DATE )
+      
+		  ) TFCBD
+                ON TFCBD.RECP_ID=TRCP.RECP_ID AND TRCP.STATUS=0
+      
+        LEFT JOIN T_RENT_COLLECTIONDETAIL TRCD ON TRCD.RECP_ID = TRCP.RECP_ID AND TRCD.PERIOD_NUM=TFCBD.RECD_PERIOD AND TRCD.STATUS=0
+        WHERE TDD.STATUS=0 AND PRCD.FINANCECONTRACT_DATE IS NOT NULL  and
+		 DATEDIFF(D,TDD.CREATE_DATE,#dun_date# )=0
+				  	
+				  <isNotEmpty prepend="and" property="content">
+				  		(tcct.cust_name like '%$content$%' or trct.lease_code like '%$content$%'
+				  		 or trcp.recp_code like '%$content$%')
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="startrange">
+				  	  <![CDATA[ TDD.DUN_DAY >=#startrange#  ]]>
+				  	</isNotEmpty>
+  				  	<isNotEmpty prepend="and" property="endrange">
+				  	  <![CDATA[  TDD.DUN_DAY  < #endrange#]]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="NAME">
+				  	  <![CDATA[  T.NAME  LIKE '%$NAME$%']]>
+				  	</isNotEmpty>
+		   GROUP BY TCCT.CUST_ID,TCCT.CUST_CODE,TRCT.LEASE_CODE,  
+      TCCT.CUST_NAME,T.UPPER_USER,TRCT.SENSOR_ID,T.NAME,T.UPPER_USER, T.JOB,TRCT.RECT_ID,TCL.LINK_NAME
+	</select>
+		<!-- 查询设备置放地 -->
+		<select id="getEqupmentAddressByRectId" parameterClass="map"  resultClass="hashmap">
+		SELECT  EQUPMENT_ADDRESS  FROM T_PRJT_CREDITSCHEME TPCS
+			LEFT  JOIN  T_PRJT_CREDIT  TPC ON TPC.ID=TPCS.CREDIT_ID     
+			LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.PRCD_ID = TPC.ID AND TRCT.STATUS = 0
+			WHERE TRCT.RECT_ID=#rectId# AND TPCS.STATUS=0
+		</select>
+		<!-- 查询合同的设备 -->
+		<select id="getEqupmentListByRectId" parameterClass="map"  resultClass="hashmap">
+				  SELECT RECD.THING_NAME,
+					 RECD.MODEL_SPEC,
+				   RECD.THING_NUMBER,
+				   RECD.BRAND,
+				   RECD.THING_KIND
+			FROM T_RENT_CONTRACT RECT
+			LEFT JOIN T_RENT_CONTRACTDETAIL RECD ON RECD.RECT_ID = RECT.RECT_ID
+			LEFT JOIN T_RENT_CONTRACTSCHEMA RECS ON RECS.RECT_ID = RECT.RECT_ID
+			WHERE RECT.RECT_ID=#rectId# AND RECT.STATUS=0
+	</select>
+	<!-- 主要联系人 -->
+		<select id="getCustLinkByRectId" parameterClass="map"  resultClass="hashmap">
+			SELECT TCL.LINK_NAME,TCL.LINK_MOBILE,TCL.LINK_PHONE FROM T_CUST_LINKMAN TCL
+			LEFT JOIN  T_CUST_CUSTOMER  TCC ON TCC.CUST_ID=TCL.CUST_ID
+			LEFT JOIN T_RENT_CONTRACT TRC ON  TRC.CUST_ID = TCC.CUST_ID
+			WHERE TRC.RECT_ID=#rectId# AND  TCL.LINK_TYPE='0'
+		</select>
+	<!-- 未缴总租金 -->
+		<select id="getUnPayPriceByRectId" parameterClass="map"  resultClass="hashmap">
+		<![CDATA[ 
+				    SELECT  SUM(TRCP.MONTH_PRICE-REDUCE_PRICE) AS UNPAY_PRICE,TRCP.LEASE_PERIOD AS LEASE_PERIOD
+				 FROM (          
+	    			 SELECT TRCP.RECP_CODE, TRCP.RECP_ID,  TRCP.RECT_ID,  TRCP.WARN_STATUS, TRCD.PAY_DATE,TRCP.LEASE_PERIOD,
+	    			        TRCD.PERIOD_NUM, TRCP.FINE_TYPE, TRCP.FINE_RATE,
+	    			        ISNULL(TRCD.IRR_MONTH_PRICE, 0)+ISNULL(TRCD.VALUE_ADDED_TAX, 0) MONTH_PRICE,  
+	    			        ISNULL(TRCD.REDUCE_OWN_PRICE, 0) REDUCE_PRICE,TRC.CUST_NAME
+	            			FROM T_RENT_COLLECTIONPLAN TRCP
+	            			LEFT JOIN T_RENT_CONTRACT TRC ON TRCP.RECT_ID = TRC.RECT_ID
+	            			LEFT JOIN T_RENT_COLLECTIONDETAIL TRCD ON TRCP.RECP_ID = TRCD.RECP_ID
+	            			WHERE TRCP.STATUS = 0 AND TRC.STATUS=0 AND (TRCP.FUND_STATUS=0 OR TRCP.FUND_STATUS=1) 
+	                 	AND ISNULL(TRCD.IRR_MONTH_PRICE, 0)+ISNULL(TRCD.VALUE_ADDED_TAX, 0)-ISNULL(TRCD.REDUCE_OWN_PRICE, 0)>0.001
+               ) TRCP 
+	    			LEFT JOIN (SELECT TRDSE.RECP_ID,MAX( TRDSE.PERIOD_NUM ) RECD_PERIOD
+	                			  FROM  T_RENT_DECOMPOSE TRDSE
+	                			  WHERE (TRDSE.DECOMPOSE_STATUS=2) AND TRDSE.HAS_RED_DECOMPOSE=0 AND TRDSE.DECOMPOSE_TYPE='0' 	 
+                            AND (TRDSE.BILL_CODE ='VALUE_ADD_TAX' OR TRDSE.BILL_CODE='RENT') 
+	                			 GROUP BY RECP_ID
+	    			             ) TFCD   ON TRCP.RECP_ID = TFCD.RECP_ID AND TFCD.RECD_PERIOD=TRCP.PERIOD_NUM
+			  WHERE TRCP.RECT_ID=#rectId#
+	      GROUP BY TRCP.LEASE_PERIOD
+	      ]]>
+		</select>
+		<!-- 委外回访审批列表 -->
+		<select id="getOutVisitAuditList" parameterClass="map"  resultClass="hashmap">
+			SELECT TDD.CREATE_DATE as TDDCREATEDATE, TRC.LEASE_CODE,TDA.AUDIT_ID,TCCT.CUST_NAME ,isnull(TDA.SEND_NUM,0) as SEND_NUM,TDA.APPLY_NAME, TDA.STATUS,TDA.CREATE_DATE FROM  T_DUN_AUDIT TDA
+			LEFT JOIN  T_DUN_DAILY TDD ON TDD.DAILY_ID=TDA.DAILY_ID
+ 			 LEFT JOIN T_CUST_CUSTOMER TCCT ON TDD.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+ 			  LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID=TDD.RECT_ID
+ 			  where (TDA.STATUS='0' or TDA.STATUS='1' or TDA.STATUS='2') and TDA.AUDIT_TYPE='02'
+				  <isNotEmpty prepend="and" property="content">
+				  		(tcct.cust_name like '%$content$%' or TRC.lease_code like '%$content$%')
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="SELECT_STATUS">
+				  		TDA.STATUS=#SELECT_STATUS#
+				  	</isNotEmpty>
+		</select>
+		<!-- 逾期记录详情  单条-->
+		<select id="getDunDailyByDailyId" parameterClass="map"  resultClass="hashmap">
+					SELECT TDD.RECT_ID,TDA.APPLY_ID,TUU.EMAIL AS APPLY_ID_EMAIL,convert(varchar,TDD.CREATE_DATE,23)  as DUN_DATE FROM T_DUN_AUDIT TDA
+					LEFT JOIN T_DUN_DAILY TDD ON TDD.DAILY_ID = TDA.DAILY_ID
+          			 LEFT JOIN T_USER_USER TUU ON TUU.ID=TDA.APPLY_ID
+					WHERE TDA.AUDIT_ID=#AUDIT_ID#
+		</select>
+		<!-- 委外审批管控表中数据 -->
+		<select id="getAuditExcel" parameterClass="map"  resultClass="hashmap">
+		  SELECT TDA.AUDIT_DATE AS AUDIT_DATE, TRC.LEASE_CODE,TDA.AUDIT_ID,TCCT.CUST_NAME ,
+                 TDA.APPLY_NAME, TDA.STATUS,TDA.CREATE_DATE, T.[NAME],TDC.DECP_NAME_CN,
+                 CASE WHEN TPC.COMPANY_CODE = 1 THEN '裕融' ELSE '裕国' end as COMPANY_NAME
+          FROM  T_DUN_AUDIT TDA
+			  LEFT JOIN  T_DUN_DAILY TDD ON TDD.DAILY_ID=TDA.DAILY_ID
+ 			  LEFT JOIN T_CUST_CUSTOMER TCCT ON TDD.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+ 			  LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID=TDD.RECT_ID
+              LEFT JOIN T_USER_USER T ON T.ID = TRC.SENSOR_ID 
+              LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = T.DEPT_ID AND DEPT.STATUS = 0
+              LEFT JOIN  T_DEPT_COMPANY TDC ON TDC.DECP_ID=DEPT.DECP_ID
+              LEFT JOIN T_PRJT_CREDIT TPC ON TPC.ID  = TRC.PRCD_ID AND TPC.STATUS = 0
+ 			  WHERE (TDA.STATUS='0' OR TDA.STATUS='1' OR TDA.STATUS='2') AND TDA.AUDIT_TYPE='02' AND TDA.STATUS='1'
+ 			  	<isNotEmpty prepend="and" property="outDate">
+				  	convert(datetime,convert(varchar,TDA.AUDIT_DATE,23))=convert(datetime,convert(varchar,#outDate#,23))
+				</isNotEmpty>
+ 		</select>
+ 		
+ 		<select id="queryCreditSpecial" parameterClass="map"  resultClass="hashmap">
+ 			SELECT * FROM T_PRJT_CREDIT_SPECIAL_GROUP WHERE STATUS = 0 ORDER BY ID
+ 		</select>
+ 		
+ 		<!-- 新逾期 -->
+ 		<select id="getAllDunData_new" parameterClass="map" resultClass="hashmap">
+		 <![CDATA[
+			select 
+				trct.sensor_id,
+				tcct.cust_id,
+				tcct.cust_code,
+				trcp.recp_id,
+				trct.lease_code,
+				tcct.cust_name,
+				tcct.CORP_HEAD_SIGNATURE,
+				tcct.CORP_HS_LINK_MODE, 
+				convert(varchar,min(tdd.should_paydate),23 ) should_paydate,
+				max(tdd.dun_day) DUN_DAY,
+				MAX(TDD.PERIOD_NUM)   PERIOD_NUM
+				,FIRSTDUNDATE.FIRSTDUNPERIOD as FIRSTDUNPERIOD,
+				sum(tdd.dun_monthprice) dun_monthprice,
+				count(trcp.recp_id) recp_count,
+				sum(tdd.dun_ownprice) dun_ownprice,
+				sum(tdd.dun_renprice) dun_renprice,
+				sum(tdd.dun_otherprice) dun_otherprice,
+				sum(tdd.dun_fine) dun_fine,
+				sum(tdd.dun_fineinterest) dun_fineinterest,
+				sum(tdd.dun_monthprice)+
+				sum(tdd.dun_fineinterest)+sum(tdd.dun_fine) dun_totalprice,
+		        max(tdd.recp_state) recp_state,
+		        max(comp.DECP_NAME_CN) as DECP_NAME_CN,
+		        T.NAME,
+		        CASE WHEN T.JOB = 1 THEN (SELECT NAME FROM t_user_user WHERE STATUS = 0 AND ID = T.upper_user) ELSE T.NAME END UPNAME,
+				T1.BRAND,
+				trcp.recp_code,
+				TDSUPL.FLAG SUPL_TRUE,
+				TDLOCK.FLAG LOCK_CODE,
+				prcd.ID as CREDIT_ID,
+				trct.rect_id,
+				OT.NAME as 'ORGNAME',
+				HE.[NAME] AS HNAME,
+				UP.NAME ORGUPUSERNAME,
+				MAX(PRCD.ORG_DECP_ID) ORG_DECP_ID,
+				MAX(ORG_COMP.DECP_NAME_CN) ORG_DECP_NAME_CN
+				, tdd.CREATE_DATE
+		  from t_dun_daily tdd
+		  left join t_cust_customer tcct on tdd.cust_id = tcct.cust_id AND TCCT.STATUS = 0
+		  left join t_rent_contract trct on tdd.rect_id = trct.rect_id AND TRCT.STATUS = 0
+		  left join t_prjt_credit prcd on trct.PRCD_ID = prcd.ID
+		  LEFT JOIN T_USER_USER UP ON UP.ID = PRCD.ORG_UP_USER
+		  left join t_rent_collectionplan trcp on tdd.recp_id=trcp.recp_id AND TRCP.STATUS = 0
+		  ]]>
+		  <!-- Add by Michael 2012 09-07 增加供应商连保方式 和锁码方式 -->
+  		  <![CDATA[
+		  LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE = '供应商保证' and  TDSUPL.CODE = trcp.SUPL_TRUE 
+		  LEFT JOIN (SELECT RECT_ID,MIN(LOCK_CODE) LOCK_CODE FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) TLOCK
+						ON TLOCK.RECT_ID = trct.RECT_ID 
+		  LEFT JOIN T_DATA_DICTIONARY TDLOCK ON TDLOCK.TYPE = '锁码方式' and  TDLOCK.CODE = TLOCK.LOCK_CODE 
+		  ]]>
+		  <!-- 2012/01/17 Yang Yun 办事处抓取方式修改
+		  left join T_DEPT_COMPANY decp on decp.DECP_ID = trct.DECP_ID AND DECP.STATUS = 0 -->
+		  <![CDATA[
+		  LEFT JOIN T_USER_USER T ON T.ID = trct.SENSOR_ID 
+		  LEFT JOIN T_USER_USER OT ON OT.ID = trct.ORG_SENSOR_ID 
+		  ]]>
+		  <!-- ************************************* -->
+		  <![CDATA[
+		  left join T_DEPT_DEPARTMENT dept on dept.ID = T.DEPT_ID and dept.STATUS = 0
+      	  left join T_DEPT_COMPANY comp on dept.DECP_ID = comp.DECP_ID and comp.STATUS = 0
+      	  LEFT JOIN T_DEPT_COMPANY ORG_COMP ON PRCD.ORG_DECP_ID = ORG_COMP.DECP_ID AND ORG_COMP.STATUS = 0
+		  ]]>
+		  <!-- ************************************* -->
+		  <![CDATA[
+		  LEFT JOIN (SELECT RECT_ID,MAX(T.BRAND) BRAND FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) T1
+						ON T1.RECT_ID = trct.RECT_ID 
+		  LEFT JOIN (
+                SELECT TFCBD.RECD_PERIOD AS FIRSTDUNPERIOD, TFCBD.RECP_ID AS RECP_ID
+                    FROM              
+                      (
+                         SELECT TRDSE.RECP_ID,min(TRDSE.PAY_DATE) as PAY_DATE,min(TRDSE.PERIOD_NUM )as RECD_PERIOD
+                         FROM T_RENT_DECOMPOSE  TRDSE 
+                         LEFT JOIN T_RENT_INCOME  TRI ON TRI.INCOME_ID=TRDSE.INCOME_ID 
+                         WHERE  (TRDSE.DECOMPOSE_STATUS=2) AND TRDSE.HAS_RED_DECOMPOSE=0 AND TRDSE.DECOMPOSE_TYPE='0' 	
+                         AND (TRDSE.BILL_CODE ='VALUE_ADD_TAX' OR TRDSE.BILL_CODE='RENT') 
+                         AND DATEDIFF(D,TRDSE.PAY_DATE,TRI.INCOME_DATE )>0 
+                         GROUP BY RECP_ID
+                        
+                       )  TFCBD
+				  ) FIRSTDUNDATE ON  FIRSTDUNDATE.RECP_ID=TRCP.RECP_ID  	
+		  ]]>			
+		  <!-- **********核准人********** -->
+		  <![CDATA[
+		  LEFT JOIN
+		  (SELECT RISK.CREDIT_ID, RM.CREATE_USER_ID, U.[NAME]
+		      FROM T_PRJT_RISK_CONTROL RISK
+		      LEFT JOIN (
+		      SELECT M1.PRC_ID, M1.CREATE_USER_ID
+		      FROM T_PRJT_RISK_CONTROLMEMO M1
+		      WHERE M1.CREATE_TIME = (
+			      SELECT TOP 1 M2.CREATE_TIME FROM T_PRJT_RISK_CONTROLMEMO M2
+			      WHERE M2.PRC_ID = M1.PRC_ID
+			      ORDER BY M2.CREATE_TIME DESC
+		      )
+		      	  AND M1.STATUS = 0
+		      ) RM ON RM.PRC_ID = RISK.PRC_ID
+		      LEFT JOIN T_USER_USER U ON RM.CREATE_USER_ID = U.ID
+		      WHERE RISK.STATE = 1 AND RISK.STATUS = 0
+	      ) HE ON HE.CREDIT_ID = PRCD.ID
+	      ]]>	
+		  <!-- **********核准人********** -->
+		  <!-- **********金额********** -->
+		  LEFT JOIN T_PRJT_CREDITSCHEME TPCS ON TPCS.CREDIT_ID = PRCD.ID
+		  <!-- **********金额********** -->
+		  where tdd.status=0 and prcd.FINANCECONTRACT_DATE is not null
+		  <isNotEmpty prepend="and" property="companyCode">
+				prcd.company_code = #companyCode#
+			</isNotEmpty>
+			  <isEqual property="p_usernode" compareValue="1">
+			  		<![CDATA[
+			  			AND( trct.sensor_id = #s_employeeId#
+			  			OR T.upper_user = #s_employeeId#)
+			  		]]>
+			  	</isEqual>
+			  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = trct.SENSOR_ID)
+				]]>
+			</isEqual>
+			<isNotEmpty property="vip_flag">
+				and isnull(prcd.VIP_FLAG, 0) = #vip_flag#
+			</isNotEmpty>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		 	 <dynamic prepend="and">
+				  	<isNotEmpty prepend="and" property="dun_date">
+				  	convert(datetime,convert(varchar,tdd.create_date,23))=convert(datetime,convert(varchar,#dun_date#,23))
+				  	</isNotEmpty>
+				  <isNotEmpty prepend="and" property="content">
+				  		(tcct.cust_name like '%$content$%' or trct.lease_code like '%$content$%'
+				  		 or trcp.recp_code like '%$content$%' 
+				  		 or T1.BRAND like '%$content$%')
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="startrange">
+				  	  <![CDATA[ dun_day >=#startrange#  ]]>
+				  	</isNotEmpty>
+  				  	<isNotEmpty prepend="and" property="endrange">
+				  	  <![CDATA[  dun_day  <= #endrange#]]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="NAME">
+				  	  <![CDATA[  T.NAME  LIKE '%$NAME$%']]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="COMPANY">
+				  	  <!-- <![CDATA[  comp.DECP_ID = #COMPANY#]]> -->
+				  	  comp.DECP_ID in
+				  	  <iterate open="(" close=")" property="COMPANY" conjunction=",">
+				  	  		#COMPANY[]#
+				  	  </iterate>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="ORG_COMPANY">
+				  	  <!-- <![CDATA[  PRCD.ORG_DECP_ID = #ORG_COMPANY#]]> -->
+				  	  PRCD.ORG_DECP_ID in
+				  	  <iterate open="(" close=")" property="ORG_COMPANY" conjunction=",">
+				  	  		#ORG_COMPANY[]#
+				  	  </iterate>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="orgUserName">
+				  	  <![CDATA[  OT.NAME LIKE '%$orgUserName$%']]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="orgUpUserName">
+				  	  <![CDATA[  UP.NAME LIKE '%$orgUpUserName$%']]>
+				  	</isNotEmpty>
+				  	<isNotEmpty property="CREDIT_SPECIAL_CODE">
+						<isEqual prepend="and" property="CREDIT_SPECIAL_CODE" compareValue="-1">
+				  	  		<![CDATA[  (PRCD.CREDIT_SPECIAL_CODE IS NULL OR PRCD.CREDIT_SPECIAL_CODE = '')]]>
+			  	  		</isEqual>
+			  	  		<isNotEqual prepend="and" property="CREDIT_SPECIAL_CODE" compareValue="-1">
+			  	  			<![CDATA[  PRCD.CREDIT_SPECIAL_CODE = #CREDIT_SPECIAL_CODE#]]>
+			  	  		</isNotEqual>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="approvalUserName">
+				  	  <![CDATA[ 
+				  	  	exists(
+					  	  	select 0
+							from T_PRJT_RISK_CONTROL rc
+							left join T_PRJT_RISK_CONTROLMEMO pcm on pcm.PRC_ID = rc.PRC_ID
+							left join T_USER_USER u on pcm.CREATE_USER_ID = u.ID
+							where u.[NAME] like '%$approvalUserName$%'
+							and rc.CREDIT_ID = prcd.ID
+							and rc.status = 0
+							and pcm.status = 0
+						)
+				  	  ]]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="moneyBegin">
+				  	  <![CDATA[  TPCS.LEASE_RZE >= #moneyBegin#]]>
+				  	</isNotEmpty>
+				  	<isNotEmpty prepend="and" property="moneyEnd">
+				  	  <![CDATA[  TPCS.LEASE_RZE < #moneyEnd#]]>
+				  	</isNotEmpty>
+		  </dynamic>
+		  group by tcct.cust_id,tcct.cust_code,trcp.recp_id,trct.rect_id,trct.lease_code,
+		       tcct.cust_name, tcct.CORP_HEAD_SIGNATURE,prcd.ID,FIRSTDUNPERIOD,
+		       tcct.CORP_HS_LINK_MODE,trct.sensor_id,T.NAME,OT.NAME,T.JOB,T.upper_user,T1.BRAND,trcp.recp_code,TDSUPL.FLAG,TDLOCK.FLAG,UP.NAME,HE.[NAME]
+		       , tdd.CREATE_DATE
+	</select>
+	
+	<!-- 抓取最大逾期天数 -->
+	<select id="getMaxDunDateByRectId" parameterClass="map" resultClass="hashmap">
+		SELECT 
+			MAX(DATEDIFF(DAY, D.PAY_DATE, GETDATE())) AS DUN_DAY,
+			COUNT(1) DUN_COUNT,
+			MIN(D.PERIOD_NUM) PERIOD_NUM,
+    		SUM(ISNULL(CONVERT (MONEY, D.IRR_MONTH_PRICE),0) + ISNULL(CONVERT (MONEY,D.VALUE_ADDED_TAX),0) - ISNULL(CONVERT (MONEY, D.REDUCE_OWN_PRICE),0)) DUN_PRICE
+		FROM 
+			T_RENT_COLLECTIONDETAIL D
+		    LEFT JOIN T_RENT_COLLECTIONPLAN P ON P.STATUS = 0 AND P.RECP_ID = D.RECP_ID
+		WHERE
+			(D.REDUCE_OWN_PRICE IS NULL
+			OR (ISNULL(CONVERT (MONEY, D.IRR_MONTH_PRICE),0) + ISNULL(CONVERT (MONEY,D.VALUE_ADDED_TAX),0)) > ISNULL(CONVERT (MONEY, D.REDUCE_OWN_PRICE),0))
+			AND DATEDIFF(DAY, D.PAY_DATE, GETDATE()) > 0
+			AND D.STATUS = 0
+		    AND P.RECT_ID = #rectId#
+	</select>
+	
+	<!-- 抓取逾期数据 -->
+	<select id="getDunDataByRectId" parameterClass="map" resultClass="hashmap">
+		SELECT D.* FROM T_RENT_COLLECTIONDETAIL D
+		LEFT JOIN T_RENT_COLLECTIONPLAN P ON P.STATUS = 0 AND P.RECP_ID = D.RECP_ID
+		WHERE D.PERIOD_NUM = 1 AND P.RECT_ID = #rectId#
+	</select>
+	
+	<!-- 抓逾期180天以上数据 -->
+	<!-- 数据用于跑job -->
+	<select id="getDunCase_180" resultClass="com.brick.dun.to.DunCaseTo">
+	 select prcd.CREDIT_RUNCODE creditCode,
+	        prcd.ID creditId,
+            tdd.RECT_ID rectId,
+		    trct.lease_code leaseCode,
+            unpay.UNPAY_PRICE balance
+		    from t_dun_daily tdd
+		    left join t_cust_customer tcct on tdd.cust_id = tcct.cust_id AND TCCT.STATUS = 0
+		    left join t_rent_contract trct on tdd.rect_id = trct.rect_id AND TRCT.STATUS = 0
+		    left join t_prjt_credit prcd on trct.PRCD_ID = prcd.ID
+            left join T_RENT_COLLECTIONPLAN trc on trc.status=0 and trc.RECT_ID=tdd.RECT_ID
+               <!--未结清金额-->
+               left join
+           (
+      				    SELECT  SUM(TRCP.MONTH_PRICE-REDUCE_PRICE) AS UNPAY_PRICE,TRCP.RECT_ID 
+				 FROM (          
+	    			        SELECT TRCP.RECP_CODE, 
+	    			        TRCP.RECP_ID,  
+	    			        TRCP.RECT_ID, 
+	    			        TRCP.LEASE_PERIOD,
+	    			        TRCD.PERIOD_NUM, 
+	    			        ISNULL(TRCD.IRR_MONTH_PRICE, 0)+ISNULL(TRCD.VALUE_ADDED_TAX, 0) MONTH_PRICE,  
+	    			        ISNULL(TRCD.REDUCE_OWN_PRICE, 0) REDUCE_PRICE
+	            			FROM T_RENT_COLLECTIONPLAN TRCP
+	            			LEFT JOIN T_RENT_COLLECTIONDETAIL TRCD ON TRCP.RECP_ID = TRCD.RECP_ID
+	            			WHERE TRCP.STATUS = 0 AND TRCP.RECP_STATUS=0 
+	                 	AND ISNULL(TRCD.IRR_MONTH_PRICE, 0)+ISNULL(TRCD.VALUE_ADDED_TAX, 0)-ISNULL(TRCD.REDUCE_OWN_PRICE, 0)>0
+                       ) TRCP 
+                     group by TRCP.RECT_ID
+          )unpay
+         on unpay.RECT_ID=tdd.RECT_ID
+
+		  where tdd.status=0 
+              and tdd.DUN_DAY=181
+              <!-- and unpay.UNPAY_PRICE>0 -->
+              and convert(date,tdd.create_date)=convert(date,getDate()-1)
+              <!-- and trc.recp_status=0 -->
+              and not exists (SELECT 1 FROM T_Unpay_Case_180_job tucj WHERE tucj.RECT_ID=tdd.RECT_ID AND tucj.STATUS=0)
+           order by tdd.RECT_ID
+	</select>
+	
+	<!-- 将逾期180天以上案件的数据插入到数据库 -->
+	<insert id="addLog">
+	   insert into T_Unpay_Case_180_job( credit_id, rect_id, lease_code, credit_code, balance, create_time, STATUS)
+	   values(#creditId#,#rectId#,#leaseCode#,#creditCode#,#balance#,getDate()-1,0)
+	</insert>
+	
+	<select id="getMateNameByCreditId" resultClass="java.lang.String">	    
+	     select MATE_NAME from  T_PRJT_NATUNAL where credit_id  = #credit_id#
+	</select>
+	<select id="getNatuCounntByName" resultClass="int">
+    	SELECT count(0)
+		FROM T_PRJT_CREDITVOUCHNATU  TPCC
+		WHERE TPCC.PRCD_ID=#credit_id# AND (LEN(TPCC.NATU_IDCARD) =15 OR LEN(TPCC.NATU_IDCARD)=18) 
+		and   CUST_NAME =#mateName#
+	</select>
+</sqlMap>

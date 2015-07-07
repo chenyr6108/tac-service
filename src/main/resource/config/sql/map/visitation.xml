@@ -1,0 +1,736 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="visitation">
+	<typeAlias alias="visitationTo" type="com.brick.visitation.to.VisitationTO"/>
+	
+	<select id="getAllForApply" resultClass="hashmap" parameterClass="map">
+		select prcd.[TYPE], cust.CUST_CODE, cust.CUST_NAME, 
+		decp.DECP_NAME_CN, uu.[NAME] as up_name, u.[NAME], 
+		prcd.CREATE_DATE, prcd.ID, prcd.WIND_STATE,
+		vi.VISIT_STATUS, vi.ID as visit_id, prcd.CREDIT_RUNCODE
+		from T_PRJT_CREDIT prcd
+		left join T_CUST_CUSTOMER cust on cust.CUST_ID = prcd.CUST_ID
+		left join T_USER_USER u on u.ID = prcd.SENSOR_ID
+		left join T_USER_USER uu on uu.ID = u.upper_user
+		left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		left join T_DEPT_COMPANY decp on decp.DECP_ID = dept.DECP_ID
+		<![CDATA[
+		left join T_PRJT_VISIT vi on vi.CREDIT_ID = prcd.ID 
+		and vi.VISIT_STATUS >= 0 and vi.STATUS = 0
+		]]>
+		where prcd.STATUS = 0 and (prcd.state = 0 or prcd.state = 2)
+		<isNotEmpty property="search_content" prepend="and">
+			(
+			  cust.CUST_NAME like '%$search_content$%'
+			  or decp.DECP_NAME_CN like '%$search_content$%'
+			  or u.[NAME] like '%$search_content$%'
+			  or uu.[NAME] like '%$search_content$%'
+			  or prcd.CREDIT_RUNCODE like '%$search_content$%'
+			)
+		</isNotEmpty>
+		<isEqual prepend="and" property="p_usernode" compareValue="1">
+	  	 	<![CDATA[ 
+	  	 	(prcd.SENSOR_ID = #s_employeeId#
+	  	 	or prcd.CLERK_ID = #s_employeeId#)
+	  	 	]]>
+	  	</isEqual>
+		<isEqual prepend="and" property="p_usernode" compareValue="2">
+			<![CDATA[	
+				exists(select ID from T_USER_USER
+				where DEPT_ID in 
+				(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+				where uc.USER_ID = #s_employeeId#)
+				and ID = prcd.SENSOR_ID)
+			]]>
+		</isEqual>
+	</select>
+	
+	<select id="getAllForAuth" resultClass="hashmap" parameterClass="map">
+		select prcd.[TYPE], cust.CUST_CODE, cust.CUST_NAME, 
+		decp.DECP_NAME_CN, uu.[NAME] as up_name, u.[NAME], 
+		prcd.ID, prcd.WIND_STATE, vi.CREATE_DATE,
+		vi.VISIT_STATUS, vi.ID as visit_id, vi.AUTH_DATE,
+		vi.BUSI_HOPE_VISIT_DATE, vi.BUSI_HOPE_VISIT_DATE_TIME,
+		vi.VISIT_AREA,
+		(select count(0) from T_PRJT_VISIT_MEMO
+			where VISIT_ID = vi.ID) as memo_count,
+		prcd.CREDIT_RUNCODE
+		, (
+			select top 1 sg.CREDIT_SPECIAL_NAME
+			from T_PRJT_CREDIT_SPECIAL_GROUP sg
+			where sg.CREDIT_SPECIAL_CODE = prcd.CREDIT_SPECIAL_CODE
+		) as CREDIT_SPECIAL_NAME
+		from T_PRJT_VISIT vi
+		left join T_PRJT_CREDIT prcd on prcd.ID = vi.CREDIT_ID
+		left join T_CUST_CUSTOMER cust on cust.CUST_ID = prcd.CUST_ID
+		left join T_USER_USER u on u.ID = prcd.SENSOR_ID
+		left join T_USER_USER uu on uu.ID = u.upper_user
+		left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		left join T_DEPT_COMPANY decp on decp.DECP_ID = dept.DECP_ID
+		where vi.STATUS = 0
+		<isEqual prepend="and" property="p_usernode" compareValue="1">
+	  	 	<![CDATA[ 
+	  	 	(prcd.SENSOR_ID = #s_employeeId#
+	  	 	or prcd.CLERK_ID = #s_employeeId#)
+	  	 	]]>
+	  	</isEqual>
+		<isEqual prepend="and" property="p_usernode" compareValue="2">
+			<![CDATA[	
+				exists(select ID from T_USER_USER
+				where DEPT_ID in 
+				(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+				where uc.USER_ID = #s_employeeId#)
+				and ID = prcd.SENSOR_ID)
+			]]>
+		</isEqual>
+		<isNotEmpty property="search_content" prepend="and">
+			(
+			  cust.CUST_NAME like '%$search_content$%'
+			  or decp.DECP_NAME_CN like '%$search_content$%'
+			  or u.[NAME] like '%$search_content$%'
+			  or uu.[NAME] like '%$search_content$%'
+			  or prcd.CREDIT_RUNCODE like '%$search_content$%'
+			)
+		</isNotEmpty>
+		<isEqual property="search_status" compareValue="0">
+			and vi.VISIT_STATUS = 0
+		</isEqual>
+		<isEqual property="search_status" compareValue="1">
+			and vi.VISIT_STATUS != 0
+		</isEqual>
+	</select>
+	
+	<select id="getAllApplied" resultClass="hashmap" parameterClass="map">
+		select prcd.[TYPE], cust.CUST_CODE, cust.CUST_NAME, prcd.CONTRACT_TYPE,
+		decp.DECP_NAME_CN, uu.[NAME] as up_name, u.[NAME], prcs.LEASE_RZE,
+		prcd.ID, vi.BUSI_HOPE_VISIT_DATE, vi.BUSI_HOPE_VISIT_DATE_TIME,
+		vi.EXAM_ASSI_VISIT_DATE, vi.EXAM_ASSI_VISIT_DATE_TIME, vi.EXAM_ASSI_VISITOR,
+		vi.REAL_VISIT_DATE, vi.REAL_VISIT_DATE_TIME, vi.REAL_VISITOR,
+		vi.VISIT_STATUS, vi.ID as visit_id, vi.AUTH_DATE, vi.VISIT_AREA
+		,au.[NAME] as AU_NAME,ru.[NAME] as RU_NAME, vi.MODIFY_DATE,
+		re.STATUS as REPORT_STATUS, prcd.CREDIT_RUNCODE,prcd.VIP_FLAG,
+		vi.NONE_VISIT_REASON
+		from T_PRJT_VISIT vi
+		left join T_PRJT_VISIT_REPORT re on vi.ID = re.VISIT_ID
+		and re.status in (0,1)
+		left join T_PRJT_CREDIT prcd on prcd.ID = vi.CREDIT_ID
+		left join T_CUST_CUSTOMER cust on cust.CUST_ID = prcd.CUST_ID
+		left join T_USER_USER u on u.ID = prcd.SENSOR_ID
+		left join T_USER_USER uu on uu.ID = u.upper_user
+		left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		left join T_DEPT_COMPANY decp on decp.DECP_ID = dept.DECP_ID
+		left join T_PRJT_CREDITSCHEME prcs on prcs.CREDIT_ID = prcd.ID
+		left join T_USER_USER au on vi.EXAM_ASSI_VISITOR = au.ID
+		left join T_USER_USER ru on vi.REAL_VISITOR = ru.ID
+		where (vi.VISIT_STATUS >= 1
+			or (vi.VISIT_STATUS = 0 and (select count(0) from T_PRJT_VISIT_MEMO
+			where VISIT_ID = vi.ID)> 0))
+		and vi.STATUS = 0
+		<isNotEmpty property="apply_date_from" prepend="and">
+			<![CDATA[vi.BUSI_HOPE_VISIT_DATE >= convert(date,#apply_date_from#)]]>
+		</isNotEmpty>
+		<isNotEmpty property="apply_date_to" prepend="and">
+			<![CDATA[vi.BUSI_HOPE_VISIT_DATE <= convert(date,#apply_date_from#)]]>
+		</isNotEmpty>
+		<isNotEmpty property="plan_date_from" prepend="and">
+			<![CDATA[vi.BUSI_HOPE_VISIT_DATE >= convert(date,#plan_date_from#)]]>
+		</isNotEmpty>
+		<isNotEmpty property="plan_date_to" prepend="and">
+			<![CDATA[vi.BUSI_HOPE_VISIT_DATE <= convert(date,#plan_date_to#)]]>
+		</isNotEmpty>
+		<isNotEmpty property="plan_visitor" prepend="and">
+			au.[NAME] like '%$plan_visitor$%'
+		</isNotEmpty>
+		<isEqual property="visit_result" compareValue="0">
+			and re.VISIT_RESULT = 0
+		</isEqual>
+		<isEqual property="visit_result" compareValue="1">
+			and re.VISIT_RESULT = 1
+		</isEqual>
+		<isEqual property="visit_result" compareValue="2">
+			and re.VISIT_RESULT = 2
+		</isEqual>
+		<isNotEmpty property="real_date_from" prepend="and">
+			<![CDATA[vi.REAL_VISIT_DATE >= convert(date,#real_date_from#)]]>
+		</isNotEmpty>
+		<isNotEmpty property="real_date_to" prepend="and">
+			<![CDATA[vi.REAL_VISIT_DATE <= convert(date,#real_date_to#)]]>
+		</isNotEmpty>
+		<isNotEmpty property="real_visitor" prepend="and">
+			ru.[NAME] like '%$real_visitor$%'
+		</isNotEmpty>
+		
+		<isNotEmpty property="project_user" prepend="and">
+			u.[NAME] like '%$project_user$%'
+		</isNotEmpty>
+		<isNotEmpty property="visit_area" prepend="and">
+			vi.VISIT_AREA like '%$visit_area$%'
+		</isNotEmpty>
+		
+		<isNotEmpty property="search_status" prepend="and">
+			<isEqual property="search_status" compareValue="1">
+				vi.VISIT_STATUS = 1
+			</isEqual>
+			<isEqual property="search_status" compareValue="2">
+				vi.VISIT_STATUS = 2
+			</isEqual>
+			<isEqual property="search_status" compareValue="3">
+				vi.VISIT_STATUS >= 3
+				and re.STATUS = 0
+			</isEqual>
+			<isEqual property="search_status" compareValue="4">
+				vi.VISIT_STATUS = 4
+			</isEqual>
+			<isEqual property="search_status" compareValue="5">
+				vi.VISIT_STATUS >= 3
+				and re.STATUS = 1
+			</isEqual>
+			<isEqual property="search_status" compareValue="0">
+				vi.VISIT_STATUS = 0
+			</isEqual>
+		</isNotEmpty>
+		<isEmpty property="search_status" prepend="and">
+			<![CDATA[
+			((vi.VISIT_STATUS > 0 and vi.VISIT_STATUS <= 2) 
+			or (vi.VISIT_STATUS = 3 and re.STATUS = 0))
+			]]>
+		</isEmpty>
+		
+		<isNotEmpty property="search_content" prepend="and">
+			(
+				cust.CUST_NAME like '%$search_content$%'
+				or decp.DECP_NAME_CN like '%$search_content$%'
+				or uu.[NAME] like '%$search_content$%'
+				or u.[NAME] like '%$search_content$%'
+				or prcd.CREDIT_RUNCODE like '%$search_content$%'
+			)
+		</isNotEmpty>
+		
+		<isEqual property="search_decp" compareValue="-1">
+			and exists (
+				select uc.ID
+				from T_USER_USER2COMPANY uc
+				left join T_DEPT_DEPARTMENT dept on uc.DEPT_ID = dept.ID
+				where uc.[USER_ID] = prcd.SENSOR_ID
+				and dept.DECP_ID in (
+				  select dept.DECP_ID
+				  from T_USER_USER2COMPANY uc
+				  left join T_DEPT_DEPARTMENT dept on uc.DEPT_ID = dept.ID
+				  where uc.[USER_ID] = #s_employeeId#
+				)
+			)
+		</isEqual>
+		<isNotEqual property="search_decp" compareValue="-1">
+			<isNotEqual property="search_decp" compareValue="0">
+				and decp.DECP_ID = #search_decp#
+			</isNotEqual>
+		</isNotEqual>
+		<isEqual prepend="and" property="p_usernode" compareValue="1">
+	  	 	<![CDATA[ 
+	  	 	(prcd.SENSOR_ID = #s_employeeId#
+	  	 	or prcd.CLERK_ID = #s_employeeId#)
+	  	 	]]>
+	  	</isEqual>
+		<isEqual prepend="and" property="p_usernode" compareValue="2">
+			<![CDATA[	
+				exists(
+					select uc.ID
+					from T_USER_USER2COMPANY uc
+					left join T_DEPT_DEPARTMENT dept on uc.DEPT_ID = dept.ID
+					where uc.[USER_ID] = prcd.SENSOR_ID
+					and dept.DECP_ID in (
+					  select dept.DECP_ID
+					  from T_USER_USER2COMPANY uc
+					  left join T_DEPT_DEPARTMENT dept on uc.DEPT_ID = dept.ID
+					  where uc.[USER_ID] = #s_employeeId#
+					)
+				)
+			]]>
+		</isEqual>
+	</select>
+	
+	<select id="getVisitInfo" parameterClass="com.brick.visitation.to.VisitationTO" resultClass="com.brick.visitation.to.VisitationTO">
+		select 
+		vi.ID as visit_id, 
+		vi.VISIT_AREA as visit_area,
+		vi.BUSI_HOPE_VISIT_DATE as hope_visit_date,
+		vi.BUSI_HOPE_VISIT_DATE_TIME as hope_visit_time,
+		vi.EXAM_ASSI_VISIT_DATE as assi_visit_date, 
+		vi.EXAM_ASSI_VISIT_DATE_TIME as assi_visit_date_time, 
+		vi.EXAM_ASSI_VISITOR as assi_visitor,
+		vi.VISIT_STATUS as visit_status,
+		vi.CREDIT_ID as credit_id,
+		vi.MODIFY_DATE as modify_date,
+		vi.AUTH_MEMO as auth_memo,
+		vi.NONE_VISIT_MEMO as none_visit_memo,
+		vi.NONE_VISIT_REASON as none_visit_reason,
+		u.NAME as content
+		from T_PRJT_VISIT vi
+		left join t_user_user u on vi.EXAM_ASSI_VISITOR = u.ID
+		where vi.ID = #visit_id#
+		and vi.STATUS = 0
+	</select>
+	
+	<select id="getApplyInfoByCreditId" parameterClass="com.brick.visitation.to.VisitationTO" resultClass="java.lang.Integer">
+		select count(0) from T_PRJT_VISIT
+		where CREDIT_ID = #credit_id#
+		and VISIT_STATUS >= 0
+		and STATUS = 0
+	</select>
+	
+	<insert id="insertVisitation" parameterClass="com.brick.visitation.to.VisitationTO">
+		<![CDATA[
+			insert into T_PRJT_VISIT (CREDIT_ID, CREATE_BY, CREATE_DATE, MODIFY_BY, MODIFY_DATE,
+			STATUS, VISIT_STATUS, BUSI_HOPE_VISIT_DATE, BUSI_HOPE_VISIT_DATE_TIME, VISIT_AREA)
+			values (#credit_id#, #create_by#, getdate(), #modify_by#, getdate(),
+				0, 0, convert(date, #hope_visit_date_str#), #hope_visit_time#, #visit_area#)
+		]]>
+	</insert>
+	
+	<update id="updateVisitation" parameterClass="com.brick.visitation.to.VisitationTO">
+		update T_PRJT_VISIT set VISIT_STATUS = #visit_status#
+		,AUTH_MEMO = #auth_memo#
+		,AUTH_DATE = getdate()
+		,AUTH_BY = #auth_by#
+		where ID = #visit_id#
+	</update>
+	
+	<update id="updateForAll" parameterClass="com.brick.visitation.to.VisitationTO">
+		update T_PRJT_VISIT set 
+		MODIFY_BY = #modify_by#
+		,MODIFY_DATE = getdate()
+		<isNotEmpty property="visit_status">
+			,VISIT_STATUS = #visit_status#
+		</isNotEmpty>
+		<isEmpty property="visit_status">
+			,VISIT_STATUS = null
+		</isEmpty>
+		
+		<isNotEmpty property="assi_visit_date">
+			,EXAM_ASSI_VISIT_DATE = #assi_visit_date#
+		</isNotEmpty>
+		<isEmpty property="assi_visit_date">
+			,EXAM_ASSI_VISIT_DATE = null
+		</isEmpty>
+		
+		<isNotEmpty property="assi_visit_date_time">
+			,EXAM_ASSI_VISIT_DATE_TIME = #assi_visit_date_time#
+		</isNotEmpty>
+		<isEmpty property="assi_visit_date_time">
+			,EXAM_ASSI_VISIT_DATE_TIME = null
+		</isEmpty>
+		
+		<isNotEmpty property="assi_visitor">
+			,EXAM_ASSI_VISITOR = #assi_visitor#
+		</isNotEmpty>
+		<isEmpty property="assi_visitor">
+			,EXAM_ASSI_VISITOR = null
+		</isEmpty>
+		where ID = #visit_id#
+	</update>
+	
+	<update id="updatePortion" parameterClass="com.brick.visitation.to.VisitationTO">
+		update T_PRJT_VISIT set
+		MODIFY_BY = #modify_by#
+		,MODIFY_DATE = getdate()
+		<isNotEmpty property="visit_status">
+			,VISIT_STATUS = #visit_status#
+		</isNotEmpty>
+		<isNotEmpty property="assi_visit_date">
+			,EXAM_ASSI_VISIT_DATE = #assi_visit_date#
+		</isNotEmpty>
+		<isNotEmpty property="assi_visit_date_time">
+			,EXAM_ASSI_VISIT_DATE_TIME = #assi_visit_date_time#
+		</isNotEmpty>
+		<isNotEmpty property="assi_visitor">
+			<isNotEqual property="assi_visitor" compareValue="0">
+			,EXAM_ASSI_VISITOR = #assi_visitor#
+			</isNotEqual>
+		</isNotEmpty>
+		<isNotEmpty property="real_visit_date">
+			,REAL_VISIT_DATE = #real_visit_date#
+		</isNotEmpty>
+		<isNotEmpty property="real_visit_date_time">
+			,REAL_VISIT_DATE_TIME = #real_visit_date_time#
+		</isNotEmpty>
+		<isNotEmpty property="real_visitor">
+			<isNotEqual property="real_visitor" compareValue="0">
+				,REAL_VISITOR = #real_visitor#
+			</isNotEqual>
+		</isNotEmpty>
+		where ID = #visit_id#
+	</update>
+	
+	<select id="getReport" parameterClass="com.brick.visitation.to.VisitationReportTo" resultClass="com.brick.visitation.to.VisitationReportTo">
+		select v.real_visit_date as real_visit_date, 
+			v.real_visit_date_time as real_visit_date_time, 
+			v.real_visitor as real_visitor, 
+			v.ID as visit_id,
+			vr.id as report_id, 
+			vr.create_by as create_by, 
+			vr.create_date as create_date, 
+			vr.modify_by as modify_by, 
+			vr.modify_date as modify_date, 
+			vr.status as status, 
+			busi_name as busi_name, 
+			busi_manager as busi_manager, 
+			cust_comp_name as cust_comp_name, 
+			cust_apply_amount as cust_apply_amount, 
+			cust_guar as cust_guar, 
+			cust_comp_status as cust_comp_status, 
+			cust_relation as cust_relation, 
+			cust_product as cust_product, 
+			cust_invoice as cust_invoice,
+			legal_name as legal_name, 
+			legal_info as legal_info, 
+			legal_address as legal_address, 
+			legal_experience as legal_experience, 
+			factory_envi as factory_envi,
+			factory_is_self as factory_is_self, 
+			factory_has_dorm as factory_has_dorm, 
+			factory_has_mess as factory_has_mess, 
+			factory_clean as factory_clean, 
+			factory_worker as factory_worker, 
+			factory_jia_dong as factory_jia_dong, 
+			factory_apply_use_to as factory_apply_use_to, 
+			factory_worker_attitude as factory_worker_attitude, 
+			factory_has_overalls as factory_has_overalls, 
+			inventory_status as inventory_status, 
+			inventory_put_status as inventory_put_status, 
+			manage_work_status as manage_work_status, 
+			manage_has_overalls as manage_has_overalls, 
+			manage_work_attitude as manage_work_attitude,
+			added_info as added_info, 
+			visit_result as visit_result, 
+			v.CREDIT_ID as credit_id,
+			reason as reason,
+	        cu.[NAME] as create_by_name,
+	        ru.[NAME] as real_visitor_name,
+	        u.[NAME] as sensor_name,
+	        au.[NAME] as auth_leader_name,
+          	cust.CUST_NAME as cust_name
+          	
+          	,cust_comp_status2 as cust_comp_status2
+			,cust_product_percent1 as cust_product_percent1
+			,cust_product_percent2 as cust_product_percent2
+			,cust_product_other as cust_product_other
+			,legal_position as legal_position
+			,legal_position_other as legal_position_other
+			,legal_age as legal_age
+			,legal_address2 as legal_address2
+			,legal_address_other as legal_address_other
+			,legal_experience_year1 as legal_experience_year1
+			,legal_experience_year2 as legal_experience_year2
+			,legal_experience_affiliated as legal_experience_affiliated
+			,legal_experience_affiliated_company as legal_experience_affiliated_company
+			,legal_experience_from as legal_experience_from
+			,legal_experience_from_other as legal_experience_from_other
+			,legal_experience_from_year as legal_experience_from_year
+			,legal_experience_inherit as legal_experience_inherit
+			,legal_experience_flag as legal_experience_flag
+			,factory_worker_class as factory_worker_class
+			,factory_apply_use_to_other as factory_apply_use_to_other
+			,vr.reason_s as reason_s
+			,vr.reason_w as reason_w
+			,vr.reason_o as reason_o
+			,vr.reason_t as reason_t
+			,vr.cust_type as cust_type
+			,vr.contract_type as contract_type
+			,vr.contract_type_other as contract_type_other
+			,vr.AUTH_LEADER as authLeader
+			,vr.CUST_PRODUCT_PROCESS as cust_product_process
+          	
+		from T_PRJT_VISIT v
+		left join T_PRJT_VISIT_REPORT vr on vr.VISIT_ID = v.ID and vr.status in (0,1)
+		left join T_USER_USER cu on vr.CREATE_BY = cu.ID
+    	left join T_USER_USER ru on v.REAL_VISITOR = ru.ID
+    	left join T_USER_USER au on vr.AUTH_LEADER = au.ID
+    	left join T_PRJT_CREDIT pc on v.credit_id = pc.id
+    	left join T_CUST_CUSTOMER cust on pc.CUST_ID = cust.CUST_ID
+      	left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		where v.ID = #visit_id#
+		and (v.visit_status = 2
+		or v.visit_status = 3)
+		and v.status = 0
+	</select>
+	
+	<select id="getReportByVisitId" parameterClass="com.brick.visitation.to.VisitationReportTo" resultClass="java.lang.Integer">
+		select count(0) from T_PRJT_VISIT_REPORT
+		where VISIT_ID = #visit_id#
+		and status in (0,1)
+	</select>
+	
+	<insert id="insertReport" parameterClass="com.brick.visitation.to.VisitationReportTo">
+		insert into T_PRJT_VISIT_REPORT (
+		   VISIT_ID
+		  ,CREATE_BY
+		  ,CREATE_DATE
+		  ,MODIFY_BY
+		  ,MODIFY_DATE
+		  ,STATUS
+		  ,BUSI_NAME
+		  ,BUSI_MANAGER
+		  ,CUST_COMP_NAME
+		  ,CUST_APPLY_AMOUNT
+		  ,CUST_GUAR
+		  ,CUST_COMP_STATUS
+		  ,CUST_RELATION
+		  ,CUST_PRODUCT
+		  ,CUST_INVOICE
+		  ,LEGAL_NAME
+		  ,LEGAL_INFO
+		  ,LEGAL_ADDRESS
+		  ,LEGAL_EXPERIENCE
+		  ,FACTORY_ENVI
+		  ,FACTORY_IS_SELF
+		  ,FACTORY_HAS_DORM
+		  ,FACTORY_HAS_MESS
+		  ,FACTORY_CLEAN
+		  ,FACTORY_WORKER
+		  ,FACTORY_JIA_DONG
+		  ,FACTORY_APPLY_USE_TO
+		  ,FACTORY_WORKER_ATTITUDE
+		  ,FACTORY_HAS_OVERALLS
+		  ,INVENTORY_STATUS
+		  ,INVENTORY_PUT_STATUS
+		  ,MANAGE_WORK_STATUS
+		  ,MANAGE_HAS_OVERALLS
+		  ,MANAGE_WORK_ATTITUDE
+		  ,ADDED_INFO
+		  ,VISIT_RESULT
+		  ,REASON
+		  
+		  ,CUST_COMP_STATUS2
+			,CUST_PRODUCT_PERCENT1
+			,CUST_PRODUCT_PERCENT2
+			,CUST_PRODUCT_OTHER
+			,LEGAL_POSITION
+			,LEGAL_POSITION_OTHER
+			,LEGAL_AGE
+			,LEGAL_ADDRESS2
+			,LEGAL_ADDRESS_OTHER
+			,LEGAL_EXPERIENCE_YEAR1
+			,LEGAL_EXPERIENCE_YEAR2
+			,LEGAL_EXPERIENCE_AFFILIATED
+			,LEGAL_EXPERIENCE_AFFILIATED_COMPANY
+			,LEGAL_EXPERIENCE_FROM
+			,LEGAL_EXPERIENCE_FROM_OTHER
+			,LEGAL_EXPERIENCE_FROM_YEAR
+			,LEGAL_EXPERIENCE_INHERIT
+			,LEGAL_EXPERIENCE_FLAG
+			,FACTORY_WORKER_CLASS
+			,FACTORY_APPLY_USE_TO_OTHER
+			,REASON_S
+			,REASON_W
+			,REASON_O
+			,REASON_T
+			,CUST_TYPE
+			,CONTRACT_TYPE
+			,CONTRACT_TYPE_OTHER
+			,AUTH_LEADER
+			,CUST_PRODUCT_PROCESS
+		) VALUES (
+		   #visit_id#
+		  ,#create_by#
+		  ,getdate()
+		  ,#modify_by#
+		  ,getdate()
+		  ,#status#
+		  ,#sensor_name#
+		  ,#busi_manager#
+		  ,#cust_name#
+		  ,#cust_apply_amount#
+		  ,#cust_guar#
+		  ,#cust_comp_status#
+		  ,#cust_relation#
+		  ,#cust_product#
+		  ,#cust_invoice#
+		  ,#legal_name#
+		  ,#legal_info#
+		  ,#legal_address#
+		  ,#legal_experience#
+		  ,#factory_envi#
+		  ,#factory_is_self#
+		  ,#factory_has_dorm#
+		  ,#factory_has_mess#
+		  ,#factory_clean#
+		  ,#factory_worker#
+		  ,#factory_jia_dong#
+		  ,#factory_apply_use_to#
+		  ,#factory_worker_attitude#
+		  ,#factory_has_overalls#
+		  ,#inventory_status#
+		  ,#inventory_put_status#
+		  ,#manage_work_status#
+		  ,#manage_has_overalls#
+		  ,#manage_work_attitude#
+		  ,#added_info#
+		  ,#visit_result#
+		  ,#reason#
+		  
+		  ,#cust_comp_status2#
+			,#cust_product_percent1#
+			,#cust_product_percent2#
+			,#cust_product_other#
+			,#legal_position#
+			,#legal_position_other#
+			,#legal_age#
+			,#legal_address2#
+			,#legal_address_other#
+			,#legal_experience_year1#
+			,#legal_experience_year2#
+			,#legal_experience_affiliated#
+			,#legal_experience_affiliated_company#
+			,#legal_experience_from#
+			,#legal_experience_from_other#
+			,#legal_experience_from_year#
+			,#legal_experience_inherit#
+			,#legal_experience_flag#
+			,#factory_worker_class#
+			,#factory_apply_use_to_other#
+			,#reason_s#
+			,#reason_w#
+			,#reason_o#
+			,#reason_t#
+			,#cust_type#
+			,#contract_type#
+			,#contract_type_other#
+			,#authLeader#
+			,#cust_product_process#
+		)
+	</insert>
+	
+	<update id="updateReport" parameterClass="com.brick.visitation.to.VisitationReportTo">
+		update T_PRJT_VISIT_REPORT SET
+			MODIFY_BY = #modify_by#
+			,MODIFY_DATE = getdate()
+			  ,STATUS = #status#
+			  ,BUSI_NAME = #sensor_name#
+			  ,BUSI_MANAGER = #busi_manager#
+			  ,CUST_COMP_NAME = #cust_name#
+			  ,CUST_APPLY_AMOUNT = #cust_apply_amount#
+			  ,CUST_GUAR = #cust_guar#
+			  ,CUST_COMP_STATUS = #cust_comp_status#
+			  ,CUST_RELATION = #cust_relation#
+			  ,CUST_PRODUCT = #cust_product#
+			  ,CUST_INVOICE = #cust_invoice#
+			  ,LEGAL_NAME = #legal_name#
+			  ,LEGAL_INFO = #legal_info#
+			  ,LEGAL_ADDRESS = #legal_address#
+			  ,LEGAL_EXPERIENCE = #legal_experience#
+			  ,FACTORY_ENVI = #factory_envi#
+			  ,FACTORY_IS_SELF = #factory_is_self#
+			  ,FACTORY_HAS_DORM = #factory_has_dorm#
+			  ,FACTORY_HAS_MESS = #factory_has_mess#
+			  ,FACTORY_CLEAN = #factory_clean#
+			  ,FACTORY_WORKER = #factory_worker#
+			  ,FACTORY_JIA_DONG = #factory_jia_dong#
+			  ,FACTORY_APPLY_USE_TO = #factory_apply_use_to#
+			  ,FACTORY_WORKER_ATTITUDE = #factory_worker_attitude#
+			  ,FACTORY_HAS_OVERALLS = #factory_has_overalls#
+			  ,INVENTORY_STATUS = #inventory_status#
+			  ,INVENTORY_PUT_STATUS = #inventory_put_status#
+			  ,MANAGE_WORK_STATUS = #manage_work_status#
+			  ,MANAGE_HAS_OVERALLS = #manage_has_overalls#
+			  ,MANAGE_WORK_ATTITUDE = #manage_work_attitude#
+			  ,ADDED_INFO = #added_info#
+			  ,VISIT_RESULT = #visit_result#
+			  ,REASON = #reason#
+			  
+			  ,CUST_COMP_STATUS2 = #cust_comp_status2#
+				,CUST_PRODUCT_PERCENT1 = #cust_product_percent1#
+				,CUST_PRODUCT_PERCENT2 = #cust_product_percent2#
+				,CUST_PRODUCT_OTHER = #cust_product_other#
+				,LEGAL_POSITION = #legal_position#
+				,LEGAL_POSITION_OTHER = #legal_position_other#
+				,LEGAL_AGE = #legal_age#
+				,LEGAL_ADDRESS2 = #legal_address2#
+				,LEGAL_ADDRESS_OTHER = #legal_address_other#
+				,LEGAL_EXPERIENCE_YEAR1 = #legal_experience_year1#
+				,LEGAL_EXPERIENCE_YEAR2 = #legal_experience_year2#
+				,LEGAL_EXPERIENCE_AFFILIATED = #legal_experience_affiliated#
+				,LEGAL_EXPERIENCE_AFFILIATED_COMPANY = #legal_experience_affiliated_company#
+				,LEGAL_EXPERIENCE_FROM = #legal_experience_from#
+				,LEGAL_EXPERIENCE_FROM_OTHER = #legal_experience_from_other#
+				,LEGAL_EXPERIENCE_FROM_YEAR = #legal_experience_from_year#
+				,LEGAL_EXPERIENCE_INHERIT = #legal_experience_inherit#
+				,LEGAL_EXPERIENCE_FLAG = #legal_experience_flag#
+				,FACTORY_WORKER_CLASS = #factory_worker_class#
+				,FACTORY_APPLY_USE_TO_OTHER = #factory_apply_use_to_other#
+				,REASON_S = #reason_s#
+				,REASON_W = #reason_w#
+				,REASON_O = #reason_o#
+				,REASON_T = #reason_t#
+				,CUST_TYPE = #cust_type#
+				,CONTRACT_TYPE = #contract_type#
+				,CONTRACT_TYPE_OTHER = #contract_type_other#
+				,AUTH_LEADER = #authLeader#
+				,CUST_PRODUCT_PROCESS = #cust_product_process#
+			  
+		WHERE ID = #report_id#
+	</update>
+	
+	<insert id="insertMemo" parameterClass="com.brick.visitation.to.VisitationTO">
+		insert into T_PRJT_VISIT_MEMO (
+		   VISIT_ID
+		  ,CREATE_BY
+		  ,CREATE_DATE
+		  ,STATUS
+		  ,REJECT_MEMO
+		) VALUES (
+		   #visit_id#
+		  ,#modify_by#
+		  ,getdate()
+		  ,0
+		  ,#reject_memo#
+		)
+	</insert>
+	
+	<select id="getMemo" parameterClass="com.brick.visitation.to.VisitationTO" resultClass="com.brick.visitation.to.VisitationTO">
+		select u.[NAME] as create_by, m.create_date, m.reject_memo
+		from T_PRJT_VISIT_MEMO m
+		left join T_USER_USER u on m.CREATE_BY = u.ID
+		where m.VISIT_ID = #visit_id#
+	</select>
+	
+	<update id="updateNoneVisitMemo" parameterClass="com.brick.visitation.to.VisitationTO">
+		update T_PRJT_VISIT set 
+			VISIT_STATUS = 4
+			,NONE_VISIT_MEMO = #none_visit_memo#
+			,NONE_VISIT_REASON = #none_visit_reason#
+			,MODIFY_BY = #modify_by#
+		  	,MODIFY_DATE = getdate()
+		where ID = #visit_id#
+	</update>
+	
+	<insert id="setVisitationForMerger" parameterClass="map">
+		insert into T_PRJT_VISIT (
+		   STATUS
+		  ,CREDIT_ID
+		  ,VISIT_STATUS
+		  ,NONE_VISIT_MEMO
+		  ,NONE_VISIT_REASON
+		) VALUES (
+		  0
+		  ,#CREDIT_ID#
+		  ,4
+		  ,#NONE_VISIT_MEMO#
+		  ,#NONE_VISIT_MEMO#
+		)
+	</insert>
+	
+	<select id="getHasVisitByCreditId" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0) from T_PRJT_VISIT
+		where CREDIT_ID = #CREDIT_ID#
+		and VISIT_STATUS >= 0
+		and STATUS = 0
+	</select>
+	
+	<select id="getCreditState" resultClass="java.lang.Integer">
+		select STATE from T_PRJT_CREDIT
+		where ID = #credit_id#
+	</select>
+	
+</sqlMap>

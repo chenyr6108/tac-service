@@ -1,0 +1,1097 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="differentReport">
+	<!-- 成本差异 汇总 -->
+	<select id="differentReportAll" parameterClass="map" resultClass="java.util.HashMap">
+	<!-- 
+			
+			<![CDATA[
+				SELECT NIAN,YUE,REN_PRICE,CAIWU,SHUIWU,CHAYI,INSURE_PRICE,YINHUA,ISNULL(YINGYE,0) YINGYE,ISNULL(CHENGJIAN,0) CHENGJIAN,ISNULL(JIAOYU,0) JIAOYU,
+			ISNULL(YINGYE,0) + ISNULL(CHENGJIAN,0) + ISNULL(jiaoyu,0) + ISNULL(INSURE_PRICE,0) + ISNULL(YINHUA,0) AS XIAOJI,
+			ISNULL(CAIWU ,0)- (ISNULL(TTT.YINGYE,0) + ISNULL(CHENGJIAN,0) + ISNULL(jiaoyu,0) + ISNULL(INSURE_PRICE,0) + ISNULL(YINHUA,0)) AS CLI,
+			ISNULL(ren_price,0) -  (ISNULL(TTT.YINGYE,0) + ISNULL(CHENGJIAN,0) + ISNULL(jiaoyu,0) + ISNULL(INSURE_PRICE,0) + ISNULL(YINHUA,0)) AS SLI,
+			ISNULL(chayi,0) LIC
+		FROM (
+			select  t1.nian,t1.yue,
+				   isnull(t3.ren_price,0) ren_price,
+				   t1.caiwu,
+				   isnull(t3.ren_price,0) shuiwu,
+				   ROUND(t1.caiwu-isnull(t3.ren_price,0),2) chayi,
+				   YINGYE,
+				   CHENGJIAN,
+				   jiaoyu,
+				   ISNULL(baoxian,0) INSURE_PRICE ,
+				   ISNULL(T2.YINHUA,0) YINHUA
+			from   (select YEAR(DATEADD(mm,T0.MONTH,0)) NIAN
+								,MONTH(DATEADD(mm,T0.MONTH,0)) YUE
+								,SUM(SHUI) CAIWU
+								,SUM(REN_PRICE) REN_PRICE
+								,SUM(baoxian) baoxian
+					FROM (
+							select
+								tt.RECP_ID,
+								TT.QI_DATE,
+								TT.REN_PRICE,
+								DATEDIFF(mm,0,QI_DATE) MONTH ,
+								ROUND(REN_PRICE / 30 * QI_tian,2) SHUI,
+								CASE
+								WHEN PERIOD_NUM = 1
+									THEN ROUND(LEASE_TOPRIC * INSURE_BASE_RATE / 360 * QI_tian,2) 
+								ELSE	
+									ROUND(LEASE_TOPRIC * INSURE_BASE_RATE/12,2)
+								END baoxian
+							from (	
+								SELECT 
+									*,
+									DATEDIFF(day,qi_date,dateadd(dd,-day(dateadd(m,1,QI_DATE)),dateadd(m,1,QI_DATE))) + 1 tian,
+									DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 QI_TIAN,
+									(	SELECT MAX(TT.RATE_VALUE) / 100 INSURE_BASE_RATE FROM T_RATE_CONFIG TT 
+										WHERE TT.STATUS = 0 
+											AND CONVERT(VARCHAR(10),TT.START_DATE,23) <= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+											AND CONVERT(VARCHAR(10),TT.END_DATE,23) >= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+											AND TT.FILED_NAME = 'INSURE_BASE_RATE'
+									) INSURE_BASE_RATE
+								FROM
+									(
+										select trcp.recp_id,trcd.PERIOD_NUM,TRCP.LEASE_TOPRIC,LEASE_PERIOD,
+											dateadd(m,trcd.PERIOD_NUM -1,FINANCECONTRACT_DATE ) QI_DATE,FINANCECONTRACT_DATE FIRST_PAYDATE,
+											trcd.REN_PRICE
+										from T_RENT_COLLECTIONDETAIL trcd
+											left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0
+											LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID = trcp.RECT_ID AND TRC.STATUS = 0
+											LEFT JOIN T_PRJT_CREDIT TPCD ON TPCD.ID = TRC.PRCD_ID AND TPCD.STATUS = 0 
+										WHERE	
+											trcd.STATUS = 0
+									) t
+									]]>
+									<dynamic prepend="where">
+										<isNotEmpty prepend="AND" property="startDate">
+											<![CDATA[
+												DATEADD(D,-1,DATEADD(M,LEASE_PERIOD ,T.FIRST_PAYDATE)) >= #startDate#
+											]]>
+										</isNotEmpty>
+										<isNotEmpty prepend="AND" property="endDate">
+											<![CDATA[
+												T.FIRST_PAYDATE <= #endDate# 
+											]]>
+										</isNotEmpty>
+									</dynamic>
+								<![CDATA[
+							) tt
+							union
+							select
+								tt.RECP_ID,
+								TT.QI_DATE,
+								0 REN_PRICE ,
+								DATEDIFF(mm,0,dateadd(m,1,QI_DATE)) MONTH ,
+								ren_price - round((REN_PRICE / 30 * QI_tian),2) SHUI,
+								CASE
+								WHEN PERIOD_NUM = LEASE_PERIOD
+									THEN LEASE_TOPRIC * INSURE_BASE_RATE 
+									- (ROUND(LEASE_TOPRIC * INSURE_BASE_RATE/12,2) * (LEASE_PERIOD -1)) 
+									- ROUND(LEASE_TOPRIC * INSURE_BASE_RATE / 360 * QI_TIAN,2)
+								ELSE 0
+								END	baoxian
+							from (	SELECT 
+										*,
+										DATEDIFF(day,qi_date,dateadd(dd,-day(dateadd(m,1,QI_DATE)),dateadd(m,1,QI_DATE))) + 1 tian,
+										DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 QI_TIAN,
+										(	SELECT MAX(TT.RATE_VALUE) / 100 INSURE_BASE_RATE FROM T_RATE_CONFIG TT 
+											WHERE TT.STATUS = 0 
+												AND CONVERT(VARCHAR(10),TT.START_DATE,23) <= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+												AND CONVERT(VARCHAR(10),TT.END_DATE,23) >= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+												AND TT.FILED_NAME = 'INSURE_BASE_RATE'
+										) INSURE_BASE_RATE
+									FROM
+										(
+									 select TRCP.RECP_ID,trcd.PERIOD_NUM,TRCP.LEASE_TOPRIC,LEASE_PERIOD,
+										dateadd(m,trcd.PERIOD_NUM -1,FINANCECONTRACT_DATE ) QI_DATE, FINANCECONTRACT_DATE FIRST_PAYDATE,
+										trcd.REN_PRICE
+									from T_RENT_COLLECTIONDETAIL trcd
+										left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0
+										LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID = trcp.RECT_ID AND TRC.STATUS = 0
+										LEFT JOIN T_PRJT_CREDIT TPCD ON TPCD.ID = TRC.PRCD_ID AND TPCD.STATUS = 0 
+									WHERE	
+										trcd.STATUS = 0
+									) t
+									]]>
+									<dynamic prepend="where">
+										<isNotEmpty prepend="AND" property="startDate">
+											<![CDATA[
+												DATEADD(D,-1,DATEADD(M,LEASE_PERIOD ,T.FIRST_PAYDATE)) >= #startDate#
+											]]>
+										</isNotEmpty>
+										<isNotEmpty prepend="AND" property="endDate">
+											<![CDATA[
+												T.FIRST_PAYDATE <= #endDate# 
+											]]>
+										</isNotEmpty>
+									</dynamic>
+							<![CDATA[
+								
+							) tt
+							
+						) T0
+					GROUP BY T0.MONTH   
+				) t1
+			LEFT JOIN (
+				SELECT 
+					NIAN,YUE,SUM(YINHUA) YINHUA
+				FROM
+					(
+					SELECT 
+						*,
+						ROUND(TT.SUM_MONTH_PRICE * STAMP_TAX_MONTHPRIC ,2) 
+							+  ROUND(TT.LEASE_TOPRIC * STAMP_TAX_TOPRIC ,2) 
+							+  ROUND(TT.SUM_BX * STAMP_TAX_INSUREPRIC,2) YINHUA
+					FROM(
+					SELECT 
+						YEAR(FIRST_PAYDATE) nian,
+						MONTH(FIRST_PAYDATE) yue,
+						T1.SUM_MONTH_PRICE,
+						T.LEASE_TOPRIC,
+						(	SELECT MAX(TT.RATE_VALUE) / 100 STAMP_TAX_MONTHPRIC FROM T_RATE_CONFIG TT 
+							WHERE TT.STATUS = 0 
+								AND CONVERT(VARCHAR(10),TT.START_DATE,23) <= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND CONVERT(VARCHAR(10),TT.END_DATE,23) >= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND TT.FILED_NAME = 'STAMP_TAX_MONTHPRIC'
+						) STAMP_TAX_MONTHPRIC,
+						(	SELECT MAX(TT.RATE_VALUE) / 100 STAMP_TAX_TOPRIC FROM T_RATE_CONFIG TT 
+							WHERE TT.STATUS = 0 
+								AND CONVERT(VARCHAR(10),TT.START_DATE,23) <= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND CONVERT(VARCHAR(10),TT.END_DATE,23) >= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND TT.FILED_NAME = 'STAMP_TAX_TOPRIC'
+						) STAMP_TAX_TOPRIC,
+						(	SELECT MAX(TT.RATE_VALUE) / 100 STAMP_TAX_INSUREPRIC FROM T_RATE_CONFIG TT 
+							WHERE TT.STATUS = 0 
+								AND CONVERT(VARCHAR(10),TT.START_DATE,23) <= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND CONVERT(VARCHAR(10),TT.END_DATE,23) >= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND TT.FILED_NAME = 'STAMP_TAX_INSUREPRIC'
+						) STAMP_TAX_INSUREPRIC,
+						SUM_BX
+					FROM
+						T_RENT_COLLECTIONPLAN T
+						LEFT JOIN (SELECT RECP_ID,SUM(MONTH_PRICE) SUM_MONTH_PRICE FROM T_RENT_COLLECTIONDETAIL WHERE STATUS = 0 GROUP BY RECP_ID) T1 ON T1.RECP_ID = T.RECP_ID
+						LEFT JOIN T_INSU_COMPANY T2 ON T2.INCP_ID = T.INSURANCE_COMPANY_ID AND T2.INCP_STATUS = 0
+						LEFT JOIN (	SELECT T.RECP_ID ,SUM(T2.INSU_RATE * T.UNIT_PRICE /1000) SUM_BX
+							FROM
+								T_RENT_CONTRACTDETAIL T
+								LEFT JOIN T_INSU_EMPT2INSULIST T1 ON T1.EQMT_ID = T.EQMT_ID AND T1.STATUS = 0
+								LEFT JOIN T_INSU_INSURANCELIST T2 ON T1.INSU_ID = T2.INCU_ID AND T2.STATUS = 0
+							WHERE T.STATUS = 0
+							GROUP BY T.RECP_ID 
+							) T3 ON T3.RECP_ID = T.RECP_ID
+					WHERE
+						T.STATUS = 0
+					) TT
+				) T
+				GROUP BY nian,yue
+			)	T2 ON t1.NIAN = T2.nian AND t1.YUE = T2.yue
+			LEFT JOIN (
+				SELECT 
+					YEAR(OPEN_TIME) NIAN,
+					MONTH(OPEN_TIME) YUE,
+					SUM(REN_PRICE) REN_PRICE,
+					ISNULL(SUM(ROUND(T.REN_PRICE * SALES_TAX_RATE_ALONE,2)),0) YINGYE,
+					ISNULL(SUM(ROUND(T.REN_PRICE * SALES_TAX_RATE_ALONE * FBuildTax,2)),0) CHENGJIAN,
+					ISNULL(SUM(ROUND(T.REN_PRICE * SALES_TAX_RATE_ALONE * FEduAmount,2)),0) jiaoyu     
+				FROM
+					(
+					SELECT
+						RECP_ID,CONVERT(VARCHAR(10),open_time,23) OPEN_TIME,
+						REN_PRICE ,
+						(	SELECT MAX(T.RATE_VALUE) / 100 SALES_TAX_RATE_ALONE FROM T_RATE_CONFIG T 
+							WHERE T.STATUS = 0 
+									AND CONVERT(VARCHAR(10),T.START_DATE,23) <= CONVERT(VARCHAR(10),open_time,23)
+									AND CONVERT(VARCHAR(10),T.END_DATE,23) >= CONVERT(VARCHAR(10),open_time,23)
+									AND T.FILED_NAME = 'SALES_TAX_RATE_ALONE'
+						) SALES_TAX_RATE_ALONE,
+						(	SELECT MAX(T.RATE_VALUE) / 100 FBuildTax FROM T_RATE_CONFIG T 
+							WHERE T.STATUS = 0 
+									AND CONVERT(VARCHAR(10),T.START_DATE,23) <= CONVERT(VARCHAR(10),open_time,23)
+									AND CONVERT(VARCHAR(10),T.END_DATE,23) >=CONVERT(VARCHAR(10),open_time,23)
+									AND T.FILED_NAME = 'FBuildTax'
+						) FBuildTax,
+						(	SELECT MAX(T.RATE_VALUE) / 100 FEduAmount FROM T_RATE_CONFIG T 
+							WHERE T.STATUS = 0 
+									AND CONVERT(VARCHAR(10),T.START_DATE,23) <= CONVERT(VARCHAR(10),open_time,23)
+									AND CONVERT(VARCHAR(10),T.END_DATE,23) >= CONVERT(VARCHAR(10),open_time,23)
+									AND T.FILED_NAME = 'FEduAmount'
+						) FEduAmount
+					FROM 
+						T_RENT_COLLECTIONDETAIL T
+					WHERE
+						T.STATUS = 0
+						AND T.isopen = 1						
+					) T
+					GROUP BY YEAR(OPEN_TIME),MONTH(OPEN_TIME)
+			) T3 ON T1.NIAN = t3.NIAN AND t1.YUE = T3.YUE 
+		) TTT
+				order by TTT.nian,TTT.yue	
+			]]>                                                                              			                                                                                		                                                                                                                                         	
+			-->
+			<!-- Modify by Michael 2012-02-27  -->
+			<!--
+			<![CDATA[
+				SELECT NIAN,YUE,REN_PRICE,CAIWU,SHUIWU,CHAYI,INSURE_PRICE,YINHUA,ISNULL(YINGYE,0) YINGYE,ISNULL(CHENGJIAN,0) CHENGJIAN,ISNULL(JIAOYU,0) JIAOYU,
+			ISNULL(YINGYE,0) + ISNULL(CHENGJIAN,0) + ISNULL(jiaoyu,0) + ISNULL(INSURE_PRICE,0) + ISNULL(YINHUA,0) AS XIAOJI,
+			ISNULL(CAIWU ,0)- (ISNULL(TTT.YINGYE,0) + ISNULL(CHENGJIAN,0) + ISNULL(jiaoyu,0) + ISNULL(INSURE_PRICE,0) + ISNULL(YINHUA,0)) AS CLI,
+			ISNULL(ren_price,0) -  (ISNULL(TTT.YINGYE,0) + ISNULL(CHENGJIAN,0) + ISNULL(jiaoyu,0) + ISNULL(INSURE_PRICE,0) + ISNULL(YINHUA,0)) AS SLI,
+			ISNULL(chayi,0) LIC
+		FROM (
+			select  t1.nian,t1.yue,
+				   isnull(t3.ren_price,0) ren_price,
+				   t1.caiwu,
+				   isnull(t3.ren_price,0) shuiwu,
+				   ROUND(t1.caiwu-isnull(t3.ren_price,0),2) chayi,
+				   YINGYE,
+				   CHENGJIAN,
+				   jiaoyu,
+				   ISNULL(baoxian,0) INSURE_PRICE ,
+				   ISNULL(T2.YINHUA,0) YINHUA
+			from   (select YEAR(DATEADD(mm,T0.MONTH,0)) NIAN
+								,MONTH(DATEADD(mm,T0.MONTH,0)) YUE
+								,SUM(SHUI) CAIWU
+								,SUM(REN_PRICE) REN_PRICE
+								,SUM(baoxian) baoxian
+					FROM (
+							select
+								tt.RECP_ID,
+								TT.QI_DATE,
+								TT.REN_PRICE,
+								DATEDIFF(mm,0,QI_DATE) MONTH ,
+								
+								CASE 
+									WHEN RECP_STATUS = 3  AND 
+										(SELECT CONVERT(VARCHAR(7),MAX(CHECK_DATE),23)
+										FROM T_FINA_COLLECTIONBILL TFCB
+										WHERE FICB_TYPE=0 
+											AND FICB_STATE = 5 
+											AND STATUS=0 
+											AND RECP_ID = TT.RECP_ID
+										GROUP BY TFCB.RECP_ID
+										) 
+											< CONVERT(VARCHAR(7),QI_DATE,23)
+									THEN 0
+								ELSE  ROUND(REN_PRICE / 30 * QI_tian,2)
+								END SHUI,
+								
+								CASE
+								WHEN PERIOD_NUM = 1
+									THEN ROUND(LEASE_TOPRIC * INSURE_BASE_RATE / 360 * QI_tian,2) 
+								ELSE	
+									ROUND(LEASE_TOPRIC * INSURE_BASE_RATE/12,2)
+								END baoxian
+							from (	
+								SELECT 
+									*,
+									DATEDIFF(day,qi_date,dateadd(dd,-day(dateadd(m,1,QI_DATE)),dateadd(m,1,QI_DATE))) + 1 tian,
+									DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 QI_TIAN,
+									(	SELECT MAX(TT.RATE_VALUE) / 100 INSURE_BASE_RATE FROM T_RATE_CONFIG TT 
+										WHERE TT.STATUS = 0 
+											AND CONVERT(VARCHAR(10),TT.START_DATE,23) <= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+											AND CONVERT(VARCHAR(10),TT.END_DATE,23) >= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+											AND TT.FILED_NAME = 'INSURE_BASE_RATE'
+									) INSURE_BASE_RATE
+								FROM
+									(
+										select trcp.recp_id,trcd.PERIOD_NUM,TRCP.LEASE_TOPRIC,LEASE_PERIOD,TRCP.RECP_STATUS,
+											dateadd(m,trcd.PERIOD_NUM -1,FINANCECONTRACT_DATE ) QI_DATE,FINANCECONTRACT_DATE FIRST_PAYDATE,
+											trcd.REN_PRICE
+										from T_RENT_COLLECTIONDETAIL trcd
+											left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0
+											LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID = trcp.RECT_ID AND TRC.STATUS = 0
+											LEFT JOIN T_PRJT_CREDIT TPCD ON TPCD.ID = TRC.PRCD_ID AND TPCD.STATUS = 0 
+										WHERE	
+											trcd.STATUS = 0
+									) t
+									]]>
+									<dynamic prepend="where">
+										<isNotEmpty prepend="AND" property="startDate">
+											<![CDATA[
+												DATEADD(D,-1,DATEADD(M,LEASE_PERIOD ,T.FIRST_PAYDATE)) >= #startDate#
+											]]>
+										</isNotEmpty>
+										<isNotEmpty prepend="AND" property="endDate">
+											<![CDATA[
+												T.FIRST_PAYDATE <= #endDate# 
+											]]>
+										</isNotEmpty>
+									</dynamic>
+								<![CDATA[
+							) tt
+							union
+							select
+								tt.RECP_ID,
+								TT.QI_DATE,
+								0 REN_PRICE ,
+								DATEDIFF(mm,0,dateadd(m,1,QI_DATE)) MONTH ,
+								
+								CASE 
+									WHEN RECP_STATUS = 3  AND 
+										(SELECT CONVERT(VARCHAR(7),MAX(CHECK_DATE),23)
+										FROM T_FINA_COLLECTIONBILL TFCB
+										WHERE FICB_TYPE=0 
+											AND FICB_STATE = 5 
+											AND STATUS=0 
+											AND RECP_ID = TT.RECP_ID
+										GROUP BY TFCB.RECP_ID
+										) 
+											< CONVERT(VARCHAR(7),dateadd(m,1,QI_DATE),23)
+									THEN 0
+								ELSE  ren_price - round((REN_PRICE / 30 * QI_tian),2)
+								END SHUI,
+								
+								CASE
+								WHEN PERIOD_NUM = LEASE_PERIOD
+									THEN LEASE_TOPRIC * INSURE_BASE_RATE 
+									- (ROUND(LEASE_TOPRIC * INSURE_BASE_RATE/12,2) * (LEASE_PERIOD -1)) 
+									- ROUND(LEASE_TOPRIC * INSURE_BASE_RATE / 360 * QI_TIAN,2)
+								ELSE 0
+								END	baoxian
+							from (	SELECT 
+										*,
+										DATEDIFF(day,qi_date,dateadd(dd,-day(dateadd(m,1,QI_DATE)),dateadd(m,1,QI_DATE))) + 1 tian,
+										DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 QI_TIAN,
+										(	SELECT MAX(TT.RATE_VALUE) / 100 INSURE_BASE_RATE FROM T_RATE_CONFIG TT 
+											WHERE TT.STATUS = 0 
+												AND CONVERT(VARCHAR(10),TT.START_DATE,23) <= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+												AND CONVERT(VARCHAR(10),TT.END_DATE,23) >= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+												AND TT.FILED_NAME = 'INSURE_BASE_RATE'
+										) INSURE_BASE_RATE
+									FROM
+										(
+									 select TRCP.RECP_ID,trcd.PERIOD_NUM,TRCP.LEASE_TOPRIC,LEASE_PERIOD,TRCP.RECP_STATUS,
+										dateadd(m,trcd.PERIOD_NUM -1,FINANCECONTRACT_DATE ) QI_DATE, FINANCECONTRACT_DATE FIRST_PAYDATE,
+										trcd.REN_PRICE
+									from T_RENT_COLLECTIONDETAIL trcd
+										left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0
+										LEFT JOIN T_RENT_CONTRACT TRC ON TRC.RECT_ID = trcp.RECT_ID AND TRC.STATUS = 0
+										LEFT JOIN T_PRJT_CREDIT TPCD ON TPCD.ID = TRC.PRCD_ID AND TPCD.STATUS = 0 
+									WHERE	
+										trcd.STATUS = 0
+									) t
+									]]>
+									<dynamic prepend="where">
+										<isNotEmpty prepend="AND" property="startDate">
+											<![CDATA[
+												DATEADD(D,-1,DATEADD(M,LEASE_PERIOD ,T.FIRST_PAYDATE)) >= #startDate#
+											]]>
+										</isNotEmpty>
+										<isNotEmpty prepend="AND" property="endDate">
+											<![CDATA[
+												T.FIRST_PAYDATE <= #endDate# 
+											]]>
+										</isNotEmpty>
+									</dynamic>
+							<![CDATA[
+								
+							) tt
+							
+						) T0
+					GROUP BY T0.MONTH   
+				) t1
+			LEFT JOIN (
+				SELECT 
+					NIAN,YUE,SUM(YINHUA) YINHUA
+				FROM
+					(
+					SELECT 
+						*,
+						ROUND(TT.SUM_MONTH_PRICE * STAMP_TAX_MONTHPRIC ,2) 
+							+  ROUND(TT.LEASE_TOPRIC * STAMP_TAX_TOPRIC ,2) 
+							+  ROUND(TT.SUM_BX * STAMP_TAX_INSUREPRIC,2) YINHUA
+					FROM(
+					SELECT 
+						YEAR(FIRST_PAYDATE) nian,
+						MONTH(FIRST_PAYDATE) yue,
+						T1.SUM_MONTH_PRICE,
+						T.LEASE_TOPRIC,
+						(	SELECT MAX(TT.RATE_VALUE) / 100 STAMP_TAX_MONTHPRIC FROM T_RATE_CONFIG TT 
+							WHERE TT.STATUS = 0 
+								AND CONVERT(VARCHAR(10),TT.START_DATE,23) <= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND CONVERT(VARCHAR(10),TT.END_DATE,23) >= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND TT.FILED_NAME = 'STAMP_TAX_MONTHPRIC'
+						) STAMP_TAX_MONTHPRIC,
+						(	SELECT MAX(TT.RATE_VALUE) / 100 STAMP_TAX_TOPRIC FROM T_RATE_CONFIG TT 
+							WHERE TT.STATUS = 0 
+								AND CONVERT(VARCHAR(10),TT.START_DATE,23) <= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND CONVERT(VARCHAR(10),TT.END_DATE,23) >= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND TT.FILED_NAME = 'STAMP_TAX_TOPRIC'
+						) STAMP_TAX_TOPRIC,
+						(	SELECT MAX(TT.RATE_VALUE) / 100 STAMP_TAX_INSUREPRIC FROM T_RATE_CONFIG TT 
+							WHERE TT.STATUS = 0 
+								AND CONVERT(VARCHAR(10),TT.START_DATE,23) <= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND CONVERT(VARCHAR(10),TT.END_DATE,23) >= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND TT.FILED_NAME = 'STAMP_TAX_INSUREPRIC'
+						) STAMP_TAX_INSUREPRIC,
+						SUM_BX
+					FROM
+						T_RENT_COLLECTIONPLAN T
+						LEFT JOIN (SELECT RECP_ID,SUM(MONTH_PRICE) SUM_MONTH_PRICE FROM T_RENT_COLLECTIONDETAIL WHERE STATUS = 0 GROUP BY RECP_ID) T1 ON T1.RECP_ID = T.RECP_ID
+						LEFT JOIN T_INSU_COMPANY T2 ON T2.INCP_ID = T.INSURANCE_COMPANY_ID AND T2.INCP_STATUS = 0
+						LEFT JOIN (	SELECT T.RECP_ID ,SUM(T2.INSU_RATE * T.UNIT_PRICE /1000) SUM_BX
+							FROM
+								T_RENT_CONTRACTDETAIL T
+								LEFT JOIN T_INSU_EMPT2INSULIST T1 ON T1.EQMT_ID = T.EQMT_ID AND T1.STATUS = 0
+								LEFT JOIN T_INSU_INSURANCELIST T2 ON T1.INSU_ID = T2.INCU_ID AND T2.STATUS = 0
+							WHERE T.STATUS = 0
+							GROUP BY T.RECP_ID 
+							) T3 ON T3.RECP_ID = T.RECP_ID
+					WHERE
+						T.STATUS = 0
+					) TT
+				) T
+				GROUP BY nian,yue
+			)	T2 ON t1.NIAN = T2.nian AND t1.YUE = T2.yue
+			LEFT JOIN (
+				SELECT 
+					YEAR(OPEN_TIME) NIAN,
+					MONTH(OPEN_TIME) YUE,
+					SUM(REN_PRICE) REN_PRICE,
+					ISNULL(SUM(ROUND(T.REN_PRICE * SALES_TAX_RATE_ALONE,2)),0) YINGYE,
+					ISNULL(SUM(ROUND(T.REN_PRICE * SALES_TAX_RATE_ALONE * FBuildTax,2)),0) CHENGJIAN,
+					ISNULL(SUM(ROUND(T.REN_PRICE * SALES_TAX_RATE_ALONE * FEduAmount,2)),0) jiaoyu     
+				FROM
+					(
+					SELECT
+						RECP_ID,CONVERT(VARCHAR(10),open_time,23) OPEN_TIME,
+						REN_PRICE ,
+						(	SELECT MAX(T.RATE_VALUE) / 100 SALES_TAX_RATE_ALONE FROM T_RATE_CONFIG T 
+							WHERE T.STATUS = 0 
+									AND CONVERT(VARCHAR(10),T.START_DATE,23) <= CONVERT(VARCHAR(10),open_time,23)
+									AND CONVERT(VARCHAR(10),T.END_DATE,23) >= CONVERT(VARCHAR(10),open_time,23)
+									AND T.FILED_NAME = 'SALES_TAX_RATE_ALONE'
+						) SALES_TAX_RATE_ALONE,
+						(	SELECT MAX(T.RATE_VALUE) / 100 FBuildTax FROM T_RATE_CONFIG T 
+							WHERE T.STATUS = 0 
+									AND CONVERT(VARCHAR(10),T.START_DATE,23) <= CONVERT(VARCHAR(10),open_time,23)
+									AND CONVERT(VARCHAR(10),T.END_DATE,23) >=CONVERT(VARCHAR(10),open_time,23)
+									AND T.FILED_NAME = 'FBuildTax'
+						) FBuildTax,
+						(	SELECT MAX(T.RATE_VALUE) / 100 FEduAmount FROM T_RATE_CONFIG T 
+							WHERE T.STATUS = 0 
+									AND CONVERT(VARCHAR(10),T.START_DATE,23) <= CONVERT(VARCHAR(10),open_time,23)
+									AND CONVERT(VARCHAR(10),T.END_DATE,23) >= CONVERT(VARCHAR(10),open_time,23)
+									AND T.FILED_NAME = 'FEduAmount'
+						) FEduAmount
+					FROM 
+						T_RENT_COLLECTIONDETAIL T
+					WHERE
+						T.STATUS = 0
+						AND T.isopen = 1						
+					) T
+					GROUP BY YEAR(OPEN_TIME),MONTH(OPEN_TIME)
+			) T3 ON T1.NIAN = t3.NIAN AND t1.YUE = T3.YUE 
+		) TTT
+				order by TTT.nian,TTT.yue	
+			]]>
+		-->     
+	<![CDATA[
+		SELECT NIAN,YUE,REN_PRICE,CAIWU,SHUIWU,CHAYI,INSURE_PRICE,YINHUA,ISNULL(YINGYE,0) YINGYE,ISNULL(CHENGJIAN,0) CHENGJIAN,ISNULL(JIAOYU,0) JIAOYU,
+			ISNULL(YINGYE,0) + ISNULL(CHENGJIAN,0) + ISNULL(jiaoyu,0) + ISNULL(INSURE_PRICE,0) + ISNULL(YINHUA,0) AS XIAOJI,
+			ISNULL(CAIWU ,0)- (ISNULL(TTT.YINGYE,0) + ISNULL(CHENGJIAN,0) + ISNULL(jiaoyu,0) + ISNULL(INSURE_PRICE,0) + ISNULL(YINHUA,0)) AS CLI,
+			ISNULL(ren_price,0) -  (ISNULL(TTT.YINGYE,0) + ISNULL(CHENGJIAN,0) + ISNULL(jiaoyu,0) + ISNULL(INSURE_PRICE,0) + ISNULL(YINHUA,0)) AS SLI,
+			ISNULL(chayi,0) LIC
+		FROM (
+			select  t1.nian,t1.yue,
+				   isnull(t3.ren_price,0) ren_price,
+				   t1.caiwu,
+				   isnull(t3.ren_price,0) shuiwu,
+				   ROUND(t1.caiwu-isnull(t3.ren_price,0),2) chayi,
+				   YINGYE,
+				   CHENGJIAN,
+				   jiaoyu,
+				   ISNULL(baoxian,0) INSURE_PRICE ,
+				   ISNULL(T2.YINHUA,0) YINHUA
+			from   (select YEAR(DATEADD(mm,T0.MONTH,0)) NIAN
+								,MONTH(DATEADD(mm,T0.MONTH,0)) YUE
+								,SUM(SHUI) CAIWU
+								,SUM(REN_PRICE) REN_PRICE
+								,SUM(baoxian) baoxian
+					FROM (
+			select 
+			ttt.RECP_ID,ttt.PERIOD_NUM,ttt.Y,ttt.M
+			,SUM(ttt.SHUI) SHUI,max(QI_DATE) QI_DATE,DATEDIFF(mm,0,max(QI_DATE)) MONTH ,SUM(baoxian) baoxian,0 REN_PRICE
+		 from (
+		select
+					tt.RECP_ID,tt.LEASE_CODE,tt.PERIOD_NUM+1 PERIOD_NUM,
+									tt.REN_PRICE,tt.RECP_CODE,
+									tt.QI_DATE,tt.FIRST_PAYDATE,
+					case when MONTH(QI_DATE)+1=13 then  year(QI_DATE)+1 
+					else year(QI_DATE) end Y,
+					case when MONTH(QI_DATE)+1=13 then  1 
+					else MONTH(QI_DATE)+1 end M,
+					round((REN_PRICE / 30 * (30-tian)),2)  SHUI,
+					CASE
+					WHEN PERIOD_NUM = 1
+						THEN ROUND(LEASE_TOPRIC * INSURE_BASE_RATE / 360 * tian,2) 
+					ELSE	
+						ROUND(LEASE_TOPRIC * INSURE_BASE_RATE/12,2)
+					END baoxian,
+					0 a
+				from (SELECT 
+							*,
+							DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 tian,
+							0 FAPIAO_PRICE
+						FROM
+							(
+								 select TRCP.RECP_ID,trc.LEASE_CODE,trcd.PERIOD_NUM,
+									trcd.REN_PRICE,RECP_CODE,
+									dateadd(m,trcd.PERIOD_NUM -1,FINANCECONTRACT_DATE ) QI_DATE,trcp.first_paydate FIRST_PAYDATE,trc.LEASE_TOPRIC,
+									(	SELECT MAX(TT.RATE_VALUE) / 100 INSURE_BASE_RATE FROM T_RATE_CONFIG TT 
+													WHERE TT.STATUS = 0 
+														AND CONVERT(VARCHAR(10),TT.START_DATE,23) <= CONVERT(VARCHAR(10),t10.FINANCECONTRACT_DATE,23)
+														AND CONVERT(VARCHAR(10),TT.END_DATE,23) >= CONVERT(VARCHAR(10),t10.FINANCECONTRACT_DATE,23)
+														AND TT.FILED_NAME = 'INSURE_BASE_RATE'
+												) INSURE_BASE_RATE
+								from T_RENT_COLLECTIONDETAIL trcd
+									left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0
+									left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID AND trc.STATUS = 0
+									LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = trc.PRCD_ID AND T10.STATUS = 0
+								WHERE	
+									trcd.STATUS = 0								
+							) t
+					) tt
+		union 
+			select
+					tt.RECP_ID,tt.LEASE_CODE,tt.PERIOD_NUM,
+									tt.REN_PRICE,tt.RECP_CODE,
+									tt.QI_DATE,tt.FIRST_PAYDATE,
+					year(QI_DATE) Y,
+					MONTH(QI_DATE) M,
+					round((REN_PRICE / 30 * tian),2) SHUI,	
+					CASE
+					WHEN PERIOD_NUM = 1
+						THEN ROUND(LEASE_TOPRIC * INSURE_BASE_RATE / 360 * tian,2) 
+					ELSE	
+						ROUND(LEASE_TOPRIC * INSURE_BASE_RATE/12,2)
+					END baoxian,		
+					1 a
+				from (SELECT 
+							*,
+							DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 tian,
+							0 FAPIAO_PRICE
+						FROM
+							(
+								 select TRCP.RECP_ID,trc.LEASE_CODE,trcd.PERIOD_NUM,
+									trcd.REN_PRICE,RECP_CODE,
+									dateadd(m,trcd.PERIOD_NUM -1,FINANCECONTRACT_DATE ) QI_DATE,trcp.first_paydate FIRST_PAYDATE,
+									trc.LEASE_TOPRIC,
+									(	SELECT MAX(TT.RATE_VALUE) / 100 INSURE_BASE_RATE FROM T_RATE_CONFIG TT 
+													WHERE TT.STATUS = 0 
+														AND CONVERT(VARCHAR(10),TT.START_DATE,23) <= CONVERT(VARCHAR(10),t10.FINANCECONTRACT_DATE,23)
+														AND CONVERT(VARCHAR(10),TT.END_DATE,23) >= CONVERT(VARCHAR(10),t10.FINANCECONTRACT_DATE,23)
+														AND TT.FILED_NAME = 'INSURE_BASE_RATE'
+												) INSURE_BASE_RATE
+								from T_RENT_COLLECTIONDETAIL trcd
+									left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0
+									left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID AND trc.STATUS = 0
+									LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = trc.PRCD_ID AND T10.STATUS = 0
+								WHERE	
+									trcd.STATUS = 0
+							) t
+					) tt		
+		) ttt
+		where
+			(Y < YEAR(#startDate#)
+					OR
+			( 	Y = YEAR(#startDate#)
+			AND M <= MONTH(#startDate#) ))			
+			group by  ttt.RECP_ID,ttt.PERIOD_NUM,ttt.Y,ttt.M	
+		) T0
+		where
+		YEAR(DATEADD(mm,T0.MONTH,0))=year(#startDate#) and MONTH(DATEADD(mm,T0.MONTH,0))=month(#startDate#)					
+			GROUP BY T0.MONTH 
+				) t1
+			LEFT JOIN (
+				SELECT 
+					NIAN,YUE,SUM(YINHUA) YINHUA
+				FROM
+					(
+					SELECT 
+						*,
+						ROUND(TT.SUM_MONTH_PRICE * STAMP_TAX_MONTHPRIC ,2) 
+							+  ROUND(TT.LEASE_TOPRIC * STAMP_TAX_TOPRIC ,2) 
+							+  ROUND(TT.SUM_BX * STAMP_TAX_INSUREPRIC,2) YINHUA
+					FROM(
+					SELECT 
+						YEAR(FIRST_PAYDATE) nian,
+						MONTH(FIRST_PAYDATE) yue,
+						T1.SUM_MONTH_PRICE,
+						T.LEASE_TOPRIC,
+						(	SELECT MAX(TT.RATE_VALUE) / 100 STAMP_TAX_MONTHPRIC FROM T_RATE_CONFIG TT 
+							WHERE TT.STATUS = 0 
+								AND CONVERT(VARCHAR(10),TT.START_DATE,23) <= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND CONVERT(VARCHAR(10),TT.END_DATE,23) >= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND TT.FILED_NAME = 'STAMP_TAX_MONTHPRIC'
+						) STAMP_TAX_MONTHPRIC,
+						(	SELECT MAX(TT.RATE_VALUE) / 100 STAMP_TAX_TOPRIC FROM T_RATE_CONFIG TT 
+							WHERE TT.STATUS = 0 
+								AND CONVERT(VARCHAR(10),TT.START_DATE,23) <= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND CONVERT(VARCHAR(10),TT.END_DATE,23) >= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND TT.FILED_NAME = 'STAMP_TAX_TOPRIC'
+						) STAMP_TAX_TOPRIC,
+						(	SELECT MAX(TT.RATE_VALUE) / 100 STAMP_TAX_INSUREPRIC FROM T_RATE_CONFIG TT 
+							WHERE TT.STATUS = 0 
+								AND CONVERT(VARCHAR(10),TT.START_DATE,23) <= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND CONVERT(VARCHAR(10),TT.END_DATE,23) >= CONVERT(VARCHAR(10),T.FIRST_PAYDATE,23)
+								AND TT.FILED_NAME = 'STAMP_TAX_INSUREPRIC'
+						) STAMP_TAX_INSUREPRIC,
+						SUM_BX
+					FROM
+						T_RENT_COLLECTIONPLAN T
+						LEFT JOIN (SELECT RECP_ID,SUM(MONTH_PRICE) SUM_MONTH_PRICE FROM T_RENT_COLLECTIONDETAIL WHERE STATUS = 0 GROUP BY RECP_ID) T1 ON T1.RECP_ID = T.RECP_ID
+						LEFT JOIN T_INSU_COMPANY T2 ON T2.INCP_ID = T.INSURANCE_COMPANY_ID AND T2.INCP_STATUS = 0
+						LEFT JOIN (	SELECT T.RECP_ID ,SUM(T2.INSU_RATE * T.UNIT_PRICE /1000) SUM_BX
+							FROM
+								T_RENT_CONTRACTDETAIL T
+								LEFT JOIN T_INSU_EMPT2INSULIST T1 ON T1.EQMT_ID = T.EQMT_ID AND T1.STATUS = 0
+								LEFT JOIN T_INSU_INSURANCELIST T2 ON T1.INSU_ID = T2.INCU_ID AND T2.STATUS = 0
+							WHERE T.STATUS = 0
+							GROUP BY T.RECP_ID 
+							) T3 ON T3.RECP_ID = T.RECP_ID
+					WHERE
+						T.STATUS = 0
+					) TT
+				) T
+				GROUP BY nian,yue
+			)	T2 ON t1.NIAN = T2.nian AND t1.YUE = T2.yue
+			LEFT JOIN (
+				SELECT 
+					YEAR(OPEN_TIME) NIAN,
+					MONTH(OPEN_TIME) YUE,
+					SUM(REN_PRICE) REN_PRICE,
+					ISNULL(SUM(ROUND(T.REN_PRICE * SALES_TAX_RATE_ALONE,2)),0) YINGYE,
+					ISNULL(SUM(ROUND(T.REN_PRICE * SALES_TAX_RATE_ALONE * FBuildTax,2)),0) CHENGJIAN,
+					ISNULL(SUM(ROUND(T.REN_PRICE * SALES_TAX_RATE_ALONE * FEduAmount,2)),0) jiaoyu     
+				FROM
+					(
+					SELECT
+						RECP_ID,CONVERT(VARCHAR(10),finance_date,23) OPEN_TIME,
+						REN_PRICE ,
+						(	SELECT MAX(T.RATE_VALUE) / 100 SALES_TAX_RATE_ALONE FROM T_RATE_CONFIG T 
+							WHERE T.STATUS = 0 
+									AND CONVERT(VARCHAR(10),T.START_DATE,23) <= CONVERT(VARCHAR(10),finance_date,23)
+									AND CONVERT(VARCHAR(10),T.END_DATE,23) >= CONVERT(VARCHAR(10),finance_date,23)
+									AND T.FILED_NAME = 'SALES_TAX_RATE_ALONE'
+						) SALES_TAX_RATE_ALONE,
+						(	SELECT MAX(T.RATE_VALUE) / 100 FBuildTax FROM T_RATE_CONFIG T 
+							WHERE T.STATUS = 0 
+									AND CONVERT(VARCHAR(10),T.START_DATE,23) <= CONVERT(VARCHAR(10),finance_date,23)
+									AND CONVERT(VARCHAR(10),T.END_DATE,23) >=CONVERT(VARCHAR(10),finance_date,23)
+									AND T.FILED_NAME = 'FBuildTax'
+						) FBuildTax,
+						(	SELECT MAX(T.RATE_VALUE) / 100 FEduAmount FROM T_RATE_CONFIG T 
+							WHERE T.STATUS = 0 
+									AND CONVERT(VARCHAR(10),T.START_DATE,23) <= CONVERT(VARCHAR(10),finance_date,23)
+									AND CONVERT(VARCHAR(10),T.END_DATE,23) >= CONVERT(VARCHAR(10),finance_date,23)
+									AND T.FILED_NAME = 'FEduAmount'
+						) FEduAmount
+					FROM 
+						T_RENT_COLLECTIONDETAIL T
+					WHERE
+						T.STATUS = 0					
+					) T
+					GROUP BY YEAR(OPEN_TIME),MONTH(OPEN_TIME)
+			) T3 ON T1.NIAN = t3.NIAN AND t1.YUE = T3.YUE 
+		) TTT
+				order by TTT.nian,TTT.yue	
+			]]>		                                                                         			                                                                                		                                                                                                                                         	
+	</select>	
+	
+	<!-- 
+	风控报表 
+	-->
+	<select id="riskReport"  resultClass="java.util.HashMap">
+	select t.DECP_NAME_CN,ISNULL(t1.baogao_one,0) baogao_one,
+		ISNULL(t2.baogao_onetotwo,0) baogao_onetotwo,
+		ISNULL(t3.baogao_twotothree,0) baogao_twotothree,
+		ISNULL(t4.baogao_three,0) baogao_three,
+		ISNULL(t1.baogao_one,0)+ISNULL(t2.baogao_onetotwo,0)+ISNULL(t3.baogao_twotothree,0)+ISNULL(t4.baogao_three,0) baogao_sum,
+		ISNULL(t5.shenpi_yes,0) shenpi_yes,
+		ISNULL(t6.shenpi_no,0) shenpi_no,
+		ISNULL(t7.pingshen_un,0) pingshen_un,
+		ISNULL(t8.pingshen_zhong,0) pingshen_zhong,
+		ISNULL(t9.pingshen_guo,0) pingshen_guo,
+		ISNULL(t11.pingshen_butongfu,0) pingshen_butongfu,
+		ISNULL(t10.pingshen_butong,0) pingshen_butong,
+		t9.pingshen_guo*100.0/ISNULL(t12.pingshen_yes,1) pingshen_lv,
+		ISNULL(t12.pingshen_yes,0) pingshen_yes,
+		ISNULL(t13.bao_tijiao,0) bao_tijiao,
+		t12.pingshen_yes*100.0/ISNULL(t13.bao_tijiao,1) wancheng_lv,
+		ISNULL(t14.max_h,0) max_h,
+		ISNULL(t14.min_h,0) min_h,
+		ISNULL(t14.avg_h,0) avg_h
+		from T_DEPT_COMPANY t
+		left join 
+		(
+		
+		<!-- 报告（未提交）1天以内 -->
+
+		select count(t3.decp_id) baogao_one,t3.decp_id
+	    from t_prjt_credit t
+		left join T_DEPT_COMPANY t3 on t3.DECP_ID=t.DECP_ID
+		where t.state=0 and t.STATUS=0 and datediff(day,t.CREATE_DATE,GETDATE()) &lt;=1 and t3.STATUS=0
+		group by t3.DECP_ID) t1 on t.DECP_ID=t1.DECP_ID
+		left join 
+		(
+		<!--报告（未提交）1-2天 -->
+		
+		select count(t3.decp_id) baogao_onetotwo,t3.decp_id
+	    from t_prjt_credit t
+		left join T_DEPT_COMPANY t3 on t3.DECP_ID=t.DECP_ID
+		where t.state=0 and t.STATUS=0  and t3.STATUS=0 and datediff(day,t.CREATE_DATE,GETDATE())&gt;1 and datediff(day,t.CREATE_DATE,GETDATE())&lt;=2
+		group by t3.DECP_ID) t2 on t.DECP_ID=t2.DECP_ID	
+		left join 
+		(
+		<!-- 报告（未提交）2-3天 -->
+		select count(t3.decp_id) baogao_twotothree,t3.decp_id
+	    from t_prjt_credit t
+		left join T_DEPT_COMPANY t3 on t.DECP_ID=t3.DECP_ID
+		where t.state=0 and t.STATUS=0 and t3.STATUS=0  and datediff(day,t.CREATE_DATE,GETDATE())&gt;2 and datediff(day,t.CREATE_DATE,GETDATE())&lt;=3
+		group by t3.DECP_ID) t3 on t.DECP_ID=t3.DECP_ID	
+		left join 
+		(
+		<!-- 报告（未提交）3天以上 -->
+
+		select count(t3.decp_id) baogao_three,t3.decp_id
+	    from t_prjt_credit t
+		left join T_DEPT_COMPANY t3 on t.DECP_ID=t3.DECP_ID
+		where t.state=0 and t.STATUS=0 and t3.STATUS=0 and datediff(day,t.CREATE_DATE,GETDATE())&gt;3
+		group by t3.DECP_ID) t4 on t.DECP_ID=t4.DECP_ID	
+		left join 
+		(
+		<!-- 报告审批 已审批 -->
+
+		select count(t3.decp_id) shenpi_yes,t3.decp_id
+	    from t_prjt_credit t
+		left join T_DEPT_COMPANY t3 on t.DECP_ID=t3.DECP_ID
+		where (t.state=1 or t.state=2) and t.STATUS=0 and t3.STATUS=0 
+		group by t3.DECP_ID)  t5 on t.DECP_ID=t5.DECP_ID	
+		left join 
+		(
+	  <!-- 报告审批 未审批  -->
+
+		select count(t3.decp_id) shenpi_no,t3.decp_id
+	    from t_prjt_credit t
+		left join T_DEPT_COMPANY t3 on t.DECP_ID=t3.DECP_ID
+		where t.state=3 and t.STATUS=0 and t3.STATUS=0
+		group by t3.DECP_ID) t6 on t.DECP_ID=t6.DECP_ID			
+		left join 
+		(
+	<!--评审 未评审 -->
+		
+		select count(t3.decp_id) pingshen_un,t3.decp_id
+	    from t_prjt_credit t
+		left join T_DEPT_COMPANY t3 on t.DECP_ID=t3.DECP_ID
+		left join (select MAX(tt1.PRC_ID) PRC_ID,MAX(tt1.CREDIT_ID) CREDIT_ID  from T_PRJT_RISK_CONTROL tt1 group by tt1.CREDIT_ID) tt2 on t.ID=tt2.CREDIT_ID
+		where t.STATE=1 and t.STATUS=0 and tt2.PRC_ID is null  and t3.STATUS=0
+		group by t3.DECP_ID) t7 on t.DECP_ID=t7.DECP_ID	
+		left join 
+		(
+	<!-- 评审 评审中 -->
+		 
+		select count(t3.decp_id) pingshen_zhong,t3.decp_id
+	    from t_prjt_credit t
+		left join T_DEPT_COMPANY t3 on t.DECP_ID=t3.DECP_ID
+		left join (select MAX(tt1.PRC_ID) PRC_ID,MAX(tt1.CREDIT_ID) CREDIT_ID  from T_PRJT_RISK_CONTROL tt1 group by tt1.CREDIT_ID) tt2 on t.ID=tt2.CREDIT_ID
+		where t.STATE=1 and t.STATUS=0 and tt2.PRC_ID is not null and t.WIND_STATE is null  and t3.STATUS=0
+		group by t3.DECP_ID) t8 on t.DECP_ID=t8.DECP_ID			
+		left join 
+		(
+		<!--评审 评审通过 -->
+	
+		select count(t3.decp_id) pingshen_guo,t3.decp_id
+	    from t_prjt_credit t
+		left join T_DEPT_COMPANY t3 on t.DECP_ID=t3.DECP_ID
+		left join (select MAX(tt1.PRC_ID) PRC_ID,MAX(tt1.CREDIT_ID) CREDIT_ID  from T_PRJT_RISK_CONTROL tt1 group by tt1.CREDIT_ID) tt2 on t.ID=tt2.CREDIT_ID
+		where t.STATE=1 and t.STATUS=0 and tt2.PRC_ID is not null and t.WIND_STATE=1 and t3.STATUS=0
+		group by t3.DECP_ID) t9 on t.DECP_ID=t9.DECP_ID			
+		left join 
+		(
+	<!--评审 不通过  -->
+
+		select count(t3.decp_id) pingshen_butong,t3.decp_id
+	    from t_prjt_credit t
+		left join T_DEPT_COMPANY t3 on t.DECP_ID=t3.DECP_ID
+		left join (select MAX(tt1.PRC_ID) PRC_ID,MAX(tt1.CREDIT_ID) CREDIT_ID  from T_PRJT_RISK_CONTROL tt1 group by tt1.CREDIT_ID) tt2 on t.ID=tt2.CREDIT_ID
+		where t.STATE=1 and t.STATUS=0 and tt2.PRC_ID is not null and t.WIND_STATE=4 and t3.STATUS=0
+		group by t3.DECP_ID) t10 on t.DECP_ID=t10.DECP_ID
+		left join 
+		(
+	<!--评审 不通过附条件 -->
+		
+		select count(t3.decp_id) pingshen_butongfu,t3.decp_id
+	    from t_prjt_credit t 
+		left join T_DEPT_COMPANY t3 on t.DECP_ID=t3.DECP_ID
+		left join (select MAX(tt1.PRC_ID) PRC_ID,MAX(tt1.CREDIT_ID) CREDIT_ID  from T_PRJT_RISK_CONTROL tt1 group by tt1.CREDIT_ID) tt2 on t.ID=tt2.CREDIT_ID
+		where t.STATE=1 and t.STATUS=0 and tt2.PRC_ID is not null and t.WIND_STATE=3 and t3.STATUS=0
+		group by t3.DECP_ID) t11 on t.DECP_ID=t11.DECP_ID
+		left join 
+		(
+		<!--评审 已评审 -->
+	
+		select count(t3.decp_id) pingshen_yes,t3.decp_id
+	    from t_prjt_credit t
+		left join T_DEPT_COMPANY t3 on t.DECP_ID=t3.DECP_ID
+		left join (select MAX(tt1.PRC_ID) PRC_ID,MAX(tt1.CREDIT_ID) CREDIT_ID  from T_PRJT_RISK_CONTROL tt1 group by tt1.CREDIT_ID) tt2 on t.ID=tt2.CREDIT_ID
+		where t.STATE=1 and t.STATUS=0 and tt2.PRC_ID is not null and t.WIND_STATE is not null and t3.STATUS=0
+		group by t3.DECP_ID) t12 on t.DECP_ID=t12.DECP_ID
+		left join 
+		(
+	    <!--报告已提交  -->
+	
+		select count(t3.decp_id) bao_tijiao,t3.decp_id
+	    from t_prjt_credit t
+		left join T_DEPT_COMPANY t3 on t.DECP_ID=t3.DECP_ID
+		where t.STATE=1 and t.STATUS=0  and t3.STATUS=0
+		group by t3.DECP_ID) t13 on t.DECP_ID=t13.DECP_ID	
+		left join 
+		(
+	
+		<!--  耗时  -->
+		select count(t3.decp_id) haoshi_decp_id,t3.decp_id,max(datediff(mi,t.CREATE_DATE,c1.CREATE_TIME)) max_h,
+		min(datediff(mi,t.CREATE_DATE,c1.CREATE_TIME)) min_h,avg(datediff(mi,t.CREATE_DATE,c1.CREATE_TIME)) avg_h
+	    from t_prjt_credit t
+		left join T_DEPT_COMPANY t3 on t.DECP_ID=t3.DECP_ID
+		left join (select MAX(tt1.PRC_ID) PRC_ID,MAX(tt1.CREDIT_ID) CREDIT_ID  from T_PRJT_RISK_CONTROL tt1 group by tt1.CREDIT_ID) tt2 on t.ID=tt2.CREDIT_ID
+		left join T_PRJT_RISK_CONTROLMEMO c1 on tt2.PRC_ID=c1.PRC_ID and c1.PRCM_LEVEL is null
+		where t.state=1 and t.STATUS=0 and t3.STATUS=0
+		group by t3.DECP_ID) t14 on t.DECP_ID=t14.DECP_ID																							
+		where t.STATUS=0
+		
+	<!-- 		select t.DECP_NAME_CN,ISNULL(t1.baogao_one,0) baogao_one,
+		ISNULL(t2.baogao_onetotwo,0) baogao_onetotwo,
+		ISNULL(t3.baogao_twotothree,0) baogao_twotothree,
+		ISNULL(t4.baogao_three,0) baogao_three,
+		ISNULL(t1.baogao_one,0)+ISNULL(t2.baogao_onetotwo,0)+ISNULL(t3.baogao_twotothree,0)+ISNULL(t4.baogao_three,0) baogao_sum,
+		ISNULL(t5.shenpi_yes,0) shenpi_yes,
+		ISNULL(t6.shenpi_no,0) shenpi_no,
+		ISNULL(t7.pingshen_un,0) pingshen_un,
+		ISNULL(t8.pingshen_zhong,0) pingshen_zhong,
+		ISNULL(t9.pingshen_guo,0) pingshen_guo,
+		ISNULL(t11.pingshen_butongfu,0) pingshen_butongfu,
+		ISNULL(t10.pingshen_butong,0) pingshen_butong,
+		t9.pingshen_guo*100.0/ISNULL(t12.pingshen_yes,1) pingshen_lv,
+		ISNULL(t12.pingshen_yes,0) pingshen_yes,
+		ISNULL(t13.bao_tijiao,0) bao_tijiao,
+		t12.pingshen_yes*100.0/ISNULL(t13.bao_tijiao,1) wancheng_lv,
+		ISNULL(t14.max_h,0) max_h,
+		ISNULL(t14.min_h,0) min_h,
+		ISNULL(t14.avg_h,0) avg_h
+		from T_DEPT_COMPANY t
+		left join 
+		(
+		
+		报告（未提交）1天以内 
+
+		select count(t3.decp_id) baogao_one,t3.decp_id
+	    from t_prjt_credit t
+		left join T_USER_USER t1 on t.CREATE_PERSION_ID=t1.ID
+		left join T_DEPT_DEPARTMENT  t2 on t1.DEPT_ID=t2.ID 
+		left join T_DEPT_COMPANY t3 on t2.DECP_ID=t3.DECP_ID
+		where t.state=0 and t.STATUS=0 and datediff(day,t.CREATE_DATE,GETDATE())=1
+		group by t3.DECP_ID) t1 on t.DECP_ID=t1.DECP_ID
+		left join 
+		(
+	
+		报告（未提交）1-2天 
+
+		select count(t3.decp_id) baogao_onetotwo,t3.decp_id
+	    from t_prjt_credit t
+		left join T_USER_USER t1 on t.CREATE_PERSION_ID=t1.ID
+		left join T_DEPT_DEPARTMENT  t2 on t1.DEPT_ID=t2.ID 
+		left join T_DEPT_COMPANY t3 on t2.DECP_ID=t3.DECP_ID
+		where t.state=0 and t.STATUS=0 and datediff(day,t.CREATE_DATE,GETDATE())&gt;1 and datediff(day,t.CREATE_DATE,GETDATE())&lt;=2
+		group by t3.DECP_ID) t2 on t.DECP_ID=t2.DECP_ID	
+		left join 
+		(
+
+		报告（未提交）2-3天
+	
+		select count(t3.decp_id) baogao_twotothree,t3.decp_id
+	    from t_prjt_credit t
+		left join T_USER_USER t1 on t.CREATE_PERSION_ID=t1.ID
+		left join T_DEPT_DEPARTMENT  t2 on t1.DEPT_ID=t2.ID 
+		left join T_DEPT_COMPANY t3 on t2.DECP_ID=t3.DECP_ID
+		where t.state=0 and t.STATUS=0 and datediff(day,t.CREATE_DATE,GETDATE())&gt;2 and datediff(day,t.CREATE_DATE,GETDATE())&lt;=3
+		group by t3.DECP_ID) t3 on t.DECP_ID=t3.DECP_ID	
+		left join 
+		(
+
+		 报告（未提交）3天以上
+	
+		select count(t3.decp_id) baogao_three,t3.decp_id
+	    from t_prjt_credit t
+		left join T_USER_USER t1 on t.CREATE_PERSION_ID=t1.ID
+		left join T_DEPT_DEPARTMENT  t2 on t1.DEPT_ID=t2.ID 
+		left join T_DEPT_COMPANY t3 on t2.DECP_ID=t3.DECP_ID
+		where t.state=0 and t.STATUS=0 and datediff(day,t.CREATE_DATE,GETDATE())&gt;3
+		group by t3.DECP_ID) t4 on t.DECP_ID=t4.DECP_ID	
+		left join 
+		(
+		
+		报告审批 已审批
+	
+		select count(t3.decp_id) shenpi_yes,t3.decp_id
+	    from t_prjt_credit t
+		left join T_USER_USER t1 on t.CREATE_PERSION_ID=t1.ID
+		left join T_DEPT_DEPARTMENT  t2 on t1.DEPT_ID=t2.ID 
+		left join T_DEPT_COMPANY t3 on t2.DECP_ID=t3.DECP_ID
+		where t.state=1 or t.state=2 and t.STATUS=0 
+		group by t3.DECP_ID) t5 on t.DECP_ID=t5.DECP_ID	
+		left join 
+		(
+	
+		报告审批 未审批 
+		
+		select count(t3.decp_id) shenpi_no,t3.decp_id
+	    from t_prjt_credit t
+		left join T_USER_USER t1 on t.CREATE_PERSION_ID=t1.ID
+		left join T_DEPT_DEPARTMENT  t2 on t1.DEPT_ID=t2.ID 
+		left join T_DEPT_COMPANY t3 on t2.DECP_ID=t3.DECP_ID
+		where t.state=3 and t.STATUS=0 
+		group by t3.DECP_ID) t6 on t.DECP_ID=t6.DECP_ID			
+		left join 
+		(
+		
+		评审 未评审
+	
+		select count(t3.decp_id) pingshen_un,t3.decp_id
+	    from t_prjt_credit t
+		left join T_USER_USER t1 on t.CREATE_PERSION_ID=t1.ID
+		left join T_DEPT_DEPARTMENT  t2 on t1.DEPT_ID=t2.ID 
+		left join T_DEPT_COMPANY t3 on t2.DECP_ID=t3.DECP_ID
+		left join (select MAX(tt1.PRC_ID) PRC_ID,MAX(tt1.CREDIT_ID) CREDIT_ID  from T_PRJT_RISK_CONTROL tt1 group by tt1.CREDIT_ID) tt2 on t.ID=tt2.CREDIT_ID
+		where t.STATE=1 and t.STATUS=0 and tt2.PRC_ID is null 
+		group by t3.DECP_ID) t7 on t.DECP_ID=t7.DECP_ID	
+		left join 
+		(
+
+		评审 评审中
+
+		select count(t3.decp_id) pingshen_zhong,t3.decp_id
+	    from t_prjt_credit t
+		left join T_USER_USER t1 on t.CREATE_PERSION_ID=t1.ID
+		left join T_DEPT_DEPARTMENT  t2 on t1.DEPT_ID=t2.ID 
+		left join T_DEPT_COMPANY t3 on t2.DECP_ID=t3.DECP_ID
+		left join (select MAX(tt1.PRC_ID) PRC_ID,MAX(tt1.CREDIT_ID) CREDIT_ID  from T_PRJT_RISK_CONTROL tt1 group by tt1.CREDIT_ID) tt2 on t.ID=tt2.CREDIT_ID
+		where t.STATE=1 and t.STATUS=0 and tt2.PRC_ID is not null and t.WIND_STATE is null 
+		group by t3.DECP_ID) t8 on t.DECP_ID=t8.DECP_ID			
+		left join 
+		(
+
+		评审 评审通过
+
+		select count(t3.decp_id) pingshen_guo,t3.decp_id
+	    from t_prjt_credit t
+		left join T_USER_USER t1 on t.CREATE_PERSION_ID=t1.ID
+		left join T_DEPT_DEPARTMENT  t2 on t1.DEPT_ID=t2.ID 
+		left join T_DEPT_COMPANY t3 on t2.DECP_ID=t3.DECP_ID
+		left join (select MAX(tt1.PRC_ID) PRC_ID,MAX(tt1.CREDIT_ID) CREDIT_ID  from T_PRJT_RISK_CONTROL tt1 group by tt1.CREDIT_ID) tt2 on t.ID=tt2.CREDIT_ID
+		where t.STATE=1 and t.STATUS=0 and tt2.PRC_ID is not null and t.WIND_STATE=1
+		group by t3.DECP_ID) t9 on t.DECP_ID=t9.DECP_ID			
+		left join 
+		(
+
+		评审 不通过 
+
+		select count(t3.decp_id) pingshen_butong,t3.decp_id
+	    from t_prjt_credit t
+		left join T_USER_USER t1 on t.CREATE_PERSION_ID=t1.ID
+		left join T_DEPT_DEPARTMENT  t2 on t1.DEPT_ID=t2.ID 
+		left join T_DEPT_COMPANY t3 on t2.DECP_ID=t3.DECP_ID
+		left join (select MAX(tt1.PRC_ID) PRC_ID,MAX(tt1.CREDIT_ID) CREDIT_ID  from T_PRJT_RISK_CONTROL tt1 group by tt1.CREDIT_ID) tt2 on t.ID=tt2.CREDIT_ID
+		where t.STATE=1 and t.STATUS=0 and tt2.PRC_ID is not null and t.WIND_STATE=4
+		group by t3.DECP_ID) t10 on t.DECP_ID=t10.DECP_ID
+		left join 
+		(
+
+		评审 不通过附条件
+
+		select count(t3.decp_id) pingshen_butongfu,t3.decp_id
+	    from t_prjt_credit t
+		left join T_USER_USER t1 on t.CREATE_PERSION_ID=t1.ID
+		left join T_DEPT_DEPARTMENT  t2 on t1.DEPT_ID=t2.ID 
+		left join T_DEPT_COMPANY t3 on t2.DECP_ID=t3.DECP_ID
+		left join (select MAX(tt1.PRC_ID) PRC_ID,MAX(tt1.CREDIT_ID) CREDIT_ID  from T_PRJT_RISK_CONTROL tt1 group by tt1.CREDIT_ID) tt2 on t.ID=tt2.CREDIT_ID
+		where t.STATE=1 and t.STATUS=0 and tt2.PRC_ID is not null and t.WIND_STATE=3
+		group by t3.DECP_ID) t11 on t.DECP_ID=t11.DECP_ID
+		left join 
+		(
+
+		评审 已评审
+
+		select count(t3.decp_id) pingshen_yes,t3.decp_id
+	    from t_prjt_credit t
+		left join T_USER_USER t1 on t.CREATE_PERSION_ID=t1.ID
+		left join T_DEPT_DEPARTMENT  t2 on t1.DEPT_ID=t2.ID 
+		left join T_DEPT_COMPANY t3 on t2.DECP_ID=t3.DECP_ID
+		left join (select MAX(tt1.PRC_ID) PRC_ID,MAX(tt1.CREDIT_ID) CREDIT_ID  from T_PRJT_RISK_CONTROL tt1 group by tt1.CREDIT_ID) tt2 on t.ID=tt2.CREDIT_ID
+		where t.STATE=1 and t.STATUS=0 and tt2.PRC_ID is not null and t.WIND_STATE is not null
+		group by t3.DECP_ID) t12 on t.DECP_ID=t12.DECP_ID
+		left join 
+		(
+
+		报告 已提交 
+
+		select count(t3.decp_id) bao_tijiao,t3.decp_id
+	    from t_prjt_credit t
+		left join T_USER_USER t1 on t.CREATE_PERSION_ID=t1.ID
+		left join T_DEPT_DEPARTMENT  t2 on t1.DEPT_ID=t2.ID 
+		left join T_DEPT_COMPANY t3 on t2.DECP_ID=t3.DECP_ID
+		where t.STATE=1 and t.STATUS=0 
+		group by t3.DECP_ID) t13 on t.DECP_ID=t13.DECP_ID	
+		left join 
+		(
+
+		 耗时 
+	
+		select count(t3.decp_id) haoshi_decp_id,t3.decp_id,max(datediff(mi,t.CREATE_DATE,c1.CREATE_TIME)) max_h,
+		min(datediff(mi,t.CREATE_DATE,c1.CREATE_TIME)) min_h,avg(datediff(mi,t.CREATE_DATE,c1.CREATE_TIME)) avg_h
+	    from t_prjt_credit t
+		left join T_USER_USER t1 on t.CREATE_PERSION_ID=t1.ID
+		left join T_DEPT_DEPARTMENT  t2 on t1.DEPT_ID=t2.ID 
+		left join T_DEPT_COMPANY t3 on t2.DECP_ID=t3.DECP_ID
+		left join (select MAX(tt1.PRC_ID) PRC_ID,MAX(tt1.CREDIT_ID) CREDIT_ID  from T_PRJT_RISK_CONTROL tt1 group by tt1.CREDIT_ID) tt2 on t.ID=tt2.CREDIT_ID
+		left join T_PRJT_RISK_CONTROLMEMO c1 on tt2.PRC_ID=c1.PRC_ID and c1.PRCM_LEVEL is null
+		where t.state=1 and t.STATUS=0
+		group by t3.DECP_ID) t14 on t.DECP_ID=t14.DECP_ID																							
+		where t.STATUS=0	 -->                                                                            			                                                                                		                                                                                                                                         	
+	</select>		
+	
+	<!-- 计算全部设备总金额（生成支付表的） -->
+	<select id="differentReportSheBei" parameterClass="map" resultClass="java.lang.Double">
+		select sum(t.LEASE_TOPRIC) LEASE_TOPRIC
+			from (select distinct t1.RECT_ID , t1.LEASE_TOPRIC from 
+			T_RENT_CONTRACT t1 
+			left join 
+				(select recp.rect_id,recp.recp_id,recp.recp_code,recp.LEASE_TERM,recp.PAY_WAY,recp.LEASE_PERIOD
+				from t_rent_collectionplan recp
+				where recp.status = 0
+						and recp.version_code = (select max(recp2.version_code)from t_rent_collectionplan recp2 where recp.recp_code = recp2.recp_code)
+				) t2 on t1.RECT_ID = t2.RECT_ID
+			left join t_rent_collectiondetail t3 on t2.recp_id = t3.recp_id
+			where 
+				t1.RECT_ID = t2.RECT_ID
+				<isNotEmpty prepend="and" property="recp_id">
+					t2.RECP_ID = #recp_id#
+				</isNotEmpty>
+			<!-- 成本差异增加时间范围功能 -->
+				<isNotEmpty prepend="and" property="startNian">
+					  	(year(t3.pay_date ) &gt; #startNian# 
+					OR	year(t3.pay_date ) = #startNian# 
+					AND MONTH(t3.pay_date ) &gt;= #startYue#)
+				</isNotEmpty>
+				<isNotEmpty prepend="and" property="endNian">
+						(year(t3.pay_date ) &lt; #endNian#
+					OR	year(t3.pay_date ) = #endNian# 
+					AND MONTH(t3.pay_date ) &lt;= #endYue#)
+				</isNotEmpty>
+				 ) t
+			<!-- 成本差异增加时间范围功能   结束  -->
+	</select>
+</sqlMap>

@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="fileService">
+	<!-- 查询所有资料的个数 -->
+ 	<select id="queryAllFile_count" parameterClass="map" resultClass="java.lang.Integer">
+ 		<![CDATA[
+ 		select count(t.refi_id) cnt from t_rent_file t where t.file_status=0
+ 		]]>
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+					(t.FILE_NAME like '%$content$%') 
+				]]>
+			</isNotEmpty>
+		  	<isNotEmpty  prepend="and"  property="file_type">		  	 	  			
+			  	<isEqual  property="file_type" compareValue="0">
+			  		 t.file_type is not null
+			  	</isEqual>
+			  	<isEqual  property="file_type" compareValue="1">
+			  		t.file_type=1
+			  	</isEqual>			  	
+			  	<isEqual  property="file_type" compareValue="2">
+			  		t.file_type=2
+			  	</isEqual>
+			  	<isEqual  property="file_type" compareValue="3">
+			  		 t.file_type=3
+			  	</isEqual>			  		  			  			  	 				
+		  	</isNotEmpty>
+		  	<isNotEmpty  prepend="and"  property="state">		  	 	  			
+			  	<isEqual  property="state" compareValue="-1">
+			  		 t.state is not null
+			  	</isEqual>
+			  	<isEqual  property="state" compareValue="0">
+			  		 t.state=0
+			  	</isEqual>			  	
+			  	<isEqual  property="state" compareValue="1">
+			  		 t.state=1
+			  	</isEqual>	
+		  	</isNotEmpty>	
+		  	<isNotEmpty prepend="and" property="file_contract_type">
+		  		t.file_contract_type = #file_contract_type#
+		  	</isNotEmpty>	  				
+		</dynamic>	 
+ 	</select>
+	<!-- 查询所有资料      分页  -->
+ 	<select id="queryAllFile" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+			select t.refi_id REFI_ID,
+			       t.file_name FILE_NAME,
+			       t.file_type FILE_TYPE,
+			       t.level_num LEVEL_NUM,
+			       t.state STATE,
+			       t.want_count,
+			       t.file_contract_type,
+			       d.flag AS contract_file_type
+			  from t_rent_file t 
+			  left join t_data_dictionary d on cast(t.contract_file_type as varchar) = d.code and d.type='合同资料类型'
+			  where t.file_status=0
+ 		]]>
+ 		<dynamic>
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				(t.FILE_NAME like '%$content$%')
+				]]>
+			</isNotEmpty>
+		  	<isNotEmpty  prepend="and"  property="file_type">		  	 	  			
+			  	<isNotEqual  property="file_type" compareValue="0">
+			  		 t.file_type = #file_type#
+			  	</isNotEqual>
+			  	<isEqual  property="file_type" compareValue="0">
+			  		 t.file_type is not null
+			  	</isEqual>			  	
+		  	</isNotEmpty>
+		  	<isNotEmpty  prepend="and"  property="state">		  	 	  			
+			  	<isEqual  property="state" compareValue="-1">
+			  		 t.state is not null
+			  	</isEqual>
+			  	<isEqual  property="state" compareValue="0">
+			  		 t.state=0
+			  	</isEqual>			  	
+			  	<isEqual  property="state" compareValue="1">
+			  		 t.state=1
+			  	</isEqual>		  		  			  			  	 				
+		  	</isNotEmpty>	
+		  	<isNotEmpty prepend="and" property="file_contract_type">
+		  		t.file_contract_type = #file_contract_type#
+		  	</isNotEmpty>			
+		</dynamic>	
+		<![CDATA[
+ 		order by t.FILE_TYPE, t.LEVEL_NUM,t.REFI_ID
+ 		]]>
+ 	</select>
+	<!-- 插入一条资料信息 -->
+	<insert id="create" parameterClass="map">
+				insert into t_rent_file
+				  (
+				   file_name,
+				   file_status,
+				   file_type,
+				   create_id,
+				   create_time,
+				   level_num,
+				   state,
+				   want_count
+				<isNotEmpty prepend="," property="FILE_CONTRACT_TYPE">
+					FILE_CONTRACT_TYPE
+				</isNotEmpty>
+				<isNotEmpty prepend="," property="CONTRACT_FILE_TYPE">
+					CONTRACT_FILE_TYPE
+				</isNotEmpty>			   
+				   )
+				values
+				  (
+				   #FILE_NAME#,
+				   0,
+				   #FILE_TYPE#,
+				   #s_employeeId#,
+				   getdate(),
+				   #LEVEL_NUM#,
+				   #state#,
+				   #WANT_COUNT#
+				<isNotEmpty prepend="," property="FILE_CONTRACT_TYPE">
+				   #FILE_CONTRACT_TYPE#
+				</isNotEmpty>
+				<isNotEmpty prepend="," property="CONTRACT_FILE_TYPE">
+					#CONTRACT_FILE_TYPE#
+				</isNotEmpty>						   
+				   )
+		
+	</insert>
+	<!-- 根据refi_id查询对应资料记录 -->
+	<select id="getFileInfoById" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+				select t.refi_id REFI_ID,
+				       t.file_name FILE_NAME,
+				       t.file_type FILE_TYPE,
+				       t.level_num LEVEL_NUM,
+				       t.state 	STATE,
+				       t.want_count WANT_COUNT,
+				       t.file_contract_type FILE_CONTRACT_TYPE
+				  from t_rent_file t
+				  where t.refi_id=#refi_id#  and t.file_status=0
+		]]>
+	</select>	
+				
+	<!-- 更新一条资料记录 -->
+	<update id="update" parameterClass="map">
+			update t_rent_file
+			   set 
+			       file_name = #FILE_NAME#,    
+			       file_type = #FILE_TYPE#,
+			       modify_id = #s_employeeId#,
+			       modify_time = getdate(),
+			       level_num = #LEVEL_NUM#,
+			       state=#state#,
+			       want_count=#WANT_COUNT#
+				<isNotEmpty prepend="," property="FILE_CONTRACT_TYPE">
+					FILE_CONTRACT_TYPE=#FILE_CONTRACT_TYPE#
+				</isNotEmpty>
+				<isNotEmpty prepend="," property="CONTRACT_FILE_TYPE">
+					CONTRACT_FILE_TYPE=#CONTRACT_FILE_TYPE#
+				</isNotEmpty>		       
+			 where refi_id = #refi_id#	
+	</update>	
+	
+	<!-- 作废一个资料的记录 -->
+	<update id="invalid" parameterClass="map">
+		<![CDATA[
+			update t_rent_file
+			   set FILE_STATUS = -2, modify_time = getdate(), MODIFY_ID = #s_employeeId#
+			 where refi_id = #refi_id#		
+		]]>
+	</update>
+
+	<!-- find rentLog count -->
+ 	<select id="queryRentLog_count" parameterClass="map" resultClass="java.lang.Integer">
+ 		<![CDATA[
+ 			select count(t.trfl_id) cnt from t_rent_file_log t 
+ 			left join (select tpc.id, tcc.CUST_NAME
+			               from t_prjt_credit tpc, T_CUST_CUSTOMER tcc
+			              where tpc.CUST_ID = tcc.CUST_ID) t1 on t.prcd_id = t1.id
+ 			left join t_user_user t2 on t.create__id=t2.id
+ 			left join t_user_user t3 on t.modify__id=t3.id
+ 			where t.status!=-2
+ 		]]>
+ 		<dynamic>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ t.create__id=#s_employeeId# ]]>
+		  	</isEqual> 		
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+					(t.rtfl_memo like '%$content$%' or t1.CUST_NAME like '%$content$%')
+				]]>
+			</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		t.end_date&gt;=convert(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		t.end_date&lt;=convert(datetime,#end_date#)
+		  	</isNotEmpty>			
+		</dynamic>	 
+ 	</select>
+	<!--  find rentLog -->
+ 	<select id="queryRentLog" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+			select t.trfl_id,
+			       t.create__date,
+			       t.end_date,
+			       t.rtfl_memo,
+			       t1.CUST_NAME,
+			       t2.name,
+			       t3.name MODIFY_NAME
+			  from t_rent_file_log t
+			  left join (select tpc.id, tcc.CUST_NAME
+			               from t_prjt_credit tpc, T_CUST_CUSTOMER tcc
+			              where tpc.CUST_ID = tcc.CUST_ID) t1 on t.prcd_id = t1.id
+			  left join t_user_user t2 on t.create__id = t2.id
+			  left join t_user_user t3 on t.modify__id = t3.id
+			 where t.status != -2
+ 		]]>
+ 		<dynamic>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ t.create__id=#s_employeeId# ]]>
+		  	</isEqual> 		
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+					(t.rtfl_memo like '%$content$%' or t1.CUST_NAME like '%$content$%' or t2.name like '%$content$%')
+				]]>
+			</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		t.end_date&gt;=convert(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		t.end_date&lt;=convert(datetime,#end_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="create_startdate">
+		  		t.create__date&gt;=convert(datetime,#create_startdate#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="create_enddate">
+		  		t.create__date&lt;=convert(datetime,#create_enddate#)
+		  	</isNotEmpty>			
+		</dynamic>		
+ 		order by t.end_date		
+ 	</select>	
+	
+	<!-- delete rentLog -->
+	<update id="invalidRentLog" parameterClass="map">
+		<![CDATA[
+			update t_rent_file_log
+			   set status = -1, MODIFY__DATE = getdate(), MODIFY__ID = #s_employeeId#
+			 where trfl_id = #trfl_id#		
+		]]>
+	</update>	
+	<!-- 根据TRFL_ID查询对应资料记录 -->
+	<select id="queryLogMore" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+					select t1.file_name from t_rent_file2log t
+					left join t_rent_file t1 on t1.refi_id=t.refi_id
+					where t.trfl_id=#TRFL_ID#
+		]]>
+	</select>	
+	
+	
+	
+	
+	<select id="queryLogMoreFile" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+					select t4.cust_name CUSTNAME,t2.FILE_NAME FILENAME from t_rent_file_log t 
+					left join t_rent_file2log t1 on t.TRFL_ID=t1.TRFL_ID
+					left join T_RENT_FILE t2 on t1.REFI_ID=t2.REFI_ID
+					left join t_prjt_credit t3 on t.prcd_id=t3.ID
+					left join T_CUST_CUSTOMER t4 on t3.CUST_ID=t4.CUST_ID
+					where 1=1
+				
+		]]>
+		<dynamic >
+						<isNotEmpty prepend="and" property="start_date">
+		  					t.CREATE__DATE&gt;=convert(datetime,#start_date#)
+		  				</isNotEmpty>
+		  				<isNotEmpty prepend="and" property="end_date">
+		  					t.CREATE__DATE&lt;=convert(datetime,#end_date#)
+		  				</isNotEmpty>
+		  				
+					</dynamic>
+					
+	</select>
+	<select id="queryLogMoreFile_count" parameterClass="map" resultClass="java.lang.Integer">
+	<![CDATA[
+					select count(*) from t_rent_file_log t 
+					left join t_rent_file2log t1 on t.TRFL_ID=t1.TRFL_ID
+					left join T_RENT_FILE t2 on t1.REFI_ID=t2.REFI_ID
+					left join t_prjt_credit t3 on t.prcd_id=t3.ID
+					left join T_CUST_CUSTOMER t4 on t3.CUST_ID=t4.CUST_ID
+					where 1=1
+		]]>
+		<dynamic >
+						<isNotEmpty prepend="and" property="start_date">
+		  					t.CREATE__DATE&gt;=convert(datetime,#start_date#)
+		  				</isNotEmpty>
+		  				<isNotEmpty prepend="and" property="end_date">
+		  					t.CREATE__DATE&lt;=convert(datetime,#end_date#)
+		  				</isNotEmpty>
+		  				
+					</dynamic>
+	</select>
+</sqlMap>

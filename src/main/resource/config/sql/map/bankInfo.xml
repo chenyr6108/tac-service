@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="bankInfo">
+	<!-- 查询所有银行   分页  -->
+ 	<select id="queryBankAllInfo" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+ 		select  bank.babi_id            babi_id,
+ 				bank.bank_name			bank_name,
+ 				bank.bank_code			bank_code,
+ 				bank.bank_linkman		bank_linkman,
+ 				bank.bank_phone			bank_phone
+ 		from t_bank_bankinfo bank
+ 		where bank.status = 0 
+ 		]]>
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				(bank.bank_name like '%$content$%' 
+				or bank.bank_code like '%$content$%' 
+				or bank.bank_linkman like '%$content$%' 
+				or bank.bank_phone like '%$content$%')
+				]]>
+			</isNotEmpty>
+		</dynamic>	
+		<![CDATA[
+ 		order by bank.babi_id desc
+ 		]]>
+ 	</select>
+ 	
+	<!-- 查找所有的总部银行  用于添加-->
+	<select id="getParentBank" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select bank.babi_id				babi_id,
+			    	bank.bank_name			bank_name
+			from t_bank_bankinfo bank
+			where bank.status = 0 and bank.type = 0
+		]]>
+	</select>
+	<!-- 查找所有的总部银行   用于修改 -->
+	<select id="getParentBankForUpdate" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select bank.babi_id				babi_id,
+			    	bank.bank_name			bank_name
+			from t_bank_bankinfo bank
+			where bank.status = 0 and bank.type = 0 and bank.babi_id != #babi_id#
+		]]>
+	</select>
+	
+	<!-- 插入一条银行的信息 -->
+	<insert id="create" parameterClass="map">
+		<![CDATA[	
+		insert into t_bank_bankinfo
+			(create_user_id,
+			 modify_user_id,
+			 type,
+			 bank_name,
+			 bank_address,
+			 bank_linkman,
+			 bank_phone,
+			 post_code,
+			 bank_code,
+			 parent_id
+			)
+		values
+			(#s_employeeId#,
+			#s_employeeId#,
+			#type#,
+			#bank_name#,
+			#bank_address#,
+			#bank_linkman#,
+			#bank_phone#,
+			#post_code#,
+			#bank_code#,
+			#parent_id#
+			)
+		]]>
+	</insert>
+	
+	<!-- 根据babiID查询对应银行记录 -->
+	<select id="getBankInfoById" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		select  bank.babi_id          	babi_id,
+				bank.create_time		create_time,
+				tuu.name				username,
+				bank.modify_time		modify_time,
+				tuu2.name				modifyname,
+				bank.type				type,
+				bank.bank_name			bank_name,
+				bank.bank_address		bank_address,
+				bank.bank_linkman		bank_linkman,
+				bank.bank_phone			bank_phone,
+				bank.post_code			post_code,
+				bank.bank_code			bank_code,
+				bank.bank_level			bank_level,
+				bank.parent_id			parent_id,
+				t1.bank_name			parent_name
+		from t_bank_bankinfo bank
+		left join t_user_user tuu on bank.create_user_id = tuu.id
+		left join t_user_user tuu2 on  bank.modify_user_id = tuu2.id
+		left join t_bank_bankinfo t1 on t1.babi_id = bank.parent_id
+		where bank.status = 0 and bank.babi_id = #babi_id#
+		]]>
+	</select>
+		
+
+	
+	<!-- 更新一条银行记录 -->
+	<update id="update" parameterClass="map">
+		<![CDATA[
+		update t_bank_bankinfo  
+		set modify_time = getdate(),
+			modify_user_id = #s_employeeId#,
+			type = #type#,
+			bank_name = #bank_name#,
+			bank_address = #bank_address#,
+			bank_linkman = #bank_linkman#,
+			bank_phone = #bank_phone#,
+			post_code = #post_code#,
+			bank_code = #bank_code#,
+			parent_id = #parent_id#
+		where babi_id = #babi_id#
+		]]>
+	</update>
+	<!-- 作废一个银行的记录 -->
+	<update id="invalid" parameterClass="map">
+		<![CDATA[
+		update t_bank_bankinfo set status=-2,modify_time=getdate(),modify_user_id = #s_employeeId# where babi_id=#babi_id#
+		]]>
+	</update>	
+	
+	
+	<!-- 查询所有银行的个数 -->
+ 	<select id="queryBankAllInfo_count" parameterClass="map" resultClass="java.lang.Integer">
+ 		<![CDATA[
+ 		select count(*) from t_bank_bankinfo bank where bank.status = 0
+ 		]]>
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				(bank.bank_name like '%$content$%'  
+				or bank.bank_code like '%$content$%' 
+				or bank.bank_linkman like '%$content$%' 
+				or  bank.bank_phone like '%$content$%')  
+				]]>
+			</isNotEmpty>
+		</dynamic>	 
+ 	</select>
+
+	<!-- 查询一个总部银行下面分行的个数 -->
+	<select id="getChildCountByParentId" parameterClass="map" resultClass="java.lang.Integer"> 
+		<![CDATA[
+			select count(bank.babi_id) count from t_bank_bankinfo bank
+			where bank.status = 0  and  bank.PARENT_ID = #babi_id#
+		]]>
+	</select>
+	
+	<!-- 查询一个总部银行下面开户的个数 -->
+	<select id="getChildAccountByBabiId" parameterClass="map" resultClass="java.lang.Integer"> 
+		<![CDATA[
+			select count(bank.baba_id) count from T_BANK_BANKACCOUNT bank
+			where bank.status = 0  and  bank.BABI_ID = #babi_id#
+		]]>
+	</select>
+</sqlMap>

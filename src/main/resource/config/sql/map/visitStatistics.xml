@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+ "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="visitStatistics">
+
+	<select id="getAllYear" resultClass="java.lang.String">
+		select distinct
+		year(real_visit_date) yf from t_prjt_visit where
+		real_visit_date
+		is not
+		null
+		ORDER BY year(real_visit_date) desc
+	</select>
+	<!-- select distinct substring(convert(varchar,real_visit_date,23),1,4) 
+		as yf, convert(int, substring(convert(varchar,real_visit_date,23),1,4)) from 
+		t_prjt_visit ORDER BY convert(int,substring(convert(varchar,real_visit_date,23),1,4)) 
+		desc -->
+
+	<select id="getDataList" resultClass="java.util.HashMap">
+		select real_visitor,name,d.DECP_NAME_CN,
+		sum(case when
+		datepart(month,real_visit_date)=1 then 1 else 0 end)
+		jan,
+		sum(case when
+		datepart(month,real_visit_date)=2 then 1 else 0
+		end)
+		feb,
+		sum(case when
+		datepart(month,real_visit_date)=3 then 1 else 0 end)
+		mar,
+		sum(case when
+		datepart(month,real_visit_date)=4 then 1 else 0
+		end)
+		api,
+		sum(case when
+		datepart(month,real_visit_date)=5 then 1 else 0 end)
+		may,
+		sum(case when
+		datepart(month,real_visit_date)=6 then 1 else 0
+		end)jun,
+		sum(case when
+		datepart(month,real_visit_date)=7 then 1 else 0
+		end)jul,
+		sum(case when
+		datepart(month,real_visit_date)=8 then 1 else 0
+		end) aus,
+		sum(case when
+		datepart(month,real_visit_date)=9 then 1 else 0
+		end)sep,
+		sum(case when
+		datepart(month,real_visit_date)=10 then 1 else 0
+		end)oct,
+		sum(case when
+		datepart(month,real_visit_date)=11 then 1 else 0
+		end)nov,
+		sum(case when
+		datepart(month,real_visit_date)=12 then 1 else 0
+		end)dec
+		from
+		T_PRJT_VISIT a
+		left join T_USER_USER b on
+		a.REAL_VISITOR=b.ID
+		left join T_DEPT_DEPARTMENT c on
+		b.DEPT_ID=c.ID
+		left join T_DEPT_COMPANY d on
+		c.DECP_Id=d.DECP_ID
+		where year(real_visit_date)=#YEAR#
+		<isNotEmpty prepend="and" property="DEPT">
+			d.DECP_ID=#DEPT#
+		</isNotEmpty>
+		and
+		real_visitor!=0
+		group by REAL_VISITOR,name,d.DECP_NAME_CN
+	</select>
+
+	<select id="getDeptList" resultClass="java.util.HashMap">
+		select distinct
+		c.DECP_ID,c.DECP_NAME_CN
+		from T_PRJT_VISIT p
+		left join T_USER_USER a on
+		p.REAL_VISITOR=a.ID
+		left join T_DEPT_DEPARTMENT b on a.dept_id=b.id
+		left join T_DEPT_COMPANY c on b.DECP_ID = c.DECP_ID
+		where a.DEPT_ID is
+		not null
+		order by c.DECP_ID
+	</select>
+
+
+	<!-- 统计每个月的访厂次数 -->
+	<!-- <select id="getStatistics" resultClass="java.util.HashMap"> select 
+		b.name,month(real_visit_date) m,count(*) c from t_prjt_visit a left join 
+		T_USER_USER b on a.real_visitor=b.id where substring(convert(varchar,real_visit_date,23),1,4)=#YEAR# 
+		group by month(real_visit_date),b.name </select> -->
+
+
+	<select id="getStatisticsByYear" resultClass="java.util.HashMap">
+		select
+		real_visitor,month(real_visit_date) mo,count(*) co
+		from t_prjt_visit a
+		left join T_USER_USER b on a.real_visitor=b.id
+		where
+		substring(convert(varchar,real_visit_date,23),1,4)=#YEAR#
+		group by
+		month(real_visit_date),real_visitor
+	</select>
+
+	<!--获取所有的访客的姓名和他的ID号 -->
+	<select id="getAllVisitor" resultClass="java.util.HashMap">
+		select DISTINCT
+		b.name,b.ID
+		from t_prjt_visit a
+		left join T_USER_USER b on
+		a.real_visitor=b.id
+		where
+		substring(convert(varchar,real_visit_date,23),1,4)=#YEAR#
+	</select>
+
+	<!-- 统计每人每年的人次 -->
+	<select id="getCountPerVisitorByYear" resultClass="java.util.HashMap">
+		select
+		real_visitor as v,count(*) z
+		from T_PRJT_VISIT a
+		left join T_USER_USER b on
+		a.REAL_VISITOR=b.ID
+		left join T_DEPT_DEPARTMENT c on
+		b.DEPT_ID=c.ID
+		left join T_DEPT_COMPANY d on
+		c.DECP_Id=d.DECP_ID
+		where
+		substring(convert(varchar,real_visit_date,23),1,4)=#YEAR#
+		<isNotEmpty prepend="and" property="DEPT">
+			d.DECP_ID=#DEPT#
+		</isNotEmpty>
+		group by
+		REAL_VISITOR
+	</select>
+
+	<select id="getCountForMonth" resultClass="java.util.HashMap">
+		select count(*)
+		ci,month(real_visit_date) mon
+		from T_PRJT_VISIT a
+		left join T_USER_USER b on
+		a.REAL_VISITOR=b.ID
+		left join T_DEPT_DEPARTMENT c on
+		b.DEPT_ID=c.ID
+		left join T_DEPT_COMPANY d on
+		c.DECP_Id=d.DECP_ID
+		where
+		substring(convert(varchar,real_visit_date,23),1,4)=#YEAR# and
+		real_visitor!=0
+		<isNotEmpty  prepend="and" property="DEPT">
+			d.DECP_ID=#DEPT#
+		</isNotEmpty>
+		group by month(real_visit_date)
+	</select>
+
+	<select id="getTotal" resultClass="java.lang.Integer">
+		select count(*) zong
+		from T_PRJT_VISIT a
+		left join T_USER_USER b on
+		a.REAL_VISITOR=b.ID
+		left join T_DEPT_DEPARTMENT c on
+		b.DEPT_ID=c.ID
+		left join T_DEPT_COMPANY d on
+		c.DECP_Id=d.DECP_ID
+		where
+		substring(convert(varchar,real_visit_date,23),1,4)=#YEAR#
+		and
+		REAL_VISITOR!=0
+		<isNotEmpty prepend="and" property="DEPT">
+			d.DECP_ID=#DEPT#
+		</isNotEmpty>
+	</select>
+
+</sqlMap>

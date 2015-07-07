@@ -1,0 +1,612 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="bonusManage">
+	<!-- 查询所有奖金的个数 -->
+ 	<select id="queryAllBonus_count" parameterClass="map" resultClass="java.lang.Integer">
+ 		<![CDATA[
+ 		select count(*) from T_PRJT_BONUS tbonus where tbonus.status = 0
+ 		]]>
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				(tbonus.BONUS_NAME like '%$content$%' )
+				]]>
+			</isNotEmpty>
+		</dynamic>	 
+ 	</select>
+ 	
+	<!-- 查询所有奖金      分页  -->
+ 	<select id="queryAllBonus" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+			select tbonus.BONUS_ID BONUS_ID,
+			       tbonus.BONUS_NAME BONUS_NAME,
+			       tbonus.BONUS_CREATE_DATE BONUS_CREATE_DATE,
+			       tbonus.CREATE_DATE CREATE_DATE,	
+			       tbonus.CREATE_ID CREATE_ID,		
+			       tbonus.MODIFY_DATE MODIFY_DATE,
+			       tbonus.MODIFY_ID MODIFY_ID,	
+			       tbonus.STATUS STATUS,
+			       tbonus.TYPE TYPE,
+			       tbonus.BONUS_STATUS BONUS_STATUS,
+			       tbonus.BONUS_TYPE BONUS_TYPE	       		       
+			  from T_PRJT_BONUS tbonus
+			  where tbonus.status=0
+ 		]]>
+ 		<dynamic>
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				(tbonus.BONUS_NAME like '%$content$%' )
+				]]>
+			</isNotEmpty>
+		</dynamic>	
+		<![CDATA[
+ 		order by tbonus.BONUS_ID desc
+ 		]]>
+ 	</select>
+ 	
+ 	
+ 	<!-- 查询所有奖金     -->
+ 	<select id="queryAllBonusList" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+			select tbonus.BONUS_ID BONUS_ID,
+			       tbonus.BONUS_NAME BONUS_NAME,
+			       tbonus.BONUS_CREATE_DATE BONUS_CREATE_DATE,
+			       tbonus.CREATE_DATE CREATE_DATE,	
+			       tbonus.CREATE_ID CREATE_ID,		
+			       tbonus.MODIFY_DATE MODIFY_DATE,
+			       tbonus.MODIFY_ID MODIFY_ID,	
+			       tbonus.STATUS STATUS,
+			       tbonus.TYPE TYPE,
+			       tbonus.BONUS_STATUS BONUS_STATUS,
+			       tbonus.BONUS_TYPE BONUS_TYPE	       		       
+			  from T_PRJT_BONUS tbonus
+			  where tbonus.status=0
+ 		order by tbonus.BONUS_ID desc
+ 		]]>
+ 	</select>
+ 
+	<!-- 根据decp_id查询对应公司记录 -->
+	<select id="getBonusInfoById" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select tbonus.BONUS_ID BONUS_ID,
+			       tbonus.BONUS_NAME BONUS_NAME,
+			       tbonus.BONUS_CREATE_DATE BONUS_CREATE_DATE,
+			       tbonus.CREATE_DATE CREATE_DATE,	
+			       tbonus.CREATE_ID CREATE_ID,		
+			       tbonus.MODIFY_DATE MODIFY_DATE,
+			       tbonus.MODIFY_ID MODIFY_ID,	
+			       tbonus.STATUS STATUS,
+			       tbonus.TYPE TYPE,
+			       tbonus.BONUS_STATUS BONUS_STATUS,
+			       tbonus.BONUS_TYPE BONUS_TYPE	       		       
+			  from T_PRJT_BONUS tbonus
+			  where tbonus.status=0 and tbonus.BONUS_ID = #id#
+		]]>
+	</select>	
+	
+	
+	<!-- 删除一个奖金的记录 -->
+	<update id="invalid" parameterClass="map">
+		<![CDATA[
+			update T_PRJT_BONUS
+			   set status = -2, modify_date = getdate()
+			 where BONUS_ID = #id#		
+		]]>
+	</update>
+		
+	<!-- 插入一条奖金的信息 -->
+	<insert id="create" parameterClass="map">
+		<![CDATA[	
+			insert into T_PRJT_BONUS
+			  (BONUS_NAME,
+			   BONUS_CREATE_DATE,
+			   CREATE_ID,
+			   MODIFY_DATE,
+			   MODIFY_ID,
+			   STATUS,
+			   TYPE,
+			   BONUS_STATUS,
+			   BONUS_TYPE
+			   )
+			values
+			  (#BONUS_NAME#,
+			   getdate(),
+			   #CREATE_ID#,
+			   getdate(),
+			   #MODIFY_ID#,
+			   0,
+			   #TYPE#,
+			   #BONUS_STATUS#,
+			   #BONUS_TYPE#)
+		]]>
+	</insert>
+	<!-- 更新一条银行记录 -->
+	<update id="update" parameterClass="map">
+		<![CDATA[
+			update T_PRJT_BONUS
+			   set BONUS_NAME             = #BONUS_NAMEU#,
+			       MODIFY_DATE     		  = getdate()
+			 where BONUS_ID 			  = #id#		
+		]]>
+	</update>
+	
+	<select id="checkBonusCount" parameterClass="map" resultClass="java.lang.Integer"> 
+		<![CDATA[
+			select count(1) count from T_PRJT_BONUS b
+			where b.STATUS = 0  and  b.BONUS_NAME = #name#
+		]]>
+	</select>
+	<select id="selectAllContractUser" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		SELECT 
+			T.LEASE_CODE,T1.NAME
+		FROM
+			T_RENT_CONTRACT T
+			LEFT JOIN T_USER_USER T1 ON T1.ID = T.SENSOR_ID
+		WHERE
+			T.STATUS = 0
+			AND (CONVERT(VARCHAR(10),T.CREATE_TIME,23) >= CONVERT(VARCHAR(7),DATEADD(MONTH,-1,GETDATE()),23) + '-26')
+			AND	(CONVERT(VARCHAR(10),T.CREATE_TIME,23) <= CONVERT(VARCHAR(7),GETDATE(),23) + '-25')
+		ORDER BY 
+			T1.NAME,T.LEASE_CODE
+		]]>
+	</select>
+	
+	<!-- 2012/02/09 Yang Yun 奖金报表查询. -->
+	<select id="bonusShow" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t.*
+			from (
+			  select 0 as o,ID, EMP_ID, EMP_NAME, COUNT_BY_DEPT, DECP_NAME, 
+			  DECP_ID, MONTH_PAY_MONEY, MONTH_COUNT, MONTH_RATE_DIFF, 
+			  YEAR_PAY_MONEY, YEAR_COUNT, YEAR_RATE_DIFF, YEAR_TARGET, 
+			  MONTH_TARGET, YEAR_RATE_TARGET, MONTH_RATE_TARGET, 
+			  COMPANY_BONUS, PROJECT_COUNT_BONUS, RATE_DIFF_BONUS, 
+			  MONTH_PAY_MONEY_PERCENT, MONTH_RATE_DIFF_PERCENT, 
+			  YEAR_PAY_MONEY_PERCENT, YEAR_RATE_DIFF_PERCENT, 
+			  IS_FINISH, BONUS_YEAR, BONUS_MONTH
+			  from T_REPORT_BONUS
+			  where BONUS_YEAR = #year#
+			  and BONUS_MONTH = #month#
+			  union all
+			  select 1, 0, -2, '合计', 0, '', 0,
+			  sum(isnull(MONTH_PAY_MONEY,0)),
+			  sum(isnull(MONTH_COUNT,0)),
+			  sum(isnull(MONTH_RATE_DIFF,0)), 
+			  sum(isnull(YEAR_PAY_MONEY,0)), 
+			  sum(isnull(YEAR_COUNT,0)), 
+			  sum(isnull(YEAR_RATE_DIFF,0)), 
+			  sum(isnull(YEAR_TARGET,0)), 
+			  sum(isnull(MONTH_TARGET,0)), 
+			  sum(isnull(YEAR_RATE_TARGET,0)), 
+			  sum(isnull(MONTH_RATE_TARGET,0)), 
+			  sum(isnull(COMPANY_BONUS,0)), 
+			  sum(isnull(PROJECT_COUNT_BONUS,0)), 
+			  sum(isnull(RATE_DIFF_BONUS,0)),
+			  0,0,0,0,null,
+			  min(BONUS_YEAR),
+			  min(BONUS_MONTH)
+			  from T_REPORT_BONUS
+			  where BONUS_YEAR = #year#
+			  and BONUS_MONTH = #month#
+			  and EMP_ID = -1
+			  group by EMP_ID
+			) t
+			left join T_DEPT_COMPANY decp on t.DECP_ID = decp.DECP_ID
+			order by o, decp.[ORDER], t.EMP_NAME desc
+		]]>
+	</select>
+	
+	<!-- 2012/01/30 Yang Yun 新增奖金报表JOB -->
+	<!-- 1.删除当月信息防止重复 -->
+	<delete id="bonusReportDelete" parameterClass="map">
+		<![CDATA[
+			delete from T_REPORT_BONUS
+			where BONUS_YEAR = #year#
+			and BONUS_MONTH = #month#
+		]]>
+	</delete>
+	<!-- 2.插入基础数据 -->
+	<insert id="bonusReportCreate" parameterClass="map">
+		<![CDATA[
+			insert into T_REPORT_BONUS (EMP_ID ,EMP_NAME ,COUNT_BY_DEPT ,DECP_NAME ,DECP_ID ,
+			MONTH_PAY_MONEY ,MONTH_COUNT ,MONTH_RATE_DIFF ,YEAR_PAY_MONEY ,YEAR_COUNT ,
+			YEAR_RATE_DIFF ,YEAR_TARGET ,MONTH_TARGET , BONUS_YEAR, BONUS_MONTH)
+		]]>
+		<![CDATA[
+			select uu.ID, uu.[NAME], dept.countUByD, dept.DECP_NAME_CN, dept.DECP_ID,
+			isnull(mon_pay.month_pay_money, 0) as month_pay_money, 
+			isnull(mon_c.month_count,0) as month_count, 
+			isnull(mon.rate_diff,0) as rate_diff,
+			isnull(ye_pay.year_pay_money, 0) as year_pay_money,
+			isnull(year_c.year_count, 0) as year_count,
+			isnull(ye.year_rate_diff,0) as year_rate_diff,
+			isnull(tar.year_target,0) * 1000 as year_target, 
+			isnull(tar.month_target,0) * 1000 as month_target
+			,#year#, #month#
+			from T_USER_USER uu
+			left join (
+			  select u.dept_id, count(0) as countUByD, c.DECP_NAME_CN,
+			  max(c.DECP_ID) as DECP_ID
+			  from T_USER_USER u
+			  left join T_DEPT_DEPARTMENT p on u.DEPT_ID = p.ID and p.STATUS = 0
+			  left join T_DEPT_COMPANY c on c.DECP_ID = p.DECP_ID and c.STATUS = 0
+			  where (u.STATUS = 0 or (u.STATUS != 0 and year(u.MODIFY_DATE) = #year#))
+			  and u.[JOB] = '1'
+			  group by u.DEPT_ID, c.DECP_NAME_CN
+			) dept on uu.DEPT_ID = dept.DEPT_ID
+			left join (
+			  select prct.ORG_SENSOR_ID,
+			  count(0) as month_count, 
+			  sum(pl.RATE_DIFF) as rate_diff
+			  from T_PRJT_CREDIT prct
+			  left join T_RENT_CONTRACT rect on prct.LEASE_CODE = rect.LEASE_CODE and rect.STATUS = 0
+			  left join T_RENT_COLLECTIONPLAN pl on pl.RECT_ID = rect.RECT_ID and pl.STATUS = 0
+			  where prct.STATUS = 0
+			  and convert(date,prct.FINANCECONTRACT_DATE) >= convert(date, #month_start_date#)
+			  and convert(date,prct.FINANCECONTRACT_DATE) <= convert(date, #month_end_date#)
+			  group by prct.ORG_SENSOR_ID
+			) mon on mon.ORG_SENSOR_ID = uu.ID
+			left join (
+			  select prct.ORG_SENSOR_ID,
+			  count(0) as year_count, 
+			  sum(t.PAY_MONEY) as year_pay_money,
+			  sum(pl.RATE_DIFF) as year_rate_diff
+			  from T_PRJT_CREDIT prct
+			  left join T_RENT_CONTRACT rect on prct.LEASE_CODE = rect.LEASE_CODE and rect.STATUS = 0
+			  left join T_RENT_COLLECTIONPLAN pl on pl.RECT_ID = rect.RECT_ID and pl.STATUS = 0
+			  left join (
+			    select CREDIT_ID, sum(PAY_MONEY) as pay_money from T_SUPL_PLAYDETIL
+			    where STATUS = 0
+			    and STATE = 3
+			    and BACKSTATE = 0
+			    and convert(date,pay_date) >= convert(date, #year_start_date#)
+			    and convert(date,pay_date) <= convert(date, #year_end_date#)
+			    group by CREDIT_ID
+			  )t on t.CREDIT_ID = prct.ID
+			  where prct.STATUS = 0
+			  and convert(date,prct.FINANCECONTRACT_DATE) >= convert(date, #year_start_date#)
+			  and convert(date,prct.FINANCECONTRACT_DATE) <= convert(date, #year_end_date#)
+			  group by prct.ORG_SENSOR_ID
+			) ye on ye.ORG_SENSOR_ID = uu.ID
+			left join (
+				select prcd.ORG_SENSOR_ID,
+				sum(pay.PAY_MONEY) as year_pay_money
+				from T_SUPL_PLAYDETIL pay
+				left join T_PRJT_CREDIT prcd on pay.CREDIT_ID = prcd.ID
+				where pay.STATUS = 0
+				and pay.BACKSTATE = 0
+				and pay.STATE = 3
+			  and convert(date,pay.PAY_DATE) >= convert(date, #year_start_date#)
+			  and convert(date,pay.PAY_DATE) <= convert(date, #year_end_date#)
+				group by prcd.ORG_SENSOR_ID
+			)ye_pay on ye_pay.ORG_SENSOR_ID = uu.ID
+			
+			left join(
+				select count(0) as month_count, prcd.ORG_SENSOR_ID
+				from T_PRJT_CREDIT prcd
+				where prcd.STATUS = 0
+				and convert(date,prcd.FINANCECONTRACT_DATE) >= convert(date, #month_start_date#)
+			  and convert(date,prcd.FINANCECONTRACT_DATE) <= convert(date, #month_end_date#)
+				and prcd.ID in (
+				  select top 1 p.CREDIT_ID
+				  from T_PRJT_MERGE p 
+				  left join T_PRJT_CREDIT pc on p.CREDIT_ID = pc.ID
+				  where p.GROUP_CODE in (
+				    select top 1 pm.GROUP_CODE from T_PRJT_MERGE pm
+				    where pm.STATUS = 0
+				    and pm.CREDIT_ID = prcd.ID
+				  ) and p.STATUS = 0
+				  and pc.FINANCECONTRACT_DATE is not null
+				  order by pc.FINANCECONTRACT_DATE
+				)
+				group by ORG_SENSOR_ID
+			) mon_c on mon_c.ORG_SENSOR_ID = uu.ID
+			left join(select c.ORG_SENSOR_ID, count(0) as year_count from 
+			  (select m.GROUP_CODE, min(m.CREDIT_ID)as CREDIT_ID from T_PRJT_MERGE m
+			  where m.STATUS = 0
+			  group by m.GROUP_CODE) t
+			  left join T_PRJT_CREDIT c on c.ID = t.CREDIT_ID and c.STATUS = 0
+			  where
+			  convert(date,c.FINANCECONTRACT_DATE) >= convert(date, #year_start_date#)
+			  and convert(date,c.FINANCECONTRACT_DATE) <= convert(date, #year_end_date#)
+			  group by c.ORG_SENSOR_ID) year_c on year_c.ORG_SENSOR_ID = uu.ID
+			left join (
+			  select sum(pay.PAY_MONEY) as month_pay_money, prct.ORG_SENSOR_ID
+			  from T_SUPL_PLAYDETIL pay
+			  left join T_PRJT_CREDIT prct on prct.ID = pay.CREDIT_ID and prct.STATUS = 0
+			  where pay.STATUS = 0
+			  and pay.BACKSTATE = 0
+			  and pay.STATE = 3
+			  and convert(date,pay.PAY_DATE) >= convert(date, #month_start_date#)
+			  and convert(date,pay.PAY_DATE) <= convert(date, #month_end_date#)
+			  group by prct.ORG_SENSOR_ID
+			) mon_pay on mon_pay.ORG_SENSOR_ID = uu.ID
+			
+			left join (
+			  select t.EMPL_ID, sum(t.ach) as year_target,
+			  (SELECT convert(decimal(18,2),MAX(TAA.EMPL_ACHIEVEMENT))
+			    FROM T_USER_ACHIEVEMENT  TAA   
+			    WHERE   TAA.EMPL_ID = t.EMPL_ID
+			    AND TAA.EMPL_YEAR=CONVERT(VARCHAR, #year#)  
+			    AND  TAA.EMPL_MONTH = convert(int, #month#)
+			    and TAA.STATUS=0) as month_target
+			  from (
+			  SELECT convert(decimal(18,2),max(TAA.EMPL_ACHIEVEMENT)) as ach, EMPL_ID, TAA.EMPL_MONTH
+			  FROM T_USER_ACHIEVEMENT  TAA   
+			  WHERE TAA.EMPL_YEAR=CONVERT(VARCHAR, #year#)  
+			  AND  convert(int,TAA.EMPL_MONTH) >= 1
+			  AND  convert(int,TAA.EMPL_MONTH) <= 12
+			  and TAA.STATUS=0
+			  group by TAA.EMPL_ID, TAA.EMPL_MONTH
+			  ) t
+			  group by t.EMPL_ID
+			) tar on tar.EMPL_ID = uu.ID
+			where uu.[JOB] = '1'
+			and (uu.STATUS = 0 or (uu.STATUS != 0 and year(uu.MODIFY_DATE) = #year#))
+			order by dept.DECP_NAME_CN
+		]]>
+	</insert>
+	
+	<!-- 3.增加“小计” -->
+	<insert id="addSubtotal" parameterClass="map">
+		<![CDATA[
+			insert into T_REPORT_BONUS (EMP_ID ,EMP_NAME ,COUNT_BY_DEPT ,DECP_NAME ,DECP_ID ,
+			MONTH_PAY_MONEY ,MONTH_COUNT ,MONTH_RATE_DIFF ,YEAR_PAY_MONEY ,YEAR_COUNT ,
+			YEAR_RATE_DIFF ,YEAR_TARGET ,MONTH_TARGET , BONUS_YEAR, BONUS_MONTH)
+			select -1, #sum_dept#, 0, max(t.DECP_NAME), t.DECP_ID, sum(t.month_pay_money), sum(t.month_count),
+			sum(month_rate_diff), sum(year_pay_money), sum(year_count), sum(year_rate_diff), sum(t.year_target),
+			sum(t.month_target), #year# as bonus_year, #month# as bonus_month
+			from T_REPORT_BONUS t 
+			where t.BONUS_YEAR = #year#
+			and t.BONUS_MONTH = #month#
+			group by t.DECP_ID
+		]]>
+	</insert>
+	
+	<!-- a.查询刚刚插入的基础数据 -->
+	<select id="getBasicBonus" parameterClass="map" resultClass="java.util.HashMap">
+		 <![CDATA[
+		 	select ID, EMP_ID, EMP_NAME, COUNT_BY_DEPT, 
+			DECP_NAME, DECP_ID, MONTH_PAY_MONEY, MONTH_COUNT, 
+			MONTH_RATE_DIFF, YEAR_PAY_MONEY, YEAR_COUNT, 
+			YEAR_RATE_DIFF, YEAR_TARGET, MONTH_TARGET, 
+			BONUS_YEAR, BONUS_MONTH
+			from T_REPORT_BONUS
+			where BONUS_YEAR = #year#
+			and BONUS_MONTH = #month#
+			order by DECP_ID desc, EMP_NAME desc
+		 ]]>
+	</select>
+	
+	<!-- c.更新计算好的 达成率 和 案件奖金和利差奖金. -->
+	<update id="updateBonus" parameterClass="map">
+		<![CDATA[
+			update T_REPORT_BONUS set 
+				MONTH_RATE_TARGET = #month_rate_target#,
+				YEAR_RATE_TARGET = #year_rate_target#,
+				MONTH_PAY_MONEY_PERCENT = #month_pay_money_percent#,
+				MONTH_RATE_DIFF_PERCENT = #month_rate_diff_percent#,
+				YEAR_PAY_MONEY_PERCENT = #year_pay_money_percent#,
+				YEAR_RATE_DIFF_PERCENT = #year_rate_diff_percent#,
+				PROJECT_COUNT_BONUS = #project_bonus#,
+				RATE_DIFF_BONUS = #rate_diff_bonus#
+			where ID = #ID#
+				and BONUS_YEAR = #BONUS_YEAR#
+				and BONUS_MONTH = #BONUS_MONTH#
+		]]>
+	</update>
+	
+	<!-- d.更新小计的奖金 -->
+	<update id="updateSubtotal" parameterClass="map">
+		<![CDATA[
+			update T_REPORT_BONUS set RATE_DIFF_BONUS = (
+			  select sum(RATE_DIFF_BONUS)
+			  from T_REPORT_BONUS t 
+			  where t.BONUS_YEAR = #BONUS_YEAR#
+			  and t.BONUS_MONTH = #BONUS_MONTH#
+			  and t.EMP_ID != #EMP_ID#
+			  and t.DECP_ID = #DECP_ID#
+			), PROJECT_COUNT_BONUS = (
+			  select sum(PROJECT_COUNT_BONUS)
+			  from T_REPORT_BONUS t 
+			  where t.BONUS_YEAR = #BONUS_YEAR#
+			  and t.BONUS_MONTH = #BONUS_MONTH#
+			  and t.EMP_ID != #EMP_ID#
+			  and t.DECP_ID = #DECP_ID#
+			) where EMP_ID = #EMP_ID#
+			and BONUS_YEAR = #BONUS_YEAR#
+			and BONUS_MONTH = #BONUS_MONTH#
+			and id = #ID#
+		]]>
+	</update>
+	
+	<select id="bonusDetailReport" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		select prcd.id, pay.ID as pay_id,
+		prcd.CREDIT_RUNCODE, cust.CUST_NAME,
+		u.[NAME] as SENSOR, pay.PAY_MONEY, recp.RATE_DIFF,
+		case when prcd.ID in (
+		  select top 1 p.CREDIT_ID
+		  from T_PRJT_MERGE p 
+		  left join T_PRJT_CREDIT pc on p.CREDIT_ID = pc.ID
+		  where p.GROUP_CODE in (
+		    select top 1 pm.GROUP_CODE from T_PRJT_MERGE pm
+		    where pm.STATUS = 0
+		    and pm.CREDIT_ID = prcd.ID
+		  ) and p.STATUS = 0 and pc.FINANCECONTRACT_DATE is not null
+		  order by pc.FINANCECONTRACT_DATE
+		) then 'N' else 'Y' end as 'IS_MERGED'
+		, case when pay.PAY_ORDER = 1 
+		  then 'N' else 'Y' end as 'IS_OTHER'
+		, prcd.ORG_SENSOR_ID
+		, decp.DECP_NAME_CN
+		, prcd.FINANCECONTRACT_DATE
+		, prcd.LEASE_CODE
+        , trcs.TR_IRR_RATE
+		from T_SUPL_PLAYDETIL pay
+		left join T_PRJT_CREDIT prcd on pay.CREDIT_ID = prcd.ID
+		left join T_CUST_CUSTOMER cust on prcd.CUST_ID = cust.CUST_ID
+		left join T_USER_USER u on prcd.ORG_SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID
+		left join T_RENT_CONTRACT rect on rect.PRCD_ID = prcd.ID
+		and rect.STATUS = 0
+		left join T_RENT_COLLECTIONPLAN recp on recp.RECT_ID = rect.RECT_ID AND RECP.STATUS = 0
+        LEFT JOIN T_RENT_CONTRACTSCHEMA TRCS ON TRCS.RECT_ID = RECT.RECT_ID AND TRCS.STATUS = 0
+		and recp.STATUS = 0
+		where 
+		pay.STATUS = 0
+		and pay.BACKSTATE = 0
+		and convert(date,pay.PAY_DATE) >= convert(date, #month_start_date#)
+		and convert(date,pay.PAY_DATE) <= convert(date, #month_end_date#)
+		and pay.STATUS = 0
+		and pay.BACKSTATE = 0
+		and pay.STATE = 3
+		order by decp.DECP_NAME_CN,u.[NAME]
+		]]>
+	</select>
+	
+	<select id="getAssistantList" resultClass="hashMap" parameterClass="map">
+		select u.[NAME] as emp_name , u.ID
+		from T_USER_USER u 
+		left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		left join T_USER_USER2ROLE ur on ur.EMPLOYEE_ID = u.ID
+		where ur.ROLE_ID = 63
+		and dept.DECP_ID = #DECP_ID# 
+	</select>
+	
+	<select id="getManagerList" resultClass="hashMap" parameterClass="map">
+		select u.[NAME] as emp_name , u.ID
+		from T_USER_USER u 
+		left join T_USER_USER2COMPANY uc on uc.[USER_ID] = u.ID
+		left join T_DEPT_DEPARTMENT dept on uc.DEPT_ID = dept.ID
+		left join T_USER_USER2ROLE ur on ur.EMPLOYEE_ID = u.ID
+		where ur.ROLE_ID = 61
+		and dept.DECP_ID = #DECP_ID# 
+	</select>
+	
+	<select id="getReportByEmp" resultClass="hashMap" parameterClass="map">
+		select EMP_NAME, BONUS_MONTH, 
+		sum(PROJECT_COUNT_BONUS) + sum(RATE_DIFF_BONUS) as BONUS
+		from T_REPORT_BONUS
+		where BONUS_YEAR = #year#
+		and EMP_NAME not like '*%'
+		and EMP_NAME not like '%待补'
+		group by EMP_NAME, BONUS_MONTH
+	</select>
+	
+	<select id="getAllEmp" resultClass="hashMap" parameterClass="map">
+		select u.[NAME], decp.DECP_NAME_CN , decp.DECP_ID, decp.[ORDER]
+		from T_USER_USER u
+		left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID
+		where u.[JOB] = '1'
+		and u.[NAME] not like '%待补'
+		and (u.STATUS = 0 
+		or (
+		  u.STATUS != 0 and year(u.MODIFY_DATE) = #year#
+		))
+		and decp.DECP_ID != 1
+		order by decp.[ORDER], u.ID
+	</select>
+	
+	<select id="getEmpReportForShow" parameterClass="map" resultClass="hashMap">
+		select * from T_REPORT_EMPBONUS
+		where REPORT_YEAR = #year#
+		order by [ORDER], EMP
+	</select>
+	
+	<delete id="deleteThisYearData" parameterClass="map">
+		delete from T_REPORT_EMPBONUS
+		where REPORT_YEAR = #year#
+	</delete>
+	
+	<insert id="insertBonusReportByEmp" parameterClass="map">
+		insert into T_REPORT_EMPBONUS (
+		   REPORT_YEAR
+		  ,EMP
+		  ,[ORDER]
+		  ,DECP_NAME
+		  ,MONTH_1
+		  ,MONTH_2
+		  ,MONTH_3
+		  ,MONTH_4
+		  ,MONTH_5
+		  ,MONTH_6
+		  ,MONTH_7
+		  ,MONTH_8
+		  ,MONTH_9
+		  ,MONTH_10
+		  ,MONTH_11
+		  ,MONTH_12
+		) VALUES (
+		   #year#
+		  ,#EMP_NAME#
+		  ,#ORDER#
+		  ,#DECP_NAME_CN#
+		  ,#month_1#
+		  ,#month_2#
+		  ,#month_3#
+		  ,#month_4#
+		  ,#month_5#
+		  ,#month_6#
+		  ,#month_7#
+		  ,#month_8#
+		  ,#month_9#
+		  ,#month_10#
+		  ,#month_11#
+		  ,#month_12#
+		)
+	</insert>
+	
+	<update id="changeDataForEmpReport" parameterClass="map">
+		update T_REPORT_EMPBONUS SET
+			<isNotEmpty property="MONTH_1">
+				MONTH_1 = #MONTH_1#
+			</isNotEmpty>
+			<isNotEmpty property="MONTH_2">
+				MONTH_2 = #MONTH_2#
+			</isNotEmpty>
+			<isNotEmpty property="MONTH_3">
+				MONTH_3 = #MONTH_3#
+			</isNotEmpty>
+			<isNotEmpty property="MONTH_4">
+				MONTH_4 = #MONTH_4#
+			</isNotEmpty>
+			<isNotEmpty property="MONTH_5">
+				MONTH_5 = #MONTH_5#
+			</isNotEmpty>
+			<isNotEmpty property="MONTH_6">
+				MONTH_6 = #MONTH_6#
+			</isNotEmpty>
+			<isNotEmpty property="MONTH_7">
+				MONTH_7 = #MONTH_7#
+			</isNotEmpty>
+			<isNotEmpty property="MONTH_8">
+				MONTH_8 = #MONTH_8#
+			</isNotEmpty>
+			<isNotEmpty property="MONTH_9">
+				MONTH_9 = #MONTH_9#
+			</isNotEmpty>
+			<isNotEmpty property="MONTH_10">
+				MONTH_10 = #MONTH_10#
+			</isNotEmpty>
+			<isNotEmpty property="MONTH_11">
+				MONTH_11 = #MONTH_11#
+			</isNotEmpty>
+			<isNotEmpty property="MONTH_12">
+				MONTH_12 = #MONTH_12#
+			</isNotEmpty>
+		WHERE ID = #reportId#
+	</update>
+	
+	<select id="getReportStartYearAndMonth" resultClass="hashMap">
+		select top 1 BONUS_YEAR, BONUS_MONTH
+		from T_REPORT_BONUS
+		order by BONUS_YEAR, BONUS_MONTH
+	</select>
+	
+</sqlMap>

@@ -1,0 +1,517 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	     http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+	     http://www.springframework.org/schema/context
+	     http://www.springframework.org/schema/context/spring-context-3.2.xsd
+	     http://www.springframework.org/schema/tx
+	     http://www.springframework.org/schema/tx/spring-tx-3.2.xsd">
+	
+	<bean id="birtReportEngine" class="com.brick.base.util.BirtReportEngine" init-method="startUp">
+    	<property name="engineHome" value="D:/birt/ReportEngine" />
+    	<property name="reportDesigenPath" value="classpath:../lib" />
+    	<property name="reportDesigenPathStr" value="config/birt/reportDesigen" />
+    	<property name="financeleaseJar" value="D:/Quartz/lib/financelease.jar"/>
+    	<property name="outputPath" value="\home\filsoft\financelease\birtReport" />
+    	<!-- <property name="outputPath" value="D:\home\filsoft\financelease\birtReport" /> -->
+    </bean>
+	
+	<bean id="leaseUtil" class="com.brick.base.util.LeaseUtil">
+		<property name="sqlMap" ref="tacSqlMapClient"/>
+	</bean>
+	
+	<bean id="reportDateUtil" class="com.brick.base.util.ReportDateUtil" init-method="initReportDateInfo">
+		<property name="sqlMap" ref="tacSqlMapClient"/>
+	</bean>
+	
+	<bean id="contractBuilder" class="com.brick.contract.service.ContractBuilder">
+		<property name="sqlMap" ref="tacSqlMapClient"/>
+	</bean>
+	
+	<bean id="insuranceForAccountantReportService" class="com.brick.report.service.InsuranceForAccountantReportService">
+		<property name="sqlMap" ref="tacSqlMapClient"/>
+	</bean>
+	
+	<bean id="sms" class="com.brick.common.sms.service.SmsUtilService" parent="baseService"></bean>
+	
+	<bean id="riskAuditService" class="com.brick.risk_audit.service.RiskAuditService" parent="baseService">
+		<property name="riskAuditDAO" ref="riskAuditDAO"/>
+		<property name="mailUtilService" ref="mailUtilService" />
+	</bean>
+	
+	<bean id = "businessSupportService" class="com.brick.businessSupport.service.BusinessSupportService" parent="baseService">
+		<property name="businessSupportDAO" ref="businessSupportDAO"/>
+		<property name="mailUtilService" ref="mailUtilService" />
+	</bean>
+	
+    <bean id="achievementReportService" class="com.brick.bussinessReport.service.AchievementReportService">
+   		<property name="achievementReportDAO" ref="achievementReportDAO"/>
+    </bean> 
+    
+    <bean id="achievementDailyService" class="com.brick.bussinessReport.service.AchievementDailyService">
+   		<property name="achievementDailyDAO" ref="achievementDailyDAO"/>
+    </bean>  
+    
+    <bean id="jobService" class="com.brick.job.service.JobService" parent="baseService">
+		<property name="jobDAO" ref="jobDAO"/>
+	</bean>
+	
+	<bean id="dateInitializeService" class="com.brick.bussinessReport.service.DateInitializeService">
+		<property name="dateInitializeDAO" ref="dateInitializeDAO"/>
+	</bean>
+	
+	<bean id="achievementCompareService" class="com.brick.bussinessReport.service.AchievementCompareService">
+   		<property name="achievementCompareDAO" ref="achievementCompareDAO"/>
+    </bean>
+    
+    <bean id="loanService" class="com.brick.activityLog.service.LoanService" parent="baseService">
+   		<property name="loanDAO" ref="loanDAO"/>
+    </bean>
+    
+    <bean id="achievementBatchJobService" class="com.brick.batchjob.service.AchievementBatchJobService">
+    	<property name="achievementBatchJobDAO" ref="achievementBatchJobDAO"/>
+    </bean>
+    
+    <bean id="reportCancelBatchJobService" class="com.brick.batchjob.service.ReportCancelBatchJobService">
+    	<property name="reportCancelBatchJobDAO" ref="reportCancelBatchJobDAO"/>
+    </bean>
+    
+    <bean id="achievementCaseService" class="com.brick.bussinessReport.service.AchievementCaseService">
+   		<property name="achievementCaseDAO" ref="achievementCaseDAO"/>
+    </bean>
+    
+    <bean id="visitationService" class="com.brick.visitation.service.VisitationService" parent="baseService">
+   		<property name="visitationDAO" ref="visitationDAO"/>
+    </bean>
+    
+    <bean id="avgPayMoneyBatchJobService" class="com.brick.batchjob.service.AvgPayMoneyBatchJobService">
+    	<property name="avgPayMoneyBatchJobDAO" ref="avgPayMoneyBatchJobDAO"/>
+    </bean>
+    
+    <bean id="caseCompareDayService" class="com.brick.batchjob.service.CaseCompareDayService">
+    	<property name="caseCompareDayDAO" ref="caseCompareDayDAO"/>
+    </bean>
+    
+    <bean id="creditDisabledEnabledService" class="com.brick.businessSupport.service.CreditDisabledEnabledService">
+    	<property name="creditDisabledEnabledDAO" ref="creditDisabledEnabledDAO"/>
+    	<property name="baseDAO" ref="baseDAO"/>
+    </bean>
+    
+    <bean id="supplerContributeService" class="com.brick.batchjob.service.SupplerContributeService">
+    	<property name="supplerContributeDAO" ref="supplerContributeDAO"/>
+    </bean>
+    
+    <bean id="customerCaseBatchJobService" class="com.brick.batchjob.service.CustomerCaseBatchJobService">
+    	<property name="customerCaseBatchJobDAO" ref="customerCaseBatchJobDAO"/>
+    </bean>
+    
+    <bean id="supplerCustomerCaseBatchJobService" class="com.brick.batchjob.service.SupplerCustomerCaseBatchJobService">
+    	<property name="supplerCustomerCaseBatchJobDAO" ref="supplerCustomerCaseBatchJobDAO"/>
+    	<property name="baseDAO" ref="baseDAO"/>
+    </bean>
+    
+    <bean id="mailSettingService" class="com.brick.common.mail.service.MailSettingService">
+    	<property name="mailSettingDAO" ref="mailSettingDAO"/>
+    	<property name="baseDAO" ref="baseDAO"/>
+    </bean>
+    
+    <!-- *************************************公共邮件************************************* -->
+    <bean id="mailCommonService" class="com.brick.common.mail.service.MailCommonService">
+		<!-- <property name="javaMailSender" ref="javaMailSender" />
+		<property name="mimeMessage" ref="mimeMessage" /> -->
+		<property name="host" value="mail.tacleasing.cn" />
+		<property name="username" value="tacfinance_service@tacleasing.cn" />
+		<property name="password" value="6e84WO82Vd" />
+		<property name="mailSettingDAO" ref="mailSettingDAO" />
+	</bean>
+	<!-- <bean id="mimeMessage" class="javax.mail.internet.MimeMessage"
+		factory-bean="javaMailSender" factory-method="createMimeMessage" />
+	<bean id="javaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+		<property name="host" value="mail.tacleasing.cn" />
+		<property name="username" value="tacfinance_service@tacleasing.cn" />
+		<property name="password" value="1qaz2wsx5tgb" />
+				<property name="javaMailProperties">
+			<props>
+				<prop key="mail.smtp.auth">true</prop>
+				<prop key="mail.smtp.timeout">25000</prop>
+				<prop key="mail.smtp.port">25</prop>
+				<prop key="mail.smtp.socketFactory.port">25</prop>
+				<prop key="mail.smtp.socketFactory.fallback">false</prop>
+			</props>
+		</property>
+	</bean> -->	
+	<bean id="mailUtilService" class="com.brick.common.mail.service.MailUtilService">
+		<property name="mailUtilDAO" ref="mailUtilDAO" />
+		<property name="mailSettingDAO" ref="mailSettingDAO" />
+	</bean>
+	<!-- *************************************公共邮件************************************* -->
+	
+	<bean id="loanReminderBatchJobService" class="com.brick.batchjob.service.LoanReminderBatchJobService" parent="baseService">
+		<property name="loanReminderBatchJobDAO" ref="loanReminderBatchJobDAO" />
+		<property name="mailUtilService" ref="mailUtilService" />
+	</bean>
+	
+	<bean id="customerVisitService" class="com.brick.customerVisit.service.CustomerVisitService" parent="baseService">
+		<property name="customerVisitDAO" ref="customerVisitDAO" />
+	</bean>
+	
+	<bean id="creditStatusUpdateJob" class="com.brick.job.service.CreditStatusUpdateJob" parent="baseService"/>
+	
+	<bean id="auditReportService" class="com.brick.auditReport.service.AuditReportService" parent="baseService"/>
+	
+	
+	<bean id="dataDictionaryService" class="com.brick.sys.service.DataDictionaryService" parent="baseService">
+		<property name="dataDictionaryDAO" ref="dataDictionaryDAO"/>
+	</bean>
+	
+	<bean id="accessCustomerPlanReportService" class="com.brick.bussinessReport.service.AccessCustomerPlanReportService">
+		<property name="accessCustomerPlanReportDAO" ref="accessCustomerPlanReportDAO"/>
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	
+	
+	<bean id="exceptionUtil" class="com.brick.insurance.util.SendEmailForException">
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	
+	<bean id="insuranceService" class="com.brick.insurance.service.InsuranceService" parent="baseService">
+		<property name="birt" ref="birtReportEngine" />
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="exceptionUtil" ref="exceptionUtil"/>
+	</bean>
+	
+	<bean id="unnaturalCaseService" class="com.brick.unnaturalCase.service.UnnaturalCaseService" parent="baseService">
+		<property name="unnaturalCaseDAO" ref="unnaturalCaseDAO"/>
+		<property name="mailCommonService" ref="mailCommonService"/>
+		<property name="path" value="\home\filsoft\financelease\unnatural" />
+		<property name="mailUtilService" ref="mailUtilService" />
+		<property name="birt" ref="birtReportEngine" />
+	</bean>
+	
+	<bean id="customerVisitReportService" class="com.brick.bussinessReport.service.CustomerVisitReportService">
+		<property name="customerVisitReportDAO" ref="customerVisitReportDAO"/>
+	</bean>
+	<bean id="completedFileBiz" class="com.brick.completedFile.biz.CompletedFileBiz" parent="baseService">
+		<property name="completedFileDao" ref="completedFileDao"/>
+	</bean>
+
+	<bean id="modifyOrderService" class="com.brick.modifyOrder.service.ModifyOrderService" parent="baseService">
+		<property name="modifyOrderDao" ref="modifyOrderDao"/>
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+
+	<bean id="dunCaseService" class="com.brick.bussinessReport.service.DunCaseService" parent="baseService">
+		<property name="dunCaseDAO" ref="dunCaseDAO"/>
+		<property name="mailCommonService" ref="mailCommonService"/>
+	</bean>
+	
+	<bean id="appPercentService" class="com.brick.report.service.ApprovedPercentReportService" parent="baseService"/>
+
+	<bean id="supplierGroupService" class="com.brick.supplier.service.SupplierGroupService" parent="baseService">
+		<property name="supplierGroupDAO" ref="supplierGroupDAO"/>
+	</bean>
+	
+	<bean id="commonService" class="com.brick.common.service.CommonService" parent="baseService">
+		<property name="commonDAO" ref="commonDAO"/>
+	</bean>
+	<bean id="litigationService" class="com.brick.litigation.service.LitigationService" parent="baseService">
+		<property name="litigationDao" ref="litigationDao"/>
+	</bean>
+	<bean id="vipReportService" class="com.brick.report.service.VipProjectInfoReportService" parent="baseService"/>
+	
+	<bean id="employeeService" class="com.brick.employee.service.EmployeeService" parent="baseService">
+		<property name="employeeDAO" ref="employeeDAO"/>
+	</bean>
+	
+	<bean id="getData4Table" class="com.brick.job.service.GetData4Table" parent="baseService">
+		<property name="birt" ref="birtReportEngine" />
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	
+	<bean id="getData2Table" class="com.brick.job.service.GetData2Table" parent="baseService">
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	
+	<bean id="getDataForCommittedProject" class="com.brick.job.service.GetDataForCommittedProject" parent="baseService">
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	
+	<bean id="getDataForSend" class="com.brick.job.service.GetDataForSend" parent="baseService">
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	
+	<bean id="deptCmpyService" class="com.brick.deptCmpy.service.DeptCmpyService" parent="baseService">
+		<property name="deptCmpyDAO" ref="deptCmpyDAO"/>
+	</bean>
+	
+	<bean id="showReportService" class="com.brick.report.service.ShowReportService" parent="baseService"/>
+	
+	<bean id="ichartService" class="com.brick.ichart.service.IchartService" parent="baseService">
+		<property name="ichartDao" ref="ichartDao"/>
+	</bean>
+	
+	<bean id="deskService" class="com.brick.desk.service.DeskService" parent="baseService">
+		<property name="deskDAO" ref="deskDAO"/>
+	</bean>
+
+	<bean id="amountService" class="com.brick.targetAmount.service.AmountService" parent="baseService">
+		<property name="amountDao" ref="amountDao"/>
+	</bean>
+	
+	<bean id="creditSpecialService" class="com.brick.special.service.CreditSpecialService" parent="baseService">
+		<property name="creditSpecialDAO" ref="creditSpecialDAO"/>
+	</bean>
+
+	<bean id="dunTaskLawService" class="com.brick.dun.serviceService.DunTaskLawService" parent="baseService">
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="birt" ref="birtReportEngine" />
+	</bean>
+	
+	<bean id="insuranceFeeRemainderReportService" class="com.brick.financialReport.service.InsuranceFeeRemainderReportService" parent="baseService">
+		<property name="insuranceFeeRemainderReportDAO" ref="insuranceFeeRemainderReportDAO"/>
+	</bean>
+	
+	<bean id="contractControlSheetService" class="com.brick.financial.service.ContractControlSheetService" parent="baseService">
+		<property name="contractControlSheetDAO" ref="contractControlSheetDAO"/>
+	</bean>
+
+	
+	<bean id="systemMessageAndEmailReportService" class="com.brick.sys.service.SystemMessageAndEmailReportService" parent="baseService">
+		<property name="commonDAO" ref="commonDAO"></property>
+		<property name="mailUtilService" ref="mailUtilService"></property>
+	</bean>
+	
+	<bean id="tagService" class="com.brick.project.service.TagService" parent="baseService">
+		<property name="tagDAO" ref="tagDAO"></property>
+	</bean>
+	
+	<bean id="interestIncomeReportService" class="com.brick.financialReport.service.InterestIncomeReportService" parent="baseService">
+		<property name="interestIncomeReportDAO" ref="interestIncomeReportDAO"/>
+	</bean>
+	
+	<bean id="supplierLevelBatchJobService" class="com.brick.batchjob.service.SupplierLevelBatchJobService">
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="birtReportEngine" ref="birtReportEngine" />
+	</bean>
+	
+	<bean id="payMoneyService" class="com.brick.payMoney.service.PayMoneyService" parent="baseService">
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="sms" ref="sms"/>
+	</bean>
+	
+	<bean id="highQualityCustomerReportService" class="com.brick.customer.service.HighQualityCustomerReportService" parent="baseService">
+		<property name="commonDAO" ref="commonDAO"></property>
+		<property name="mailUtilService" ref="mailUtilService"></property>
+		<property name="path" value="\home\filsoft\financelease\customer"></property>
+	</bean>
+	
+	<bean id="lockCodeService" class="com.brick.contract.service.LockCodeService" parent="baseService">
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="sms" ref="sms"/>
+	</bean>
+	
+	<bean id="invoiceManageService" class="com.brick.invoice.service.InvoiceManageService" parent="baseService">
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	
+	<bean id="contractExceptRentService" class="com.brick.report.service.ContractExceptRentService" parent="baseService">
+		<property name="commonDAO" ref="commonDAO"></property>
+		<property name="mailUtilService" ref="mailUtilService"></property>
+		<property name="path" value="\home\filsoft\financelease\contractExceptRent"></property>
+	</bean>
+	
+	<bean id="supplierService" class="com.brick.supplier.service.SupplierService" parent="baseService">
+		<property name="supplierDAO" ref="supplierDAO"></property>
+	</bean>
+	
+	<bean id="productCreditService" class="com.brick.product.service.ProductCreditService" parent="baseService">
+		
+	</bean>
+	
+	<bean id="creditLineClean" class="com.brick.job.service.CreditLineCleanJob" parent="baseService"/>
+	
+	<bean id="creditReportService" class="com.brick.credit.service.CreditReportService" parent="baseService">
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="riskAuditService" ref="riskAuditService"/>
+		<property name="visitationService" ref="visitationService"/>
+	</bean>
+	
+	<bean id="itJobService" class="com.brick.job.service.ITJobService" parent="baseService">
+		<property name="mailUtil" ref="mailUtilService"/>
+	</bean>
+	
+	<bean id="rentFinanceService" class="com.brick.rent.service.RentFinanceService" parent="baseService">
+		<property name="rentFinanceDAO" ref="rentFinanceDAO"/>
+		<property name="mailUtilService" ref="mailUtilService" />
+		<property name="deptService" ref="deptService" />
+	</bean>
+	
+	<bean id="carService" class="com.brick.car.service.CarService"  parent="baseService">
+		<property name="mailUtilService" ref="mailUtilService"></property>	
+	</bean>
+	
+	<bean id="emailPlanService" class="com.brick.emailplan.service.EmailPlanService"  parent="baseService">
+		<property name="mailUtilService" ref="mailUtilService"></property>	
+		<property name="path" value="\home\filsoft\financelease\NewProjectForRentDecompose"></property>
+	</bean>
+	
+	<bean id="dunReportDailyJob" class="com.brick.job.service.DunReportDailyJob" parent="baseService"/>
+ 
+	<bean id="helpService" class="com.brick.help.service.HelpService" parent="baseService">
+		<property name="helpDAO" ref="helpDAO"></property>
+	</bean>
+	
+	 <bean id="contributionService" class="com.brick.contribution.service.ContributionService" parent="baseService">
+		<property name="contributionDao" ref="contributionDao"></property>
+	</bean>
+	
+	<bean id="caseAuditSituationService" class="com.brick.bussinessReport.service.CaseAuditSituationService" parent="baseService">
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="caseAuditSituationDAO" ref="caseAuditSituationDAO"/>
+	</bean>
+	
+	<bean id="firstDunService" class="com.brick.job.service.FirstDunJob" parent="baseService"/>
+	
+	<bean id="getDataForHr" class="com.brick.job.service.GetDataForHr" parent="baseService">
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	
+	<bean id="recordService" class="com.brick.record.RentContractRecordService" parent="baseService">
+		<property name="recordDAO" ref="recordDAO" />
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="userService" ref="userService"/>
+		<property name="agentService" ref="agentService"/>
+	</bean>
+	
+	<bean id="shoppingService" class="com.brick.support.shopping.service.ShoppingService" parent="baseService"/>
+	<bean id="backMoneyService" class="com.brick.backMoney.service.BackMoneyService" parent="baseService"/>
+
+	<bean id="userService" class="com.tac.user.service.UserService" parent="baseService">
+		<property name="deptDAO" ref="deptDAO" />
+		<property name="userDAO" ref="userDAO" />
+	</bean>
+	
+	<bean id="deptService" class="com.tac.dept.service.DeptService" parent="baseService">
+		<property name="deptDAO" ref="deptDAO" />
+	</bean>
+	
+	<bean id="companyService" class="com.tac.company.service.CompanyService" parent="baseService">
+		<property name="companyDAO" ref="companyDAO" />
+	</bean>
+	
+	<bean id="customerService" class="com.brick.customer.service.CustomerService" parent="baseService">
+		<property name="birt" ref="birtReportEngine" />
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="sqlMap" ref="tacSqlMapClient"/>
+	</bean>
+	
+	<bean id="reportJobService" class="com.brick.job.service.ReportJobService" parent="baseService">
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="birt" ref="birtReportEngine" />
+	</bean>
+	
+	    <!-- 访厂 -->
+	<bean id="visitService" class="com.brick.dataStatistics.service.service.VisitService"
+	parent="baseService">
+		<property name="visitDao" ref="visitDao"></property>
+	</bean>
+	
+	<!--  -->
+	 <bean id="informationService" class="com.brick.information.service.InformationService"
+	 parent="baseService">
+	    <property name="informationDao" ref="informationDao"></property>
+	 </bean>
+	 
+	 <bean id="estimatePayService" class="com.brick.estimatePay.service.EstimatePayService"
+	 parent="baseService">
+	    <property name="estimatePayDao" ref="estimatePayDao"></property>
+	 </bean>
+	
+	
+	<bean id="birtReportService" class="com.brick.birtReport.service.BirtReportService">
+		<property name="sqlMap" ref="tacSqlMapClient"/>
+	</bean>
+	<bean id="agentService" class="com.tac.agent.service.AgentService">
+		<property name="agentDao" ref="agentDao"/>
+	</bean>
+	
+	<bean id="invoiceManagementService" class="com.brick.invoiceManagement.service.InvoiceManagementService" parent="baseService">
+		<property name="invoiceManagementDAO" ref="invoiceManagementDAO"/>
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+		
+	<bean id="payerService" class="com.brick.payer.service.PayerService" parent="baseService">
+		<property name="payerDAO" ref="payerDAO" />
+	</bean>	
+	
+	<bean id="signOrderService" class="com.brick.signOrder.service.SignOrderService" parent="baseService">
+		<property name="signOrderDao" ref="signOrderDao" />
+		<property name="deptService" ref="deptService" />
+		<property name="userDAO" ref="userDAO" />
+		<property name="agentService" ref="agentService"></property>
+		<property name="mailUtilService" ref="mailUtilService"></property>
+	</bean>
+	
+	<bean id="bpmInstanceService" class="com.brick.bpm.service.InstanceService" scope="singleton">
+		<property name="bpmDefinitionDao" ref="bpmDefinitionDao"/>
+		<property name="bpmInstanceDao" ref="bpmInstanceDao" />
+	</bean>
+	
+	<bean id="runtimeService" class="com.brick.bpm.runtime.RuntimeService" scope="singleton">
+		<property name="bpmInstanceService" ref="bpmInstanceService" />
+		<property name="workItemManager" ref="workItemManager"/>
+	</bean>
+	
+	<bean id="bpmTaskService" class="com.brick.bpm.service.TaskService" scope="singleton">
+		<property name="bpmTaskDao" ref="bpmTaskDao" />
+		<property name="workItemManager" ref="workItemManager"/>
+		<property name="bpmInstanceService" ref="bpmInstanceService"></property>
+		<property name="userDAO" ref="userDAO" />
+		<property name="mailUtilService" ref="mailUtilService"></property>
+	</bean>
+	
+	<bean id="workItemManager" class="com.brick.bpm.work.WorkItemManager" scope="singleton" init-method="init">
+		<property name="bpmInstanceService" ref="bpmInstanceService" />
+		<property name="gatewayWorkItemHandler" ref="gatewayWorkItemHandler" />
+		<property name="endEventWorkItemHandler" ref="endEventWorkItemHandler" />
+		<property name="activityWorkItemHandler" ref="activityWorkItemHandler" />
+		<property name="startEventWorkItemHandler" ref="startEventWorkItemHandler" />
+		
+	</bean>
+	
+	<bean id="elUtil" class="com.brick.bpm.util.ElUtil" scope="singleton">
+	</bean>
+	
+	<bean id="gatewayWorkItemHandler" class="com.brick.bpm.work.GatewayWorkItemHandler" scope="singleton">
+		<property name="bpmInstanceService" ref="bpmInstanceService" />
+		<property name="elUtil" ref="elUtil" />
+	</bean>
+	
+	<bean id="endEventWorkItemHandler" class="com.brick.bpm.work.EndEventWorkItemHandler" scope="singleton">
+		<property name="bpmInstanceService" ref="bpmInstanceService" />		
+	</bean>
+	
+	<bean id="activityWorkItemHandler" class="com.brick.bpm.work.ActivityWorkItemHandler" scope="singleton">
+		<property name="bpmInstanceService" ref="bpmInstanceService" />
+		<property name="bpmTaskService" ref="bpmTaskService" />
+		<property name="elUtil" ref="elUtil" />
+	</bean>
+	
+	<bean id="startEventWorkItemHandler" class="com.brick.bpm.work.StartEventWorkItemHandler" scope="singleton">
+		<property name="bpmInstanceService" ref="bpmInstanceService" />
+	</bean>
+	
+	<bean id="approvalService" class="com.brick.aprv.service.ApprovalService" parent="baseService">
+		<property name="runtimeService" ref="runtimeService" />
+		<property name="bpmTaskService" ref="bpmTaskService" />
+		<property name="bpmInstanceService" ref="bpmInstanceService" />	
+		<property name="approvalDao" ref="approvalDao" />
+	</bean>
+
+	<bean id="dataSessionService" class="com.brick.base.service.DataSessionService" parent="baseService"/>
+	
+	<bean id="kingDeerService" class="com.brick.kingDeer.service.KingDeerService" parent="baseService">
+		<property name="kingDeerDAO" ref="kingDeerDAO"/>
+	</bean>
+</beans>

@@ -1,0 +1,1053 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="lockManagement">
+	
+	<!-- 
+	查询设备对应合同及支付 
+	-->
+ 	<select id="getRentRecp" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+			select t2.lease_code,t1.recd_id,
+			       t3.recp_code,
+			       t3.lease_period,
+			       t3.lease_term,
+			       t1.lock_code
+			  from t_rent_contractdetail t1
+			  left join t_rent_contract t2 on t2.rect_id = t1.rect_id
+			  left join t_rent_collectionplan t3 on t3.recp_id = t1.recp_id
+			  
+			 where t1.rect_id = #rect_id#
+			   and t1.eqmt_id = #eqmt_id#
+			   and t1.status = 0
+		]]>
+ 	</select>
+	
+	<!-- 
+	根据Id查询设备详细信息 
+	-->
+	<select id="queryEqmtById" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+	<!-- 
+		<![CDATA[ 
+			select t.eqmt_id,
+				   t.type,
+			       t.thing_name,
+			       t.model_spec,
+			       t.staybuy_price,
+			       t.unit_price,
+			       t.amount,
+			       t.unit,
+			       (t.unit_price * t.amount) sum_price,
+			       t.memo,
+			       TR.RENTER_NAME,
+			       TR.shui_price SHUI_PRICE,
+			       TR.RENTER_EMAIL,
+			       TR.RENTER_PHONE,
+			       TR.THING_NUMBER
+			  from t_eqmt_equipment t
+			  LEFT JOIN T_RENT_CONTRACTDETAIL TR ON TR.EQMT_ID = t.EQMT_ID
+			 where t.eqmt_id = #eqmt_id#
+		]]>
+		 -->
+		 <![CDATA[ 
+			select t.eqmt_id,
+				   t.type,
+			       T6.NAME thing_name,
+			       T5.NAME model_spec,
+			       t.staybuy_price,
+			       t.unit_price,
+			       t.amount,
+			       t.unit,
+			       (t.unit_price * t.amount) sum_price,
+			       t.memo,
+			       TR.RENTER_NAME,
+			       TR.shui_price SHUI_PRICE,
+			       TR.RENTER_EMAIL,
+			       TR.RENTER_PHONE,
+			       TR.THING_NUMBER
+			  from t_eqmt_equipment t
+			  LEFT JOIN T_RENT_CONTRACTDETAIL TR ON TR.EQMT_ID = t.EQMT_ID
+			   LEFT JOIN T_EQMT_EQUIPMENT T3 ON T3.EQMT_ID = TR.EQMT_ID and T3.STATUS=0
+			  LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID = T3.SUEQ_ID and T4.STATUS=0
+			  LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T4.PRODUCT_ID and T5.STATUS=0
+			  LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID
+			 where t.eqmt_id = #eqmt_id#
+		]]>
+	</select>
+	
+	<!-- 
+	根据支付表明细Id查询详细信息 
+	-->
+	<select id="queryAllById" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[ 
+			select t1.recd_id,t1.RECP_ID,
+			       t2.lock_id,
+			       t1.PAY_DATE,
+			       t1.LAST_PRICE,
+			       (case
+			         when t2.lock_date is not null then
+			          t2.lock_date
+			         else
+			          (case
+			         when datediff(dd, DATEADD(MM,DATEDIFF(mm,0, t1.pay_date),0), t1.pay_date) < 15 then
+			          convert(datetime,
+			                  datename(YY, t1.pay_date) + '-' + datename(mm, t1.pay_date) +
+			                  '-25')
+			         else
+			          convert(datetime,
+			                  datename(YY, dateadd(mm, 1, t1.pay_date)) + '-' +
+			                  datename(mm, dateadd(mm, 1, t1.pay_date)) + '-10')
+			       end) end) Lock_Dates,
+			       t2.passwords pass,
+			       (case
+			         when t2.Isunlock = 0 then
+			          0
+			         else
+			          1
+			       end) isnum,
+			       (case
+			         when t2.UNLOCK_DATE is not null then
+			          t2.UNLOCK_DATE
+			         else
+			          null
+			       end) UNLOCK_DATES,
+			       t2.REMARK,
+			       t1.period_num,
+			       (case
+			         when (datediff(dd, 0, getdate()) - datediff(dd, 0, t1.pay_date)) >= 30 then
+			          0
+			         else
+			          1
+			       end) today,
+			       (case 
+					when t3.FICB_TYPE=0 
+						then t3.CHECK_DATE
+					else
+						null
+					end) CHECK_DATE,
+			       t2.SEND_WAY,tlpf.FILE_NAME,replace(tlpf.PATH,'\','\\') PATH,tlpf.ID FILE_ID,t2.IS_ARTIFICIAL 
+			  from t_rent_collectiondetail t1
+			  left join T_RENT_CONTRACTDETAIL t4 on t4.EQMT_ID=#eqmt_id#
+			  left join t_lock_management t2 on t2.RENT_ID = t1.RECD_ID and t2.RENT_DETAIL_ID=t4.RECD_ID and t2.STATUS = 0
+			  left join (
+			  	select rd.PERIOD_NUM as RECD_PERIOD
+				, max(DECOMPOSE_TIME) as CHECK_DATE
+				, min(DECOMPOSE_TYPE) as FICB_TYPE
+				from T_RENT_DECOMPOSE rd
+				where rd.RECP_ID = #recp_id#
+				and rd.BILL_CODE = 'RENT'
+				and rd.STATUS = 0
+				group by rd.PERIOD_NUM
+				having sum(SHOULD_PRICE) + sum(DECOMPOSE_PRICE) = 0
+			  ) t3 on t1.PERIOD_NUM = t3.RECD_PERIOD
+ 			  left join T_LOCKCODE_PASSWORD_FILE tlpf
+			  on tlpf.recp_id=t1.RECP_ID and tlpf.eqmt_id=t4.EQMT_ID and tlpf.PERIOD_NUM=t1.PERIOD_NUM and tlpf.status=0                                             
+			 where t1.RECP_ID = #recp_id#
+			   and t1.STATUS = 0
+			 order by t1.period_num asc
+		]]>
+	</select>
+	
+	
+	<!-- 
+	添加锁码管理 
+	-->
+	<insert id="create" parameterClass="map">
+		<![CDATA[ 
+			insert into t_lock_management
+			  ( 
+			   rent_id,
+			   rent_detail_id,
+			   lock_date,
+			   passwords,
+			   IS_ARTIFICIAL,
+			   	]]>
+						<isNotEmpty property="unlock_date">
+							<![CDATA[ 
+						 		unlock_date,
+					 		]]>
+					 	</isNotEmpty> 
+					 	<![CDATA[
+			   create_id,
+			   create_time,
+			   remark,
+			   remin_day,
+			   PERIOD_NUM,
+			   RECP_ID,
+			   EQMT_ID,
+			   status)
+			values
+			  ( 
+			   #rent_id#,
+			   #rent_detail_id#,
+			   convert(datetime,#lock_date# ),
+			   #passwords#,
+			   #isAtificial#,
+			   	]]>
+						<isNotEmpty property="unlock_date">
+							<![CDATA[ 
+						 		#unlock_date#,
+					 		]]>
+					 	</isNotEmpty> 
+			   #s_employeeId#,
+			   getdate(),
+			   #remark#,
+			   convert(datetime,#remin_day# ),
+				#period_num#,
+			   #recp_id#,
+			   #eqmt_id#,
+			   0)
+	</insert>
+	
+	<!-- 
+	添加锁码管理(发送邮件) 
+	-->
+	<insert id="createSendEmail" parameterClass="map">
+		<![CDATA[ 
+			insert into T_LOCK_MSGLIST
+			  ( 
+			  LOCK_ID, SEND_WAY, PASSWORDS, SENDTIME, SENDTYPE, SENDEMAIL, SENDSMS, STATUS,RECD_ID,RENT_DETAIL_ID,STATE,SENDSTATE)
+			values
+			  ( 
+			   #lock_id#,
+			   #send_way#,
+			  #passwords#,
+			   getdate(),
+			   1,
+			   #sendemail#,
+			   #sendsms#,
+			   0,
+			   #rent_id#,
+			   #rent_detail_id#,#state#,#SENDSTATE#)
+		]]>
+	</insert>
+	
+	<!-- 
+	更新锁码管理 
+	-->
+	<update id="modify" parameterClass="map">
+		<![CDATA[ 
+			update t_lock_management
+			   set lock_date=convert(datetime,#lock_date# ),
+			       passwords=#passwords#,
+			       IS_ARTIFICIAL=#isAtificial#,
+			       ]]>
+						<isNotEmpty property="unlock_date">
+							<![CDATA[ 
+						 		unlock_date=convert(datetime,#unlock_date# ),
+					 		]]>
+					 	</isNotEmpty> 
+					 
+			       modify_time=getdate(),
+			       modify_id=#s_employeeId#,
+			       remark=#remark#,
+			       remin_day=convert(datetime,#remin_day# ),
+			       send_way=#send_way#,recp_id=#recp_id#,eqmt_id=#eqmt_id#,period_num=#period_num#
+			 where lock_id = #lock_id#
+
+	</update> 
+	
+	<!-- 
+	查询当月锁码详细信息总条数
+	-->
+	<select id="queryAll_count" parameterClass="map" resultClass="java.lang.Integer">
+	<!-- 
+		<![CDATA[ 
+			select count( distinct (t2.Eqmt_Id))
+			    from T_RENT_CONTRACT t1
+			  left join T_RENT_CONTRACTDETAIL t2 on t2.RECT_ID = t1.RECT_ID
+			  left join (select trc1.recp_id, trc1.RECP_CODE, trc2.pay_date
+			               from T_RENT_COLLECTIONPLAN trc1
+			               left join T_RENT_COLLECTIONDETAIL trc2 on trc1.RECP_ID =
+			                                                         trc2.RECP_ID
+			              where trc1.status = 0
+			              	]]>
+			             
+						<isNotEmpty prepend="and" property="paydate_flag">
+							<![CDATA[ 
+						 		trc1.paydate_flag=#paydate_flag#
+					 		]]>
+					 	</isNotEmpty> 
+					 	
+					 	<![CDATA[
+					and dateadd(mm,
+                            datediff(mm,
+                                     0,
+                                     convert(datetime,
+                                             (case when #start_date# is not null then
+                                              convert(datetime, #start_date#) else
+                                              getdate() end))),
+                            0) <= trc2.PAY_DATE
+	                and dateadd(mm,
+	                            1,
+	                            dateadd(mm,
+	                                    datediff(mm,
+	                                             0,
+	                                             convert(datetime,
+	                                                     (case when #end_date# is not null then
+	                                                      convert(datetime, #end_date#) else
+	                                                      getdate() end))),
+	                                    0)) > trc2.PAY_DATE) t3 on t3.RECP_ID =
+	                                                               t2.RECP_ID
+			  left join T_LOCK_MANAGEMENT t4 on t4.RENT_ID = t2.RECD_ID
+			 where t1.RECT_STATUS = 1
+			   and t3.RECP_ID is not null
+			   and t1.SENSOR_ID = #s_employeeId#
+			   and t1.status = 0
+		]]>
+		<isNotEmpty prepend="and" property="content">
+			<![CDATA[ 
+		 		t1.CUST_NAME like '%$content$%' 
+		 		or t2.Thing_Name like '%$content$%' 
+	 		]]>
+	 	</isNotEmpty> 
+	 	 -->
+	 	 <![CDATA[ 
+	 	 select count(*) from (
+	 	 select distinct t.LOCK_ID,t3.RECT_ID,t3.CUST_NAME,t3.LEASE_CODE,t2.EQMT_ID,
+		 t2.THING_NAME,t1.RECP_ID,t4.RECP_CODE,t1.pay_date,
+		 (case  when t.isunlock = 0 then
+			                   0
+			                  else
+			                   1
+			                end) isunlock,1 num,t.REMIN_DAY
+		 from T_LOCK_MANAGEMENT t 
+		 left join T_RENT_COLLECTIONDETAIL t1 on t.RENT_ID=t1.RECD_ID and t1.STATUS=0
+		 left join T_RENT_CONTRACTDETAIL t2 on t2.STATUS=0 and t2.RECD_ID=t.RENT_DETAIL_ID
+		 left join T_RENT_CONTRACT t3 on t3.RECT_ID=t2.RECT_ID and t3.STATUS=0
+		 left join T_RENT_COLLECTIONPLAN t4 on t2.RECP_ID=t4.RECP_ID and t4.STATUS=0
+		 where  t.STATUS=0 and  convert(datetime, (case when #end_date# is not null then
+                                              convert(datetime, #end_date#) else
+                                              getdate() end)) = t.REMIN_DAY and ISNULL(t1.REDUCE_LOSS_PRICE,0)+ISNULL(t1.REDUCE_OTHER_PRICE,0)+ISNULL(t1.REDUCE_OWN_PRICE,0)+ISNULL(t1.REDUCE_REN_PRICE,0)<=0
+	 	 ]]>
+	 	 <isNotEmpty prepend="and" property="content">
+			<![CDATA[ 
+		 		(t3.CUST_NAME like '%$content$%' 
+		 		or t2.Thing_Name like '%$content$%') 
+	 		]]>
+	 	</isNotEmpty>
+	 	 <![CDATA[
+	 	 ) t
+	 	 ]]>
+	</select>
+	
+	<!-- 
+	查询当月锁码详细信息 
+	-->
+	<select id="queryAll" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+	<!-- 
+		<![CDATA[ 
+			select distinct t1.RECT_ID,
+			                t1.CUST_NAME,
+			                t1.Lease_Code,
+			                t2.Recp_Id,
+			                t2.Eqmt_Id,
+			                t2.Thing_Name,
+			                t3.recp_id,
+			                t3.recp_code,
+			                (case
+			                  when t4.isunlock = 0 then
+			                   0
+			                  else
+			                   1
+			                end) isunlock,
+			                t3.pay_date,
+			                (case
+			                 when t3.pay_date >= getdate() and
+			                       (t3.pay_date - getdate()) <= 5 then
+			                   0
+			                  else
+			                   1
+			                end) num,getdate() as time
+			  from T_RENT_CONTRACT t1
+			  left join T_RENT_CONTRACTDETAIL t2 on t2.RECT_ID = t1.RECT_ID
+			  left join (select trc1.recp_id, trc1.RECP_CODE, trc2.pay_date
+			               from T_RENT_COLLECTIONPLAN trc1
+			               left join T_RENT_COLLECTIONDETAIL trc2 on trc1.RECP_ID =
+			                                                         trc2.RECP_ID
+			              where trc1.status = 0
+			              	]]>
+			            
+					 	<![CDATA[
+					and dateadd(mm,
+                            datediff(mm,
+                                     0,
+                                     convert(datetime,
+                                             (case when #start_date# is not null then
+                                              convert(datetime, #start_date#) else
+                                              getdate() end))),
+                            0) <= trc2.PAY_DATE
+	                and dateadd(mm,
+	                            1,
+	                            dateadd(mm,
+	                                    datediff(mm,
+	                                             0,
+	                                             convert(datetime,
+	                                                     (case when #end_date# is not null then
+	                                                      convert(datetime, #end_date#) else
+	                                                      getdate() end))),
+	                                    0)) > trc2.PAY_DATE) t3 on t3.RECP_ID =
+	                                                               t2.RECP_ID
+			  left join T_LOCK_MANAGEMENT t4 on t4.RENT_ID = t2.RECD_ID
+			 where t1.RECT_STATUS = 1
+			   and t3.RECP_ID is not null
+			   and t1.SENSOR_ID = #s_employeeId#
+			   and t1.status = 0
+		]]>
+		<isNotEmpty prepend="and" property="content">
+			<![CDATA[ 
+		 		t1.CUST_NAME like '%$content$%' 
+		 		or t2.Thing_Name like '%$content$%' 
+	 		]]>
+	 	</isNotEmpty> 
+	 	<![CDATA[ order by t3.pay_date asc ]]>
+	 	 -->
+	 	
+	 	<![CDATA[ 
+	 		select distinct t.LOCK_ID,t3.RECT_ID,t3.CUST_NAME,t3.LEASE_CODE,t2.EQMT_ID,
+		 t2.THING_NAME,t1.RECP_ID,t4.RECP_CODE,t1.pay_date,
+		 (case  when t.isunlock = 0 then
+			                   0
+			                  else
+			                   1
+			                end) isunlock,1 num,t.REMIN_DAY
+		 from T_LOCK_MANAGEMENT t 
+		 left join T_RENT_COLLECTIONDETAIL t1 on t.RENT_ID=t1.RECD_ID and t1.STATUS=0
+		 left join T_RENT_CONTRACTDETAIL t2 on t2.STATUS=0 and t2.RECD_ID=t.RENT_DETAIL_ID
+		 left join T_RENT_CONTRACT t3 on t3.RECT_ID=t2.RECT_ID and t3.STATUS=0
+		 left join T_RENT_COLLECTIONPLAN t4 on t2.RECP_ID=t4.RECP_ID and t4.STATUS=0
+		 where  t.STATUS=0 and  convert(datetime, (case when #end_date# is not null then
+                                              convert(datetime, #end_date#) else
+                                              getdate() end)) = t.REMIN_DAY and ISNULL(t1.REDUCE_LOSS_PRICE,0)+ISNULL(t1.REDUCE_OTHER_PRICE,0)+ISNULL(t1.REDUCE_OWN_PRICE,0)+ISNULL(t1.REDUCE_REN_PRICE,0)<=0
+	 	]]>
+	 	<isNotEmpty prepend="and" property="content">
+			<![CDATA[ 
+		 		(t3.CUST_NAME like '%$content$%' 
+		 		or t2.Thing_Name like '%$content$%' )
+	 		]]>
+	 	</isNotEmpty>
+	</select>
+	
+	<!-- 
+	根据锁码Id查询设备详细信息及客户名
+	-->
+	<select id="queryCustByLock_Id" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[ 
+			select t4.CUST_NAME,
+			       t.thing_name,
+			       t.model_spec,
+			       t.amount,
+			       t.unit,
+			       t2.RENTER_EMAIL,
+			       t2.RENTER_PHONE
+			  from t_eqmt_equipment t,T_RENT_CONTRACTDETAIL t2,T_RENT_CONTRACT t3,T_CUST_CUSTOMER t4
+			 where  t2.EQMT_ID=t.EQMT_ID and t2.RECT_ID=t3.RECT_ID and t3.CUST_ID=t4.CUST_ID and t3.STATUS='0' and t3.LEASE_CODE=#lease_Code# and t2.RECD_ID=#recd_id#
+		]]>
+	</select>
+	
+	
+	<!-- 
+	 * 修改锁码发送方式
+	 * 
+	 * @param context
+	-->
+	<update id="updateLockSendManager" parameterClass="map">
+		<![CDATA[ 
+			update t_lock_management
+			   set SEND_TIME=getdate(),
+			       LOCK_STATUS='1',
+			       MODIFY_ID=#s_employeeId#,
+			       MODIFY_TIME= getdate()
+			 where lock_id = #lock_id#
+		]]>
+	</update> 
+	
+	<!-- 
+	查询所有以邮件或者短信方式发送个信息的记录个数
+	-->
+	<select id="queryAllEmailAndSms_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ 
+			select count(*)
+			  from t_eqmt_equipment t,T_LOCK_MSGLIST t1,T_RENT_CONTRACTDETAIL t2,T_RENT_CONTRACT t3,T_CUST_CUSTOMER t4,t_rent_collectiondetail t5
+			 where t1.RENT_DETAIL_ID=t2.RECD_ID and t2.EQMT_ID=t.EQMT_ID and t2.RECT_ID=t3.RECT_ID and t3.CUST_ID=t4.CUST_ID and t1.RECD_ID=t5.RECD_ID 
+		]]>
+	</select>
+	
+	<!-- 
+	查询所有以邮件或者短信方式发送个信息的记录
+	-->
+	<select id="queryAllEmailAndSms" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[ 
+			select t4.CUST_NAME,t.thing_name,t1.send_way,t1.sendType,t3.LEASE_CODE,t5.PAY_DATE,t5.LAST_PRICE,t1.sendtime
+			  from t_eqmt_equipment t,T_LOCK_MSGLIST t1,T_RENT_CONTRACTDETAIL t2,T_RENT_CONTRACT t3,T_CUST_CUSTOMER t4,t_rent_collectiondetail t5
+			 where t1.RENT_DETAIL_ID=t2.RECD_ID and t2.EQMT_ID=t.EQMT_ID and t2.RECT_ID=t3.RECT_ID and t3.CUST_ID=t4.CUST_ID and t1.RECD_ID=t5.RECD_ID
+			 order by t1.ID desc
+		]]>
+	</select>
+	
+	<!-- 
+	根据查询所有以邮件或者短信方式发送个信息的记录个数
+	-->
+	<select id="queryEmailAndSmsByCond_count" resultClass="int" parameterClass="java.util.HashMap">
+		<![CDATA[ 
+			select count(*)
+			  from t_eqmt_equipment t,T_LOCK_MSGLIST t1,T_RENT_CONTRACTDETAIL t2,T_RENT_CONTRACT t3,T_CUST_CUSTOMER t4,t_rent_collectiondetail t5
+			 where t1.RENT_DETAIL_ID=t2.RECD_ID and t2.EQMT_ID=t.EQMT_ID and t2.RECT_ID=t3.RECT_ID and t3.CUST_ID=t4.CUST_ID and t1.RECD_ID=t5.RECD_ID 
+		]]>
+		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="cust_name">
+	 			<![CDATA[
+				(t4.CUST_NAME like '%$cust_name$%')  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="lease_code">
+	 			<![CDATA[
+				(t3.LEASE_CODE like '%$lease_code$%')  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty  prepend="and"  property="status">		  	 	  			
+			  	<isEqual  property="status" compareValue="2">
+			  		 
+			  	</isEqual>
+			  	<isEqual  property="status" compareValue="0">
+			  		(t1.send_way=#status#)  
+			  	</isEqual>
+			  	<isEqual  property="status" compareValue="1">
+			  		(t1.send_way=#status#)  
+			  	</isEqual>
+			  	
+			  			  		  			  			  	 				
+		  	</isNotEmpty>
+		</dynamic> 
+	</select>
+	
+	
+	<!-- 
+	根据查询所有以邮件或者短信方式发送个信息的记录
+	-->
+	<select id="queryEmailAndSmsByCond" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[ 
+			select t4.CUST_NAME,t.thing_name,t1.send_way,t1.sendType,t3.LEASE_CODE,t5.PAY_DATE,t5.LAST_PRICE
+			  from t_eqmt_equipment t,T_LOCK_MSGLIST t1,T_RENT_CONTRACTDETAIL t2,T_RENT_CONTRACT t3,T_CUST_CUSTOMER t4,t_rent_collectiondetail t5
+			 where t1.RENT_DETAIL_ID=t2.RECD_ID and t2.EQMT_ID=t.EQMT_ID and t2.RECT_ID=t3.RECT_ID and t3.CUST_ID=t4.CUST_ID and t1.RECD_ID=t5.RECD_ID 
+		]]>
+		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="cust_name">
+	 			<![CDATA[
+				(t4.CUST_NAME like '%$cust_name$%')  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="lease_code">
+	 			<![CDATA[
+				(t3.LEASE_CODE like '%$lease_code$%')  
+				]]>
+			</isNotEmpty>
+			
+			
+			<isNotEmpty  prepend="and"  property="status">		  	 	  			
+			  	<isEqual  property="status" compareValue="2">
+			  		 
+			  	</isEqual>
+			  	<isEqual  property="status" compareValue="0">
+			  		(t1.send_way=#status#)  
+			  	</isEqual>
+			  	<isEqual  property="status" compareValue="1">
+			  		(t1.send_way=#status#)  
+			  	</isEqual>
+			  	
+			  			  		  			  			  	 				
+		  	</isNotEmpty>
+		</dynamic> 
+	</select>
+	
+		<!-- 
+	根据查询所有以邮件或者短信方式发送个信息的记录个数
+	-->
+	<select id="queryEmailAndSmsByCond2_count" resultClass="int" parameterClass="java.util.HashMap">
+		<![CDATA[ 
+			select COUNT(*) from (
+				select * from (
+				select t1.ID,t4.CUST_NAME,t.thing_name,t1.send_way,t1.sendType,t3.LEASE_CODE,t5.PAY_DATE,t5.LAST_PRICE,t1.state,t6.ReturnFlag,t1.SENDTIME ,
+			(
+			case
+			 when t1.SEND_WAY=0 and t1.SENDSTATE=1
+				then 1
+			when t1.SEND_WAY=0 and t1.SENDSTATE=2
+				then 2
+			when t1.SEND_WAY=1 and t6.ReturnFlag=1
+				then 1
+			else 2	
+			end
+			) sendState
+			from T_LOCK_MSGLIST t1
+				left join T_RENT_CONTRACTDETAIL t2 on  t1.RENT_DETAIL_ID=t2.RECD_ID
+				left join t_eqmt_equipment t on t2.EQMT_ID=t.EQMT_ID
+				left join T_RENT_CONTRACT t3 on t2.RECT_ID=t3.RECT_ID
+				left join T_CUST_CUSTOMER t4 on t3.CUST_ID=t4.CUST_ID
+				left join t_rent_collectiondetail t5 on t1.RECD_ID=t5.RECD_ID 
+				left join send_test t6 on t1.SENDSMS=t6.ID
+				where  t1.LEASE_CODE is null
+				UNION
+select t1.ID,t4.CUST_NAME,null thing_name,t1.send_way,t1.sendType,t3.LEASE_CODE,t1.SENDTIME PAY_DATE,t5.LAST_PRICE,t1.state,t6.ReturnFlag,t1.SENDTIME 
+,
+			(
+			case
+			 when t1.SEND_WAY=0 and t1.SENDSTATE=1
+				then 1
+			when t1.SEND_WAY=0 and t1.SENDSTATE=2
+				then 2
+			when t1.SEND_WAY=1 and t6.ReturnFlag=1
+				then 1
+			else 2	
+			end
+			) sendState
+			from T_LOCK_MSGLIST t1
+				left join T_RENT_CONTRACT t3 on t1.LEASE_CODE=t3.LEASE_CODE
+				left join T_RENT_CONTRACTDETAIL t2 on t2.RECT_ID=t3.RECT_ID
+				left join T_CUST_CUSTOMER t4 on t3.CUST_ID=t4.CUST_ID
+				left join t_rent_collectiondetail t5 on t1.RECD_ID=t5.RECD_ID 
+				left join send_test t6 on t1.SENDSMS=t6.ID
+				where t1.LEASE_CODE is not null) tall
+		]]>
+		<dynamic prepend="where">
+	 		<isNotEmpty prepend="and" property="cust_name">
+	 			<![CDATA[
+				(tall.CUST_NAME like '%$cust_name$%')  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="lease_code">
+	 			<![CDATA[
+				(tall.LEASE_CODE like '%$lease_code$%')  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty  prepend="and"  property="status">		  	 	  			
+			  	<isEqual  property="status" compareValue="2">
+			  		 
+			  	</isEqual>
+			  	<isEqual  property="status" compareValue="0">
+			  		(tall.send_way=#status#)  
+			  	</isEqual>
+			  	<isEqual  property="status" compareValue="1">
+			  		(tall.send_way=#status#)  
+			  	</isEqual>
+			  	
+			  			  		  			  			  	 				
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="sendType">
+	 			<![CDATA[
+				(tall.state=#sendType#)  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+				 tall.SENDTIME&gt;=cast(#QSTART_DATE# as datetime) 
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+				 tall.SENDTIME&lt;=cast(#QEND_DATE# as datetime)
+			</isNotEmpty>
+		</dynamic> 
+		) t 
+	</select>
+		<!-- 
+	根据查询所有以邮件或者短信方式发送个信息的记录
+	-->
+	<select id="queryEmailAndSmsByCond2" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[ 
+		select * from (
+			select t1.ID,t4.CUST_NAME,t.thing_name,t1.send_way,t1.sendType,t3.LEASE_CODE,t5.PAY_DATE,t5.LAST_PRICE,t1.state,t6.ReturnFlag,t1.SENDTIME
+			,
+			(
+			case
+			 when t1.SEND_WAY=0 and t1.SENDSTATE=1
+				then 1
+			when t1.SEND_WAY=0 and t1.SENDSTATE=2
+				then 2
+			when t1.SEND_WAY=1 and t6.ReturnFlag=1
+				then 1
+			else 2	
+			end
+			) sendState from T_LOCK_MSGLIST t1
+				left join T_RENT_CONTRACTDETAIL t2 on  t1.RENT_DETAIL_ID=t2.RECD_ID
+				left join t_eqmt_equipment t on t2.EQMT_ID=t.EQMT_ID
+				left join T_RENT_CONTRACT t3 on t2.RECT_ID=t3.RECT_ID
+				left join T_CUST_CUSTOMER t4 on t3.CUST_ID=t4.CUST_ID
+				left join t_rent_collectiondetail t5 on t1.RECD_ID=t5.RECD_ID 
+				left join send_test t6 on t1.SENDSMS=t6.ID
+				where  t1.LEASE_CODE is null
+				UNION
+select t1.ID,t4.CUST_NAME,null thing_name,t1.send_way,t1.sendType,t3.LEASE_CODE,t1.SENDTIME PAY_DATE,t5.LAST_PRICE,t1.state,t6.ReturnFlag,t1.SENDTIME ,
+			(
+			case
+			 when t1.SEND_WAY=0 and t1.SENDSTATE=1
+				then 1
+			when t1.SEND_WAY=0 and t1.SENDSTATE=2
+				then 2
+			when t1.SEND_WAY=1 and t6.ReturnFlag=1
+				then 1
+			else 2	
+			end
+			) sendState
+			from T_LOCK_MSGLIST t1
+				left join T_RENT_CONTRACT t3 on t1.LEASE_CODE=t3.LEASE_CODE
+				left join T_RENT_CONTRACTDETAIL t2 on t2.RECT_ID=t3.RECT_ID
+				left join T_CUST_CUSTOMER t4 on t3.CUST_ID=t4.CUST_ID
+				left join t_rent_collectiondetail t5 on t1.RECD_ID=t5.RECD_ID 
+				left join send_test t6 on t1.SENDSMS=t6.ID
+				where  t1.LEASE_CODE is not null) tall
+		]]>
+		<dynamic prepend="where">
+	 		<isNotEmpty prepend="and" property="cust_name">
+	 			<![CDATA[
+				(tall.CUST_NAME like '%$cust_name$%')  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="lease_code">
+	 			<![CDATA[
+				(tall.LEASE_CODE like '%$lease_code$%')  
+				]]>
+			</isNotEmpty>
+			
+			
+			<isNotEmpty  prepend="and"  property="status">		  	 	  			
+			  	<isEqual  property="status" compareValue="2">
+			  		 
+			  	</isEqual>
+			  	<isEqual  property="status" compareValue="0">
+			  		(tall.send_way=#status#)  
+			  	</isEqual>
+			  	<isEqual  property="status" compareValue="1">
+			  		(tall.send_way=#status#)  
+			  	</isEqual>	  			  			  	 				
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="sendType">
+	 			<![CDATA[
+				(tall.state=#sendType#)  
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+				 tall.SENDTIME&gt;=cast(#QSTART_DATE# as datetime) 
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+				 tall.SENDTIME&lt;=cast(#QEND_DATE# as datetime)
+			</isNotEmpty>
+		</dynamic> 
+		 order by tall.ID desc
+	</select>
+	
+	<!-- 
+	每日將當日當期已收款客戶資料之設備密碼自動傳送給客戶，傳送方式有mail
+	-->
+	<select id="selectIsEmailToTime" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[ 
+			select  t3.LOCK_ID,t1.RECP_ID,t1.PAY_DATE,t1.RECD_PERIOD,t5.CORP_COMPANY_EMAIL,t3.PASSWORDS,t5.CUST_NAME,t7.THING_NAME,t7.MODEL_SPEC,t4.LEASE_CODE, 
+			    t3.rent_id,t3.rent_detail_id,t3.lock_date,t3.passwords,t3.isunlock,t3.unlock_date from
+				T_RENT_COLLECTIONPLAN t
+				left join T_FINA_COLLECTIONBILL t1 on t.RECP_ID=t1.RECP_ID
+				left join T_RENT_COLLECTIONDETAIL t2 on t.RECP_ID=t2.RECP_ID
+				left join T_LOCK_MANAGEMENT t3 on t3.RENT_ID=t2.RECD_ID
+				left join T_RENT_CONTRACT t4 on t.RECT_ID=t4.RECT_ID
+				left join T_CUST_CUSTOMER t5 on t5.CUST_ID=t4.CUST_ID
+				left join T_RENT_CONTRACTDETAIL t6 on t6.RECT_ID=t4.RECT_ID
+				left join t_eqmt_equipment t7 on t6.EQMT_ID=t7.EQMT_ID
+			where DATEDIFF(day,t1.PAY_DATE,GETDATE())=0 and t1.STATUS='0' and t1.REAL_PRICE=t1.SHOULD_PRICE and t3.PASSWORDS is not null
+				and t5.CORP_COMPANY_EMAIL is not null and t3.STATUS='0' and t3.UNLOCK_DATE>GETDATE() and t3.lock_date<GETDATE() and t3.SEND_WAY=1
+		]]>
+	</select>
+	<select id="judgeRenterPhone" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[ 
+			select * from dbo.T_RENT_CONTRACTDETAIL where RECD_ID=#rent_detail_id# and RENTER_PHONE is not null
+		]]>
+	</select>
+	<!-- 
+	添加锁码管理(定时发送发送邮件) 
+	-->
+	
+	<insert id="createSendEmailToTime" parameterClass="map">
+		<![CDATA[ 
+			insert into T_LOCK_MSGLIST
+			  ( 
+			  LOCK_ID, SEND_WAY, PASSWORDS, SENDTIME, SENDTYPE, SENDEMAIL, SENDSMS, STATUS,RECD_ID,RENT_DETAIL_ID,SENDSTATE)
+			values
+			  ( 
+			   #lock_id#,
+			   0,
+			  #passwords#,
+			   getdate(),
+			   0,
+			   #sendemail#,
+			   #sendsms#,
+			   0,
+			   #rent_id#,
+			   #rent_detail_id#,#SENDSTATE#)
+		]]>
+	</insert>
+	
+		<!-- 
+	更新设备管理人和EMAIL 
+	-->
+	<update id="updateRenter" parameterClass="map">
+		<![CDATA[ 
+			update T_RENT_CONTRACTDETAIL
+			   set RENTER_NAME=#renter_name#,
+			       RENTER_EMAIL=#renter_email#,
+			       RENTER_PHONE=#renter_phone#,
+			       lock_code=#lock_code#
+			 where EQMT_ID = #eqmt_id#
+		]]>
+	</update> 
+		<update id="updateTHING_NUMBER" parameterClass="map">
+		<![CDATA[ 
+			update T_EQMT_EQUIPMENT
+			   set THING_NUMBER=#THING_NUMBER#
+			 where EQMT_ID = #eqmt_id#
+		]]>
+	</update>
+	<select id="AJAX_common_THING_NUMBER" resultClass="int" parameterClass="java.util.HashMap">
+		<![CDATA[ 
+				SELECT 
+			    COUNT(1)
+				FROM 
+				T_RENT_CONTRACTDETAIL T1
+				WHERE T1.STATUS = 0 
+				AND
+			    T1.THING_NUMBER = #THING_NUMBER#
+				AND T1.EQMT_ID!= #eqmt_id#
+		]]>
+	</select>
+
+	<!-- 
+	发送短信
+	-->
+	<insert id="createSendMsg" parameterClass="map">
+		 
+	  <![CDATA[
+		INSERT INTO send_test (MTEL,Message,ReturnFlag,CREATETIME,CREATE_BY,CONTRACT_NUMBER,CUSTOMER_NAME,SEND_MODE,SEND_TYPE,SENDTIME,LOG)
+     VALUES
+           (#MTEL#,#MESSAGE#,0,GETDATE(),#CREATE_BY#,#CONTRACT_NUMBER#,#CUST_NAME#,#SEND_MODE#,#SEND_TYPE#,GETDATE(),#LOG#)
+		]]>
+		<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS id
+		</selectKey> 
+	</insert>
+	
+	
+	<!-- 
+	发送短短信记录
+	-->
+	<insert id="createSendMsgDetil" parameterClass="map">
+		 INSERT INTO T_LOCK_MSGLIST
+           (LOCK_ID,SEND_WAY,PASSWORDS,SENDTIME,SENDTYPE,SENDEMAIL,SENDSMS,STATUS,RECD_ID,RENT_DETAIL_ID,STATE,LEASE_CODE)
+     VALUES
+           (#LOCK_ID#,1,#PASSWORDS#,getDate(),#SENDTYPE#,#SENDEMAIL#,#SENDSMS#,0,#RECD_ID#,#RENT_DETAIL_ID#,#STATE#,#LEASE_CODE#)
+	 
+	</insert>
+	
+	<!-- 
+	查询所有以邮件或者短信方式发送个信息的记录个数
+	-->
+	<select id="queryAllEmailAndSms2_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ 
+			select COUNT(*) from (
+				select t4.CUST_NAME,t.thing_name,t1.send_way,t1.sendType,t3.LEASE_CODE,t5.PAY_DATE,t5.LAST_PRICE,t1.state,t6.ReturnFlag,t1.SENDTIME from T_LOCK_MSGLIST t1
+								left join T_RENT_CONTRACTDETAIL t2 on  t1.RENT_DETAIL_ID=t2.RECD_ID
+								left join t_eqmt_equipment t on t2.EQMT_ID=t.EQMT_ID
+								left join T_RENT_CONTRACT t3 on t2.RECT_ID=t3.RECT_ID
+								left join T_CUST_CUSTOMER t4 on t3.CUST_ID=t4.CUST_ID
+								left join t_rent_collectiondetail t5 on t1.RECD_ID=t5.RECD_ID 
+								left join send_test t6 on t1.SENDSMS=t6.ID
+								where t6.ReturnFlag is null or t6.ReturnFlag=1) t 
+		]]>
+	</select>
+	
+	<!-- 
+	查询所有以邮件或者短信方式发送个信息的记录
+	-->
+	<select id="queryAllEmailAndSms2" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[ 
+			select t4.CUST_NAME,t.thing_name,t1.send_way,t1.sendType,t3.LEASE_CODE,t5.PAY_DATE,t5.LAST_PRICE,t1.state,t6.ReturnFlag,t1.SENDTIME from T_LOCK_MSGLIST t1
+				left join T_RENT_CONTRACTDETAIL t2 on  t1.RENT_DETAIL_ID=t2.RECD_ID
+				left join t_eqmt_equipment t on t2.EQMT_ID=t.EQMT_ID
+				left join T_RENT_CONTRACT t3 on t2.RECT_ID=t3.RECT_ID
+				left join T_CUST_CUSTOMER t4 on t3.CUST_ID=t4.CUST_ID
+				left join t_rent_collectiondetail t5 on t1.RECD_ID=t5.RECD_ID 
+				left join send_test t6 on t1.SENDSMS=t6.ID
+				where t6.ReturnFlag is null or t6.ReturnFlag=1
+				 order by t1.ID desc
+		]]>
+	</select>
+		<update id="updatLockManageRealeaseLock" parameterClass="map">
+		<![CDATA[ 
+			update T_LOCK_MANAGEMENT set ISUNLOCK=0,UNLOCK_DATE=GETDATE(),PASSWORDS=#pass# where LOCK_ID=#LOCK_ID#
+		]]>
+	</update> 
+	
+	<select id="queryAllmsgAndMail_count" resultClass="java.lang.Integer">
+	    SELECT COUNT(*)
+		  FROM SEND_TEST msg
+	</select>
+	
+	<!-- 查询所有短信,mial发送情况 -->
+	<select id="queryAllmsgAndMail" resultClass="java.util.HashMap">
+	    SELECT rtrim(msg.CONTRACT_NUMBER) contractNumber,rtrim(msg.CUSTOMER_NAME) customerName,rtrim(msg.MTEL) mobileNumber,
+		       rtrim(msg.MESSAGE) message,rtrim(msg.CREATE_BY) createBy,msg.SENDTIME sendTime,msg.SEND_MODE sendMode,msg.SEND_TYPE sendType
+		  FROM SEND_TEST msg
+	  ORDER BY msg.SENDTIME DESC   
+	</select>
+	
+	<select id="queryAllmsgAndMailByCondition_count" resultClass="java.lang.Integer" parameterClass="java.util.HashMap">
+	    SELECT COUNT(*)
+		  FROM SEND_TEST msg
+		 WHERE 1=1
+		  <isNotEmpty property="QSTART_DATE">
+		   AND msg.SENDTIME=CAST(#QSTART_DATE# as DATETIME)
+		  </isNotEmpty>
+		  <isNotEmpty property="CREATE_BY">
+		   AND msg.CREATE_BY LIKE '%$CREATE_BY$%'
+		  </isNotEmpty>
+		  <isNotEmpty property="status">
+		   AND msg.SEND_TYPE = #status#
+		  </isNotEmpty>
+		  <isNotEmpty property="cust_name">
+		   AND msg.CUSTOMER_NAME LIKE '%$cust_name$%'
+		  </isNotEmpty>
+		  <isNotEmpty property="lease_code">
+		   AND msg.CONTRACT_NUMBER = #lease_code#
+		  </isNotEmpty>
+	</select>
+	<!-- 通过条件查询 -->
+	<select id="queryAllmsgAndMailByCondition" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+	    SELECT rtrim(msg.CONTRACT_NUMBER) contractNumber,rtrim(msg.CUSTOMER_NAME) customerName,rtrim(msg.MTEL) mobileNumber,
+		       rtrim(msg.MESSAGE) message,rtrim(msg.CREATE_BY) createBy,msg.SENDTIME sendTime,msg.SEND_MODE sendMode,msg.SEND_TYPE sendType,msg.SENDFLAG
+		  FROM SEND_TEST msg
+		 WHERE 1=1 and (msg.SEND_TYPE='1' or msg.SEND_TYPE is null)
+		  <isNotEmpty property="QSTART_DATE">
+		   	AND msg.SENDTIME=CAST(#QSTART_DATE# as DATETIME)
+		  </isNotEmpty>
+		  <isNotEmpty property="CREATE_BY">
+		   	AND msg.CREATE_BY LIKE '%$CREATE_BY$%'
+		  </isNotEmpty>
+		  <isNotEmpty property="cust_name">
+		   	AND msg.CUSTOMER_NAME LIKE '%$cust_name$%'
+		  </isNotEmpty>
+		  <isNotEmpty property="lease_code">
+		   	AND msg.CONTRACT_NUMBER = #lease_code#
+		  </isNotEmpty>
+		  <isNotEmpty property="CONTENT">
+		   	AND rtrim(msg.MESSAGE) LIKE '%$CONTENT$%' 
+		  </isNotEmpty>
+ 		  <isNotEmpty property="MOBILE">
+		   	AND rtrim(msg.MTEL) = #MOBILE#
+		  </isNotEmpty>
+	</select>
+	
+	<!-- Add by Michael 2012 05-04 一个合同的设备联系人都是一样的，更新合同的所有联系人 -->
+	<update id="updateRenterByRectID" parameterClass="map">
+		<![CDATA[ 
+			update T_RENT_CONTRACTDETAIL
+			   set RENTER_NAME=#renter_name#,
+			       RENTER_EMAIL=#renter_email#,
+			       RENTER_PHONE=#renter_phone#
+			 where RECT_ID = #rect_id1# and LOCK_CODE=#lock_code#
+		]]>
+	</update>
+	
+	
+	<!-- Add by Michael 2012 06-24 增加密码附件 -->
+	<insert id="insertLockCodePasswordFile"   parameterClass="map">		
+		insert into T_LOCKCODE_PASSWORD_FILE
+		  (
+		   STATUS,
+		   PATH,
+		   TITLE,
+		   FILE_NAME,
+		   RECP_ID,
+		   PERIOD_NUM,
+		   EQMT_ID,
+		   CREATE_ID,
+		   CREATE_DATE)
+		values
+		  (
+		    0,
+		    #file_path#,
+		    #title#,
+		    #file_name#,
+		    #RECP_ID#,
+		    #PERIOD_NUM#,
+		    #EQMT_ID#,
+		    #s_employeeId#,
+		    getdate()
+		)		
+	</insert>	
+	
+	<!-- Add by Michael 2012 06-24 查看密码附件 -->
+	<select id="selectLockCodePasswordFile" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+			select  replace(PATH,'\','\\') PATH ,TITLE,FILE_NAME 
+			from T_LOCKCODE_PASSWORD_FILE 
+			where RECP_ID=#RECP_ID# and PERIOD_NUM=#PERIOD_NUM# and EQMT_ID=#EQMT_ID# and status=0
+		 ]]> 
+	</select>
+	
+		<!-- 删除 -->
+	<update id="deleteLockCodePasswordFile" parameterClass="map">
+		<![CDATA[
+			update T_LOCKCODE_PASSWORD_FILE 
+			   set STATUS = -2,MODIFY_ID=#s_employeeId#,MODIFY_DATE=getDate()
+			 where ID = #ID#
+			 ]]>
+	</update>
+	
+	
+	<select id="getLockInfoByOne" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+		select top 1 cld.PERIOD_NUM, cld.RECP_ID, RENTER_NAME, ctd.RENTER_EMAIL, ctd.RENTER_PHONE,
+			ctd.EQMT_ID, ctd.THING_NAME, ctd.MODEL_SPEC, ctd.THING_NUMBER,
+			lf.PATH, lf.[FILE_NAME], ct.CUST_NAME, ctd.THING_KIND, lm.PASSWORDS, u.ID as user_id,
+			u.EMAIL as U_EMAIL, uu.EMAIL as UU_EMAIL, ctd.LOCK_CODE, lm.LOCK_ID, ctd.BRAND
+			,case 
+			when  DAY(cld.PAY_DATE)<=15 then
+			convert(varchar,year(convert(date,dateadd(MONTH,1,cld.PAY_DATE),23)))
+			    +'-'+
+			    convert(varchar,month(convert(date,dateadd(MONTH,1,cld.PAY_DATE),23)))+'-25'
+			else
+			convert(varchar,year(convert(date,dateadd(MONTH,2,cld.PAY_DATE),23)))
+			    +'-'+
+			    convert(varchar,month(convert(date,dateadd(MONTH,2,cld.PAY_DATE),23)))+'-10'
+			end NEXT_LOCK_DATE
+			,culk.LINK_NAME, culk.LINK_MOBILE, culk.LINK_EMAIL
+		from T_RENT_COLLECTIONDETAIL cld
+		left join T_RENT_COLLECTIONPLAN cp on cld.RECP_ID = cp.RECP_ID
+		left join T_RENT_CONTRACT ct on cp.RECT_ID = ct.RECT_ID
+		left join T_CUST_CUSTOMER cust on ct.CUST_ID = cust.CUST_ID
+		left join T_CUST_LINKMAN culk on culk.CUST_ID = cust.CUST_ID
+			and culk.LINK_TYPE = 0
+		left join T_USER_USER u on ct.SENSOR_ID = u.ID
+		left join T_USER_USER uu on u.upper_user = uu.ID
+		left join T_RENT_CONTRACTDETAIL ctd on ctd.RECT_ID = ct.RECT_ID 
+			and ctd.EQMT_ID = #eqmtId#
+		left join t_lock_management lm on lm.RENT_ID = cld.RECD_ID 
+			and lm.RENT_DETAIL_ID = ctd.RECD_ID
+		left join T_LOCKCODE_PASSWORD_FILE lf on lf.EQMT_ID = ctd.EQMT_ID
+			and lf.PERIOD_NUM = cld.PERIOD_NUM and lf.RECP_ID = cld.RECP_ID
+			and lf.STATUS = 0
+		where cld.RECD_ID = #recdId#
+		and cld.STATUS = 0
+		and cp.STATUS = 0
+		and ct.STATUS = 0
+		and ctd.STATUS = 0
+		]]>
+	</select>
+	<update id="updateManualLockCode" parameterClass="map">
+		update T_LOCK_MANAGEMENT
+		set IS_ARTIFICIAL = 0
+		where LOCK_ID = #LOCK_ID#
+	</update>
+	
+	<select id="getWorkDayByAfterWithThis" parameterClass="map" resultClass="java.lang.String">
+		select top 1 convert(nvarchar,date) from T_DAY_TYPE
+		where date >= convert(date, #query_date#)
+		and DAY_TYPE = 'WD'
+		order by date
+	</select>
+	
+</sqlMap>

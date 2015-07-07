@@ -1,0 +1,735 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="custCredit">
+	<!-- 
+	查询全部客户授权
+	 -->
+	<select id="queryAllCustCredit" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+	
+	 	SELECT  TCP.CUGP_ID,
+			 	TCP.CREATE_DATE,
+			 	TCP.CREATE_ID,
+			 	TCP.MODITY_DATE,
+			 	TCP.MODIFY_ID,
+				TCP.CUGP_STATUS,
+				TCP.CUGP_CODE,
+				TCP.GRANT_PRICE,
+				TCP.START_DATE,
+				TCP.END_DATE,
+				TCP.REMARK,
+				TCP.REPEAT_CREDIT,
+				TCC.CUST_ID,
+				TCC.CUST_NAME,
+				TCC.NATU_PHONE,
+				TCC.CUST_CODE,
+				TCC.NATU_MOBILE,
+				TCC.CUST_LEVEL,	
+				TCC.CORP_ORAGNIZATION_CODE,	
+				TCC.NATU_IDCARD,	
+				TCC.CUST_TYPE				
+		 	FROM T_CUST_CUSTOMER  TCC
+		 	LEFT JOIN T_CUST_GRANTPLAN TCP ON TCP.CUST_ID = TCC.CUST_ID
+		 		WHERE TCC.STATUS = 0 AND (TCP.STATUS IS NULL OR TCP.STATUS=0)
+		 	]]>
+	 	<isNotEmpty prepend="and" property="CUST_ID">
+	 		<![CDATA[TCC.CUST_ID = #CUST_ID# ]]>
+	 	</isNotEmpty> 
+	 	<isNotEmpty prepend="and" property="QCUSTLEVEL">
+	 		<![CDATA[TCC.CUST_LEVEL = #QCUSTLEVEL# ]]>
+	 	</isNotEmpty> 
+	 	<isNotEmpty prepend="and" property="QSEARCHVALUE">
+			<![CDATA[TCC.CUST_NAME LIKE '%$QSEARCHVALUE$%']]>
+		</isNotEmpty> 
+	 	<isNotEmpty prepend="and" property="QSTARTMONEY">
+	 		<![CDATA[TCP.GRANT_PRICE >= #QSTARTMONEY#]]>
+	 	</isNotEmpty>
+	 	<isNotEmpty prepend="and" property="QENDMONEY">
+	 		<![CDATA[#QENDMONEY# >= TCP.GRANT_PRICE]]>
+	 	</isNotEmpty> 
+	 	<isNotEqual prepend="" property="QCUGPDTATUS" compareValue="-1">
+	 		<isEqual prepend="and" property="QCUGPDTATUS" compareValue="0">
+		 		<![CDATA[TCP.CUGP_STATUS = #QCUGPDTATUS#]]>
+		 	</isEqual> 
+	 		<isEqual prepend="and" property="QCUGPDTATUS" compareValue="1">
+		 		<![CDATA[TCP.CUGP_STATUS = #QCUGPDTATUS#]]>
+		 	</isEqual> 
+	 		<isEqual prepend="and" property="QCUGPDTATUS" compareValue="2">
+		 		<![CDATA[ TCP.CUGP_ID IS NULL]]>
+		 	</isEqual> 
+	 	</isNotEqual> 
+		<![CDATA[ ORDER BY TCC.CREATE_TIME DESC]]>
+	 </select>
+	<!-- 
+	查询全部客户授权个数
+	 -->
+	<select id="queryAllCustCredit_count" parameterClass="map" resultClass="java.lang.Integer">
+	 	<![CDATA[
+	
+	 	SELECT  COUNT(1)
+		 	FROM T_CUST_CUSTOMER  TCC
+		 	LEFT JOIN T_CUST_GRANTPLAN TCP ON TCP.CUST_ID = TCC.CUST_ID
+		 		WHERE TCC.STATUS = 0 AND (TCP.STATUS IS NULL OR TCP.STATUS=0)
+		 	]]>
+	 	<isNotEmpty prepend="and" property="QCUSTLEVEL">
+	 		<![CDATA[TCC.CUST_LEVEL = #QCUSTLEVEL# ]]>
+	 	</isNotEmpty> 
+	 	<isNotEmpty prepend="and" property="QSEARCHVALUE">
+			<![CDATA[TCC.CUST_NAME LIKE '%$QSEARCHVALUE$%']]>
+		</isNotEmpty> 
+	 	<isNotEmpty prepend="and" property="QSTARTMONEY">
+	 		<![CDATA[TCP.GRANT_PRICE >= #QSTARTMONEY#]]>
+	 	</isNotEmpty>
+	 	<isNotEmpty prepend="and" property="QENDMONEY">
+	 		<![CDATA[#QENDMONEY# >= TCP.GRANT_PRICE]]>
+	 	</isNotEmpty> 
+	 	<isNotEqual prepend="" property="QCUGPDTATUS" compareValue="-1">
+	 		<isEqual prepend="and" property="QCUGPDTATUS" compareValue="0">
+		 		<![CDATA[TCP.CUGP_STATUS = #QCUGPDTATUS#]]>
+		 	</isEqual> 
+	 		<isEqual prepend="and" property="QCUGPDTATUS" compareValue="1">
+		 		<![CDATA[TCP.CUGP_STATUS = #QCUGPDTATUS#]]>
+		 	</isEqual> 
+	 		<isEqual prepend="and" property="QCUGPDTATUS" compareValue="2">
+		 		<![CDATA[ TCP.CUGP_ID IS NULL]]>
+		 	</isEqual> 
+	 	</isNotEqual> 
+	 </select>
+	<!-- 
+	通过客户id查询客户授权
+	 -->
+	<select id="queryAllGrantplanById" parameterClass="map" resultClass="java.util.HashMap">
+	 	SELECT CUGP_ID,
+	 	CREATE_DATE,
+	 	CREATE_ID,
+	 	MODITY_DATE,
+	 	MODIFY_ID,
+	 	TYPE,
+		STATUS,
+		CUGP_STATUS,
+		CUGP_CODE,
+		GRANT_PRICE,
+		LAST_PRICE,
+		START_DATE,
+		END_DATE,
+		CUST_ID,
+		REMARK,
+		REPEAT_CREDIT
+	 	FROM T_CUST_GRANTPLAN 
+	 	WHERE STATUS = 0 
+	 	AND
+	 	CUST_ID = #CUST_ID#
+	 </select>
+	<!-- 
+	通过授权id查询客户授权方案
+	 -->
+	<select id="queryAllGrantdetailById" parameterClass="map" resultClass="java.util.HashMap">
+	 	SELECT 
+	 	CUGD_ID,
+		CREATE_DATE,
+		CREATE_ID,
+		MODIFY_TIME,
+		MODIFY_ID,
+		TYPE,
+		STATUS,
+		CUGD_STATUS,
+		CUGP_ID,
+		LEASE_PERIOD,
+		LEASE_TERM,
+		PAY_WAY,
+		MANAGEMENT_FEE_RATE,
+		HEAD_HIRE_PERCENT,
+		PLEDGE_PRICE_RATE,
+		FLOAT_RATE,
+		REMARK
+	 	FROM T_CUST_GRANTDETAIL
+	 	WHERE STATUS = 0 
+	 	AND
+	 	CUGP_ID = #CUGP_ID#
+	 </select>
+	 <!-- 
+	  查询所有授信个数 
+	  -->
+	 <select id="queryAllGrantplanById_count" parameterClass="map" resultClass="int">
+	 	SELECT COUNT(CUGP_ID) CNT FROM T_CUST_GRANTPLAN WHERE STATUS = 0 
+	 </select>
+	 <!-- 
+	  查询所有授信方案个数 
+	  -->
+	 <select id="queryAllGrantdetailById_count" parameterClass="map" resultClass="int">
+	 	SELECT COUNT(CUGD_ID) CNT FROM T_CUST_GRANTDETAIL WHERE STATUS = 0 
+	 </select>
+	 <!-- 
+	  id查询授信个数 
+	  -->
+	 <select id="queryAllGrantplan_count" parameterClass="map" resultClass="int">
+	 	SELECT COUNT(CUGP_ID) CNT FROM T_CUST_GRANTPLAN WHERE STATUS = 0 
+	 </select>
+	 <!-- 
+	  创建客户授信 
+	  -->
+	 <insert id="creatCustCreditPlan" parameterClass="map">
+	  <![CDATA[
+	  	INSERT INTO T_CUST_GRANTPLAN (
+	  	CREATE_DATE,
+	  	CREATE_ID,
+	  	MODITY_DATE,
+	  	MODIFY_ID,
+	 	TYPE,
+		STATUS,
+		CUGP_STATUS,
+		CUGP_CODE,
+		GRANT_PRICE,
+		LAST_PRICE,
+		START_DATE,
+		END_DATE,
+		CUST_ID,
+		REMARK,
+		REPEAT_CREDIT
+	  	)VALUES(
+	  	getdate(),
+	 	#CREATE_ID#,
+	 	getdate(),
+	 	#MODIFY_ID#,
+	 	#TYPE#,
+		0,
+		0,
+		#CUGP_CODE#,
+		#GRANT_PRICE#,
+		#LAST_PRICE#,
+		#START_DATE#,
+		#END_DATE#,
+		#CUST_ID#,
+		#REMARK#,
+		#REPEAT_CREDIT#
+	  	)
+	  ]]>
+	</insert>
+	<!-- 
+	  更新客户授信 
+	  -->
+	 <update id="updateCustCreditPlan" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_CUST_GRANTPLAN SET
+	 	TYPE = #TYPE#,
+		MODITY_DATE = getdate(),
+		MODIFY_ID = #MODIFY_ID#,
+		CUGP_STATUS = #CUGP_STATUS#,
+		CUGP_CODE = #CUGP_CODE#,
+		GRANT_PRICE = #GRANT_PRICE#,
+		LAST_PRICE = #LAST_PRICE#,
+		START_DATE = #START_DATE#,
+		END_DATE = #END_DATE#,
+		CUST_ID = #CUST_ID#,
+		REMARK = #REMARK#,
+		REPEAT_CREDIT = #REPEAT_CREDIT#
+		WHERE CUGP_ID= #CUGP_ID#
+	  ]]>
+	</update>
+	 <!-- 
+	  创建客户授信方案 
+	  -->
+	 <insert id="createCustCreditDetail" parameterClass="map">
+	  <![CDATA[
+	  	INSERT INTO T_CUST_GRANTDETAIL (
+		CREATE_DATE,
+		CREATE_ID,
+		MODIFY_ID,
+		TYPE,
+		STATUS,
+		CUGD_STATUS,
+		CUGP_ID,
+		LEASE_PERIOD,
+		LEASE_TERM,
+		PAY_WAY,
+		MANAGEMENT_FEE_RATE,
+		HEAD_HIRE_PERCENT,
+		PLEDGE_PRICE_RATE,
+		FLOAT_RATE,
+		REMARK
+	  	)VALUES(
+	  	getDate(),
+	 	#CREATE_ID#,
+	 	#MODIFY_ID#,
+	 	#TYPE#,
+		0,
+		#CUGD_STATUS#,
+		#CUGP_ID#,
+		#LEASE_PERIOD#,
+		#LEASE_TERM#,
+		#PAY_WAY#,
+		#MANAGEMENT_FEE_RATE#,
+		#HEAD_HIRE_PERCENT#,
+		#PLEDGE_PRICE_RATE#,
+		#FLOAT_RATE#,
+		#REMARK#
+	  	)
+	  ]]>
+	</insert>
+	<!-- 
+	  更新客户授信方案
+	  -->
+	 <update id="updateCustCreditDetail" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_CUST_GRANTDETAIL SET
+	  	MODIFY_TIME = getdate(),
+		MODIFY_ID = #MODIFY_ID#,
+		TYPE = #TYPE#,
+		STATUS = 0,
+		CUGD_STATUS = #CUGD_STATUS#,
+		CUGP_ID = #CUGP_ID#,
+		LEASE_PERIOD = #LEASE_PERIOD#,
+		LEASE_TERM = #LEASE_TERM#,
+		PAY_WAY = #PAY_WAY#,
+		MANAGEMENT_FEE_RATE = #MANAGEMENT_FEE_RATE#,
+		HEAD_HIRE_PERCENT = #HEAD_HIRE_PERCENT#,
+		PLEDGE_PRICE_RATE = #PLEDGE_PRICE_RATE#,
+		FLOAT_RATE = #FLOAT_RATE#,
+		REMARK = #REMARK#
+		WHERE CUGD_ID = #CUGD_ID#
+	  ]]>
+	</update>
+	<!-- 
+	  删除客户授信方案
+	  -->
+	 <update id="delCustCreditDetail" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_CUST_GRANTDETAIL SET
+		STATUS = -2
+		WHERE CUGD_ID = #CUGD_ID#
+	  ]]>
+	</update>
+	<!-- 
+	  取消客户授信
+	  -->
+	 <update id="delCreditPlan" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_CUST_GRANTPLAN SET
+		CUGP_STATUS = 1
+		WHERE CUST_ID = #CUST_ID#
+	  ]]>
+	</update>
+	<!-- 
+		检验承租人是否有符合条件的授信
+	 -->
+	<statement id="validate-credit-result" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[
+			SELECT COUNT(1) FROM T_CUST_GRANTPLAN T 
+			WHERE T.CUST_ID=#CUST_ID# AND T.LAST_PRICE>=#LAST_PRICE#
+				AND GETDATE() BETWEEN  T.START_DATE AND T.END_DATE
+		]]>
+	</statement>
+	<statement id="plus-credit-lastprice" parameterClass="map">
+	<![CDATA[
+			UPDATE T_CUST_GRANTPLAN SET 
+				LAST_PRICE=LAST_PRICE-#LAST_PRICE#,
+				MODITY_DATE=GETDATE(),
+				MODIFY_ID=#S_EMPLOYEEID# 
+			WHERE CUST_ID=#CUST_ID#
+	]]>
+	</statement>
+	<statement id="sub-credit-lastprice" parameterClass="map">
+	<![CDATA[
+		UPDATE T_CUST_GRANTPLAN SET 
+				LAST_PRICE=LAST_PRICE+#LAST_PRICE#,
+				MODITY_DATE=GETDATE(),
+				MODIFY_ID=#S_EMPLOYEEID# 
+			WHERE CUST_ID=#CUST_ID#
+	]]>
+	</statement>
+	<statement id="create-customer-creditlog" parameterClass="map">
+	<![CDATA[
+	INSERT INTO T_CUST_GRANTLOG
+           (CREATE_ID
+           ,CREATE_DATE
+           ,MODIFY_ID
+           ,MODIFY_DATE
+           ,STATUS
+           ,TYPE
+           ,CUGL_STATUS
+           ,MEMO
+           ,CUGP_ID
+           ,GRANT_PRICE
+           ,LAST_PRICE
+           ,START_DATE
+           ,END_DATE)
+      SELECT #S_EMPLOYEEID#,GETDATE(),#S_EMPLOYEEID#,GETDATE(),0,0,#CUGL_STATUS#,#MEMO#,
+		      T.CUGP_ID,T.GRANT_PRICE,T.LAST_PRICE,T.START_DATE,T.END_DATE
+		  FROM T_CUST_GRANTPLAN  T
+		  WHERE CUST_ID=#CUST_ID#
+	]]>
+	</statement>
+	<statement id="customercreditlog" parameterClass="map">
+	<![CDATA[
+	INSERT INTO T_CUST_GRANTLOG
+           (CREATE_ID
+           ,CREATE_DATE
+           ,MODIFY_ID
+           ,MODIFY_DATE
+           ,STATUS
+           ,TYPE
+           ,CUGL_STATUS
+           ,MEMO
+           ,CUGP_ID
+           ,GRANT_PRICE
+           ,LAST_PRICE
+           ,START_DATE
+           ,END_DATE)
+      SELECT #CREATE_ID#,GETDATE(),#MODIFY_ID#,GETDATE(),0,0,#CUGL_STATUS#,#MEMO#,
+		      T.CUGP_ID,#GRANT_PRICE#,#LAST_PRICE#,#START_DATE#,#END_DATE#
+		  FROM T_CUST_GRANTPLAN  T
+		  WHERE CUST_ID=#CUST_ID#
+	]]>
+	</statement>
+	<select id="queryLog" parameterClass="map" resultClass="java.util.HashMap">
+	 	SELECT TCG.CREATE_ID
+           ,TCG.CREATE_DATE
+           ,TCG.MODIFY_ID
+           ,TCG.MODIFY_DATE
+           ,TCG.STATUS
+           ,TCG.TYPE
+           ,TCG.CUGL_STATUS
+           ,TCG.MEMO
+           ,TCG.CUGP_ID
+           ,TCG.GRANT_PRICE
+           ,TCG.LAST_PRICE
+           ,TCG.START_DATE
+           ,TCG.END_DATE
+           ,TCC.CUST_NAME
+		  FROM T_CUST_GRANTLOG TCG
+		  LEFT JOIN T_CUST_GRANTPLAN TCGP ON TCGP.CUGP_ID = TCG.CUGP_ID
+		  LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.CUST_ID = TCGP.CUGP_ID
+		  WHERE TCGP.CUST_ID=#CUST_ID#
+	 </select>
+	<select id="queryLog_count" parameterClass="map" resultClass="int">
+	 	SELECT COUNT(1)
+		  FROM T_CUST_GRANTLOG TCG
+		  LEFT JOIN T_CUST_GRANTPLAN TCGP ON TCGP.CUGP_ID = TCG.CUGP_ID
+		  WHERE TCGP.CUST_ID=#CUST_ID#
+	 </select>
+	 <select id="getCustCreditByCustId" parameterClass="map" resultClass="java.lang.Double" >
+	 	<!-- 
+	 		SELECT (ISNULL(MAX(GRANT_PRICE),0) - ISNULL(SUM(PRICE),0)) PRICECOUNT
+			FROM (
+				SELECT 
+					(CASE
+						WHEN T2.RECP_ID IS NULL 
+							OR T.REPEAT_CREDIT != 1 
+							OR
+									(
+										SELECT 
+											TOP 1 TT.REAL_OWN_PRICE
+										FROM
+											T_RENT_COLLECTIONDETAIL TT
+											LEFT JOIN (
+													SELECT
+														RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+													FROM
+														T_FINA_COLLECTIONBILL TTT
+													WHERE
+														TTT.FICB_TYPE=0 
+														AND TTT.FICB_ITEM= #zujin#
+														AND TTT.FICB_STATE = 5 
+														AND TTT.STATUS=0
+														AND TTT.RECP_ID = T2.RECP_ID
+													GROUP BY 
+														RECD_PERIOD
+											) TT1 ON TT1.recp_id = TT.recp_id AND TT1.RECD_PERIOD = TT.PERIOD_NUM
+										WHERE
+											((TT1.REAL_PRICEcount - TT.IRR_MONTH_PRICE) <= 0.005
+											AND (TT1.REAL_PRICEcount - TT.IRR_MONTH_PRICE) >= -0.005)
+											AND TT.STATUS = 0 
+											AND TT.RECP_ID = T2.RECP_ID
+										ORDER BY PERIOD_NUM DESC
+									) IS NULL
+						THEN ISNULL(T3.LEASE_TOPRIC,0) - ISNULL(T3.PLEDGE_ENTER_MCTOAG,0) - ISNULL(T3.PLEDGE_ENTER_AG,0)
+						WHEN T2.RECP_STATUS = 1 
+							 OR T2.RECP_STATUS = 3
+						THEN 0
+						ELSE (
+								SELECT 
+									TOP 1 TT.REAL_OWN_PRICE
+								FROM
+									T_RENT_COLLECTIONDETAIL TT
+									LEFT JOIN (
+											SELECT
+												RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+											FROM
+												T_FINA_COLLECTIONBILL TTT
+											WHERE
+												TTT.FICB_TYPE=0 
+												AND TTT.FICB_ITEM= #zujin#
+												AND TTT.FICB_STATE = 5 
+												AND TTT.STATUS=0
+												AND TTT.RECP_ID = T2.RECP_ID
+											GROUP BY 
+												RECD_PERIOD
+									) TT1 ON TT1.recp_id = TT.recp_id AND TT1.RECD_PERIOD = TT.PERIOD_NUM
+								WHERE
+									((TT1.REAL_PRICEcount - TT.IRR_MONTH_PRICE) <= 0.005
+									AND (TT1.REAL_PRICEcount - TT.IRR_MONTH_PRICE) >= -0.005)
+									AND TT.STATUS = 0 
+									AND TT.RECP_ID = T2.RECP_ID
+								ORDER BY PERIOD_NUM DESC
+									)
+						END) PRICE,
+					T.GRANT_PRICE
+				FROM
+					T_CUST_GRANTPLAN T
+					LEFT JOIN T_RENT_CONTRACT T1 ON T1.CUST_ID = T.CUST_ID AND T1.STATUS = 0
+					LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECT_ID = T1.RECT_ID AND T2.STATUS = 0
+					LEFT JOIN T_RENT_CONTRACTSCHEMA T3 ON T3.RECT_ID = T1.RECT_ID AND T3.STATUS = 0 
+				WHERE
+					T.STATUS = 0
+					AND T.CUST_ID = #cust_id#
+				) TTTT
+	 	-->
+	 		 	SELECT (ISNULL(MAX(GRANT_PRICE),0) - ISNULL(SUM(PRICE),0)) PRICECOUNT
+			FROM (
+				SELECT 
+					(CASE
+						WHEN T1.RECT_ID IS NULL THEN ISNULL(TPCS.LEASE_TOPRIC,0)-ISNULL(TPCS.PLEDGE_ENTER_AG,0)-ISNULL(TPCS.PLEDGE_ENTER_MCTOAG,0)
+						WHEN T.REPEAT_CREDIT = 1 AND (T2.RECP_STATUS = 1 OR T2.RECP_STATUS = 3) THEN 0
+						WHEN T2.RECP_ID IS NULL 
+							OR T.REPEAT_CREDIT != 1 
+							OR
+									(
+										SELECT 
+											MIN(TT.REAL_OWN_PRICE)
+										FROM
+											T_RENT_COLLECTIONDETAIL TT 
+										WHERE
+											 TT.STATUS = 0 
+											AND TT.RECP_ID = T2.RECP_ID
+											AND ISNULL(TT.REDUCE_LOSS_PRICE,0)+ISNULL(TT.REDUCE_OTHER_PRICE,0)+ISNULL(TT.REDUCE_OWN_PRICE,0)+ISNULL(TT.REDUCE_REN_PRICE,0)>0
+									) IS NULL
+						THEN ROUND(ISNULL(T3.LEASE_TOPRIC,0),0,1) - ROUND(ISNULL(T3.PLEDGE_ENTER_MCTOAG,0),0,1) - ROUND(ISNULL(T3.PLEDGE_ENTER_AG,0),0,1)
+						ELSE (
+									SELECT 
+										MIN(TT.REAL_OWN_PRICE)
+									FROM
+										T_RENT_COLLECTIONDETAIL TT 
+									WHERE
+										 TT.STATUS = 0 
+										AND TT.RECP_ID = T2.RECP_ID
+										AND ISNULL(TT.REDUCE_LOSS_PRICE,0)+ISNULL(TT.REDUCE_OTHER_PRICE,0)+ISNULL(TT.REDUCE_OWN_PRICE,0)+ISNULL(TT.REDUCE_REN_PRICE,0)>0
+								)
+						END) PRICE,
+					T.GRANT_PRICE
+				FROM
+					T_CUST_GRANTPLAN T
+					left join T_PRJT_CREDIT tpc on tpc.CUST_ID=T.CUST_ID AND tpc.WIND_STATE=1
+					LEFT JOIN T_PRJT_CREDITSCHEME TPCS ON TPCS.CREDIT_ID=tpc.ID
+					LEFT JOIN T_RENT_CONTRACT T1 ON T1.PRCD_ID = TPC.ID AND T1.STATUS = 0
+					LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECT_ID = T1.RECT_ID AND T2.STATUS = 0
+					LEFT JOIN T_RENT_CONTRACTSCHEMA T3 ON T3.RECT_ID = T1.RECT_ID AND T3.STATUS = 0 
+				WHERE
+					T.STATUS = 0
+					AND T.CUST_ID = #cust_id#
+				) TTTT
+	 </select>
+	 <select id="getCustGuiHuOWNByCustId" parameterClass="map" resultClass="java.lang.Double">
+	 <!-- Marked by Michael 2012 02/03 用净本金余额计算归户 
+	 	<![CDATA[
+	 			SELECT ISNULL(SUM(PRICE),0) BENJINPRICE
+			FROM (
+				SELECT 
+					(CASE
+						WHEN T2.RECP_STATUS = 1 OR T2.RECP_STATUS = 3 THEN 0
+						WHEN T2.RECP_ID IS NULL 
+							OR     (
+										SELECT 
+											MIN(TT.REAL_OWN_PRICE)
+										FROM
+											T_RENT_COLLECTIONDETAIL TT 
+										WHERE
+											 TT.STATUS = 0 
+											AND TT.RECP_ID = T2.RECP_ID
+											AND ISNULL(TT.REDUCE_LOSS_PRICE,0)+ISNULL(TT.REDUCE_OTHER_PRICE,0)+ISNULL(TT.REDUCE_OWN_PRICE,0)+ISNULL(TT.REDUCE_REN_PRICE,0)>0
+									) IS NULL
+						THEN ROUND(ISNULL(T3.LEASE_TOPRIC,0),0,1) - ROUND(ISNULL(T3.PLEDGE_ENTER_MCTOAG,0),0,1) - ROUND(ISNULL(T3.PLEDGE_ENTER_AG,0),0,1)
+						ELSE (
+									SELECT 
+										MIN(TT.REAL_OWN_PRICE)
+									FROM
+										T_RENT_COLLECTIONDETAIL TT 
+									WHERE
+										 TT.STATUS = 0 
+										AND TT.RECP_ID = T2.RECP_ID
+										AND ISNULL(TT.REDUCE_LOSS_PRICE,0)+ISNULL(TT.REDUCE_OTHER_PRICE,0)+ISNULL(TT.REDUCE_OWN_PRICE,0)+ISNULL(TT.REDUCE_REN_PRICE,0)>0
+								)
+						END) PRICE
+				FROM
+					T_RENT_CONTRACT T1
+					LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECT_ID = T1.RECT_ID AND T2.STATUS = 0
+					LEFT JOIN T_RENT_CONTRACTSCHEMA T3 ON T3.RECT_ID = T1.RECT_ID AND T3.STATUS = 0 
+				WHERE
+					T1.STATUS = 0
+					AND T1.CUST_ID = #cust_id#
+				) TTTT
+	 	]]>
+	 	-->
+	 	<![CDATA[
+	 		SELECT ISNULL(SUM(PRICE),0) BENJINPRICE
+				FROM (
+					SELECT 
+						(CASE
+							WHEN T2.RECP_STATUS = 1 OR T2.RECP_STATUS = 3 THEN 0
+							WHEN T2.RECP_ID IS NULL 
+								OR     (
+											SELECT 
+												MIN(TT.NET_FINANCE)
+											FROM
+												T_RENT_COLLECTIONDETAIL TT 
+											WHERE
+												 TT.STATUS = 0 
+												AND TT.RECP_ID = T2.RECP_ID
+												AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0
+										) IS NULL
+							THEN ISNULL(T3.LEASE_RZE,0)
+							ELSE (
+										SELECT 
+											MIN(TT.NET_FINANCE)-
+											(case 
+											when MIN(isnull(TT.REDUCE_OWN_PRICE,0))-MIN(TT.REN_PRICE)>0 then 
+												min(TT.IRR_MONTH_PRICE)-min(TT.REDUCE_OWN_PRICE)
+											else
+												min(TT.IRR_MONTH_PRICE)-min(TT.REN_PRICE)
+											end) irr_price
+										FROM
+											T_RENT_COLLECTIONDETAIL TT 
+										WHERE
+											 TT.STATUS = 0 
+											AND TT.RECP_ID = T2.RECP_ID
+											AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0
+									)
+							END) PRICE
+					FROM
+						T_RENT_CONTRACT T1
+						LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECT_ID = T1.RECT_ID AND T2.STATUS = 0
+						LEFT JOIN T_RENT_CONTRACTSCHEMA T3 ON T3.RECT_ID = T1.RECT_ID AND T3.STATUS = 0 
+					WHERE
+						T1.STATUS = 0 and (t2.RECP_STATUS<>1 and t2.RECP_STATUS<>3)
+						AND T1.CUST_ID = #cust_id#
+			) TTTT				
+	 	]]>
+	 </select>
+	 <select id="getCustGuiHuIRRByCustId" parameterClass="map" resultClass="java.lang.Double">
+	 	<![CDATA[
+	 	SELECT ISNULL(SUM(PRICE),0) ZUJINPRICE
+		FROM (
+			SELECT 
+				(CASE
+					WHEN T2.RECP_STATUS = 1 OR T2.RECP_STATUS = 3 THEN 0
+					WHEN T2.RECP_ID IS NULL 
+					THEN (SELECT SUM((TT.IRR_MONTH_PRICE_END - TT.IRR_MONTH_PRICE_START + 1) * TT.IRR_MONTH_PRICE)
+							FROM T_RENT_CONTRACTSCHEMAIRR TT
+							WHERE TT.STATUS = 0
+							AND TT.RECS_ID = T3.RECS_ID
+							)
+					ELSE (
+							SELECT 
+								SUM(TT.IRR_MONTH_PRICE)
+							FROM
+								T_RENT_COLLECTIONDETAIL TT 
+							WHERE
+								 TT.STATUS = 0 
+								AND TT.RECP_ID = T2.RECP_ID
+								AND ISNULL(TT.REDUCE_LOSS_PRICE,0)+ISNULL(TT.REDUCE_OTHER_PRICE,0)+ISNULL(TT.REDUCE_OWN_PRICE,0)+ISNULL(TT.REDUCE_REN_PRICE,0)<=0.001
+							)
+					END) PRICE
+			FROM
+				T_RENT_CONTRACT T1
+				LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECT_ID = T1.RECT_ID AND T2.STATUS = 0
+				LEFT JOIN T_RENT_CONTRACTSCHEMA T3 ON T3.RECT_ID = T1.RECT_ID AND T3.STATUS = 0 
+			WHERE
+				T1.STATUS = 0
+				AND T1.CUST_ID = #cust_id#
+			) TTTT
+	 	]]>
+	 </select>
+	 
+	 <!-- 2012/9/27 Yang Yun 计算实际剩余本金和实际剩余租金 -->
+	 <select id="getCustGuiHuOWNByCreditId" parameterClass="map" resultClass="java.lang.Double">
+	 	<![CDATA[
+	 		SELECT ISNULL(SUM(PRICE),0) BENJINPRICE
+				FROM (
+					SELECT 
+						(CASE
+							WHEN T2.RECP_STATUS = 1 OR T2.RECP_STATUS = 3 THEN 0
+							WHEN T2.RECP_ID IS NULL 
+								OR     (
+											SELECT 
+												MIN(TT.NET_FINANCE)
+											FROM
+												T_RENT_COLLECTIONDETAIL TT 
+											WHERE
+												 TT.STATUS = 0 
+												AND TT.RECP_ID = T2.RECP_ID
+												AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0
+										) IS NULL
+							THEN ISNULL(T3.LEASE_RZE,0)
+							ELSE (
+										SELECT 
+											MIN(TT.NET_FINANCE)-
+											(case 
+											when MIN(isnull(TT.REDUCE_OWN_PRICE,0))-MIN(TT.REN_PRICE)>0 then 
+												min(TT.IRR_MONTH_PRICE)-min(TT.REDUCE_OWN_PRICE)
+											else
+												min(TT.IRR_MONTH_PRICE)-min(TT.REN_PRICE)
+											end) irr_price
+										FROM
+											T_RENT_COLLECTIONDETAIL TT 
+										WHERE
+											 TT.STATUS = 0 
+											AND TT.RECP_ID = T2.RECP_ID
+											AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0
+									)
+							END) PRICE
+					FROM
+						T_RENT_CONTRACT T1
+						LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECT_ID = T1.RECT_ID AND T2.STATUS = 0
+						LEFT JOIN T_RENT_CONTRACTSCHEMA T3 ON T3.RECT_ID = T1.RECT_ID AND T3.STATUS = 0 
+					WHERE
+						T1.STATUS = 0 and (t2.RECP_STATUS<>1 and t2.RECP_STATUS<>3)
+						AND T1.PRCD_ID = #credit_id#
+			) TTTT				
+	 	]]>
+	 </select>
+	 <select id="getCustGuiHuIRRByCreditId" parameterClass="map" resultClass="java.lang.Double">
+	 	<![CDATA[
+	 	SELECT ISNULL(SUM(PRICE),0) ZUJINPRICE
+		FROM (
+			SELECT 
+				(CASE
+					WHEN T2.RECP_STATUS = 1 OR T2.RECP_STATUS = 3 THEN 0
+					WHEN T2.RECP_ID IS NULL 
+					THEN (SELECT SUM((TT.IRR_MONTH_PRICE_END - TT.IRR_MONTH_PRICE_START + 1) * TT.IRR_MONTH_PRICE)
+							FROM T_RENT_CONTRACTSCHEMAIRR TT
+							WHERE TT.STATUS = 0
+							AND TT.RECS_ID = T3.RECS_ID
+							)
+					ELSE (
+							SELECT 
+								SUM(TT.IRR_MONTH_PRICE)
+							FROM
+								T_RENT_COLLECTIONDETAIL TT 
+							WHERE
+								 TT.STATUS = 0 
+								AND TT.RECP_ID = T2.RECP_ID
+								AND ISNULL(TT.REDUCE_LOSS_PRICE,0)+ISNULL(TT.REDUCE_OTHER_PRICE,0)+ISNULL(TT.REDUCE_OWN_PRICE,0)+ISNULL(TT.REDUCE_REN_PRICE,0)<=0.001
+							)
+					END) PRICE
+			FROM
+				T_RENT_CONTRACT T1
+				LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECT_ID = T1.RECT_ID AND T2.STATUS = 0
+				LEFT JOIN T_RENT_CONTRACTSCHEMA T3 ON T3.RECT_ID = T1.RECT_ID AND T3.STATUS = 0 
+			WHERE
+				T1.STATUS = 0
+				AND T1.PRCD_ID = #credit_id#
+			) TTTT
+	 	]]>
+	 </select>
+</sqlMap>

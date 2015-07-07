@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap namespace="bpmIns">
+	
+	<insert id="insertProcessInstance" parameterClass="com.brick.bpm.ins.ProcessInstance">
+		INSERT INTO T_BPM_INS_PROCESS(PROCESS_DEF_ID,PROCESS_NAME,PROCESS_STATUS,BEGIN_DATE,FLOW_STATUS,FLOW_STATUS_NAME)
+		VALUES(#processDefId#,#processName#,#status#,#beginDate#,#flowStatus#,#flowStatusName#)
+		<selectKey resultClass="java.lang.Integer" keyProperty="processId">
+			SELECT @@IDENTITY processId
+		</selectKey>
+	</insert>
+	
+	<update id="updateProcessInstance" parameterClass="com.brick.bpm.ins.ProcessInstance">
+		UPDATE T_BPM_INS_PROCESS SET
+		<isNotEmpty property="status">
+			PROCESS_STATUS = #status#
+		</isNotEmpty>
+		<isNotEmpty  prepend="," property="flowStatus">
+			FLOW_STATUS = #flowStatus#
+		</isNotEmpty>
+		<isNotNull prepend="," property="flowStatusName">
+			FLOW_STATUS_NAME = #flowStatusName#
+		</isNotNull>
+		<isNotEmpty prepend="," property="beginDate">
+			BEGIN_DATE = #beginDate#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="endDate">
+			END_DATE = #endDate#
+		</isNotEmpty>
+		<isNotNull prepend="," property="currentCharge">
+			CURRENT_CHARGE = #currentCharge#
+		</isNotNull>
+		<isNotNull prepend="," property="currentChargeName">
+			CURRENT_CHARGE_NAME = #currentChargeName#
+		</isNotNull>
+		<isNotNull prepend="," property="currentDelegate">
+			CURRENT_DELEGATE = #currentDelegate#
+		</isNotNull>
+		<isNotNull prepend="," property="currentDelegateName">
+			CURRENT_DELEGATE_NAME = #currentDelegateName#
+		</isNotNull>
+		WHERE PROCESS_INS_ID = #processId#
+	</update>
+	
+	<select id="selectProcessInstance" parameterClass="com.brick.bpm.filter.ProcessFilter" resultClass="com.brick.bpm.ins.ProcessInstance">
+		SELECT
+		PROCESS_INS_ID processId,
+		PROCESS_DEF_ID processDefId,
+		PROCESS_NAME processName,
+		PROCESS_STATUS status,
+		FLOW_STATUS flowStatus,
+		FLOW_STATUS_NAME flowStatusName,
+		CURRENT_CHARGE currentCharge,
+		CURRENT_CHARGE_NAME currentChargeName,
+		CURRENT_DELEGATE currentDelegate,
+		CURRENT_DELEGATE_NAME currentDelegateName,
+		BEGIN_DATE beginDate,
+		END_DATE endDate
+		FROM T_BPM_INS_PROCESS
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="processId">
+				<![CDATA[ PROCESS_INS_ID = #processId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="processDefId">
+				<![CDATA[ PROCESS_DEF_ID = #processDefId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="flowStatus">
+				<![CDATA[ FLOW_STATUS & #flowStatus# > 0 ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<insert id="insertDataInstance" parameterClass="com.brick.bpm.ins.DataInstance">
+		INSERT INTO T_BPM_INS_DATA(PROCESS_INS_ID,PROCESS_DEF_ID,DATA_DEF_ID,DATA_NAME,DATA_TYPE,DATA_SCOPE,CONNECT_INS_ID,CONNECT_DEF_ID,SOURCE,TARGET,VALUE)
+		VALUES(#processId#,#processDefId#,#dataDefId#,#dataName#,#dataType#,#scope#,#sequenceId#,#sequenceDefId#,#source#,#target#,#value#)
+		<selectKey resultClass="java.lang.Integer" keyProperty="dataId">
+			SELECT @@IDENTITY dataId
+		</selectKey>
+	</insert>
+	
+	<insert id="updateDataInstance" parameterClass="com.brick.bpm.ins.DataInstance">
+		UPDATE T_BPM_INS_DATA SET
+		<isNotEmpty property="value">
+			VALUE = #value#
+		</isNotEmpty>
+		WHERE DATA_INS_ID = #dataId#
+	</insert>
+	
+	<select id="selectDataInstance" parameterClass="com.brick.bpm.filter.DataFilter" resultClass="com.brick.bpm.ins.DataInstance">
+		SELECT
+		DATA_INS_ID dataId,
+		PROCESS_INS_ID processId,
+		PROCESS_DEF_ID processDefId,
+		DATA_DEF_ID dataDefId,
+		DATA_NAME dataName,
+		DATA_TYPE dataType,
+		DATA_SCOPE scope,
+		CONNECT_INS_ID sequenceId,
+		CONNECT_DEF_ID sequenceDefId,
+		SOURCE source,
+		TARGET target,
+		VALUE value
+		FROM T_BPM_INS_DATA
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="dataId">
+				<![CDATA[ DATA_INS_ID = #dataId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="dataDefId">
+				<![CDATA[ DATA_DEF_ID = #dataDefId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="processId">
+				<![CDATA[ PROCESS_INS_ID = #processId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="processDefId">
+				<![CDATA[ PROCESS_DEF_ID = #processDefId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="sequenceId">
+				<![CDATA[ CONNECT_INS_ID = #sequenceId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="scope">
+				<![CDATA[ DATA_SCOPE = #scope# ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<insert id="insertFlowInstance" parameterClass="com.brick.bpm.ins.FlowInstance">
+		INSERT INTO T_BPM_INS_FLOW(PROCESS_INS_ID,PROCESS_DEF_ID,FLOW_DEF_ID,FLOW_NAME,FLOW_TYPE,FLOW_CODE,MULTI_INSTANCE,GATEWAY_TYPE,FLOW_STATUS,USER_LIST,FLOW_DEF_CODE,OPERATE_LIST)
+		VALUES(#processId#,#processDefId#,#flowDefId#,#flowName#,#flowType#,#flowClass#,#multiInstance#,#direction#,#flowStatus#,#userList#,#flowDefCode#,#operateList#)
+		<selectKey resultClass="java.lang.Integer" keyProperty="flowId">
+			SELECT @@IDENTITY flowId
+		</selectKey>
+	</insert>
+	
+	<update id="updateFlowInstance" parameterClass="com.brick.bpm.ins.FlowInstance">
+		UPDATE T_BPM_INS_FLOW SET
+		<isNotEmpty property="flowStatus">
+			FLOW_STATUS = #flowStatus#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="userList">
+			USER_LIST = #userList#
+		</isNotEmpty>
+		WHERE FLOW_INS_ID = #flowId#
+	</update>
+	
+	<select id="selectFlowInstance" parameterClass="com.brick.bpm.filter.FlowFilter" resultClass="com.brick.bpm.ins.FlowInstance">
+		SELECT
+		FLOW_INS_ID flowId,
+		PROCESS_INS_ID processId,
+		PROCESS_DEF_ID processDefId,
+		FLOW_DEF_ID flowDefId,
+		FLOW_DEF_CODE flowDefCode,
+		FLOW_NAME flowName,
+		FLOW_TYPE flowType,
+		FLOW_CODE flowClass,
+		MULTI_INSTANCE multiInstance,
+		GATEWAY_TYPE direction,
+		FLOW_STATUS flowStatus,
+		USER_LIST userList,
+		OPERATE_LIST operateList
+		FROM T_BPM_INS_FLOW
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="flowId">
+				<![CDATA[ FLOW_INS_ID = #flowId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="flowDefId">
+				<![CDATA[ FLOW_DEF_ID = #flowDefId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="processId">
+				<![CDATA[ PROCESS_INS_ID = #processId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="processDefId">
+				<![CDATA[ PROCESS_DEF_ID = #processDefId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="flowClass">
+				<![CDATA[ FLOW_CODE = #flowClass# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="flowStatus">
+				<![CDATA[ FLOW_STATUS = #flowStatus# ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	
+	<insert id="insertSequenceInstance" parameterClass="com.brick.bpm.ins.SequenceInstance">
+		INSERT INTO T_BPM_INS_CONNECT(PROCESS_INS_ID,PROCESS_DEF_ID,CONNECT_DEF_ID,CONNECT_NAME,SOURCE,SOURCE_ID,TARGET,TARGET_ID,CONDITION,GATEWAY_DEFAULT)
+		VALUES(#processId#,#processDefId#,#sequenceDefId#,#sequenceName#,#source#,#sourceId#,#target#,#targetId#,#condition#,#isDefault#)
+		<selectKey resultClass="java.lang.Integer" keyProperty="sequenceId">
+			SELECT @@IDENTITY sequenceId
+		</selectKey>
+	</insert>
+	
+	<select id="selectSequenceInstance" parameterClass="com.brick.bpm.filter.SequenceFilter" resultClass="com.brick.bpm.ins.SequenceInstance">
+		SELECT
+		CONNECT_INS_ID sequenceId,
+		PROCESS_INS_ID processId,
+		PROCESS_DEF_ID processDefId,
+		CONNECT_DEF_ID sequenceDefId,
+		CONNECT_NAME sequenceName,
+		SOURCE source,
+		SOURCE_ID sourceId,
+		TARGET target,
+		TARGET_ID targetId,
+		CONDITION condition,
+		GATEWAY_DEFAULT isDefault
+		FROM T_BPM_INS_CONNECT
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="sequenceId">
+				<![CDATA[ CONNECT_INS_ID = #sequenceId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="sequenceDefId">
+				<![CDATA[ CONNECT_DEF_ID = #sequenceDefId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="processId">
+				<![CDATA[ PROCESS_INS_ID = #processId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="processDefId">
+				<![CDATA[ PROCESS_DEF_ID = #processDefId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="sourceId">
+				<![CDATA[ SOURCE_ID = #sourceId# ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="targetId">
+				<![CDATA[ TARGET_ID = #targetId# ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+</sqlMap>

@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="agent">
+	 
+	 <!-- 查询所有代理信息 -->
+	<select id="getAllAgent" parameterClass="map" resultClass="com.tac.agent.to.Agent">
+		SELECT
+		    A.ID AS id,
+		    A.USER_ID AS userId,
+		    U.NAME AS userName,
+		    A.AGENT_USER_ID AS agentUserId,
+		    AU.NAME AS agentUserName,
+		    AU.EMAIL AS agentUserEmail,
+		    A.AGENT_MODULE AS agentModuleId,
+		    D.FLAG AS agentModuleName,
+		    A.STATUS AS status,
+		    A.START_TIME AS startTime,
+		    A.END_TIME AS endTime,
+		    A.REMARK AS remark,
+		    A.CREATE_TIME AS createTime,
+		    A.UPDATE_TIME AS updateTime, 
+			A.UPDATE_USER_ID AS updateUserId, 
+			A.CREATE_USER_ID AS createUserId,
+			C.NAME AS createUserName,
+			UD.NAME AS updateUserName,
+			DATEDIFF(MINUTE, A.END_TIME ,GETDATE()) AS overdueMinute
+		FROM T_AGENT A
+		LEFT JOIN T_USER_USER U ON U.ID = A.USER_ID
+		LEFT JOIN T_USER_USER AU ON AU.ID = A.AGENT_USER_ID
+		LEFT JOIN T_USER_USER C ON C.ID = A.CREATE_USER_ID
+		LEFT JOIN T_USER_USER UD ON UD.ID = A.UPDATE_USER_ID
+		LEFT JOIN T_DATA_DICTIONARY D ON D.TYPE='代理模组' AND D.CODE = A.AGENT_MODULE
+		<dynamic prepend="where">
+			<isNotEmpty prepend="and" property="status">
+				<isEqual property="status" compareValue="0">
+					A.STATUS = #status# 
+					AND CONVERT(DATETIME, A.END_TIME) >= CONVERT(DATETIME, GETDATE())
+				</isEqual>
+				<isEqual property="status" compareValue="1">
+					A.STATUS = #status#
+				</isEqual>
+				<isEqual property="status" compareValue="2">
+					CONVERT(DATETIME, GETDATE()) > CONVERT(DATETIME, A.END_TIME)
+				</isEqual>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="dateBegin">
+				<isNotEmpty property="dateEnd">
+					(CONVERT(DATETIME,#dateBegin#) BETWEEN A.START_TIME AND A.END_TIME OR CONVERT(DATETIME,#dateEnd#) BETWEEN A.START_TIME AND A.END_TIME)
+				</isNotEmpty>
+				<isEmpty property="dateEnd">
+					CONVERT(DATETIME, A.START_TIME) >= CONVERT(DATETIME, #dateBegin#)
+				</isEmpty>
+			</isNotEmpty>
+			<isNotEmpty property="dateEnd">
+				<isEmpty prepend="and" property="dateBegin">
+					CONVERT(DATETIME, A.END_TIME) &lt;= CONVERT(DATETIME, #dateEnd#)
+				</isEmpty>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="userName">
+				U.NAME LIKE '%$userName$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="agentUserName">
+				AU.NAME LIKE '%$agentUserName$%'
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="agentModuleList">
+				A.AGENT_MODULE IN 
+				<iterate open="(" close=")" property="agentModuleList" conjunction=",">
+	  	  			#agentModuleList[]#
+		  	  	</iterate>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="statusList">
+				A.STATUS IN 
+				<iterate open="(" close=")" property="statusList" conjunction=",">
+	  	  			#statusList[]#
+		  	  	</iterate>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="currentUserId">
+				(A.USER_ID = #currentUserId# OR A.AGENT_USER_ID = #currentUserId#)
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<!-- 添加代理信息 -->
+	<insert id="insertAgent" parameterClass="com.tac.agent.to.Agent">
+		INSERT INTO T_AGENT(USER_ID, AGENT_USER_ID, AGENT_MODULE, START_TIME, END_TIME, STATUS, REMARK, CREATE_TIME, CREATE_USER_ID)
+		VALUES(#userId#, #agentUserId#, #agentModuleId#, #startTime#, #endTime#, 0, #remark#, GETDATE(), #createUserId#)
+	</insert>
+	
+	<!-- 查询某个员工的代理信息 -->
+	<select id="getAgents" parameterClass="map" resultClass="com.tac.agent.to.Agent">
+		SELECT
+		    A.ID AS id,
+		    A.USER_ID AS userId,
+		    U.NAME AS userName,
+		    A.AGENT_USER_ID AS agentUserId,
+		    AU.NAME AS agentUserName,
+		    AU.EMAIL AS agentUserEmail,
+		    A.AGENT_MODULE AS agentModuleId,
+		    D.FLAG AS agentModuleName,
+		    A.STATUS AS status,
+		    A.START_TIME AS startTime,
+		    A.END_TIME AS endTime,
+		    A.REMARK AS remark,
+		    A.CREATE_TIME AS createTime,
+		    A.UPDATE_TIME AS updateTime, 
+			A.UPDATE_USER_ID AS updateUserId, 
+			A.CREATE_USER_ID AS createUserId,
+			C.NAME AS createUserName,
+			UD.NAME AS updateUserName,
+			DATEDIFF(MINUTE, A.END_TIME ,GETDATE()) AS overdueMinute
+		FROM T_AGENT A
+		LEFT JOIN T_USER_USER U ON U.ID = A.USER_ID
+		LEFT JOIN T_USER_USER AU ON AU.ID = A.AGENT_USER_ID
+		LEFT JOIN T_USER_USER C ON C.ID = A.CREATE_USER_ID
+		LEFT JOIN T_USER_USER UD ON UD.ID = A.UPDATE_USER_ID
+		LEFT JOIN T_DATA_DICTIONARY D ON D.TYPE='代理模组' AND D.CODE = A.AGENT_MODULE
+		WHERE 
+			A.USER_ID = #userId#
+			AND A.STATUS = 0
+			AND DATEDIFF(MINUTE, A.END_TIME ,GETDATE()) &lt;= 0
+			AND A.AGENT_MODULE IN 
+				<iterate open="(" close=")" property="agentModules" conjunction=",">
+	  	  			#agentModules[]#
+		  	  	</iterate>
+	  	  	AND (CONVERT(DATETIME,#startTime#) BETWEEN A.START_TIME AND A.END_TIME OR CONVERT(DATETIME,#endTime#) BETWEEN A.START_TIME AND A.END_TIME)
+	</select>
+	
+	<!-- 获取当前代理信息 -->
+	<select id="getAgent" parameterClass="map" resultClass="com.tac.agent.to.Agent">
+		SELECT
+			TOP 1
+		    A.ID AS id,
+		    A.USER_ID AS userId,
+		    U.NAME AS userName,
+		    A.AGENT_USER_ID AS agentUserId,
+		    AU.NAME AS agentUserName,
+		    AU.EMAIL AS agentUserEmail,
+		    A.AGENT_MODULE AS agentModuleId,
+		    D.FLAG AS agentModuleName,
+		    A.STATUS AS status,
+		    A.START_TIME AS startTime,
+		    A.END_TIME AS endTime,
+		    A.REMARK AS remark,
+		    A.CREATE_TIME AS createTime,
+		    A.UPDATE_TIME AS updateTime, 
+			A.UPDATE_USER_ID AS updateUserId, 
+			A.CREATE_USER_ID AS createUserId,
+			C.NAME AS createUserName,
+			UD.NAME AS updateUserName,
+			DATEDIFF(MINUTE, A.END_TIME ,GETDATE()) AS overdueMinute
+		FROM T_AGENT A
+		LEFT JOIN T_USER_USER U ON U.ID = A.USER_ID
+		LEFT JOIN T_USER_USER AU ON AU.ID = A.AGENT_USER_ID
+		LEFT JOIN T_USER_USER C ON C.ID = A.CREATE_USER_ID
+		LEFT JOIN T_USER_USER UD ON UD.ID = A.UPDATE_USER_ID
+		LEFT JOIN T_DATA_DICTIONARY D ON D.TYPE='代理模组' AND D.CODE = A.AGENT_MODULE
+		WHERE 
+			A.USER_ID = #userId#
+			AND A.STATUS = 0
+			AND D.FLAG = #agentModuleName#
+	  	  	AND CONVERT(DATETIME,GETDATE()) BETWEEN A.START_TIME AND A.END_TIME
+  	  	ORDER BY ID DESC
+	</select>
+	<!-- 获取当前代理信息 -->
+	<select id="getAgentByUserIdAndModuleId" parameterClass="map" resultClass="com.tac.agent.to.Agent">
+		SELECT
+			TOP 1
+		    A.ID AS id,
+		    A.USER_ID AS userId,
+		    U.NAME AS userName,
+		    A.AGENT_USER_ID AS agentUserId,
+		    AU.NAME AS agentUserName,
+		    AU.EMAIL AS agentUserEmail,
+		    A.AGENT_MODULE AS agentModuleId,
+		    D.FLAG AS agentModuleName,
+		    A.STATUS AS status,
+		    A.START_TIME AS startTime,
+		    A.END_TIME AS endTime,
+		    A.REMARK AS remark,
+		    A.CREATE_TIME AS createTime,
+		    A.UPDATE_TIME AS updateTime, 
+			A.UPDATE_USER_ID AS updateUserId, 
+			A.CREATE_USER_ID AS createUserId,
+			C.NAME AS createUserName,
+			UD.NAME AS updateUserName,
+			DATEDIFF(MINUTE, A.END_TIME ,GETDATE()) AS overdueMinute
+		FROM T_AGENT A
+		LEFT JOIN T_USER_USER U ON U.ID = A.USER_ID
+		LEFT JOIN T_USER_USER AU ON AU.ID = A.AGENT_USER_ID
+		LEFT JOIN T_USER_USER C ON C.ID = A.CREATE_USER_ID
+		LEFT JOIN T_USER_USER UD ON UD.ID = A.UPDATE_USER_ID
+		LEFT JOIN T_DATA_DICTIONARY D ON D.TYPE='代理模组' AND D.CODE = A.AGENT_MODULE
+		WHERE 
+			A.USER_ID = #userId#
+			AND A.STATUS = 0
+			AND D.CODE = #agentModuleId#
+	  	  	AND CONVERT(DATETIME,GETDATE()) BETWEEN A.START_TIME AND A.END_TIME
+  	  	ORDER BY ID DESC
+	</select>
+	<!-- 获取当前代理信息 -->
+	<select id="getAgentByAgentUserId" parameterClass="map" resultClass="com.tac.agent.to.Agent">
+		SELECT
+		    A.ID AS id,
+		    A.USER_ID AS userId,
+		    U.NAME AS userName,
+		    A.AGENT_USER_ID AS agentUserId,
+		    AU.NAME AS agentUserName,
+		    AU.EMAIL AS agentUserEmail,
+		    A.AGENT_MODULE AS agentModuleId,
+		    D.FLAG AS agentModuleName,
+		    A.STATUS AS status,
+		    A.START_TIME AS startTime,
+		    A.END_TIME AS endTime,
+		    A.REMARK AS remark,
+		    A.CREATE_TIME AS createTime,
+		    A.UPDATE_TIME AS updateTime, 
+			A.UPDATE_USER_ID AS updateUserId, 
+			A.CREATE_USER_ID AS createUserId,
+			C.NAME AS createUserName,
+			UD.NAME AS updateUserName,
+			DATEDIFF(MINUTE, A.END_TIME ,GETDATE()) AS overdueMinute
+		FROM T_AGENT A
+		LEFT JOIN T_USER_USER U ON U.ID = A.USER_ID
+		LEFT JOIN T_USER_USER AU ON AU.ID = A.AGENT_USER_ID
+		LEFT JOIN T_USER_USER C ON C.ID = A.CREATE_USER_ID
+		LEFT JOIN T_USER_USER UD ON UD.ID = A.UPDATE_USER_ID
+		LEFT JOIN T_DATA_DICTIONARY D ON D.TYPE='代理模组' AND D.CODE = A.AGENT_MODULE
+		WHERE 
+			A.AGENT_USER_ID = #userId#
+			AND A.STATUS = 0
+			AND D.FLAG = #agentModuleName#
+	  	  	AND CONVERT(DATETIME,GETDATE()) BETWEEN A.START_TIME AND A.END_TIME
+  	  	ORDER BY ID DESC
+	</select>
+	
+	<!-- 删除代理信息 -->
+	<update id="deleteAgentById" parameterClass="java.util.HashMap">
+		UPDATE T_AGENT SET STATUS = 1,UPDATE_USER_ID = #updateUserId#, UPDATE_TIME = GETDATE()
+		WHERE ID = #id#
+	</update>
+	
+</sqlMap>
+
+
+

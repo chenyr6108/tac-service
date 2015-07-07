@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap namespace="targetAmount">
+	<select id="getWeekLisyByData" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT DISTINCT
+		  		CASE WHEN MONTH(CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)))!=#month# THEN NULL
+           ELSE CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)) END SUNDAY,
+		  		 CASE WHEN MONTH(CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+1))!=#month# THEN NULL
+          ELSE CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+1)END MONDAY,
+		         CASE WHEN MONTH(CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+2))!=#month# THEN NULL
+          ELSE CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+2)END TUESDAY,
+		        CASE WHEN MONTH(CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+3))!=#month# THEN NULL
+          ELSE CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+3)END WEDNESDAY,
+		        CASE WHEN MONTH(CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+4))!=#month# THEN NULL
+          ELSE CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+4)END THURSDAY,
+		         CASE WHEN MONTH(CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+5))!=#month# THEN NULL
+          ELSE CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+5)END FRIDAY,
+         		 CASE WHEN MONTH(CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+6))!=#month# THEN NULL
+          ELSE CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+6)END SATURDAY
+		    FROM T_DAY_TYPE
+		   WHERE YEAR(DATE)=#year#
+         AND MONTH(DATE)=#month#
+        
+	</select>
+	
+	<select id="getWeekListByDataForFinance" parameterClass="com.brick.base.to.ReportDateTo" resultClass="java.util.HashMap">
+		select
+		(
+		  select date from T_DAY_TYPE d
+		  where datepart(weekday, d.DATE) = 1 
+		  and datepart(week, d.DATE) = we.WEEK
+		  and year(d.DATE) = #year#
+		  and convert(date, DATE) >= convert(date, #beginTime#)
+          <![CDATA[ and convert(date, DATE) <= convert(date, #endTime#) ]]>
+		) as 'SUNDAY'
+		,(
+		  select date from T_DAY_TYPE d
+		  where datepart(weekday, d.DATE) = 2 
+		  and datepart(week, d.DATE) = we.WEEK
+		  and year(d.DATE) = #year#
+		  and convert(date, DATE) >= convert(date, #beginTime#)
+          <![CDATA[ and convert(date, DATE) <= convert(date, #endTime#) ]]>
+		) as 'MONDAY'
+		,(
+		  select date from T_DAY_TYPE d
+		  where datepart(weekday, d.DATE) = 3 
+		  and datepart(week, d.DATE) = we.WEEK
+		  and year(d.DATE) = #year#
+		  and convert(date, DATE) >= convert(date, #beginTime#)
+          <![CDATA[ and convert(date, DATE) <= convert(date, #endTime#) ]]>
+		) as 'TUESDAY'
+		,(
+		  select date from T_DAY_TYPE d
+		  where datepart(weekday, d.DATE) = 4 
+		  and datepart(week, d.DATE) = we.WEEK
+		  and year(d.DATE) = #year#
+		  and convert(date, DATE) >= convert(date, #beginTime#)
+          <![CDATA[ and convert(date, DATE) <= convert(date, #endTime#) ]]>
+		) as 'WEDNESDAY'
+		,(
+		  select date from T_DAY_TYPE d
+		  where datepart(weekday, d.DATE) = 5 
+		  and datepart(week, d.DATE) = we.WEEK
+		  and year(d.DATE) =#year#
+		  and convert(date, DATE) >= convert(date, #beginTime#)
+          <![CDATA[ and convert(date, DATE) <= convert(date, #endTime#) ]]>
+		) as 'THURSDAY'
+		,(
+		  select date from T_DAY_TYPE d
+		  where datepart(weekday, d.DATE) = 6 
+		  and datepart(week, d.DATE) = we.WEEK
+		  and year(d.DATE) = #year#
+		  and convert(date, DATE) >= convert(date, #beginTime#)
+          <![CDATA[ and convert(date, DATE) <= convert(date, #endTime#) ]]>
+		) as 'FRIDAY'
+		,(
+		  select date from T_DAY_TYPE d
+		  where datepart(weekday, d.DATE) = 7 
+		  and datepart(week, d.DATE) = we.WEEK
+		  and year(d.DATE) = 2013
+		  and convert(date, DATE) >= convert(date, #beginTime#)
+          <![CDATA[ and convert(date, DATE) <= convert(date, #endTime#) ]]>
+		) as 'SATURDAY'
+		from (
+		select datepart(week,DATE) as 'WEEK'
+		FROM T_DAY_TYPE
+		WHERE convert(date, DATE) >= convert(date, #beginTime#)
+        <![CDATA[ and convert(date, DATE) <= convert(date, #endTime#) ]]>
+		group by datepart(week,DATE)
+		) we
+	</select>
+	
+	
+	<select id="getPlayAmountByWeek" parameterClass="map" resultClass="com.brick.targetAmount.to.TargetAmountTo">
+				SELECT  ISNULL(SUM(PAY.PAY_MONEY),0) AS weekMoney ,area=#area# , CONVERT(date,#startDate#) as startDate,
+				CONVERT(date,#endDate#) as endDate,DATEDIFF ( DAY, #startDate#, #endDate# ) as days
+				 FROM T_SUPL_PLAYDETIL PAY
+				LEFT JOIN T_PRJT_CREDIT PC ON PAY.CREDIT_ID = PC.ID AND PC.STATUS = 0
+       			 LEFT JOIN T_USER_USER TUU ON TUU.ID= PC.SENSOR_ID
+       			 LEFT JOIN T_DEPT_DEPARTMENT TDD ON   TUU.DEPT_ID =TDD.ID
+        		 LEFT JOIN T_DEPT_COMPANY TDC ON  TDD.DECP_ID = TDC.DECP_ID
+       			 LEFT JOIN T_RENT_CONTRACT RC ON RC.PRCD_ID = PC.ID AND RC.STATUS = 0
+				WHERE 
+					<![CDATA[	CONVERT(date,PAY.PAY_DATE)  >=  CONVERT(date,#startDate#) ]]>
+				AND 
+					<![CDATA[	CONVERT(date,#endDate#)  >=  CONVERT(date,PAY.PAY_DATE ) ]]>
+             	 AND PAY.STATE = 3 AND PAY.BACKSTATE = 0 AND PAY.STATUS = 0
+             	 <isNotEmpty property="area">
+				     		<isEqual prepend="and" property="area" compareValue="huadong">
+				     		 	TDC.DECP_ID in ('17','2','7','13')
+				     		 </isEqual>
+				     		 <isEqual prepend="and" property="area" compareValue="huanan">
+				     		 		TDC.DECP_ID in ('3','8','11')
+				     		 </isEqual>
+				     		  <isEqual prepend="and" property="area" compareValue="xinan">
+				     		 	TDC.DECP_ID in ('9','14')
+				     		 </isEqual>
+				     		 <isEqual prepend="and" property="area" compareValue="shebei">
+				     		 	TDC.DECP_ID in ('17','2','7','13','3','8','11','9','14')
+				     		 </isEqual>
+				     		 <isEqual prepend="and" property="area" compareValue="shangyongche">
+				     		 	TDC.DECP_ID in ('15','16')
+				     		 </isEqual>
+				  </isNotEmpty>
+				  <isNotEmpty prepend="and" property="areaAll">
+				     		 	TDC.DECP_ID in ('17','2','7','13','3','8','11','9','14')
+				  </isNotEmpty>
+				  <isNotEmpty prepend="and" property="typeAll">
+				     		 	TDC.DECP_ID in ('17','2','7','13','3','8','11','9','14','15','16')
+				  </isNotEmpty>
+	</select>
+	<!-- 区域月目标 --> 
+	<select id="getMonthTargetMoneyByArea" parameterClass="map" resultClass="java.util.HashMap">
+	 		SELECT SUM(TGL.GOAL_MONEY ) as GOAL_MONEY FROM T_GOAL_LINE TGL
+ 		 	LEFT JOIN T_DEPT_DEPARTMENT TDD ON   TGL.DEPT_ID =TDD.ID
+		    LEFT JOIN T_DEPT_COMPANY TDC ON  TDD.DECP_ID = TDC.DECP_ID
+ 
+ 			WHERE    [YEAR]=#year# AND [MONTH]=#month#
+ 					<isNotEmpty property="area">
+				     		<isEqual prepend="and" property="area" compareValue="huadong">
+				     		 	 TDC.DECP_ID in ('17','2','7','13')
+				     		 </isEqual>
+				     		 <isEqual prepend="and" property="area" compareValue="huanan">
+				     		 	 TDC.DECP_ID in ('3','8','11')
+				     		 </isEqual>
+				     		  <isEqual prepend="and" property="area" compareValue="xinan">
+				     		 	 TDC.DECP_ID in ('9','14')
+				     		 </isEqual>
+				     		 <isEqual prepend="and" property="area" compareValue="shebei">
+				     		 	TDC.DECP_ID in ('17','2','7','13','3','8','11','9','14')
+				     		 </isEqual>
+				     		 <isEqual prepend="and" property="area" compareValue="shangyongche">
+				     		 	TDC.DECP_ID in ('15','16')
+				     		 </isEqual>
+				  </isNotEmpty>
+				   <isNotEmpty  prepend="and" property="areaAll">
+				     		 	 TDC.DECP_ID in ('17','2','7','13','3','8','11','9','14')
+				  </isNotEmpty>
+				  <isNotEmpty prepend="and" property="typeAll">
+				     		 	TDC.DECP_ID in ('17','2','7','13','3','8','11','9','14','15','16')
+				  </isNotEmpty>
+    </select>
+  <!--   区域月实际拨款 -->
+    	<select id="queryMonthByArea" parameterClass="map" resultClass="com.brick.targetAmount.to.TargetAmountTo">
+   			 SELECT  ISNULL(SUM(PAY.PAY_MONEY),0) AS monthMoney ,area=#area#,days=#month#
+         		FROM T_SUPL_PLAYDETIL PAY
+				LEFT JOIN T_PRJT_CREDIT PC ON PAY.CREDIT_ID = PC.ID AND PC.STATUS = 0
+       			 LEFT JOIN T_USER_USER TUU ON TUU.ID= PC.SENSOR_ID
+       			 LEFT JOIN T_DEPT_DEPARTMENT TDD ON   TUU.DEPT_ID =TDD.ID
+        		 LEFT JOIN T_DEPT_COMPANY TDC ON  TDD.DECP_ID = TDC.DECP_ID
+       			 LEFT JOIN T_RENT_CONTRACT RC ON RC.PRCD_ID = PC.ID AND RC.STATUS = 0
+				WHERE 
+				MONTH(PAY.PAY_DATE)=#month# AND YEAR(PAY.PAY_DATE)=#year#
+             	 AND PAY.STATE = 3 AND PAY.BACKSTATE = 0 AND PAY.STATUS = 0
+             	 	<isNotEmpty property="area">
+				     		<isEqual prepend="and" property="area" compareValue="huadong">
+				     		 	TDC.DECP_ID in ('17','2','7','13')
+				     		 </isEqual>
+				     		 <isEqual prepend="and" property="area" compareValue="huanan">
+				     		 	TDC.DECP_ID in ('3','8','11')
+				     		 </isEqual>
+				     		  <isEqual prepend="and" property="area" compareValue="xinan">
+				     		 	TDC.DECP_ID in ('9','14')
+				     		 </isEqual>
+				     		 <isEqual prepend="and" property="area" compareValue="shebei">
+				     		 	TDC.DECP_ID in ('17','2','7','13','3','8','11','9','14')
+				     		 </isEqual>
+				     		 <isEqual prepend="and" property="area" compareValue="shangyongche">
+				     		 	TDC.DECP_ID in ('15','16')
+				     		 </isEqual>
+				  </isNotEmpty>
+				   <isNotEmpty prepend="and" property="areaAll">
+				     		 	TDC.DECP_ID in ('17','2','7','13','3','8','11','9','14')
+				  </isNotEmpty>
+				  <isNotEmpty prepend="and" property="typeAll">
+				     		 	TDC.DECP_ID in ('17','2','7','13','3','8','11','9','14','15','16')
+				  </isNotEmpty>
+           </select>
+           
+           
+           
+     <!-- 区域季度目标 -->
+	<select id="getSeasonTargetMoneyByArea" parameterClass="map" resultClass="java.util.HashMap">
+	 		SELECT SUM(TGL.GOAL_MONEY ) as GOAL_MONEY FROM T_GOAL_LINE TGL
+ 		 	LEFT JOIN T_DEPT_DEPARTMENT TDD ON   TGL.DEPT_ID =TDD.ID
+		    LEFT JOIN T_DEPT_COMPANY TDC ON  TDD.DECP_ID = TDC.DECP_ID
+ 
+ 			WHERE    [YEAR]=#year# 
+ 						<isNotEmpty property="season">
+	 						<isEqual  property="season" compareValue="1">
+		 						AND ([MONTH]='1' or [MONTH]='2' or [MONTH]='3' )
+	 						 </isEqual>
+	 						 <isEqual  property="season" compareValue="2">
+		 						AND ([MONTH]='4' or [MONTH]='5' or [MONTH]='6' )
+	 						 </isEqual>
+	 						 <isEqual  property="season" compareValue="3">
+		 						AND ([MONTH]='7' or [MONTH]='8' or [MONTH]='9' )
+	 						 </isEqual>
+	 						 <isEqual  property="season" compareValue="4">
+		 						AND ([MONTH]='10' or [MONTH]='11' or [MONTH]='12' )
+	 						 </isEqual>
+ 						 </isNotEmpty>
+ 					<isNotEmpty property="area">
+				     		<isEqual prepend="and" property="area" compareValue="huadong">
+				     		 	 TDC.DECP_ID in ('17','2','7','13')
+				     		 </isEqual>
+				     		 <isEqual prepend="and" property="area" compareValue="huanan">
+				     		 	 TDC.DECP_ID in ('3','8','11')
+				     		 </isEqual>
+				     		  <isEqual prepend="and" property="area" compareValue="xinan">
+				     		 	 TDC.DECP_ID in ('9','14')
+				     		 </isEqual>
+				     		 <isEqual prepend="and" property="area" compareValue="shebei">
+				     		 	TDC.DECP_ID in ('17','2','7','13','3','8','11','9','14')
+				     		 </isEqual>
+				     		 <isEqual prepend="and" property="area" compareValue="shangyongche">
+				     		 	TDC.DECP_ID in ('15','16')
+				     		 </isEqual>
+				  </isNotEmpty>
+				   <isNotEmpty  prepend="and" property="areaAll">
+				     		 	 TDC.DECP_ID in ('17','2','7','13','3','8','11','9','14')
+				  </isNotEmpty>
+				  <isNotEmpty prepend="and" property="typeAll">
+				     		 	TDC.DECP_ID in ('17','2','7','13','3','8','11','9','14','15','16')
+				  </isNotEmpty>
+    </select>
+  <!--   区域季度实际拨款 -->
+    	<select id="querySeasonByArea" parameterClass="map" resultClass="com.brick.targetAmount.to.TargetAmountTo">
+   			 SELECT  ISNULL(SUM(PAY.PAY_MONEY),0) AS monthMoney ,area=#area#
+         		FROM T_SUPL_PLAYDETIL PAY
+				LEFT JOIN T_PRJT_CREDIT PC ON PAY.CREDIT_ID = PC.ID AND PC.STATUS = 0
+       			 LEFT JOIN T_USER_USER TUU ON TUU.ID= PC.SENSOR_ID
+       			 LEFT JOIN T_DEPT_DEPARTMENT TDD ON   TUU.DEPT_ID =TDD.ID
+        		 LEFT JOIN T_DEPT_COMPANY TDC ON  TDD.DECP_ID = TDC.DECP_ID
+       			 LEFT JOIN T_RENT_CONTRACT RC ON RC.PRCD_ID = PC.ID AND RC.STATUS = 0
+				WHERE 
+					 YEAR(PAY.PAY_DATE)=#year#   	 
+					 AND PAY.STATE = 3 AND PAY.BACKSTATE = 0 AND PAY.STATUS = 0
+					 <isNotEmpty property="season">
+	 						<isEqual  property="season" compareValue="1">
+		 						AND (MONTH(PAY.PAY_DATE)='1' or MONTH(PAY.PAY_DATE)='2' or MONTH(PAY.PAY_DATE)='3' )
+	 						 </isEqual>
+	 						 <isEqual  property="season" compareValue="2">
+		 						AND (MONTH(PAY.PAY_DATE)='4' or MONTH(PAY.PAY_DATE)='5' or MONTH(PAY.PAY_DATE)='6' )
+	 						 </isEqual>
+	 						 <isEqual  property="season" compareValue="3">
+		 						AND (MONTH(PAY.PAY_DATE)='7' or MONTH(PAY.PAY_DATE)='8' or MONTH(PAY.PAY_DATE)='9' )
+	 						 </isEqual>
+	 						 <isEqual  property="season" compareValue="4">
+		 						AND ( MONTH(PAY.PAY_DATE)='10' or MONTH(PAY.PAY_DATE)='11' or MONTH(PAY.PAY_DATE)='12' )
+	 						 </isEqual>
+ 						 </isNotEmpty>
+             	 	<isNotEmpty property="area">
+				     		<isEqual prepend="and" property="area" compareValue="huadong">
+				     		 	TDC.DECP_ID in ('17','2','7','13')
+				     		 </isEqual>
+				     		 <isEqual prepend="and" property="area" compareValue="huanan">
+				     		 	TDC.DECP_ID in ('3','8','11')
+				     		 </isEqual>
+				     		  <isEqual prepend="and" property="area" compareValue="xinan">
+				     		 	TDC.DECP_ID in ('9','14')
+				     		 </isEqual>
+				     		 <isEqual prepend="and" property="area" compareValue="shebei">
+				     		 	TDC.DECP_ID in ('17','2','7','13','3','8','11','9','14')
+				     		 </isEqual>
+				     		 <isEqual prepend="and" property="area" compareValue="shangyongche">
+				     		 	TDC.DECP_ID in ('15','16')
+				     		 </isEqual>
+				  </isNotEmpty>
+				   <isNotEmpty prepend="and" property="areaAll">
+				     		 	TDC.DECP_ID in ('17','2','7','13','3','8','11','9','14')
+				  </isNotEmpty>
+				   <isNotEmpty prepend="and" property="typeAll">
+				     		 	TDC.DECP_ID in ('17','2','7','13','3','8','11','9','14','15','16')
+				  </isNotEmpty>
+           </select>
+	
+</sqlMap>

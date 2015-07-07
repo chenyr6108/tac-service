@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="prdcType">
+	<!--查询产品类型个数 -->
+	<select id="query_count" resultClass="java.lang.Integer" parameterClass="java.util.HashMap">
+		<![CDATA[
+			select count(1) from T_prdc_type t where t.PRDC_TYPE_STATUS=0
+		]]> 
+		<dynamic prepend="and">
+			<isNotEmpty prepend="and" property="searchValue">
+				<![CDATA[ 
+					(t.name like '%$searchValue$%' 
+					or t.Manufacturer like '%$searchValue$%' )
+				]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	<!--查询全部产品类型    分页-->
+	<select id="query" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[ 
+				select
+					t.ID,
+					t.NAME,
+					t.MEMO,
+					t.CREATE_DATE,
+					t.MODIFY_DATE,
+					t.Manufacturer
+				from 
+					T_prdc_type t 
+				where 
+					t.PRDC_TYPE_STATUS=0
+		]]>
+		 <dynamic prepend="and">
+			<isNotEmpty prepend="and" property="searchValue" >
+				<![CDATA[ 
+					(t.name like '%$searchValue$%' 
+					or t.Manufacturer like '%$searchValue$%' )
+				]]>
+			</isNotEmpty>
+		 </dynamic>
+		<![CDATA[ 	order by t.CREATE_DATE desc,t.NAME ]]>
+	</select>
+	<!-- 增加产品类型 -->
+	<insert id="create" parameterClass="map">
+		
+		  <![CDATA[ 
+				insert into T_prdc_type
+				(Name,Memo,Manufacturer)
+				values(#Name#, #Memo#,#Manufacturer#)
+	  ]]>
+	</insert>
+	
+	<!--根据id查询一条产品类型记录-->
+	<select id="queryByid" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select ID,NAME,MEMO,CREATE_DATE,MODIFY_DATE,Manufacturer
+			from T_prdc_type where id = #id#
+		]]>
+	</select>
+	
+	<!--根据id删除一条产品类型记录-->
+	<update id="deleteById" parameterClass="map">
+		<![CDATA[
+			update T_prdc_type set PRDC_TYPE_STATUS=-2, MODIFY_DATE=getdate()   where id=#id# 
+		]]>
+	</update>
+	
+	<!--产品类型修改-->
+	<update id="update" parameterClass="map">
+		<![CDATA[
+			update T_prdc_type 
+			set  name=#name#,
+			     Memo=#memo#,
+			     MODIFY_DATE=getdate(),
+			     Manufacturer=#Manufacturer#
+			     where id=#id#
+		]]>
+	</update>
+
+	<!-- 查询所有产品类型 -->
+	<select id="queryName" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[
+			select id,name from T_prdc_type	 where PRDC_TYPE_STATUS = 0		 
+		]]> 
+	</select>
+		
+</sqlMap>

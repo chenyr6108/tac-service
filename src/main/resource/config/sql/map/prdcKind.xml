@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="prdcKind">
+	<!--得到产品的数目 -->
+	<select id="query_count" resultClass="java.lang.Integer" parameterClass="java.util.HashMap">
+				SELECT COUNT(O.id) FROM (
+				select DISTINCT  t1.id                  id,
+					       t1.name                name,
+					       t1.type_id             type_id, 
+					       t1.type                type,
+					       t1.memo                memo,
+					       t1.create_date         create_date,
+					       t1.modify_date         modify_date,
+					       t1.remark2             remark2,
+					       t1.remark3             remark3,
+					       t1.remark4             remark4,
+					       t2.name                type_name,
+					       t3.TYPE_1 TYPE1,
+					       t3.TYPE_2 TYPE2
+					from 
+						t_prdc_kind t1
+						left join t_prdc_type t2 on t2.id = t1.type_id 
+						LEFT JOIN T_PRODUCT_TYPE T3 ON T1.NAME=T3.PRODUCT_NAME AND T3.STATUS=0
+					where t1.prdc_kind_status=0 
+					<isNotEmpty property="TYPE1">
+						<isEqual property="TYPE1" compareValue="NO_DATA">
+						AND t3.TYPE_1 IS NULL
+						</isEqual>
+						<isNotEqual property="TYPE1" compareValue="NO_DATA">
+						AND t3.TYPE_1=#TYPE1#
+						</isNotEqual>
+					</isNotEmpty>
+					<isNotEmpty property="TYPE2">
+						AND t3.TYPE_2=#TYPE2#
+					</isNotEmpty>
+					<isNotEmpty property="PRODUCT_LEVEL">
+						AND t3.PRODUCT_LEVEL=#PRODUCT_LEVEL#
+					</isNotEmpty>
+			<isNotEmpty property="searchValue" >
+				AND (t1.name like '%$searchValue$%' 
+					  	 or t2.name like '%$searchValue$%')
+			</isNotEmpty>
+			) O
+	</select>
+	
+	<!--查询所有产品名称-->
+	<select id="query" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		 select t1.id                  id,
+					       t1.name                name,
+					       t1.type_id             type_id, 
+					       t1.type                type,
+					       t1.memo                memo,
+					       t1.create_date         create_date,
+					       t1.modify_date         modify_date,
+					       t1.remark2             remark2,
+					       t1.remark3             remark3,
+					       t1.remark4             remark4,
+					       t2.name                type_name,
+					       t3.TYPE1,
+					       t3.TYPE2,
+					       isnull(T3.PRODUCT_LEVEL,'') as PRODUCT_LEVEL
+					From T_PRDC_KIND t1
+					left join t_prdc_type t2 on t2.id = t1.type_id 
+					left join(
+					  select PRODUCT_NAME
+					  , max(TYPE_1) as TYPE1
+					  , max(TYPE_2) as TYPE2
+					  , max(PRODUCT_LEVEL) as PRODUCT_LEVEL
+					  from T_PRODUCT_TYPE
+					  group by PRODUCT_NAME
+					)t3 on t3.PRODUCT_NAME = t1.[NAME]
+					where t1.prdc_kind_status=0 and t1.name is not null
+					<isNotEmpty property="TYPE1">
+						<isEqual property="TYPE1" compareValue="NO_DATA">
+						AND t3.TYPE1 IS NULL
+						</isEqual>
+						<isNotEqual property="TYPE1" compareValue="NO_DATA">
+						AND t3.TYPE1=#TYPE1#
+						</isNotEqual>
+					</isNotEmpty>
+					<isNotEmpty property="TYPE2">
+						AND t3.TYPE2=#TYPE2#
+					</isNotEmpty>
+					<isNotEmpty property="PRODUCT_LEVEL">
+						AND t3.PRODUCT_LEVEL=#PRODUCT_LEVEL#
+					</isNotEmpty>
+			<isNotEmpty property="searchValue" >
+				AND (t1.name like '%$searchValue$%' 
+					  	 or t2.name like '%$searchValue$%')
+			</isNotEmpty>
+	</select>
+	<!-- 插入产品名称信息 -->
+	<insert id="create" parameterClass="map">  
+		  <![CDATA[ 
+				INSERT INTO T_prdc_kind
+					(Name,type_id,Type,Memo,Remark2,Remark3,Remark4)
+				VALUES
+					(#Name#,#type_id#,#Type#,#Memo#,'','','')
+	  ]]>
+	</insert>
+	<!--根据ID查询产品名称信息--> 
+	<select id="queryByid" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+				 select    t1.id                  id,
+					       t1.name                name,
+					       t1.type_id             type_id, 
+					       t1.type                type,
+					       t1.memo                memo,
+					       t1.create_date         create_date,
+					       t1.modify_date         modify_date,
+					       t1.remark2             remark2,
+					       t1.remark3             remark3,
+					       t1.remark4             remark4,
+					       t2.name                type_name
+					from t_prdc_kind t1
+					left join t_prdc_type t2 on t2.id = t1.type_id 
+					where t1.prdc_kind_status=0 and t1.id=#id#
+		]]>
+	</select>
+	<!--根据ID删除产品-->
+	<update id="deleteById" parameterClass="map">
+		<![CDATA[
+			update T_prdc_kind set Prdc_kind_status=-2 where id=#id#
+		]]>
+	</update>
+	<!-- 根据产品的类型去关联产品的型号 -->
+	<select id="queryProductByKindId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select id,name from t_prdc_kind where type_id= #type_id# and prdc_kind_status=0
+		]]>
+	</select>
+	<!--更新产品-->
+	<update id="updateById" parameterClass="map">
+		<![CDATA[
+			UPDATE 
+				T_prdc_kind  
+			SET 
+				name=#updateName#,type_id=#type_id#,Memo=#updateMemo#, 
+				MODIFY_DATE=getdate()
+			WHERE 
+				id=#id#
+		]]>
+	</update>
+		<!-- 查询一个产品类型下产品的个数 -->
+	<select id="getKindCount" parameterClass="map" resultClass="java.lang.Integer"> 
+		<![CDATA[
+			select count(1) count from T_PRDC_KIND t
+			where t.PRDC_KIND_STATUS = 0  and  t.type_id = #type_id#
+		]]>
+	</select>
+		<!-- 
+			查询一个产品类型下产品的个数 
+		-->
+	<select id="checkKindCount" parameterClass="map" resultClass="java.lang.Integer"> 
+		<![CDATA[
+			select count(1) count from T_PRDC_KIND t
+			where t.PRDC_KIND_STATUS = 0  and  t.type_id = #type_id# and t.name = #name#
+		]]>
+	</select>
+		<!-- 
+			查询一个供应商下产品厂牌的个数 
+		-->
+	<select id="checkTypeCount" parameterClass="map" resultClass="java.lang.Integer"> 
+		<![CDATA[
+			select count(1) count from T_PRDC_TYPE t
+			where t.PRDC_TYPE_STATUS = 0  and  t.name = #name#
+		]]>
+	</select>
+	
+	<select id="getMaintaninceType" resultClass="java.util.HashMap">
+		SELECT DISTINCT TYPE_1+'-'+TYPE_2 FLAG,TYPE_1+'-'+TYPE_2 CODE,TYPE_1,TYPE_2,PRODUCT_NAME,isnull(PRODUCT_LEVEL,'') as PRODUCT_LEVEL
+		 FROM T_PRODUCT_TYPE 
+		 WHERE STATUS=0
+		 <isNotEmpty property="PRODUCT_NAME">
+		   AND PRODUCT_NAME LIKE '%$PRODUCT_NAME$%'
+		 </isNotEmpty>
+		   AND (TYPE_2 IS NOT NULL OR TYPE_2!='')
+	</select>
+	
+	<select id="getMaintaninceType1" resultClass="java.util.HashMap">
+		SELECT DISTINCT TYPE_1 FLAG,TYPE_1 CODE FROM T_PRODUCT_TYPE 
+		 WHERE STATUS=0
+	</select>
+	
+	<select id="getMaintaninceType2" resultClass="java.util.HashMap">
+		SELECT DISTINCT TYPE_2 FLAG,TYPE_2 CODE,isnull(PRODUCT_LEVEL,'') as PRODUCT_LEVEL
+		FROM T_PRODUCT_TYPE 
+		 WHERE STATUS=0
+		 <isNotEmpty property="TYPE1">
+		   AND TYPE_1=#TYPE1#
+		 </isNotEmpty>
+		   AND (TYPE_2 IS NOT NULL OR TYPE_2!='')
+	</select>
+	
+	<update id="delProductType" parameterClass="map">
+		UPDATE T_PRODUCT_TYPE SET STATUS=-1 WHERE PRODUCT_NAME=#PRODUCT_NAME#
+	</update>
+	
+	<insert id="insertProductType" parameterClass="map">
+		INSERT INTO T_PRODUCT_TYPE
+		(TYPE_1,TYPE_2,PRODUCT_NAME,STATUS,PRODUCT_LEVEL)
+		VALUES
+		(#TYPE_1#,#TYPE_2#,#PRODUCT_NAME#,0,#PRODUCT_LEVEL#)
+	</insert>
+	
+	<select id="getProductTypeCount" parameterClass="map" resultClass="java.lang.Integer">
+		select count(1) from T_PRODUCT_TYPE where PRODUCT_NAME = #PRODUCT_NAME# and STATUS =0
+	</select>
+	
+	<select id="getProductLevelByType" parameterClass="map" resultClass="java.lang.String">
+		select top 1 PRODUCT_LEVEL from T_PRODUCT_TYPE 
+		where STATUS = 0
+		and TYPE_1 = #TYPE_1#
+		and TYPE_2 = #TYPE_2#
+		and PRODUCT_LEVEL is not null
+	</select>
+	
+	<update id="updateProductLevelByType" parameterClass="map">
+		update T_PRODUCT_TYPE
+		set PRODUCT_LEVEL = #productLevel#
+		where STATUS = 0
+		and TYPE_1 = #TYPE_1#
+		and TYPE_2 = #TYPE_2#
+	</update>
+	
+	<update id="updateProductType" parameterClass="map">
+		UPDATE T_PRODUCT_TYPE SET TYPE_1 = #TYPE_1#,TYPE_2=#TYPE_2# WHERE PRODUCT_NAME = #PRODUCT_NAME# and STATUS =0
+	</update>
+	
+	<update id="updateType1" parameterClass="map">
+		UPDATE T_PRODUCT_TYPE SET TYPE_1 = #new_type# where TYPE_1 = #old_type# and STATUS =0
+	</update>
+	
+	<update id="updateType2" parameterClass="map">
+		UPDATE T_PRODUCT_TYPE SET TYPE_2 = #new_type#,PRODUCT_LEVEL=#level# 
+		where TYPE_2 = #old_type# and TYPE_1 = #type1# and STATUS =0
+	</update>
+</sqlMap>

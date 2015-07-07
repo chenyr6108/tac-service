@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="uploadPicture">
+	<insert id="create" parameterClass="map">
+		insert into t_sys_upload
+			( 
+			create_time,
+			create_user_id,
+			modify_time,
+			modify_user_id,
+			path,
+			title,
+			file_name,
+			remark,
+			parent_id
+			)
+		values
+		( 
+		getdate(),
+		#s_employeeId#,
+		getdate(),
+		#s_employeeId#,
+		#file_path#,
+		#title#,
+		#file_name#,
+		#remark#,
+		#RECT_ID#
+		)
+			<selectKey resultClass="java.lang.Long" keyProperty="syup_id">
+			<![CDATA[	select @@IDENTITY as syup_id  ]]>
+		</selectKey> 
+	</insert>
+		<!-- 根据id查找文件保存路径-->
+	<select id="queryPath" parameterClass="map"	resultClass="java.util.HashMap">
+		<![CDATA[
+				select t.path    
+				from t_sys_upload t
+				where t.syup_id = #syupId#
+		]]>
+	</select>
+	
+</sqlMap>

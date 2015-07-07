@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap namespace="backVisitImage">
+	<insert id="createVistitImage" parameterClass="map">
+		 <![CDATA[
+		INSERT INTO T_VISIT_IMAGEUP
+		(
+			VISIT_ID,
+			PATH,
+			TITLE,
+			IMAGE_NAME,
+			status,
+			create_id,
+			create_date
+		) VALUES(
+			#visit_id# ,
+			#path# ,
+			#title# ,
+			#image_name# ,
+			0 ,
+			#s_employeeId# ,
+			getdate()
+		) 
+		]]>
+	</insert>
+	
+	<!--2011/12/9 Yang Yun Add for show image for view back visit. Start  -->
+	<select id="queryImgForViewVisit" parameterClass="map" resultClass="java.util.HashMap">
+		select replace(ISNULL(img.PATH,0),'\','\\') PATH, img.TITLE, img.IMAGE_NAME from T_VISIT_IMAGEUP img
+		where img.STATUS = 0
+		and img.VISIT_ID = #visit_id#
+	</select>
+	<!--2011/12/9 Yang Yun Add for show image for view back visit. end  -->
+	
+	<select id="queryVistitImageByPrcdId" parameterClass="map" resultClass="java.util.HashMap">
+		select 
+			distinct t.TVIU_ID ,
+			t.VISIT_ID ,
+			replace(ISNULL(t.PATH,0),'\','\\') PATH,
+			t.TITLE ,
+			t.IMAGE_NAME ,
+			T3.PRCD_ID ,
+			t.CREATE_DATE
+		from
+			T_VISIT_IMAGEUP t
+			left join T_VISIT_REVIEWRECORDS t1 on t1.VISIT_ID = t.VISIT_ID  AND t1.status = 0
+			left join T_RENT_CONTRACTDETAIL t2 on t2.RECD_ID = t1.RECD_ID  AND t2.status = 0
+			LEFT JOIN T_RENT_CONTRACT T3 ON T3.RECT_ID = t2.RECT_ID AND T3.STATUS = 0
+			
+		where
+			t.status = 0 
+			AND T3.PRCD_ID = #prcd_id#
+	</select>
+	<update id="deleteVisitImage" parameterClass="map">
+		UPDATE 
+			T_VISIT_IMAGEUP 
+		SET 
+			status = -2 ,
+			modify_id = #s_employeeId# ,
+			modify_date = getdate()
+		WHERE
+			TVIU_ID = #tviu_id#
+	</update>
+</sqlMap>

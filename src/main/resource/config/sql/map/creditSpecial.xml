@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="creditSpecial">
+
+	<select id="getCreditSpecialPropertyList" resultClass="com.brick.special.to.CreditSpecialTO">
+		SELECT TPCSP.ID id,TPCSP.PROPERTY_CODE propertyCode,TPCSP.STATUS status,
+			   TPCSP.PROPERTY_NAME propertyName,TPCSP.IS_NEED isNeed,
+			   TUU.NAME name,CONVERT(VARCHAR,TPCSP.MODIFY_DATE,20) modifyDateDescr
+		  FROM T_PRJT_CREDIT_SPECIAL_PROPERTY TPCSP
+	 LEFT JOIN T_USER_USER TUU ON TUU.STATUS=0 AND TUU.ID=TPCSP.MODIFY_BY
+	  ORDER BY TPCSP.STATUS DESC,TPCSP.MODIFY_DATE DESC
+	</select>
+	
+	<select id="checkIsDuplicate" resultClass="java.lang.String">
+		SELECT DISTINCT 'Y' 
+		  FROM T_PRJT_CREDIT_SPECIAL_PROPERTY 
+		 WHERE PROPERTY_CODE=#propertyCode#
+		   AND STATUS=0
+	</select>
+	
+	<insert id="addCreditSpecialProperty">
+		INSERT INTO T_PRJT_CREDIT_SPECIAL_PROPERTY
+		(PROPERTY_NAME,PROPERTY_CODE,IS_NEED,STATUS,MODIFY_BY,MODIFY_DATE)
+		VALUES
+		(#propertyName#,#propertyCode#,#isNeed#,0,#s_employeeId#,GETDATE())
+	</insert>
+	
+	<update id="updateCreditSpecialProperty">
+		UPDATE T_PRJT_CREDIT_SPECIAL_PROPERTY 
+		   SET STATUS=#creditStatus#,
+		   	   MODIFY_BY=#s_employeeId#,
+		   	   MODIFY_DATE=GETDATE()
+		 WHERE ID=#id#
+	</update>
+	
+	<update id="configCreditSpecialProperty">
+		UPDATE T_PRJT_CREDIT_SPECIAL_PROPERTY 
+		   SET PROPERTY_NAME=#propertyName#,
+		   	   IS_NEED=#isNeed#,
+		   	   MODIFY_BY=#s_employeeId#,
+		   	   MODIFY_DATE=GETDATE()
+		 WHERE ID=#id#
+	</update>
+	
+	<select id="queryCreditSpecialGroup" resultClass="com.brick.special.to.CreditSpecialTO">
+		SELECT T.CREDIT_SPECIAL_NAME creditName,
+			   T.CREDIT_SPECIAL_CODE creditCode,
+			   CONVERT(VARCHAR,T.START_DATE,23) startDateDescr,
+			   CONVERT(VARCHAR,T.END_DATE,23) endDateDescr,
+			   U.NAME name,
+			   CONVERT(VARCHAR,T.MODIFY_DATE,20) modifyDateDescr
+		  FROM T_PRJT_CREDIT_SPECIAL_GROUP T
+	 LEFT JOIN T_USER_USER U ON U.STATUS=0 AND U.ID=T.MODIFY_BY
+		 WHERE T.STATUS=0
+	  ORDER BY T.ID
+	</select>
+	
+	<select id="queryCreditSpecialGroup1" resultClass="com.brick.special.to.CreditSpecialTO">
+		SELECT T.CREDIT_SPECIAL_NAME creditName,
+			   T.CREDIT_SPECIAL_CODE creditCode,
+			   CONVERT(VARCHAR,T.START_DATE,23) startDateDescr,
+			   CONVERT(VARCHAR,T.END_DATE,23) endDateDescr,
+			   U.NAME name,
+			   CONVERT(VARCHAR,T.MODIFY_DATE,20) modifyDateDescr
+		  FROM T_PRJT_CREDIT_SPECIAL_GROUP T
+	 LEFT JOIN T_USER_USER U ON U.STATUS=0 AND U.ID=T.MODIFY_BY
+		 WHERE T.STATUS=0
+		   AND CONVERT(DATE,GETDATE()) BETWEEN CONVERT(DATE,T.START_DATE) AND CONVERT(DATE,T.END_DATE)
+	  ORDER BY T.ID
+	</select>
+	
+	<select id="queryCreditSpecialGroupMap" resultClass="com.brick.special.to.CreditSpecialTO">
+		SELECT T1.CREDIT_SPECIAL_CODE creditCode,
+			   T1.PROPERTY_CODE propertyCode,
+			   ISNULL(T1.VALUE_1,'') value1,
+			   ISNULL(T1.VALUE_2,'') value2,
+			   T1.CHECKED_VALUE checkValue,
+         	   T2.IS_NEED isNeed,
+         	   CONVERT(VARCHAR,T3.START_DATE,23) startDateDescr,CONVERT(VARCHAR,T3.END_DATE,23) endDateDescr
+		  FROM T_PRJT_CREDIT_SPECIAL_GROUP_MAP T1
+     LEFT JOIN T_PRJT_CREDIT_SPECIAL_PROPERTY T2 ON T1.PROPERTY_CODE=T2.PROPERTY_CODE AND T2.STATUS=0
+     LEFT JOIN T_PRJT_CREDIT_SPECIAL_GROUP T3 ON T3.CREDIT_SPECIAL_CODE=T1.CREDIT_SPECIAL_CODE AND T3.STATUS=0
+		 WHERE T1.STATUS=0
+		   AND T1.CREDIT_SPECIAL_CODE=#creditSpecialCode#
+	</select>
+	
+	<insert id="addCreditSpecialGroup">
+		INSERT INTO T_PRJT_CREDIT_SPECIAL_GROUP
+		(CREDIT_SPECIAL_NAME,CREDIT_SPECIAL_CODE,START_DATE,END_DATE,MODIFY_BY,MODIFY_DATE,STATUS)
+		VALUES
+		(#creditSpecialName#,#creditSpecialCode#,#startDateDescr#,#endDateDescr#,#s_employeeId#,GETDATE(),0)
+	</insert>
+	<insert id="addCreditSpecialGroupMap">
+		INSERT INTO T_PRJT_CREDIT_SPECIAL_GROUP_MAP
+		(CREDIT_SPECIAL_CODE,PROPERTY_CODE,VALUE_1,VALUE_2,CHECKED_VALUE,MODIFY_BY,MODIFY_DATE,STATUS)
+		VALUES
+		(#creditSpecialCode#,#propertyCode#,#value_1#,#value_2#,#checkedValue#,#s_employeeId#,GETDATE(),0)
+	</insert>
+	
+	<select id="checkIsDuplicate1" resultClass="java.lang.String">
+		SELECT DISTINCT 'Y' 
+		  FROM T_PRJT_CREDIT_SPECIAL_GROUP 
+		 WHERE (CREDIT_SPECIAL_NAME=#creditSpecialName# OR CREDIT_SPECIAL_CODE=#creditSpecialCode#)
+		   AND STATUS=0
+	</select>
+	
+	<select id="getAreaList" resultClass="com.brick.special.to.CreditSpecialTO">
+		SELECT DISTINCT ID id,NAME name FROM T_AREA WHERE PID IS NOT NULL AND PID!=1 ORDER BY NAME
+	</select>
+	
+	<update id="updateCreditSpecialGroup">
+		UPDATE T_PRJT_CREDIT_SPECIAL_GROUP
+		   SET START_DATE=#startDate#,
+		         END_DATE=#endDate#,
+		        MODIFY_BY=#s_employeeId#,
+		      MODIFY_DATE=GETDATE()
+		 WHERE STATUS=0
+		   AND CREDIT_SPECIAL_CODE=#creditSpecialCode#
+	</update>
+	
+	<update id="updateCreditSpecialGroupMap">
+		UPDATE T_PRJT_CREDIT_SPECIAL_GROUP_MAP
+		   SET VALUE_1=#value1#,
+		       VALUE_2=#value2#,
+		       CHECKED_VALUE=#value3#,
+		       MODIFY_BY=#s_employeeId#,
+		       MODIFY_DATE=GETDATE()
+		 WHERE STATUS=0
+		   AND CREDIT_SPECIAL_CODE=#creditSpecialCode#
+		   AND PROPERTY_CODE=#propertyCode#
+	</update>
+	
+	<update id="updateCreditSpecialGroupMap1">
+		UPDATE T_PRJT_CREDIT_SPECIAL_GROUP_MAP
+		   SET VALUE_1='$value1$',
+		       VALUE_2='$value2$',
+		       CHECKED_VALUE=#value3#,
+		       MODIFY_BY=#s_employeeId#,
+		       MODIFY_DATE=GETDATE()
+		 WHERE STATUS=0
+		   AND CREDIT_SPECIAL_CODE=#creditSpecialCode#
+		   AND PROPERTY_CODE=#propertyCode#
+	</update>
+	
+	<update id="deleteCreditSpecialGroupMap">
+		UPDATE T_PRJT_CREDIT_SPECIAL_GROUP_MAP
+		   SET STATUS=-1,
+		   	   MODIFY_BY=#s_employeeId#,
+		       MODIFY_DATE=GETDATE()
+		 WHERE CREDIT_SPECIAL_CODE=#creditSpecialCode#
+	</update>
+	
+	<update id="deleteCreditSpecialGroup">
+		UPDATE T_PRJT_CREDIT_SPECIAL_GROUP
+		   SET STATUS=-1,
+		       MODIFY_BY=#s_employeeId#,
+		       MODIFY_DATE=GETDATE()
+		 WHERE CREDIT_SPECIAL_CODE=#creditSpecialCode#      
+	</update>
+	
+	<select id="getBrandList" resultClass="java.util.HashMap">
+		SELECT DISTINCT THING_KIND 
+		  FROM T_PRJT_CREDITEQUIPMENT 
+		 WHERE EQMT_STATUS=0
+		   AND THING_KIND IS NOT NULL
+	</select>
+	
+	<select id="getCreditSpecialLog" resultClass="com.brick.special.to.CreditSpecialTO">
+	      SELECT T2.CREDIT_RUNCODE creditCode,
+	             T4.CUST_NAME custName,
+	             T3.[NAME] [name],
+	             T1.CREDIT_SPECIAL_NAME creditName,
+	             T1.LOG_CONTENT logContent,
+	             T1.CREATE_DATE creditDate,
+	             CONVERT(VARCHAR,T1.CREATE_DATE,20) creditDateDescr
+	        FROM T_PRJT_CREDIT_SPECIAL_LOG T1
+	   LEFT JOIN T_PRJT_CREDIT T2 ON T1.CREDIT_ID=T2.ID AND T2.STATUS=0
+	   LEFT JOIN T_USER_USER T3 ON T3.ID=T1.CREATE_BY AND T3.STATUS=0
+	   LEFT JOIN T_CUST_CUSTOMER T4 ON T2.CUST_ID=T4.CUST_ID AND T4.STATUS=0
+	   <isNotEmpty property="content">
+	       WHERE (CREDIT_RUNCODE LIKE '%$content$%'
+	       			OR CUST_NAME LIKE '%$content$%'
+	       			OR NAME LIKE '%$content$%'
+	       			OR CREDIT_SPECIAL_NAME LIKE '%$content$%')
+	   </isNotEmpty>
+	</select>
+	<!-- 区域专案办事处不可见 -->
+	
+	<select id="queryCreditSpecialGroupByDecpId" resultClass="com.brick.special.to.CreditSpecialTO">
+		SELECT T.CREDIT_SPECIAL_NAME CREDITNAME,
+			   T.CREDIT_SPECIAL_CODE CREDITCODE,
+			   CONVERT(VARCHAR,T.START_DATE,23) STARTDATEDESCR,
+			   CONVERT(VARCHAR,T.END_DATE,23) ENDDATEDESCR,
+			   U.NAME NAME,
+			   CONVERT(VARCHAR,T.MODIFY_DATE,20) MODIFYDATEDESCR,
+               TM.VALUE_2
+		FROM T_PRJT_CREDIT_SPECIAL_GROUP T
+		LEFT JOIN T_USER_USER U ON U.STATUS=0 AND U.ID=T.MODIFY_BY
+		LEFT JOIN T_PRJT_CREDIT_SPECIAL_GROUP_MAP TM ON TM.CREDIT_SPECIAL_CODE=T.CREDIT_SPECIAL_CODE AND TM.PROPERTY_CODE =#propertyCode#
+		WHERE T.STATUS=0 AND CONVERT(DATE,GETDATE()) BETWEEN CONVERT(DATE,T.START_DATE) AND CONVERT(DATE,T.END_DATE)
+		     AND  ( TM.VALUE_2 LIKE '%$decpId$%' OR ( TM.VALUE_2 IS NULL OR TM.VALUE_2=''))
+	</select>
+</sqlMap>

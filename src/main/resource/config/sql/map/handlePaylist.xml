@@ -1,0 +1,519 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="handlePaylist">
+	<update id="updatePayDate" parameterClass="map">
+	<![CDATA[
+		UPDATE T_RENT_COLLECTIONDETAIL 
+		   SET PAY_DATE       = #PAY_DATE#,
+		       MODIFY_TIME    = getdate(),
+		       MODIFY_USER_ID = #S_EMPLOYEEID#
+		 WHERE RECP_ID = #RECP_ID#
+		   AND PERIOD_NUM = #PERIOD_NUM#
+	]]>
+	</update>
+	<update id="updateStartDate" parameterClass="map">
+	<![CDATA[
+		UPDATE T_RENT_COLLECTIONPLAN 
+		   SET START_DATE     = #START_DATE#,
+		   	   FIRST_PAYDATE     = #FIRST_PAYDATE#,
+		       END_DATE       = #END_DATE#,
+		       PAYDATE_FLAG   = 1,
+		       MODIFY_TIME    = getdate(),
+		       MODIFY_USER_ID = #S_EMPLOYEEID#
+		 WHERE RECP_ID = #RECP_ID#
+	]]>
+	</update>
+	<statement id="readMaxVersionByRecpCode" parameterClass="map" resultClass="java.lang.Integer">
+	<![CDATA[
+		SELECT MAX(T.VERSION_CODE)  FROM T_RENT_COLLECTIONPLAN T WHERE T.RECP_CODE = #RECP_CODE#
+	]]>
+	</statement>
+	<!--  query message form  T_RENT_COLLECTIONREMARK    --> 
+	<select id="queryMsg" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT CONVERT(varchar,T1.CREATE_TIME,120) CREATE_TIME,
+			       T1.CREATE_USER_ID,
+			       T2.NAME,
+			       T1.REMARK
+			  FROM T_RENT_COLLECTIONREMARK T1
+			  LEFT JOIN T_USER_USER T2 ON T1.CREATE_USER_ID = T2.ID
+			 WHERE T1.STATUS = 0
+			   AND T1.TYPE = 0
+			   AND T1.RECP_ID = #RECP_ID#
+				 ORDER BY T1.CREATE_TIME
+			 	 
+		]]>
+	</select>
+	<!-- unusual  -->
+	<select id="queryInfo" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT CONVERT(varchar,T1.CREATE_TIME,120)   CREATE_TIME,
+			       T1.CREATE_USER_ID,
+			       T2.NAME,
+			       T1.REMARK
+			  FROM T_RENT_COLLECTIONREMARK T1
+			  LEFT JOIN T_USER_USER T2 ON T1.CREATE_USER_ID = T2.ID
+			 WHERE T1.STATUS = 0
+			   AND T1.TYPE = 1
+			   AND T1.RECP_ID = #RECP_ID#
+				  ORDER BY T1.CREATE_TIME
+		]]>
+	</select>
+	<!--  create  message for T_RENT_COLLECTIONREMARK    --> 
+	<insert id="createCollecionRemark" parameterClass="map">
+	 	<![CDATA[
+		INSERT INTO T_RENT_COLLECTIONREMARK ( CREATE_USER_ID, MODIFY_USER_ID, TYPE, REMARK, RECP_ID)
+			VALUES
+			  ( 
+			   #EMPLOYEEID#,
+			   #EMPLOYEEID#,
+			   #TYPE#,
+			   #REMARK#,
+			   #ID#)
+	 	]]>
+	</insert>
+	
+	<update id="updatePaylist" parameterClass="map">
+	 	<![CDATA[
+		 	UPDATE T_RENT_COLLECTIONPLAN
+			   SET MODIFY_TIME          = getdate(),
+			       MODIFY_USER_ID       = #S_EMPLOYEEID#,
+			       LEASE_TOPRIC         = #LEASE_TOPRIC#,
+			       LEASE_TERM           = #LEASE_TERM#,
+			       LEASE_PERIOD 		= #LEASE_PERIOD#,
+			       PLEDGE_PRICE         = #PLEDGE_PRICE#,
+			       PLEDGE_PRICE_RATE    = #PLEDGE_PRICE_RATE#,
+			       HEAD_HIRE            = #HEAD_HIRE#,
+			       HEAD_HIRE_PERCENT    = #HEAD_HIRE_PERCENT#,
+			       MANAGEMENT_FEE       = #MANAGEMENT_FEE#,
+			       MANAGEMENT_FEE_RATE  = #MANAGEMENT_FEE_RATE#,
+			       FLOAT_RATE           = #FLOAT_RATE#,
+			       YEAR_INTEREST_TYPE   = #YEAR_INTEREST_TYPE#,
+			       YEAR_INTEREST        = #YEAR_INTEREST#,
+			       PAY_WAY 			    = #PAY_WAY#,
+			       FINE_TYPE            = #FINE_TYPE#,
+			       FINE_RATE            = #FINE_RATE#,
+			       START_DATE           = #START_DATE#,
+			       FIRST_PAYDATE        = #FIRST_PAYDATE#,
+			       END_DATE             = #END_DATE#,
+			       VERSION_CODE         = #VERSION_CODE#,
+			       DEAL_WAY             = #DEAL_WAY#,
+			       EQUPMENT_ADDRESS     = #EQUPMENT_ADDRESS#,
+			       BUSINESS_TRIP_PRICE  = #BUSINESS_TRIP_PRICE#,
+			       BUY_INSURANCE_WAY    = #BUY_INSURANCE_WAY#,
+			       BUY_INSURANCE_TIME   = #BUY_INSURANCE_TIME#,
+			       INSURE_REBATE_RATE   = #INSURE_REBATE_RATE#,
+			       INSURANCE_COMPANY_ID = #INSURANCE_COMPANY_ID#,
+			       LEASE_RZE            = #LEASE_RZE#,
+			       PAYDATE_FLAG			= #PAYDATE_FLAG#,
+			   	   PLEDGE_WAY			= #PLEDGE_WAY#,
+			       PLEDGE_PERIOD        = #PLEDGE_PERIOD#,
+			       INSURE_BASE_RATE     = #INSURE_BASE_RATE#,
+			       SALES_TAX_RATE       = #SALES_TAX_RATE#,
+			       STAMP_TAX_TOPRIC     = #STAMP_TAX_TOPRIC#,
+			       STAMP_TAX_MONTHPRIC  = #STAMP_TAX_MONTHPRIC#,
+			       STAMP_TAX_PRICE      = #STAMP_TAX_PRICE#,
+			       TR_RATE				= #TR_RATE#, 
+			       STAMP_TAX_INSUREPRIC = #STAMP_TAX_INSUREPRIC#,
+			       TR_IRR_RATE			= #TR_IRR_RATE#, 
+			       PLEDGE_REALPRIC		= #PLEDGE_REALPRIC#,
+			       PLEDGE_AVE_PRICE     = #PLEDGE_AVE_PRICE#,
+			       PLEDGE_BACK_PRICE    = #PLEDGE_BACK_PRICE#,
+			       PLEDGE_LAST_PRICE    = #PLEDGE_LAST_PRICE#,
+			       PLEDGE_LAST_PERIOD   = #PLEDGE_LAST_PERIOD#,
+			       PLEDGE_ENTER_CMPRICE = #PLEDGE_ENTER_CMPRICE#,
+			       PLEDGE_ENTER_CMRATE  = #PLEDGE_ENTER_CMRATE#,
+			       PLEDGE_ENTER_MCTOAG  = #PLEDGE_ENTER_MCTOAG#,
+			       PLEDGE_ENTER_MCTOAGRATE  = #PLEDGE_ENTER_MCTOAGRATE#,
+			       PLEDGE_ENTER_AG      = #PLEDGE_ENTER_AG#,
+			       SUPL_TRUE			= #SUPL_TRUE#,
+			       PLEDGE_ENTER_AGRATE  = #PLEDGE_ENTER_AGRATE#
+			 WHERE RECP_ID = #RECP_ID#
+	  	]]>
+	</update>
+	
+	<update id="revokePaylist" parameterClass="map">
+	 	<![CDATA[ 
+	 		UPDATE T_RENT_COLLECTIONPLAN 
+			   SET STATUS         = -1,
+			       MODIFY_TIME    = getdate(),
+			       MODIFY_USER_ID = #S_EMPLOYEEID#
+			 WHERE RECP_ID = #RECP_ID#
+	 	]]>
+	</update>
+	
+	<update id="revokePayEquipments" parameterClass="map">
+	 	<![CDATA[ 
+	 		UPDATE T_RENT_CONTRACTDETAIL 
+			   SET STATUS         = -1,
+			       MODIFY_TIME    = getdate(),
+			       MODIFY_USER_ID = #S_EMPLOYEEID#
+			 WHERE RECP_ID = #OLDRECPID# AND STATUS=0
+	 	]]>
+	</update>
+	
+	<insert id="createPayEquipmentsByOldRecpId" parameterClass="map">
+		<![CDATA[
+			INSERT INTO T_RENT_CONTRACTDETAIL
+				  ( 
+				   CREATE_TIME,
+				   CREATE_USER_ID,
+				   MODIFY_TIME,
+				   MODIFY_USER_ID,
+				   RECT_ID,
+				   EQMT_ID,
+				   RECS_ID,
+				   THING_NAME,
+				   BRAND,
+				   MODEL_SPEC,
+				   UNIT_PRICE,
+				   THING_KIND,
+				   AMOUNT,
+				   UNIT,
+				   MEMO,
+				   RECP_ID,
+				   REDN_ID,
+				   STAYBUY_PRICE)
+				  SELECT
+				         T.CREATE_TIME,
+				         T.CREATE_USER_ID,
+				         getdate(),
+				         #S_EMPLOYEEID#,
+				         T.RECT_ID,
+				         T.EQMT_ID,
+				         T.RECS_ID,
+				         T.THING_NAME,
+				         T.BRAND,
+				         T.MODEL_SPEC,
+				         T.UNIT_PRICE,
+				         T.THING_KIND,
+				         T.AMOUNT,
+				         T.UNIT,
+				         T.MEMO,
+				         #NEWRECPID#,
+				         T.REDN_ID,
+				         T.STAYBUY_PRICE
+				    FROM T_RENT_CONTRACTDETAIL T
+				   WHERE T.RECP_ID = #OLDRECPID# AND T.STATUS=0
+		]]>
+	</insert>
+	
+	<statement id="queryPaylineCountByRecpId" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ 
+	 		SELECT COUNT(T.RECD_ID) FROM T_RENT_COLLECTIONDETAIL T WHERE T.RECP_ID=#RECP_ID#
+	 	]]>
+	</statement>
+	
+	
+	<update id="revokeIrr" parameterClass="map">
+	 	<![CDATA[ 
+	 		UPDATE T_RENT_COLLECTIONPLANIRR 
+			   SET STATUS         = -1,
+			       MODIFY_DATE    = getdate(),
+			       MODIFY_ID = #S_EMPLOYEEID#
+			 WHERE RECP_ID = #OLDRECPID# AND STATUS=0
+	 	]]>
+	</update>
+	
+	<insert id="createIrr" parameterClass="map">
+	 	<![CDATA[ 
+	 		insert into T_RENT_COLLECTIONPLANIRR 
+	 			(CREATE_ID,
+	 			 CREATE_DATE,
+	 			 STATUS,
+	 			 TYPE,
+	 			 REPI_STATUS,
+	 			 IRR_MONTH_PRICE,
+	 			 IRR_MONTH_PRICE_START,
+	 			 IRR_MONTH_PRICE_END,
+	 			 RECP_ID)
+	 			values
+	 			(#S_EMPLOYEEID#,
+	 			 getdate(),
+	 			 0,
+	 			 0,
+	 			 0,
+	 			 #IRR_MONTH_PRICE#,
+	 			 #IRR_MONTH_PRICE_START#,
+	 			 #IRR_MONTH_PRICE_END#,
+	 			 #RECP_ID#)
+	 	]]>
+	</insert>
+	
+	<update id="revokePayline" parameterClass="map">
+	 	<![CDATA[ 
+	 		UPDATE T_RENT_COLLECTIONDETAIL 
+			   SET STATUS         = -1,
+			       MODIFY_TIME    = getdate(),
+			       MODIFY_USER_ID = #S_EMPLOYEEID#
+			 WHERE RECP_ID = #OLDRECPID# AND STATUS=0
+	 	]]>
+	</update>
+	
+	
+	
+	<update id="deletePayline" parameterClass="map">
+	 	<![CDATA[ 
+	 		UPDATE T_RENT_COLLECTIONDETAIL 
+			   SET STATUS         = -2,
+			       MODIFY_TIME    = getdate(),
+			       MODIFY_USER_ID = #S_EMPLOYEEID#
+			 WHERE RECP_ID = #RECP_ID# AND STATUS=0
+	 	]]>
+	</update>
+	
+	<update id="updatePayline" parameterClass="map">
+	 	<![CDATA[ 
+	 		UPDATE T_RENT_COLLECTIONDETAIL 
+			   SET MODIFY_TIME    = getdate(),
+			       MODIFY_USER_ID = #S_EMPLOYEEID#,
+			       STATUS         = 0,
+			       PAY_DATE       = #PAY_DATE#,
+			       MONTH_PRICE    = #MONTH_PRICE#,
+			       OWN_PRICE      = #OWN_PRICE#,
+			       REN_PRICE      = #REN_PRICE#,
+			       LOCKED         = #LOCKED#,
+			       LAST_PRICE     = #LAST_PRICE#,
+			       DEPOSIT_PRICE  = #DEPOSIT_PRICE#,
+			       IRR_PRICE	  = #IRR_PRICE#,
+			       IRR_MONTH_PRICE= #IRR_MONTH_PRICE#,
+			       SALES_TAX	  = #SALES_TAX#,
+			       INSURE_PRICE	  = #INSURE_PRICE#
+			 WHERE RECP_ID = #RECP_ID#
+			   AND PERIOD_NUM = #PERIOD_NUM#
+	 	]]>
+	</update>
+	
+	<update id="revokePayInsure" parameterClass="map">
+	 	<![CDATA[ 
+	 		UPDATE T_RENT_COLLECTIONINSURE 
+			   SET STATUS         = -1,
+			       MODIFY_TIME    = getdate(),
+			       MODIFY_USER_ID = #S_EMPLOYEEID#
+			 WHERE RECP_ID = #OLDRECPID#  AND STATUS=0
+	 	]]>
+	</update>
+	
+	<update id="deletePayInsure" parameterClass="map">
+	 	<![CDATA[ 
+	 		UPDATE T_RENT_COLLECTIONINSURE 
+			   SET STATUS         = -2,
+			       MODIFY_TIME    = getdate(),
+			       MODIFY_USER_ID = #S_EMPLOYEEID#
+			 WHERE RECP_ID = #RECP_ID#  AND STATUS=0
+	 	]]>
+	</update>
+	
+	<update id="updatePayInsure" parameterClass="map">
+	 <![CDATA[ 
+			UPDATE T_RENT_COLLECTIONINSURE 
+			   SET MODIFY_TIME    = getdate(),
+			       MODIFY_USER_ID = #S_EMPLOYEEID#,
+			       STATUS         = 0,
+			       INSURE_ITEM    = #INSURE_ITEM#,
+			       START_DATE     = #START_DATE#,
+			       END_DATE       = #END_DATE#,
+			       INSURE_RATE    = #INSURE_RATE#,
+			       INSURE_PRICE   = #INSURE_PRICE#,
+			       MEMO           = #MEMO#
+			 WHERE RECI_ID = #RECI_ID#		
+	 ]]>
+	</update>
+	
+	<update id="revokePayOtherFee" parameterClass="map">
+	 	<![CDATA[ 
+	 		UPDATE T_RENT_COLLECTIONOTHERFEE 
+			   SET STATUS         = -1,
+			       MODIFY_TIME    = getdate(),
+			       MODIFY_USER_ID = #S_EMPLOYEEID#
+			 WHERE RECP_ID = #OLDRECPID#  AND STATUS=0
+	 	]]>
+	</update>
+	
+	<update id="deletePayOtherFee" parameterClass="map">
+	 	<![CDATA[ 
+	 		UPDATE T_RENT_COLLECTIONOTHERFEE 
+			   SET STATUS         = -2,
+			       MODIFY_TIME    = getdate(),
+			       MODIFY_USER_ID = #S_EMPLOYEEID#
+			 WHERE RECP_ID = #RECP_ID#  AND STATUS=0
+	 	]]>
+	</update>
+	
+	<update id="updatePayOtherFee" parameterClass="map">
+	 <![CDATA[ 
+			UPDATE T_RENT_COLLECTIONOTHERFEE 
+			   SET MODIFY_TIME    = getdate(),
+			       MODIFY_USER_ID = #S_EMPLOYEEID#,
+			       STATUS         = 0,
+			       OTHER_NAME     = #OTHER_NAME#,
+			       OTHER_PRICE    = #OTHER_PRICE#,
+			       OTHER_DATE     = #OTHER_DATE#,
+			       MEMO           = #MEMO#
+			 WHERE RECO_ID = #RECO_ID#
+	  ]]>
+	</update>
+	
+	<update id="revokePayRemarks" parameterClass="map">
+	 	<![CDATA[ 
+	 		UPDATE T_RENT_COLLECTIONREMARK 
+			   SET STATUS         = -1,
+			       MODIFY_TIME    = getdate(),
+			       MODIFY_USER_ID = #S_EMPLOYEEID#
+			 WHERE RECP_ID = #OLDRECPID# AND STATUS=0
+	 	]]>
+	</update>
+	
+	<insert id="createPayRemarksByOldRecpId" parameterClass="map">
+		<![CDATA[ 
+	 		 INSERT INTO T_RENT_COLLECTIONREMARK
+				  ( 
+				   CREATE_TIME,
+				   CREATE_USER_ID,
+				   MODIFY_TIME,
+				   MODIFY_USER_ID,
+				   RECP_ID,
+				   REMARK)
+				  SELECT
+				         T.CREATE_TIME,
+				         T.CREATE_USER_ID,
+				         getdate(),
+				         #S_EMPLOYEEID#,
+				         #NEWRECPID#,
+				         T.REMARK
+				    FROM T_RENT_COLLECTIONREMARK T
+				   WHERE T.RECP_ID = #OLDRECPID# AND T.STATUS=0				   
+	 	]]>
+	</insert>
+	
+	
+	<insert id="insertNewVersionPaylist" parameterClass="map">
+		<![CDATA[
+			INSERT INTO T_RENT_COLLECTIONPLAN
+				  ( 
+					CREATE_USER_ID,
+					MODIFY_USER_ID,
+					RECT_ID,
+					LEASE_TOPRIC,
+					LEASE_TERM,
+					LEASE_PERIOD,
+					PLEDGE_PRICE,
+					PLEDGE_PRICE_RATE,
+			        HEAD_HIRE, 
+			        HEAD_HIRE_PERCENT,
+			        MANAGEMENT_FEE,
+			        MANAGEMENT_FEE_RATE,
+			        FLOAT_RATE,
+			        YEAR_INTEREST_TYPE,
+			        YEAR_INTEREST,
+			        PAY_WAY,
+			        FINE_TYPE,
+			        FINE_RATE,
+			        START_DATE,
+			        END_DATE,
+			        VERSION_CODE,
+			        DEAL_WAY,
+			        EQUPMENT_ADDRESS,
+			        RECP_CODE,
+			        BUSINESS_TRIP_PRICE,
+			        BUY_INSURANCE_WAY,
+			        BUY_INSURANCE_TIME,
+			        INSURE_REBATE_RATE,
+			        INSURANCE_COMPANY_ID,
+			        LEASE_RZE,
+			        PAYDATE_FLAG,
+			        
+			        PLEDGE_PERIOD,
+			        INSURE_BASE_RATE,
+			        SALES_TAX_RATE,
+			        STAMP_TAX_TOPRIC,
+			        STAMP_TAX_MONTHPRIC,
+			        STAMP_TAX_PRICE,
+			        TR_RATE,
+			        STAMP_TAX_INSUREPRIC,
+			        TR_IRR_RATE,
+			        PLEDGE_REALPRIC,
+			   PLEDGE_AVE_PRICE,PLEDGE_BACK_PRICE,PLEDGE_LAST_PRICE,PLEDGE_LAST_PERIOD,PLEDGE_ENTER_WAY,PLEDGE_ENTER_CMPRICE,
+			   PLEDGE_ENTER_CMRATE,PLEDGE_ENTER_AG,LOAN_RATE,SUPL_TRUE,MANAGE_RATE)
+				  SELECT
+						#S_EMPLOYEEID#,
+						#S_EMPLOYEEID#,
+						#RECT_ID#,
+						#LEASE_TOPRIC#,
+						#LEASE_TERM#,
+						#LEASE_PERIOD#,
+						#PLEDGE_PRICE#,
+						#PLEDGE_PRICE_RATE#,
+				        #HEAD_HIRE#, 
+				        #HEAD_HIRE_PERCENT#,
+				        #MANAGEMENT_FEE#,
+				        #MANAGEMENT_FEE_RATE#,
+				        #FLOAT_RATE#,
+				        #YEAR_INTEREST_TYPE#,
+				        #YEAR_INTEREST#,
+				        #PAY_WAY#,
+				        #FINE_TYPE#,
+				        #FINE_RATE#,
+				        #START_DATE#,
+				        #END_DATE#,
+				        VERSION_CODE+1,
+				        #DEAL_WAY#,
+				        #EQUPMENT_ADDRESS#,
+				        #RECP_CODE#,
+				        #BUSINESS_TRIP_PRICE#,
+				        #BUY_INSURANCE_WAY#,
+				        #BUY_INSURANCE_TIME#,
+				        #INSURE_REBATE_RATE#,
+				        #INSURANCE_COMPANY_ID#,
+				        #LEASE_RZE#,
+				        0,
+				    
+				        #PLEDGE_PERIOD#,
+				        #INSURE_BASE_RATE#,
+				        #SALES_TAX_RATE#,
+				        #STAMP_TAX_TOPRIC#,
+				        #STAMP_TAX_MONTHPRIC#,
+				        #STAMP_TAX_PRICE#,
+				        #TR_RATE#,
+				        #STAMP_TAX_INSUREPRIC#,
+				        #TR_IRR_RATE#,
+				        #PLEDGE_REALPRIC#,
+			   #PLEDGE_AVE_PRICE#,#PLEDGE_BACK_PRICE#,#PLEDGE_LAST_PRICE#,#PLEDGE_LAST_PERIOD#,#PLEDGE_ENTER_WAY#,#PLEDGE_ENTER_CMPRICE#,
+			   #PLEDGE_ENTER_CMRATE#,#PLEDGE_ENTER_AG#,#LOAN_RATE#,#SUPL_TRUE#,#MANAGE_RATE#
+				    FROM T_RENT_COLLECTIONPLAN 
+				   WHERE RECP_ID = #RECP_ID#
+			]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="RECP_ID">
+			<![CDATA[	SELECT @@IDENTITY  AS RECP_ID ]]>
+		</selectKey>		
+	</insert>
+<!-- Add by Michael 2012 01/11 设置更新财务日 -->
+ 	<update id="updateFinanceDate" parameterClass="map">
+	<![CDATA[
+		UPDATE T_RENT_COLLECTIONDETAIL 
+		   SET finance_date       = #finance_date#
+		 WHERE RECP_ID = #RECP_ID#
+		   AND PERIOD_NUM = #PERIOD_NUM#
+	]]>
+	</update>      
+  <!-- Add by Michael 2012 01/11 查询所有支付表(没有财务日期的) --> 
+   	<select id="queryAllCollectionPlan" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT recp_id
+		 	FROM T_RENT_COLLECTIONPLAN
+		 	WHERE  RECP_ID in 	( select distinct recp_id from T_RENT_COLLECTIONDETAIL where finance_date is null) 
+		 	and STATUS = 0 
+		]]>
+	</select>
+	
+	<!-- Add by Michael 2012 5-16 增加修改起租日、支付日记录日志 -->	
+	<insert id="insertChangePayDateLog" parameterClass="map">
+		<![CDATA[
+		INSERT INTO T_CHANGE_PAYDATE_LOG
+				  ( RECP_ID,CREATE_ID,CREATE_DATE,MEMO,OLD_FIRST_PAYDATE,OLD_START_DATE,NOW_FIRST_PAYDATE,NOW_START_DATE)
+		VALUES( #RECP_ID#,#S_EMPLOYEEID#,getDate(),#MEMO#,#OLD_FIRST_PAYDATE#,#OLD_START_DATE#,#FIRST_PAYDATE#,#START_DATE#)
+		]]>
+	</insert>
+</sqlMap>

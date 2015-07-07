@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="moneyRate">
+	
+	<!-- 
+	查询所有利率 给支付表用 只搜索出最新的
+	 -->
+	<select id="queryAll" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT 
+				T.*
+			FROM (
+					SELECT
+						FILED_NAME,MAX(START_DATE) START_DATE
+					FROM
+						T_RATE_CONFIG T
+					WHERE
+						STATUS = 0 and TAX_PLAN_CODE=#TAX_PLAN_CODE#
+					GROUP BY FILED_NAME
+				) T1 
+				LEFT JOIN T_RATE_CONFIG T ON T1.FILED_NAME = T.FILED_NAME AND T.START_DATE = T1.START_DATE and T.TAX_PLAN_CODE=#TAX_PLAN_CODE#
+			WHERE
+				T.FILED_NAME = T.FILED_NAME and T.TAX_PLAN_CODE=#TAX_PLAN_CODE#
+				AND T.STATUS = 0
+		]]>
+	</select>
+	<!-- 
+	查询所有利率  给利率管理用搜索出全部的
+	 -->
+	<select id="queryAllNew" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT 
+				T.*
+			FROM 
+				T_RATE_CONFIG T
+			WHERE
+				T.STATUS = 0 and T.TAX_PLAN_CODE=#TAX_PLAN_CODE#
+			ORDER BY FILED_NAME,START_DATE
+		]]>
+	</select>
+	<!-- 
+		查询利率名称为添加使用
+	 -->
+	<select id="queryShowName" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		<![CDATA[
+			select 	filed_name,show_name,DATEADD(D,1,MAX(END_DATE))END_DATE
+			from 	t_rate_config 
+			where 	status=0 and TAX_PLAN_CODE=#TAX_PLAN_CODE#
+			GROUP BY FILED_NAME,SHOW_NAME
+			ORDER BY FILED_NAME
+		]]>
+	</select>
+	
+	<!-- 
+	查询所有利率修改日志
+	 -->
+	<select id="queryAllLog" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		<![CDATA[
+			select top 10 t.LOG_ID, t.LOG_TYPE, t.LOG_TITLE,  t.MEMO, t.STATE,t1.ID, t1.NAME,t1.CODE, t.CREATE_DATE from T_SYS_BUSINESSLOG t
+left join T_USER_USER t1 on t.USER_ID=t1.ID
+ where t.status=0 and LOG_TYPE=#log_type# and LOG_CODE=#TAX_PLAN_CODE#
+ ORDER BY t.CREATE_DATE DESC
+		]]>
+	</select>
+	
+	<!-- 
+	更新利率
+	-->
+	<update id="updateMoneyRateByRateValue" parameterClass="map">
+		<![CDATA[
+			update t_rate_config set rate_value=#rate_value# where id=#id#
+		]]>
+	</update>
+	<!-- 
+	更新备注
+	-->
+	<update id="updateMoneyRateByRemark" parameterClass="map">
+		<![CDATA[
+			update t_rate_config set remark=#remark# where id=#id#
+		]]>
+	</update>
+	<!-- 
+	
+	 -->
+	 <select id="read-baserate-value" parameterClass="map" resultClass="java.lang.Double">
+		<![CDATA[
+			SELECT TOP 1 RATE_VALUE FROM T_RATE_CONFIG WHERE FILED_NAME=#COLUMN# AND STATUS=0 ORDER BY START_DATE DESC
+		]]>
+	 </select>
+	 
+	 <!-- 更新起始OR结束时间  -->
+	 <update id="updateMoneyRateStartOREndDate" parameterClass="map">
+	 		UPDATE T_RATE_CONFIG 
+	 		SET 
+	 		<isNotEmpty property="start_date">
+	 			START_DATE = #start_date#
+	 		</isNotEmpty>
+	 		<isNotEmpty property="end_date">
+	 			END_DATE = #end_date#
+	 		</isNotEmpty>
+	 		 WHERE ID = #id#
+	 </update>
+	 
+	 <insert id="createRateConfig" parameterClass="map">
+	 	<![CDATA[
+	 		INSERT INTO T_RATE_CONFIG (
+				FILED_NAME,SHOW_NAME,RATE_VALUE,REMARK,STATUS,START_DATE,END_DATE,TAX_PLAN_CODE
+			) VALUES (
+				#filed_name#,#show_name#,#rate_value#,#remark#,0,#start_date#,#end_date#,#TAX_PLAN_CODE#
+			)
+	 	]]>
+	 </insert>
+	 <!-- 查询重复名字的数量 -->
+	 <select id="queryFiledNameCount" parameterClass="map" resultClass="java.lang.Integer">
+	 	<![CDATA[
+	 		SELECT COUNT(1) 
+	 		FROM
+	 			T_RATE_CONFIG
+	 		WHERE
+	 			STATUS = 0
+	 			AND FILED_NAME = #filed_name# and TAX_PLAN_CODE=#TAX_PLAN_CODE#
+	 	]]>
+	 		<isNotEmpty prepend="and" property="start_date">
+	 			START_DATE = #start_date#
+	 		</isNotEmpty>
+	 </select>
+	 <!-- 删除利率 -->
+	 <update id="deleteRateConfig" parameterClass="map">
+	 	<![CDATA[
+	 		UPDATE T_RATE_CONFIG SET STATUS = -2 WHERE ID = #id#
+	 	]]>	
+	 </update>
+	 
+	 
+	<select id="queryAllTaxPlan" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">	
+		<![CDATA[ 
+			select tdd.FLAG,trc.create_id,trc.create_time,tdd.STATUS,tuu.NAME,tdd.CODE
+			 from  T_DATA_DICTIONARY tdd
+			 left join 
+			 (select  TAX_PLAN_CODE,create_id,create_time from T_RATE_CONFIG group by TAX_PLAN_CODE,create_id,create_time) trc
+			on trc.TAX_PLAN_CODE=tdd.CODE 
+			left join T_USER_USER tuu on tuu.ID=trc.create_id
+			where  tdd.TYPE='税费方案' and tdd.STATUS=0
+		]]>	
+	</select>
+</sqlMap>

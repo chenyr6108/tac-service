@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="dunRent"> 
+
+	<select id="getAllDunRent_count" parameterClass="map" resultClass="int"> 
+		select count(distinct cust_code) cnt from 
+		(select tdd.recp_status as dun,
+               tcc.cust_name,tcc.cust_id,
+               tcc.cust_code,
+               count(distinct trc.rect_id) cnt_rect,
+               count(distinct trcp.recp_id) cnt_recp,
+               sum(ISNULL(trcd.IRR_MONTH_PRICE, 0)) month_price,      
+               sum(ISNULL(trcd.reduce_own_price, 0))  reduce_price  
+          from t_rent_contract trc
+          left join t_cust_customer tcc on tcc.cust_id = trc.cust_id
+          left join t_rent_collectionplan trcp on trc.rect_id = trcp.rect_id
+          left join t_rent_collectiondetail trcd on trcp.recp_id = trcd.recp_id
+          LEFT JOIN T_USER_USER T1 ON T1.ID = trc.SENSOR_ID AND T1.STATUS = 0
+          LEFT JOIN T_DEPT_COMPANY T2 ON T2.DECP_ID  = trc.DECP_ID AND T2.STATUS = 0 
+          left join t_prjt_credit tpc on tpc.id = trc.prcd_id and tpc.status =0
+          left join (select tdd.cust_id, max(tdd.recp_state) recp_status,SUM(tdd.DUN_FINE) dun_fine from t_dun_daily tdd where convert(varchar,tdd.create_date,23) = convert(varchar,getdate(),23)
+                     							group by tdd.cust_id) tdd on trc.cust_id = tdd.cust_id
+		  where trc.status = 0 and trc.rect_status = 1 and trcp.status = 0  and (trcp.warn_status = 0 or trcp.warn_status=1) 
+		  		<isNotEmpty prepend="and" property="companyCode">
+			 	    tpc.company_code = #companyCode#
+			 	</isNotEmpty>
+				   <dynamic>
+				   		<isEqual property="p_usernode" compareValue="1">
+					  		<![CDATA[
+					  			AND( trc.sensor_id = #s_employeeId#
+					  			OR trc.clerk_id = #s_employeeId#)
+					  		]]>
+					  	</isEqual>
+					  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+						<isEqual prepend="and" property="p_usernode" compareValue="2">
+							<![CDATA[	
+								exists(select ID from T_USER_USER
+								where DEPT_ID in 
+								(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+								where uc.USER_ID = #s_employeeId#)
+								and ID = trc.SENSOR_ID)
+							]]>
+						</isEqual>
+						<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+				   	   <isNotEmpty prepend="and" property="content">
+					   	   	 (trc.lease_code like '%$content$%'  or trcp.recp_code like '%$content$%'  or trc.cust_name like '%$content$%')
+				   	   </isNotEmpty>
+				   	   <isNotEmpty prepend="and" property="start_date">	
+				   	   		convert(datetime, convert(varchar, trcd.pay_date,23))
+							&gt;=
+							convert(datetime, convert(varchar, #start_date#,23))			   	   		
+				   	   </isNotEmpty>
+				   	   <isEmpty  prepend="and" property="end_date">
+				   	   		convert(datetime, convert(varchar, trcd.pay_date,23))
+								  &lt;=
+								  convert(datetime, convert(varchar, getdate(),23))
+				   	   </isEmpty>
+				   	    <isNotEmpty prepend="and" property="end_date">
+				   	   		convert(datetime, convert(varchar, trcd.pay_date,23))
+								  &lt;=
+								  convert(datetime, convert(varchar, #end_date#,23))
+				   	   </isNotEmpty> 
+				   	   <isNotEmpty prepend="and" property="NAME">
+				  	 	 <![CDATA[  T1.NAME  LIKE '%$NAME$%']]>
+					  	</isNotEmpty>
+					  	<isNotEmpty prepend="and" property="COMPANY">
+					  	  <![CDATA[  T2.DECP_ID = #COMPANY#]]>
+					  	</isNotEmpty>
+				   </dynamic>
+					group by tcc.cust_name,tcc.cust_id, tcc.cust_code,T1.NAME,T2.DECP_NAME_CN, tdd.recp_status having count(trcp.recp_id) > 0) t11
+				 <dynamic prepend="where">
+				 	 <isEqual compareValue="0" prepend="and" property="pay_type">
+				   	   	  <![CDATA[
+				   	   		month_price-reduce_price<0.005
+					        ]]>
+				   	   </isEqual>
+				   	    <isEqual compareValue="1" prepend="and" property="pay_type">
+				   	   	  <![CDATA[
+				   	   		month_price-reduce_price>=0.005
+					        ]]>
+				   	   </isEqual>
+				 </dynamic>
+	</select>
+	<!-- Modify by Michael 2011 12/29 离职人员也要显示出来 -->
+	<select id="getAllDunRent" parameterClass="map" resultClass="hashmap"> 
+			select * from (select tdd.recp_status as dun,
+               tcc.cust_name,tcc.cust_id,
+               tcc.cust_code,
+               count(distinct trc.rect_id) cnt_rect,
+               count(distinct trcp.recp_id) cnt_recp,
+               sum(ISNULL(trcd.IRR_MONTH_PRICE, 0)+ISNULL(trcd.VALUE_ADDED_TAX, 0)) month_price,      
+               sum(ISNULL(trcd.reduce_own_price, 0))  reduce_price,
+               T1.NAME,
+               decp.DECP_NAME_CN ,
+               tdd.DUN_FINE
+          from t_rent_contract trc
+          left join t_cust_customer tcc on tcc.cust_id = trc.cust_id
+          left join t_rent_collectionplan trcp on trc.rect_id = trcp.rect_id
+          left join t_rent_collectiondetail trcd on trcp.recp_id = trcd.recp_id
+          left join (select tdd.cust_id, max(tdd.recp_state) recp_status ,SUM(tdd.DUN_FINE) dun_fine from t_dun_daily tdd  where convert(varchar,tdd.create_date,23)   =   convert(varchar,getdate(),23)  
+                                     group by tdd.cust_id) tdd on trc.cust_id = tdd.cust_id
+ 		  LEFT JOIN T_USER_USER T1 ON T1.ID = trc.SENSOR_ID
+          left join T_DEPT_DEPARTMENT dept on dept.id = T1.DEPT_ID
+		  left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID
+		  left join t_prjt_credit tpc on tpc.id = trc.prcd_id and tpc.status =0
+			 where trc.status = 0 and trc.rect_status = 1  and trcp.status = 0  and (trcp.warn_status = 0 or trcp.warn_status=1) 
+			 	<isNotEmpty prepend="and" property="companyCode">
+			 	    tpc.company_code = #companyCode#
+			 	</isNotEmpty>
+			    <dynamic>
+			    		<isEqual property="p_usernode" compareValue="1">
+					  		<![CDATA[
+					  			AND( trc.sensor_id = #s_employeeId#
+					  			OR trc.clerk_id = #s_employeeId#)
+					  		]]>
+					  	</isEqual>
+					  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+						<isEqual prepend="and" property="p_usernode" compareValue="2">
+							<![CDATA[	
+								exists(select ID from T_USER_USER
+								where DEPT_ID in 
+								(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+								where uc.USER_ID = #s_employeeId#)
+								and ID = trc.SENSOR_ID)
+							]]>
+						</isEqual>
+						<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+				   	   <isNotEmpty prepend="and" property="content">
+					   	   	 (trc.lease_code like '%$content$%'   or trcp.recp_code like '%$content$%'  or trc.cust_name like '%$content$%')
+				   	   </isNotEmpty>
+				   	   <isNotEmpty prepend="and" property="start_date">
+				   	   		<![CDATA[
+				   	   		convert(datetime, convert(varchar, trcd.pay_date,23))
+							>=
+							convert(datetime, convert(varchar, #start_date#,23))
+				   	   		  ]]>
+				   	   </isNotEmpty>
+				   	   <isEmpty  prepend="and" property="end_date">
+				   	   		<![CDATA[
+				   	   			convert(datetime, convert(varchar, trcd.pay_date,23))
+								  <=
+								  convert(datetime, convert(varchar, getdate(),23))
+				   	   		  ]]>
+				   	   </isEmpty>
+				   	    <isNotEmpty prepend="and" property="end_date">
+				   	   		<![CDATA[
+				   	   			convert(datetime, convert(varchar, trcd.pay_date,23))
+								  <=
+								  convert(datetime, convert(varchar, #end_date#,23))
+				   	   		  ]]>
+				   	   </isNotEmpty> 
+				   	    <isNotEmpty prepend="and" property="NAME">
+				  	 	 <![CDATA[  T1.NAME  LIKE '%$NAME$%']]>
+					  	</isNotEmpty>
+					  	<isNotEmpty prepend="and" property="COMPANY">
+					  	  <![CDATA[  trc.DECP_ID = #COMPANY#]]>
+					  	</isNotEmpty>
+				   </dynamic>	   
+			 	group by tcc.cust_name, tcc.cust_code,tcc.cust_id,T1.NAME,decp.DECP_NAME_CN,tdd.DUN_FINE, tdd.recp_status having count(trcp.recp_id) > 0) t11
+			  <dynamic prepend="where">
+				 	 <isEqual compareValue="0" prepend="and" property="pay_type">
+				   	   	  <![CDATA[
+				   	   		month_price-reduce_price<0.005
+					        ]]>
+				   	   </isEqual>
+				   	    <isEqual compareValue="1" prepend="and" property="pay_type">
+				   	   	  <![CDATA[
+				   	   		month_price-reduce_price>=0.005
+					        ]]>
+				   	   </isEqual>
+				 </dynamic> 
+	</select>
+	
+	<select id="getDunRentInfo" parameterClass="map" resultClass="hashmap">
+		 
+		   select tdd.recp_status as dun,
+		   trc.cust_id,
+	       trc.cust_code,
+	       trc.cust_name,
+	       trc.lease_code,
+	       trcp.recp_code,
+	       trcp.recp_id,
+	       trcd.pay_date,
+	       trcd.period_num,
+	       isnull(trcd.IRR_MONTH_PRICE, 0)  month_price,
+	       isnull(trcd.reduce_own_price, 0)  reduce_price,
+	       isnull(trcd.VALUE_ADDED_TAX,0) VALUE_ADDED_TAX
+	  from t_rent_contract trc
+	  left join t_rent_collectionplan trcp on trc.rect_id = trcp.rect_id
+	  left join t_rent_collectiondetail trcd on trcp.recp_id = trcd.recp_id
+	   left join (select tdd.recp_id, tdd.recp_state recp_status
+                      from t_dun_daily tdd
+                     where convert(varchar,tdd.create_date,23)  = convert(varchar,getdate(),23)
+                     ) tdd on trcp.recp_id = tdd.recp_id
+	 where trc.status = 0
+	   and trc.rect_status = 1
+	   and trcp.status = 0
+	   and (trcp.warn_status = 0 or trcp.warn_status=1) 
+	   and trc.cust_code=#cust_code#
+	   				<dynamic>
+				   	   <isNotEmpty prepend="and" property="content">
+					   	   	 (trc.lease_code like '%$content$%' 
+			                or trcp.recp_code like '%$content$%' 
+			                or trc.cust_name like '%$content$%')
+				   	   </isNotEmpty>
+				   	   <isNotEmpty prepend="and" property="start_date">
+				   	   		<![CDATA[
+				   	   			  convert(datetime, convert(varchar, trcd.pay_date,23))
+								  >=
+								   convert(datetime, convert(varchar, #start_date#,23))
+				   	   		  ]]>
+				   	   </isNotEmpty>
+				   	   <isEmpty  prepend="and" property="end_date">
+				   	   		<![CDATA[
+				   	   			 convert(datetime, convert(varchar, trcd.pay_date,23))
+								 <=
+								  convert(datetime, convert(varchar,getdate() +10,23))
+				   	   		  ]]>
+				   	   </isEmpty>
+				   	    <isNotEmpty prepend="and" property="end_date">
+				   	   		<![CDATA[
+				   	   			  convert(datetime, convert(varchar, trcd.pay_date,23))
+								  <=
+								   convert(datetime, convert(varchar,#end_date#,23))
+				   	   		  ]]>
+				   	   </isNotEmpty> 
+				   </dynamic>
+	   order by trc.lease_code,trcp.recp_code,trcd.pay_date
+		 
+	</select>
+	
+	<!-- 查找合同好和承租人，为发短信用 -->
+	<select id="codeAndName" parameterClass="map" resultClass="hashmap">
+		select trc.LEASE_CODE,trc.CUST_NAME from t_rent_collectionplan trcp
+					
+					left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID
+
+					where trcp.RECP_ID = #recp_id#
+	</select>
+	
+	<!-- 查询资产催收 -->
+	<select id="selectLatestPayDetail" parameterClass="map" resultClass="hashmap">
+		select tlpd.*,t2.LEASE_CODE,t3.CUST_NAME,t6.NAME USER_NAME,upper.NAME UPPER_NAME,t9.DECP_NAME_CN from T_LATEST_PAYDETAIL tlpd 
+		left join T_RENT_COLLECTIONPLAN trcp on tlpd.recp_id=trcp.RECP_ID 
+		LEFT JOIN T_RENT_CONTRACT T2 ON T2.RECT_ID = trcp.RECT_ID
+		LEFT JOIN T_CUST_CUSTOMER T3 ON T2.CUST_ID = T3.CUST_ID
+		LEFT JOIN T_USER_USER T6 ON T2.SENSOR_ID = T6.ID
+		left join T_USER_USER upper on upper.id = T6.upper_user
+		left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where 1=1
+		<isEqual prepend="and" property="p_usernode" compareValue="1">
+	  	 	<![CDATA[ 
+	  	 	(T2.SENSOR_ID = #s_employeeId#
+	  	 	or upper.ID = #s_employeeId#)
+	  	 	]]>
+	  	</isEqual>
+		<isEqual prepend="and" property="p_usernode" compareValue="2">
+			<![CDATA[
+				exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+				where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+			]]>
+		</isEqual>
+		<isNotEmpty prepend="and" property="content">
+			<![CDATA[
+				(	 T2.LEASE_CODE LIKE '%$content$%' 
+					OR T3.CUST_NAME LIKE '%$content$%'
+				 	OR upper.NAME LIKE '%$content$%' 
+				 	OR T6.NAME LIKE '%$content$%'
+				 	or t9.DECP_NAME_CN like '%$content$%'
+				 )
+			  ]]>
+		</isNotEmpty>
+	  	<isNotEmpty prepend="and" property="startrange">
+	  	  	<![CDATA[ tlpd.LATEST_DAY >=#startrange#  ]]>
+	  	</isNotEmpty>	
+	  	<isNotEmpty prepend="and" property="endrange">
+	  	  	<![CDATA[  tlpd.LATEST_DAY  <= #endrange#]]>
+	  	</isNotEmpty>	  		
+	</select>
+</sqlMap>

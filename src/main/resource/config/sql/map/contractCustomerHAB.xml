@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="contractCustomerHAB">
+	<select id="query" parameterClass="map" resultClass="java.util.HashMap">
+	<!-- 查询合同客户HAB分级 -->
+		SELECT  
+			distinct t.id					CREDIT_ID ,
+			t.CONTRACT_HAB 			CONTRACT_HAB ,			<!-- HAB现在等级-->
+			t.CONTRACT_HAB_BEFORE	CONTRACT_HAB_BEFORE ,	<!-- HAB之前等级 -->
+			t1.LEASE_CODE			LEASE_CODE,				<!-- 合同编号 -->
+			t2.CUST_NAME			CUST_NAME,				<!-- 客户名称 -->
+			t6.credit_value 		CREDIT_VALUE,			<!-- 租赁物概要 -->
+			T4.BRAND				BRAND,					<!-- 供应商 -->
+			t5.PLEDGE_AVE_PRICE 	PLEDGE_AVE_PRICE , 			<!-- 保证金 -->
+			t5.LEASE_TOPRIC 		LEASE_TOPRIC,			<!-- 总金额 -->
+			t7.state				STATE ,					<!-- 案件状况 -->
+			T3.NAME					SENSOR_NAME 			<!-- 经办人 -->
+		FROM t_prjt_credit t 
+			left join T_RENT_CONTRACT t1 on t.LEASE_CODE=t1.LEASE_CODE
+			left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+			LEFT JOIN T_USER_USER T3 ON T.SENSOR_ID = T3.ID
+			LEFT JOIN (select MAX(BRAND) BRAND,CREDIT_ID   from T_PRJT_CREDITEQUIPMENT group by CREDIT_ID) T4 ON T.ID = T4.CREDIT_ID
+			left JOIN t_prjt_creditscheme t5 on t.id = t5.CREDIT_ID
+			left join queryCREDIT t6 on t.ID = t6.credit_id
+			left join (
+			<!--1:未提交  2：已提交 3：评审中 4：已复核  5：退件 -->
+				select 		
+					(case
+					when t4.STATUS=-2
+					then 5
+					when t2.STATE=1 and t2.WIND_STATE is not null
+					then 4
+					when t2.STATE=1 and t2.WIND_STATE is null and t1.tprc_id is not null
+					then 3
+					when  t2.STATE=1 and t2.WIND_STATE is null and t1.tprc_id is null
+					then 2
+					when t2.STATE in (0,2,3)
+					then 1
+					end
+					) state,t2.ID id
+				from t_prjt_credit t2
+					left join t_prjt_creditmemo t1 on t2.ID=t1.CREDIT_ID
+					left join T_LOG_ACTIVITIESLOG t4 on t4.CREDIT_ID=t2.ID
+				where t2.STATUS=0 
+			) t7 on t.ID=t7.id
+		WHERE t.status=0 and t.state=1 and t.WIND_STATE=1
+		<isNotEmpty prepend="and" property="content">
+				(t1.LEASE_CODE LIKE '%$content$%'
+			OR t2.CUST_NAME LIKE '%$content$%'
+			OR T4.BRAND LIKE '%$content$%'
+			OR t6.credit_value LIKE '%$content$%'
+			OR T3.NAME LIKE '%$content$%')
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="HABLevel">
+			t.CONTRACT_HAB = #HABLevel#
+		</isNotEmpty>
+		ORDER BY t.ID DESC
+	</select>
+	<select id="query_count" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT  
+			count(distinct t.id)  cnt
+		FROM t_prjt_credit t 
+			left join T_RENT_CONTRACT t1 on t.LEASE_CODE=t1.LEASE_CODE
+			left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+			LEFT JOIN T_USER_USER T3 ON T.SENSOR_ID = T3.ID
+			LEFT JOIN (select MAX(BRAND) BRAND,CREDIT_ID   from T_PRJT_CREDITEQUIPMENT group by CREDIT_ID) T4 ON T.ID = T4.CREDIT_ID
+			left JOIN t_prjt_creditscheme t5 on t.id = t5.CREDIT_ID
+			left join queryCREDIT t6 on t.ID = t6.credit_id
+			left join (
+				select 		
+					(case
+					when t4.STATUS=-2
+					then 5
+					when t2.STATE=1 and t2.WIND_STATE is not null
+					then 4
+					when t2.STATE=1 and t2.WIND_STATE is null and t1.tprc_id is not null
+					then 3
+					when  t2.STATE=1 and t2.WIND_STATE is null and t1.tprc_id is null
+					then 2
+					when t2.STATE in (0,2,3)
+					then 1
+					end
+					) state,t2.ID id
+				from t_prjt_credit t2
+					left join t_prjt_creditmemo t1 on t2.ID=t1.CREDIT_ID
+					left join T_LOG_ACTIVITIESLOG t4 on t4.CREDIT_ID=t2.ID
+				where t2.STATUS=0 
+			) t7 on t.ID=t7.id
+		WHERE t.status=0 and t.state=1 and t.WIND_STATE=1
+		<isNotEmpty prepend="and" property="content">
+				(t1.LEASE_CODE LIKE '%$content$%'
+			OR t2.CUST_NAME LIKE '%$content$%'
+			OR T4.BRAND LIKE '%$content$%'
+			OR t6.credit_value LIKE '%$content$%'
+			OR T3.NAME LIKE '%$content$%')
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="HABLevel">
+			t.CONTRACT_HAB = #HABLevel#
+		</isNotEmpty>
+	</select>
+	<select id="queryNew" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		select t.ACTILOG_ID ACTILOG_ID, t.CREDIT_ID, t.CUST_ID, t.PRODUCTSABOUT, t.REFEREE, t.SUPPLIER, t.LIMIT, t.CASESTATE,
+			 t.VISITFACTORYDATE, t.FIRSTVISITDATE, t.STATE, t.CREATE_ID, t.MODIFY_ID, 
+			t.CREATE_TIME, t.MODIFY_DATE, t.STATUS,t1.CREDIT_CODE,t2.CUST_CODE,t2.CUST_NAME,t2.CUST_TYPE,t3.NAME,t3.CODE,
+			t.CONTRACT_HAB,t.CONTRACT_HAB_BEFORE ,T4.BRAND,
+			ROUND(ISNULL(T5.LEASE_TOPRIC,0),0,1) - ROUND(ISNULL(T5.PLEDGE_ENTER_MCTOAG,0),0,1) - ROUND(ISNULL(T5.PLEDGE_ENTER_AG,0),0,1) SQPRICE
+		from T_LOG_ACTIVITIESLOG t
+			left join T_PRJT_CREDIT t1 on t.CREDIT_ID=t1.ID
+			left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+			left join T_USER_USER t3 on t.CREATE_ID=t3.ID
+			LEFT JOIN ( SELECT MAX(T.BRAND) BRAND,CREDIT_ID 
+						FROM T_PRJT_CREDITEQUIPMENT T 
+						WHERE T.EQMT_STATUS = 0 GROUP BY T.CREDIT_ID) T4
+				ON T4.CREDIT_ID = t1.ID 
+			LEFT JOIN T_PRJT_CREDITSCHEME T5 ON T5.CREDIT_ID = t1.ID AND T5.STATUS = 0
+		where  t.STATUS=0 and (t1.STATUS=0 or t1.STATUS is null) and t2.STATUS=0 and t1.WIND_STATE = 1
+		]]>
+			<isEqual property="p_usernode" compareValue="1">
+				<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+			  	 	<isEqual prepend="AND" property="job" compareValue="2">
+			  	 	T1.sensor_id in (
+			  	 					 #s_employeeId#,
+						  		 	(select id
+									from t_user_user  t
+									where t.upper_user=#s_employeeId# and t.status=0)
+			  	 				)
+			  		</isEqual>
+			  	 	<isNotEqual prepend="AND" property="job" compareValue="2">
+			  	 	 	T1.sensor_id = #s_employeeId#
+			  		</isNotEqual>
+			  	 -->
+			  	 <![CDATA[
+			  	 and (T1.SENSOR_ID = #s_employeeId#
+			  	 	or T1.CLERK_ID = #s_employeeId#)
+			  	 ]]>
+		  	</isEqual>
+		  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = T1.SENSOR_ID)
+				]]>
+			</isEqual>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		<isNotEmpty prepend="and" property="content">
+			(t1.CREDIT_CODE		LIKE '%$content$%'
+			OR t2.CUST_NAME		LIKE '%$content$%'
+			OR t.PRODUCTSABOUT	LIKE '%$content$%'
+			OR t4.BRAND			LIKE '%$content$%'
+			OR t2.CUST_CODE		LIKE '%$content$%')
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="HABLevel">
+			t.CONTRACT_HAB = #HABLevel#
+		</isNotEmpty>
+		<![CDATA[
+		group by t.ACTILOG_ID, t.CREDIT_ID, t.CUST_ID, t.PRODUCTSABOUT, t.REFEREE, t.SUPPLIER, t.LIMIT, t.CASESTATE,
+			t. CONTARCTHAB, t.CONTARCTHABPREO, t.VISITFACTORYDATE, t.FIRSTVISITDATE, t.STATE, t.CREATE_ID, t.MODIFY_ID, 
+			t.CREATE_TIME, t.MODIFY_DATE, t.STATUS,t1.CREDIT_CODE,t2.CUST_CODE,t2.CUST_NAME,t2.CUST_TYPE,t3.NAME,t3.CODE,
+			t1.CONTRACT_HAB, t1.CONTRACT_HAB_BEFORE,t.CONTRACT_HAB,t.CONTRACT_HAB_BEFORE,T4.BRAND,T5.LEASE_TOPRIC,T5.PLEDGE_ENTER_MCTOAG,T5.PLEDGE_ENTER_AG
+		]]>
+	</select>
+	
+	
+	<select id="queryNew_count" parameterClass="map" resultClass="java.lang.Integer">
+		select count(1) cnt
+		from T_LOG_ACTIVITIESLOG t
+			left join T_PRJT_CREDIT t1 on t.CREDIT_ID=t1.ID
+			left join T_CUST_CUSTOMER t2 on t.CUST_ID=t2.CUST_ID
+			left join T_USER_USER t3 on t.CREATE_ID=t3.ID
+			LEFT JOIN ( SELECT MAX(T.BRAND) BRAND,CREDIT_ID 
+						FROM T_PRJT_CREDITEQUIPMENT T 
+						WHERE T.EQMT_STATUS = 0 GROUP BY T.CREDIT_ID) T4
+				ON T4.CREDIT_ID = t1.ID 
+			LEFT JOIN T_PRJT_CREDITSCHEME T5 ON T5.CREDIT_ID = t1.ID AND T5.STATUS = 0
+		where  t.STATUS=0 and (t1.STATUS=0 or t1.STATUS is null) and t2.STATUS=0  and t1.WIND_STATE = 1
+		<isEqual property="p_usernode" compareValue="1">
+	  	 	<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+		  	 	<isEqual prepend="AND" property="job" compareValue="2">
+		  	 	T1.sensor_id in (
+		  	 					 #s_employeeId#,
+					  		 	(select id
+								from t_user_user  t
+								where t.upper_user=#s_employeeId# and t.status=0)
+		  	 				)
+		  		</isEqual>
+		  	 	<isNotEqual prepend="AND" property="job" compareValue="2">
+		  	 	 	T1.sensor_id = #s_employeeId#
+		  		</isNotEqual>
+		  	 -->
+		  	 <![CDATA[
+		  	 and (T1.SENSOR_ID = #s_employeeId#
+		  	 	or T1.CLERK_ID = #s_employeeId#)
+		  	 ]]>
+	  	</isEqual>
+	  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+		<isEqual prepend="and" property="p_usernode" compareValue="2">
+			<![CDATA[	
+				exists(select ID from T_USER_USER
+				where DEPT_ID in 
+				(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+				where uc.USER_ID = #s_employeeId#)
+				and ID = T1.SENSOR_ID)
+			]]>
+		</isEqual>
+		<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		<isNotEmpty prepend="and" property="content">
+			(t1.CREDIT_CODE		LIKE '%$content$%'
+			OR t2.CUST_NAME		LIKE '%$content$%'
+			OR t.PRODUCTSABOUT	LIKE '%$content$%'
+			OR t4.BRAND			LIKE '%$content$%'
+			OR t2.CUST_CODE		LIKE '%$content$%')
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="HABLevel">
+			t.CONTRACT_HAB = #HABLevel#
+		</isNotEmpty>
+	</select>
+	
+	
+	
+	<!-- 修改HAB字段 -->
+	<update id="update" parameterClass="map">
+		UPDATE 
+			t_prjt_credit
+		SET 
+			CONTRACT_HAB = #CONTRACT_HAB# ,
+			CONTRACT_HAB_BEFORE = #CONTRACT_HAB_BEFORE# ,
+			MODIFY_ID = #s_employeeId# ,
+			MODIFY_DATE = getdate()
+		WHERE 
+			id = #CREDIT_ID#	
+	</update>
+	<!-- 修改HAB字段 -->
+	<update id="updateNew" parameterClass="map">
+		UPDATE 
+			T_LOG_ACTIVITIESLOG
+		SET 
+			CONTRACT_HAB = #CONTRACT_HAB# ,
+			CONTRACT_HAB_BEFORE = #CONTRACT_HAB_BEFORE# ,
+			MODIFY_ID = #s_employeeId# ,
+			MODIFY_DATE = getdate(),
+			MODIFY_HAB_DATE = getdate()
+		WHERE 
+			ACTILOG_ID = #ACTILOG_ID#	
+	</update>
+	
+	<select id="payDetail" resultClass="java.util.HashMap">
+			 SELECT SUM(PAY_MONEY) PAY_MONEY,CREDIT_ID 
+	           FROM T_SUPL_PLAYDETIL 
+	          WHERE CREDIT_ID=#CREDIT_ID# AND PAY_DATE IS NOT NULL
+	            AND CONVERT(DATE,PAY_DATE)!=CONVERT(DATE,'1900-1-1')
+	       GROUP BY CREDIT_ID
+	</select>
+</sqlMap>

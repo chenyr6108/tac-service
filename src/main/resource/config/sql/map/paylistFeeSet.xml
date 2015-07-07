@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap namespace="paylistFeeSet">
+	<!-- 查询费用设定 -->
+	<select id="queryAllFeeSet" parameterClass="map"	resultClass="java.util.HashMap">
+		SELECT *
+		from
+		t_rent_paylist_feeset
+		WHERE status = 0 order by id		
+	</select>	
+	<!-- 查询费用设定日志 -->
+	<select id="queryAllFeeSetLog" parameterClass="map"	resultClass="java.util.HashMap">
+		SELECT t1.create_date,t1.memo,t2.NAME
+		from
+		t_rent_paylist_feeset_log  t1
+		left join
+		T_USER_USER t2
+		on t1.create_id=t2.ID 	
+	</select>
+
+	 <insert id="createFeeConfig" parameterClass="map">
+	 	<![CDATA[
+	 		INSERT INTO t_rent_paylist_feeset (
+				create_filed_name,create_show_name,is_leaserze_cost,create_time,create_id
+			) VALUES (
+				#create_filed_name#,#create_show_name#,#is_leaserze_cost#,getdate(),#s_employeeId#
+			)
+	 	]]>
+	 </insert>
+
+	 <insert id="createFeeConfigLog" parameterClass="map">
+	 	<![CDATA[
+	 		INSERT INTO t_rent_paylist_feeset_log (
+				create_id,create_date,memo
+			) VALUES (
+				#s_employeeId#,getdate(),#memo#
+			)
+	 	]]>
+	 </insert>	 
+	
+	 <!-- 删除费用设定 -->
+	 <update id="deleteFeeConfig" parameterClass="map">
+	 	<![CDATA[
+	 		UPDATE t_rent_paylist_feeset SET STATUS = -2 WHERE ID = #id#
+	 	]]>	
+	 </update>	
+	 
+	 <update id="updateMoneyRateStartOREndDate" parameterClass="map">
+	 		UPDATE T_RATE_CONFIG 
+	 		SET 
+	 		<isNotEmpty property="start_date">
+	 			START_DATE = #start_date#
+	 		</isNotEmpty>
+	 		<isNotEmpty property="end_date">
+	 			END_DATE = #end_date#
+	 		</isNotEmpty>
+	 		 WHERE ID = #id#
+	 </update>
+
+	<select id="queryDunDailyList" parameterClass="map"	resultClass="java.util.HashMap">
+		
+	</select>
+</sqlMap>

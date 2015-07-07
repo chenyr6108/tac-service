@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="productProduct">
+	<!--产品型号 -->
+	<select id="query_count" resultClass="java.lang.Integer" parameterClass="java.util.HashMap">
+		<![CDATA[
+					select count(1) 
+					from t_prdc_product t1
+					left join t_prdc_kind t2 on t2.id = t1.kind_id
+					left join t_prdc_type t3 on t3.id = t2.type_id
+					where t1.status = 0
+		]]> 
+			<isNotEmpty prepend="and" property="searchValue">
+				<![CDATA[ 
+					(t1.name like '%$searchValue$%'
+					or  t2.name  like '%$searchValue$%'
+					or  t3.name  like '%$searchValue$%'
+					)
+				]]>
+			</isNotEmpty>	
+	</select>
+	<!--查询全部产品型号  分页-->
+	<select id="query" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[ select t1.id              id,
+					       t1.name            name,
+					       t1.memo            memo,
+					       t1.kind_id         kind_id,
+					       t1.create_date     create_date,
+					       t1.modify_date     modify_date,
+					       t1.remark1         remark1,
+					       t1.remark2         remark2,
+					       t1.remark3         remark3,
+					       t1.remark4         remark4,
+					       t2.name            kindName,
+					       t3.name            typeName 
+					from t_prdc_product t1
+					left join t_prdc_kind t2 on t2.id = t1.kind_id
+					left join t_prdc_type t3 on t3.id = t2.type_id
+					where t1.status = 0		
+		]]>		
+			<isNotEmpty prepend="and" property="searchValue" >
+				<![CDATA[ (t1.name like '%$searchValue$%'
+					or  t2.name  like '%$searchValue$%'
+					or  t3.name  like '%$searchValue$%'
+				)]]>
+			</isNotEmpty>	
+		<![CDATA[ order by t1.id desc ]]>	
+	</select>
+	<!-- 添加产品型号 -->
+	<insert id="create" parameterClass="map">
+		  <![CDATA[ 
+				insert into t_prdc_product(Name,Memo,kind_id)
+				values
+				(#Name#,#Memo#,#kind_id#)
+	  ]]>
+	</insert>	
+	
+	<!-- 根据id查询 -->
+	<select id="queryByid" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		            select t1.id              id,
+					       t1.name            name,
+					       t1.memo            memo,
+					       t1.kind_id         kind_id,
+					       t1.create_date     create_date,
+					       t1.modify_date     modify_date,
+					       t1.remark1         remark1,
+					       t1.remark2         remark2,
+					       t1.remark3         remark3,
+					       t1.remark4         remark4,
+					       t2.name            kindName,
+					       t3.name            typeName,
+					       t2.type_id         type_id 
+					from t_prdc_product t1
+					left join t_prdc_kind t2 on t2.id = t1.kind_id
+					left join t_prdc_type t3 on t3.id = t2.type_id
+					where t1.status = 0	and t1.id = #id#
+		]]>
+	</select>
+
+	<!--根据id删除-->
+	<update id="deleteById" parameterClass="map">
+		<![CDATA[
+			update t_prdc_product set status=-2 ,MODIFY_DATE=getdate()  where id=#id#
+		]]>
+	</update>
+	
+	<!--根据id修改-->
+	<update id="updateById" parameterClass="map">
+		<![CDATA[
+			update t_prdc_product set  name=#updateName#,
+			Memo=#updateMemo#,kind_id=#update_kind_id#,MODIFY_DATE=getdate() where id=#id#
+		]]>
+	</update>
+			<!-- 查询一个产品下产品型号的个数 -->
+	<select id="getProductCount" parameterClass="map" resultClass="java.lang.Integer"> 
+		<![CDATA[
+			select count(1) count from T_PRDC_PRODUCT t
+			where t.STATUS = 0  and  t.KIND_ID = #kind_id#
+		]]>
+	</select>
+	<!-- 根据产品的名称去关联产品的型号 -->
+	<select id="queryNumberByProductId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select id,name from t_prdc_product where kind_id= #kind_id# and status=0
+		]]>
+	</select>
+</sqlMap>

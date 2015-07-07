@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="contribution">
+	<select id="getContributions" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT 
+			<isEqual property="type" compareValue="appUser">
+				CREATE_USER_NAME NAME,
+			</isEqual>
+			<isEqual property="type" compareValue="user">
+				ORG_USER_NAME NAME,
+			</isEqual>
+			<isEqual property="type" compareValue="upUser">
+				UP_USER_NAME NAME,
+			</isEqual>
+			<isEqual property="type" compareValue="auUser">
+				auUser NAME,
+			</isEqual>
+			COUNT(1) TOTAL_COUNT,
+			SUM(LEASE_RZE) LEASE_RZE, 
+			SUM(REN_PRICE) REN_PRICE, 
+			SUM(RATE_DIFF) RATE_DIFF, 
+			SUM(TR_IRR_RATE*LEASE_RZE) TR, 
+			SUM(CASE WHEN DUN_TIMES > 0 THEN 1 ELSE 0 END) DUN_COUNT,
+			SUM(CASE WHEN DUN_TIMES > 0 THEN LEASE_RZE ELSE 0 END) DUN_PRICE,
+			GETDATE() CURR_TIME
+		FROM 
+		(
+		  SELECT
+		  	TDC.DECP_NAME_CN,
+		  	UP.[NAME] UP_USER_NAME,
+		  	UP.ID UP_USER_ID,
+		  	U.ID ORG_USER_ID,
+		  	U.[NAME] ORG_USER_NAME,
+		  	RECP.RECP_ID,
+		    TPCS.LEASE_RZE,
+		    CONVERT(DECIMAL(18,2),SUM(TRCDL.REN_PRICE)) REN_PRICE,
+		    TPCS.RATE_DIFF,
+		    TPCS.TR_IRR_RATE,
+		    ISNULL(D.DUN_TIMES,0) DUN_TIMES,
+		    SHEN.CREATE_USER_ID,
+		    SHEN.[NAME] CREATE_USER_NAME
+		    <isEqual property="type" compareValue="auUser">
+			    ,auUser.auUser
+			   	,auUser.auUserId
+		    </isEqual>
+		  FROM 
+		  	T_RENT_COLLECTIONPLAN RECP
+		  LEFT JOIN T_RENT_CONTRACT RECT ON RECP.RECT_ID = RECT.RECT_ID AND RECT.STATUS = 0
+		  LEFT JOIN T_PRJT_CREDIT TPC ON TPC.ID = RECT.PRCD_ID AND TPC.STATUS = 0
+		  LEFT JOIN T_USER_USER U ON TPC.ORG_SENSOR_ID = U.ID
+		  LEFT JOIN T_DEPT_DEPARTMENT TDD ON TDD.ID = U.DEPT_ID AND TDD.STATUS = 0
+		  LEFT JOIN T_USER_USER UP ON UP.ID = TPC.ORG_UP_USER
+		  LEFT JOIN T_DEPT_COMPANY TDC ON TDC.DECP_ID = TDD.DECP_ID AND TDC.STATUS = 0
+		  LEFT JOIN T_PRJT_CREDITSCHEME TPCS ON TPCS.CREDIT_ID = TPC.ID AND TPCS.STATUS = 0
+		  LEFT JOIN T_RENT_COLLECTIONDETAIL TRCDL ON TRCDL.RECP_ID = RECP.RECP_ID
+		  LEFT JOIN 
+		  (
+			<!-- 最终审核人 -->
+		    SELECT RISK.CREDIT_ID, RM.CREATE_USER_ID, U.[NAME]
+		    FROM T_PRJT_RISK_CONTROL RISK
+		    LEFT JOIN (
+		      SELECT M1.PRC_ID, M1.CREATE_USER_ID
+		      FROM T_PRJT_RISK_CONTROLMEMO M1
+		      WHERE M1.CREATE_TIME = (
+		        SELECT TOP 1 M2.CREATE_TIME FROM T_PRJT_RISK_CONTROLMEMO M2
+		        WHERE M2.PRC_ID = M1.PRC_ID
+		        ORDER BY M2.CREATE_TIME DESC
+		      )
+		  	  AND M1.STATUS = 0
+		    ) RM ON RM.PRC_ID = RISK.PRC_ID
+		    LEFT JOIN T_USER_USER U ON RM.CREATE_USER_ID = U.ID
+		    WHERE RISK.STATE = 1 AND RISK.STATUS = 0
+		  ) SHEN ON SHEN.CREDIT_ID = TPC.ID
+		  
+		  <isEqual property="type" compareValue="auUser">
+		  left join (
+		  	select pcm.CREATE_USER_ID as auUserId, rc.CREDIT_ID, max(u.[NAME]) as 'auUser'
+			from T_PRJT_RISK_CONTROL rc
+			left join T_PRJT_RISK_CONTROLMEMO pcm on pcm.PRC_ID = rc.PRC_ID
+			left join T_USER_USER u on pcm.CREATE_USER_ID = u.ID
+			where rc.STATUS = 0
+			and pcm.STATUS = 0
+			group by pcm.CREATE_USER_ID, rc.CREDIT_ID
+		  )auUser on auUser.CREDIT_ID = TPC.ID
+		  </isEqual>
+		  
+		  LEFT JOIN 
+		    (
+		      <!-- 逾期超过days天的次数 -->
+		      SELECT
+		        RECP_ID,
+		        SUM(CASE WHEN DUN_DAY > #days# THEN 1 ELSE 0 END) DUN_TIMES
+		      FROM
+		      (
+		        SELECT 
+		          RECP_ID,
+		          MAX(DUN_DAY) DUN_DAY
+		        FROM
+		        (
+		        	<!-- 已交款 -->
+					SELECT
+					  	TFC.RECP_ID,
+						TFC.PAY_DATE,
+					  	DATEDIFF(D,TFC.PAY_DATE,TFI.OPPOSING_DATE) DUN_DAY 
+					FROM T_FINA_COLLECTIONBILL TFC 
+					LEFT JOIN T_FINA_INCOME TFI ON TFC.FIIN_ID = TFI.FIIN_ID
+					WHERE TFC.FICB_STATE=5
+						AND TFI.RED_TYPE IS NULL 
+						AND TFC.FICB_TYPE='0' 
+						AND (TFC.FICB_ITEM='租金' OR TFC.FICB_ITEM='增值税')
+						AND  TFC.REAL_PRICE=TFC.SHOULD_PRICE
+					UNION
+		        	<!-- 未交款 -->
+					SELECT 
+						TRCP.RECP_ID,
+						TRCD.PAY_DATE,
+						DATEDIFF(D,TRCD.PAY_DATE,CONVERT(DATE,GETDATE())) DUN_DAY 
+					FROM T_RENT_COLLECTIONPLAN TRCP
+					LEFT JOIN T_RENT_CONTRACT TRC ON TRCP.RECT_ID = TRC.RECT_ID
+					LEFT JOIN T_RENT_COLLECTIONDETAIL TRCD ON TRCP.RECP_ID = TRCD.RECP_ID
+					WHERE TRCP.STATUS = 0 AND TRC.STATUS=0
+						AND ISNULL(TRCD.IRR_MONTH_PRICE, 0)+ISNULL(TRCD.VALUE_ADDED_TAX, 0)-ISNULL(TRCD.REDUCE_OWN_PRICE, 0)>0.001
+		        ) T
+		        GROUP BY RECP_ID,PAY_DATE
+		      ) TT
+		      GROUP BY RECP_ID
+		    ) D ON D.RECP_ID = RECP.RECP_ID
+		  WHERE RECP.STATUS = 0
+		  	AND TPC.FINANCECONTRACT_DATE IS NOT NULL 
+		  	AND CONVERT(DATE,TPC.FINANCECONTRACT_DATE) >= CONVERT(DATE,#BEGIN_DATE#)
+		  	AND CONVERT(DATE,TPC.FINANCECONTRACT_DATE) &lt;= CONVERT(DATE,#END_DATE#)
+		  GROUP BY TDC.DECP_NAME_CN,
+		    UP.[NAME],
+		    UP.ID,
+		    U.ID,
+		    U.[NAME],
+		    RECP.RECP_ID,
+		    TPCS.LEASE_RZE,
+		    TPCS.RATE_DIFF,
+		    TPCS.TR_IRR_RATE,
+		    D.DUN_TIMES,
+		    SHEN.CREATE_USER_ID,
+		    SHEN.[NAME]
+		    <isEqual property="type" compareValue="auUser">
+		    	,auUser.auUser
+		    	,auUser.auUserId
+		    </isEqual>
+		) GX
+		<isEqual prepend="GROUP BY" property="type" compareValue="appUser">
+			CREATE_USER_ID,
+			CREATE_USER_NAME
+		</isEqual>
+		<isEqual prepend="GROUP BY" property="type" compareValue="user">
+		  	ORG_USER_ID,
+			ORG_USER_NAME
+		</isEqual>
+		<isEqual prepend="GROUP BY" property="type" compareValue="upUser">
+		  	UP_USER_ID,
+			UP_USER_NAME
+		</isEqual>
+		<isEqual prepend="GROUP BY" property="type" compareValue="auUser">
+	    	auUser
+	    	,auUserId
+	    </isEqual>
+		ORDER BY LEASE_RZE DESC
+	</select>
+
+</sqlMap>

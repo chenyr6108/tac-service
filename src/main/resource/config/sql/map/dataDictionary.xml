@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<!-- 用于查询数据字典数据的sqlmap -->
+<sqlMap namespace="dataDictionary">
+	
+	<!-- 数据字典，取类型编号和标示 -->
+	<select id="queryDataDictionary" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select T.DATA_ID,T.CODE,T.FLAG,T.DEFAULT_VALUE,T.SHORTNAME,T.REMARK from t_data_dictionary t where t.type=#dataType# and t.status=0 order by t.level_num,t.code
+		]]>
+	</select>
+	
+		<!-- 数据字典，取类型编号和标示 For ALl -->
+	<select id="queryDataDictionaryAll" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select T.DATA_ID,T.CODE,T.FLAG,T.DEFAULT_VALUE,T.SHORTNAME,T.STATUS,T.REMARK from t_data_dictionary t where t.type=#dataType# order by t.level_num,t.code
+		]]>
+	</select>
+
+	<select id="getFlag" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select
+		    DATA_ID			 "data_id", 
+			STATUS 		     "status",
+			TYPE 			 "type",
+			CREATE_TIME	     "create_time",
+			FLAG 	         "flag",
+			REMARK 	         "remark",
+		    CODE	 		 "code",
+		    DEFAULT_VALUE	 "default_value",
+			SHORTNAME		 SHORTNAME,
+			LEVEL_NUM        LEVEL_NUM
+			   from t_data_dictionary t where t.status=0 and t.data_id=#id#
+		]]>
+	</select>
+	
+	
+	<insert id="createDictionary" parameterClass="map">
+		
+		<![CDATA[
+			INSERT INTO  t_data_dictionary(
+				CREATE_USER_ID,
+			 	MODIFY_USER_ID,
+				TYPE,
+			 	FLAG,
+			 	REMARK,
+			 	CODE,
+			 	DEFAULT_VALUE,
+				SHORTNAME,
+				STATUS,
+				LEVEL_NUM
+			) values (
+			 	#CREATE_USER_ID#,
+			 	#MODIFY_USER_ID#,
+				#TYPE#,
+			 	#FLAG#,
+			 	#REMARK#,
+			 	#CODE#,
+			 	#DEFAULT_VALUE#,
+				#SHORTNAME#,
+				#STATUS#,
+				#LEVEL_NUM#
+			)
+		]]>
+	</insert>
+	
+	<!--   deleteDictionary  -->  
+	<update id="deleteDictionary">
+		<![CDATA[
+			update t_data_dictionary 
+			set 
+			STATUS=-2,
+			MODIFY_USER_ID=#s_employeeId# 
+			where 
+			TYPE=#type#
+		]]>
+	</update>
+	
+	
+	<!-- updateDictionary -->
+	<update id="updateDictionary">
+		<![CDATA[
+			update t_data_dictionary 
+			set 
+			STATUS=#STATUS#,
+			DEFAULT_VALUE=#DEFAULT_VALUE# 
+			where 
+			DATA_ID=#DATA_ID#
+		]]>
+	</update>
+
+	<!-- updateFlag -->
+	<update id="updateFlag">
+		<![CDATA[
+			update t_data_dictionary
+			 set
+			  STATUS=#STATUS#,
+			  DEFAULT_VALUE=#DEFAULT_VALUE#
+			   where
+			    DATA_ID=#DATA_ID#
+		]]>
+	</update>
+	
+	<!-- count used-->
+	<select id="getAllDictionary_count" resultClass="java.lang.Integer" parameterClass="java.util.HashMap">
+		<![CDATA[
+			select count(distinct(type)) from t_data_dictionary t where t.status=0 
+		]]> 
+			<isNotEmpty prepend="and" property="searchValue">
+				<![CDATA[ t.type like '%$searchValue$%' ]]>
+			</isNotEmpty>
+	</select>
+	
+	<!-- query used-->
+	<select id="getAllDictionary" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			    select t.type,
+			   count(1) num
+			    from t_data_dictionary t
+				 where t.status<>-2
+				  group by t.type     
+		]]>
+			<isNotEmpty prepend="having" property="searchValue" >
+				<![CDATA[ t.type like '%$searchValue$%' ]]>
+			</isNotEmpty>
+			<![CDATA[order by t.type]]>
+	</select>
+	
+	<!-- query type of detail used-->
+	<select id="getTypeDetail" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT DATA_ID ,
+			CREATE_TIME ,
+			MODIFY_TIME ,
+			CREATE_USER_ID ,
+			MODIFY_USER_ID ,
+			STATUS ,
+			TYPE ,
+			FLAG ,
+			REMARK ,
+			CODE ,
+			DEFAULT_VALUE,
+			SHORTNAME,
+			LEVEL_NUM 
+			FROM 
+			T_DATA_DICTIONARY T 
+			WHERE T.TYPE=#type#
+			ORDER BY LEVEL_NUM
+		]]>
+		<dynamic prepend="and">
+			<isNotEmpty prepend=" " property="searchValue" >
+				<![CDATA[ T.FLAG like '%$searchValue$%' ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<!-- query type of detail count used-->
+	<select id="getTypeDetail_count" resultClass="java.lang.Integer" parameterClass="java.util.HashMap">
+		<![CDATA[
+			select count(1) from t_data_dictionary t where t.type=#type# and t.status=0 
+		]]> 
+		<dynamic prepend="and">
+			<isNotEmpty prepend=" " property="searchValue">
+				<![CDATA[ t.FLAG like '%$searchValue$%' ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<update id="update" parameterClass="java.util.HashMap">
+		<![CDATA[
+			update t_data_dictionary 
+			set STATUS=#STATUS#,
+			TYPE=#TYPE#,
+			FLAG=#FLAG#,
+			REMARK=#REMARK#,
+			CODE=#CODE#,
+			DEFAULT_VALUE=#DEFAULT_VALUE#
+			 where
+			  DATA_ID=#DATA_ID#
+		]]>
+	
+	</update>
+	
+	<update id="updateByid" parameterClass="java.util.HashMap">
+		<![CDATA[
+			update t_data_dictionary 
+			set STATUS=#STATUS#,
+			TYPE=#TYPE#,
+			FLAG=#FLAG#,
+			REMARK=#REMARK#,
+			CODE=#CODE#,
+			DEFAULT_VALUE=#DEFAULT_VALUE#,
+			SHORTNAME=#SHORTNAME#,
+			LEVEL_NUM=#LEVEL_NUM#,
+			MODIFY_USER_ID=#MODIFY_USER_ID#
+			 where
+			  DATA_ID=#DATA_ID#
+		]]>
+	
+	</update>
+	
+	<!--select count(1) exist from t_data_dictionary t where TYPE='aaa' -->
+	<!-- 判断是否存在要创建或修改的 type 类型名称 如果存在 -->
+	<select id="checkType" parameterClass="java.util.HashMap" resultClass="java.lang.Integer">
+		<![CDATA[
+			select count(1) from t_data_dictionary t where t.status=0 and t.TYPE=#type# 
+		]]>
+	</select>
+	
+		<!-- 数据字典，取类型编号和标示 -->
+	<select id="queryDataDictionaryByValueAdded" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select T.DATA_ID,T.CODE,T.FLAG,T.DEFAULT_VALUE,T.SHORTNAME from t_data_dictionary t where t.type='税费方案' order by t.level_num,t.code
+		]]>
+	</select>
+	
+	<select id="getDataByType" parameterClass="com.brick.base.to.DataDictionaryTo" resultClass="com.brick.base.to.DataDictionaryTo">
+		select FLAG as flag
+		, CODE as code
+		, DEFAULT_VALUE as defaultValue
+		, [TYPE] as type
+		from T_DATA_dictionary
+		where [TYPE] = #type#
+		and STATUS = 0
+    	order by LEVEL_NUM
+	</select>
+	
+	<select id="getDataByTypeForSelect" parameterClass="com.brick.base.to.DataDictionaryTo" resultClass="com.brick.base.to.SelectionTo">
+		select FLAG as display_name
+		, CODE as option_value
+		from T_DATA_dictionary
+		where [TYPE] = #type#
+		and STATUS = 0
+    	order by LEVEL_NUM
+	</select>
+	
+	<select id="getDataByFlag" parameterClass="com.brick.base.to.DataDictionaryTo" resultClass="java.lang.String">
+		select top 1 CODE
+		from T_DATA_dictionary
+		where [TYPE] = #type#
+		and FLAG = #flag#
+		and STATUS = 0
+    	order by LEVEL_NUM
+	</select>
+	
+	<select id="getDataByCode" parameterClass="com.brick.base.to.DataDictionaryTo" resultClass="java.lang.String">
+		select top 1 FLAG
+		from T_DATA_dictionary
+		where [TYPE] = #type#
+		AND CODE = #code#
+		and STATUS = 0
+    	order by LEVEL_NUM
+	</select>
+	
+	<select id="getDataDictionaryFlag" parameterClass="map" resultClass="java.lang.String">
+		select FLAG from t_data_dictionary  where type= #type# and CODE = #code#
+	</select>
+</sqlMap>

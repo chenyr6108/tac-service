@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="supplierReports">
+
+	 <select id="getSupplierReports" parameterClass="map" resultClass="hashmap">
+	 	select * from t_supl_reports where supplier_id=#supplier_id#  order by project_item desc;
+	 </select>
+	 
+	<delete id="deleteSupplierReport" parameterClass="map">
+	 	delete from t_supl_reports where supplier_id=#supplier_id#
+	 </delete>
+ <insert id="createSupplierReport" parameterClass="map">
+	 	insert into t_supl_reports
+	 	( 
+			project_item,
+			ca_cash_price,
+			ca_short_Invest,
+			ca_bills_should,
+			ca_Funds_should,
+			ca_Goods_stock,
+			ca_other,
+			fa_land,
+			fa_buildings,
+			fa_equipments,
+			fa_rent_Assets,
+			fa_transports,
+			fa_other,
+			fa_Depreciations,
+			fa_Incompleted_projects,
+			lang_Invest,
+			other_Assets,
+			sd_short_debt,
+			sd_bills_should,
+			sd_funds_should,
+			sd_other_pay,
+			sd_shareholders,
+			sd_one_year,
+			sd_other,
+			lang_debt,
+			other_long_debt,
+			other_debt,
+			share_capital,
+			surplus_Capital,
+			surplus_income,
+			this_losts,
+			project_changed,
+			s_start_date,
+			s_sale_net_income,
+			s_sale_cost,
+			s_other_gross_profit,
+			s_operating_expenses,
+			supplier_id,
+			s_nonbusiness_income,
+			s_interest_expense,
+			s_other_nonbusiness_expense,
+			s_income_tax_expense,
+			ca_other_Funds_should
+	 	)values
+	 	(
+	 	    #project_item#,
+			#ca_cash_price#,
+			#ca_short_Invest#,
+			#ca_bills_should#,
+			#ca_Funds_should#,
+			#ca_Goods_stock#,
+			#ca_other#,
+			#fa_land#,
+			#fa_buildings#,
+			#fa_equipments#,
+			#fa_rent_Assets#,
+			#fa_transports#,
+			#fa_other#,
+			#fa_Depreciations#,
+			#fa_Incompleted_projects#,
+			#lang_Invest#,
+			#other_Assets#,
+			#sd_short_debt#,
+			#sd_bills_should#,
+			#sd_funds_should#,
+			#sd_other_pay#,
+			#sd_shareholders#,
+			#sd_one_year#,
+			#sd_other#,
+			#lang_debt#,
+			#other_long_debt#,
+			#other_debt#,
+			#share_capital#,
+			#surplus_Capital#,
+			#surplus_income#,
+			#this_losts#,
+			#project_changed#,
+			#s_start_date#,
+			#s_sale_net_income#,
+			#s_sale_cost#,
+			#s_other_gross_profit#,
+			#s_operating_expenses#,
+			#supplier_id#,
+			#s_nonbusiness_income#,
+			#s_interest_expense#,
+			#s_other_nonbusiness_expense#,
+			#s_income_tax_expense#,
+			#ca_other_Funds_should#
+			)
+	 </insert>
+	 <insert id="insertSupplierReportRemark" parameterClass="map">
+	 	insert into t_supl_reportsremark
+	 	( 
+			create_id,
+			create_date,
+			supplier_id,
+			remark,
+			type	
+	 	)
+	 	values
+	 	(
+	 		#s_employeeId#,
+	 		getdate(),
+	 	    #supplier_id#,
+			#remark#,
+			#type#
+		)
+	 </insert>
+	 	 <select id="selectSupplierReportsRemark" parameterClass="map" resultClass="hashmap">
+	 	select top 1 * from t_supl_reportsremark where supplier_id=#supplier_id# and type=#type# order by id desc;
+	 </select>
+
+</sqlMap>

@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="area">
+	
+	<!--insert area-->
+	<!-- 插入区域 -->
+	<insert id="createArea" parameterClass="map">
+		 
+      	
+	  <![CDATA[
+		insert into t_area(name,pid,lesseearea,isleaf,desc_name) values (#name#,#pid#,#lesseearea#,#isleaf#,#desc_name#)
+		]]>
+		<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS id
+		</selectKey> 
+	</insert>
+	<!--update isleaf of parent to N -->
+	<!-- 更新成父节点 -->
+	<update id="updateParentLeaf" parameterClass="map">
+		<![CDATA[
+			update t_area set isleaf=#parnetLeaf# where id=#updateId#
+		]]>
+	</update>
+	<!--update area-->
+	<!-- 更新区域 -->
+	<update id="updateArea" parameterClass="map">
+		<![CDATA[
+			update t_area set name = #name#,desc_name=#desc_name#, lesseearea
+			= #lesseearea# where id = #id#
+		]]>
+	</update>
+	
+	<!--delete area-->
+	<!-- 删除区域 -->
+	<delete id="deleteById" parameterClass="map">
+		<![CDATA[
+			delete from t_area where id = #id#
+		]]>
+	</delete>
+	
+	<!--query area by id-->
+	<!-- 根据ID查询区域 -->
+	<select id="queryById" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select id,pid,name,desc_name,lesseearea from t_area where id = #id#
+		]]>
+	</select>
+
+	<!--read tree of area-->
+	<!-- 树的读取 -->
+	<select id="query" parameterClass="java.util.HashMap"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select id,name,desc_name,pid,lesseearea,isleaf from t_area where pid=#pid# 
+		]]>
+	</select>
+	<!--get sub of pid-->
+	<select id="subPid" resultClass="java.util.Map" parameterClass="java.util.HashMap">
+		<![CDATA[
+			select id,name,desc_name,pid,lesseearea,isleaf from t_area where pid=#id#
+		]]>
+	</select>
+	<!-- 得到根结点 -->
+	<select id="queryTop" resultClass="java.util.HashMap" parameterClass="java.util.HashMap">
+		<![CDATA[
+			select id,name,desc_name,pid,lesseearea,isleaf from t_area where pid is null
+		]]>
+	</select>
+	
+	<!-- 检测更新叶子结点的个数 -->
+	<select id="selectSubCount" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[
+			select count(1) from t_area where Pid=#pid#
+		]]>
+	</select>
+	
+	<!-- 更新成叶子结点 -->
+	<update id="updateToLeaf" parameterClass="map">
+		<![CDATA[
+			update t_area set isleaf='Y' where id=#pid#
+		]]>
+	</update>
+	
+		<!-- 查询所有省份 -->
+	<select id="getProvinces" parameterClass="map"	resultClass="java.util.HashMap">
+		<![CDATA[
+		 select ta3.id id, ta3.name name
+		  from t_area ta3
+		  left join (select ta2.id id
+		               from t_area ta2
+		               left join (select id from t_area ta1 where ta1.pid is null) ta1 on ta2.pid =
+		                                                                                  ta1.id
+		              where ta1.id is not null) ta2 on ta3.pid = ta2.id
+		 where ta2.id is not null order by ta3.name
+		]]>
+	</select> 
+	
+	
+	
+	<!-- 根据省份ID获取该省份下的所有市，区 -->
+	<select id="getCitysByProvinceId" parameterClass="map"	resultClass="java.util.HashMap">
+		<![CDATA[
+			select id ,name from t_area where pid=#provinceId# order by name
+		]]>
+	</select>
+	<select id="getAreaByCityId" parameterClass="map"	resultClass="java.util.HashMap">
+		<![CDATA[
+			select id ,name from t_area where pid=#cityId# order by name
+		]]>
+	</select>
+	
+	<!-- 根据一级去找下面所有的子区域 用于前台用户选择(以弹出一个层来显示)-->
+	<select id="getOneSubArea" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		<![CDATA[
+			select id,name from t_area where pid=#id#
+		]]>
+	</select>
+		<!-- Add by Michael 2012 09-03 查询所有市-->
+	<select id="getAllCitys" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		<![CDATA[
+			select * from t_area
+			where PID in(					
+			select ta3.id id
+			from t_area ta3
+			left join 
+			(select ta2.id id from t_area ta2
+			left join (select id from t_area ta1 where ta1.pid is null) ta1 on ta2.pid = ta1.id
+			where ta1.id is not null) ta2 on ta3.pid = ta2.id
+			where ta2.id is not null )
+		]]>
+	</select>
+	<!-- Add by Michael 2012 09-03 查询所有区-->
+	<select id="getAllAreas" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		<![CDATA[
+			select * from T_AREA
+			where PID in(
+			select ID from t_area
+			where PID in(					
+			select ta3.id id
+			from t_area ta3
+			left join 
+			(select ta2.id id from t_area ta2
+			left join (select id from t_area ta1 where ta1.pid is null) ta1 on ta2.pid = ta1.id
+			where ta1.id is not null) ta2 on ta3.pid = ta2.id
+			where ta2.id is not null )	
+			)	
+		]]>
+	</select>
+</sqlMap>

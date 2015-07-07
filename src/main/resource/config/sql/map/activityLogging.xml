@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap namespace="activityLogging">
+	<!-- 活动日志列表 -->
+	<select id="queryActLog" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT 
+				actlog_id,actlog_name,actlog_type,level_num
+			FROM
+				t_report_actlog
+			WHERE
+				status = 0 
+		]]>
+		<isNotEmpty prepend="and" property="searchActLogType">
+			actlog_type = #searchActLogType#		
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="content">
+			actlog_name LIKE '%$content$%'
+		</isNotEmpty>
+		ORDER BY ACTLOG_TYPE,LEVEL_NUM
+	</select>
+	<!-- 活动日志列表数 -->
+	<select id="queryActLog_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[
+			SELECT 
+				count(actlog_id) cnt
+			FROM
+				t_report_actlog
+			WHERE
+				status = 0 
+		]]>
+		<isNotEmpty prepend="and" property="searchActLogType">
+			actlog_type = #searchActLogType#		
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="actlog_name">
+			actlog_name = #actlog_name#
+		</isNotEmpty>
+	</select>
+	<!-- 添加活动日志 -->
+	<insert id="createActLog" parameterClass="map" >
+		<![CDATA[
+			INSERT INTO t_report_actlog (
+				actlog_type ,
+				actlog_name ,
+				actlog_status ,
+				level_num ,
+				create_date ,
+				create_id ,
+				status
+			)	VALUES (
+				#actlog_type# ,
+				#actlog_name# ,
+				0 ,
+				#level_num# ,
+				getDate(),
+				#s_employeeId# ,
+				0
+			)
+		]]>
+	</insert>	
+	<!-- 修改活动日志 -->
+	<update id="updateActLog" parameterClass="map" >
+		<![CDATA[
+			UPDATE 
+				t_report_actlog 
+			SET
+				actlog_type = #actlog_type# ,
+				actlog_name = #actlog_name# ,
+				level_num = #level_num# ,
+				modify_date = getDate() ,
+				modify_id = #s_employeeId# 
+			WHERE
+				actlog_id = #actlog_id#
+		]]>
+	</update>	
+	<!-- 修改初始化 -->
+	<select id="updatePreActLog" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT 
+			actlog_id,actlog_name,actlog_type,level_num
+		FROM
+			t_report_actlog
+		WHERE
+			actlog_id = #actlog_id#
+	</select>
+	<!-- 删除活动日志 -->
+	<update id="deleteActLog" parameterClass="map" >
+		<![CDATA[
+			UPDATE 
+				t_report_actlog 
+			SET
+				modify_date = getDate() ,
+				modify_id = #s_employeeId# ,
+				status = -2 
+			WHERE
+				actlog_id = #actlog_id#
+		]]>
+	</update>	
+</sqlMap>

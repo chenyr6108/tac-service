@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="creditVouch">
+	<select id="querySuppliersWithNoThis" parameterClass="map" resultClass="java.util.HashMap">
+		
+		select t0.id,t0.name,t0.CODE,t0.TYPE
+		from (
+				select t.TYPE,t.NAME,t.CODE,max(t.ID) ID from (
+				select 1 TYPE,t.PJCCC_ID ID,t.CORP_NAME_CN NAME,T.ORGANIZATION_CODE_CERTIFICATE CODE
+				from T_PRJT_VOUCHCUSTOMERCORP t
+				LEFT JOIN T_PRJT_CREDIT T1 ON T.PRCD_ID=T1.ID
+				LEFT JOIN T_CUST_CUSTOMER T2 ON T1.CUST_ID = T2.CUST_ID
+				LEFT JOIN T_RENT_CONTRACT T3 ON T1.ID=T3.PRCD_ID
+				where t.STATUS=0 AND T1.STATUS=0 and T1.STATE=1
+				union
+				select 0 TYPE,t.PRON_ID ID,t.CUST_NAME NAME,T.NATU_IDCARD CODE
+				from T_PRJT_CREDITVOUCHNATU t
+				LEFT JOIN T_PRJT_CREDIT T1 ON T.PRCD_ID=T1.ID
+				LEFT JOIN T_CUST_CUSTOMER T2 ON T1.CUST_ID = T2.CUST_ID
+				LEFT JOIN T_RENT_CONTRACT T3 ON T1.ID=T3.PRCD_ID
+				where t.STATUS=0 AND T1.STATUS=0 and T1.STATE=1
+				
+				) t group by t.NAME,t.CODE,t.TYPE) t0
+		where  t0.id != #PRODUCT_ID# and t0.id not in(select t2.UNION_VOUCH_ID
+																	from T_PRODUCT_UNIONVOUCHPLAN t2
+																	where t2.status = 0 and t2.PRODUCT_ID = #PRODUCT_ID#) 
+	 </select>
+	 
+	 <!-- 
+	查询指定客户授权
+	 -->
+	<select id="queryAllproductCredit" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+	SELECT	top 1 TSS.TYPE,
+				TPP.PDVP_ID,
+			 	TPP.CREATE_DATE,
+			 	TPP.CREATE_ID,
+			 	TPP.MODITY_DATE,
+			 	TPP.MODITY_ID,
+				TPP.CUVP_STATUS,
+				TPP.CUVP_CODE,
+				TPP.GRANT_PRICE,
+				TPP.LAST_PRICE,
+				TPP.START_DATE,
+				TPP.END_DATE,
+				TPP.REMARK,
+				TPP.REPEAT_CREDIT,
+				TPP.VOUCH_CODE,
+				TPP.VOUCH_NAME,
+				TSS.ID,
+				TSS.NAME,
+				TSS.CODE,
+				t1.UNION_VOUCH_PRICE
+		 	FROM (
+				select 1 TYPE,t.PJCCC_ID ID,t.CORP_NAME_CN NAME,T.ORGANIZATION_CODE_CERTIFICATE CODE,T2.CUST_NAME,T1.CREDIT_CODE,T3.LEASE_CODE,T.TELEPHONE PHONE 
+				from T_PRJT_VOUCHCUSTOMERCORP t
+				LEFT JOIN T_PRJT_CREDIT T1 ON T.PRCD_ID=T1.ID
+				LEFT JOIN T_CUST_CUSTOMER T2 ON T1.CUST_ID = T2.CUST_ID
+				LEFT JOIN T_RENT_CONTRACT T3 ON T1.ID=T3.PRCD_ID
+				where t.STATUS=0 AND T1.STATUS=0
+				union
+				select 0 TYPE,t.PRON_ID ID,t.CUST_NAME NAME,T.NATU_IDCARD CODE,T2.CUST_NAME,T1.CREDIT_CODE,T3.LEASE_CODE,T.NATU_MOBILE PHONE 
+				from T_PRJT_CREDITVOUCHNATU t
+				LEFT JOIN T_PRJT_CREDIT T1 ON T.PRCD_ID=T1.ID
+				LEFT JOIN T_CUST_CUSTOMER T2 ON T1.CUST_ID = T2.CUST_ID
+				LEFT JOIN T_RENT_CONTRACT T3 ON T1.ID=T3.PRCD_ID
+				where t.STATUS=0 AND T1.STATUS=0) TSS
+		 	LEFT JOIN T_PRODUCT_VOUCHPLAN TPP ON TPP.VOUCH_CODE = TSS.CODE  AND TPP.VOUCH_NAME=TSS.NAME AND TPP.STATUS =0 AND TPP.VOUCH_TYPE=TSS.TYPE
+		 	left join (select trur.PRODUCT_ID,sum(trur.UNION_VOUCH_PRICE) UNION_VOUCH_PRICE
+		 				from T_PRODUCT_UNIONVOUCHPLAN trur
+		 				where trur.STATUS = 0
+		 				group by trur.PRODUCT_ID) t1 on t1.PRODUCT_ID = tss.id 
+		 	WHERE (TPP.STATUS IS NULL OR TPP.STATUS=0) and TSS.CODE = #VOUCH_CODE# AND TSS.NAME=#VOUCH_NAME# AND TSS.TYPE = #TYPE#
+		 	order by ID desc 
+		 	]]>
+	 </select>
+	
+	
+	<!-- 
+	通过客户id查询客户授权
+	 -->
+	<select id="queryAllGrantplanById" parameterClass="map" resultClass="java.util.HashMap">
+	 		
+		 	SELECT PDVP_ID,
+	 	CREATE_DATE,
+	 	CREATE_ID,
+	 	MODITY_DATE,
+	 	MODITY_ID,
+	 	TYPE,
+		STATUS,
+		CUVP_STATUS,
+		CUVP_CODE,
+		GRANT_PRICE,
+		LAST_PRICE,
+		START_DATE,
+		END_DATE,
+		PRODUCT_ID,
+		VOUCH_CODE CODE,
+		VOUCH_NAME NAME,
+		REMARK,
+		REPEAT_CREDIT
+	 	FROM T_PRODUCT_VOUCHPLAN 
+	 	WHERE STATUS = 0 
+	 	AND
+	 	VOUCH_NAME = #VOUCH_NAME# AND  VOUCH_CODE = #VOUCH_CODE#  AND VOUCH_TYPE = #TYPE#
+	 </select>
+	 
+	<select id="queryUnionGrantPlan" parameterClass="map" resultClass="java.util.HashMap">
+		select t1.UNION_VOUCH_PRICE,
+		       t2.NAME,
+		       t1.PUVP_ID
+		from T_PRODUCT_UNIONVOUCHPLAN t1
+		left join (select 1 TYPE,t.PJCCC_ID ID,t.CORP_NAME_CN NAME,T.ORGANIZATION_CODE_CERTIFICATE CODE,T2.CUST_NAME,T1.CREDIT_CODE,T3.LEASE_CODE,T.TELEPHONE PHONE 
+				from T_PRJT_VOUCHCUSTOMERCORP t
+				LEFT JOIN T_PRJT_CREDIT T1 ON T.PRCD_ID=T1.ID
+				LEFT JOIN T_CUST_CUSTOMER T2 ON T1.CUST_ID = T2.CUST_ID
+				LEFT JOIN T_RENT_CONTRACT T3 ON T1.ID=T3.PRCD_ID
+				where t.STATUS=0 AND T1.STATUS=0
+				union
+				select 0 TYPE,t.PRON_ID ID,t.CUST_NAME NAME,T.NATU_IDCARD CODE,T2.CUST_NAME,T1.CREDIT_CODE,T3.LEASE_CODE,T.NATU_MOBILE PHONE 
+				from T_PRJT_CREDITVOUCHNATU t
+				LEFT JOIN T_PRJT_CREDIT T1 ON T.PRCD_ID=T1.ID
+				LEFT JOIN T_CUST_CUSTOMER T2 ON T1.CUST_ID = T2.CUST_ID
+				LEFT JOIN T_RENT_CONTRACT T3 ON T1.ID=T3.PRCD_ID
+				where t.STATUS=0 AND T1.STATUS=0) t2 on t2.ID = t1.UNION_VOUCH_ID AND t2.TYPE=#TYPE#
+		where t1.STATUS = 0 and t1.PRODUCT_ID = #PRODUCT_ID# 
+	 </select>
+	 
+	 <!-- 
+	  创建客户授信 
+	  -->
+	 <insert id="creatProductCreditPlan" parameterClass="map">
+	  <![CDATA[
+	  	INSERT INTO T_PRODUCT_VOUCHPLAN (
+	  	CREATE_DATE,
+	  	CREATE_ID,
+	  	MODITY_DATE,
+	  	MODITY_ID,
+	 	TYPE,
+		STATUS,
+		CUVP_STATUS,
+		CUVP_CODE,
+		GRANT_PRICE,
+		LAST_PRICE,
+		START_DATE,
+		END_DATE,
+		PRODUCT_ID,
+		VOUCH_NAME,
+		VOUCH_CODE,
+		REMARK,
+		REPEAT_CREDIT,
+		VOUCH_TYPE
+	  	)VALUES(
+	  	getdate(),
+	 	#CREATE_ID#,
+	 	getdate(),
+	 	#MODIFY_ID#,
+	 	#TYPE#,
+		0,
+		0,
+		#CUGP_CODE#,
+		#GRANT_PRICE#,
+		#LAST_PRICE#,
+		#START_DATE#,
+		#END_DATE#,
+		#PRODUCT_ID#,
+		#VOUCH_NAME#,
+		#VOUCH_CODE#,
+		#REMARK#,
+		#REPEAT_CREDIT#,
+		#VOUCH_TYPE#
+	  	)
+	  ]]>
+	</insert>
+	
+	<!-- 
+	  更新客户授信 
+	  -->
+	 <update id="updateProductCreditPlan" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_PRODUCT_VOUCHPLAN SET
+		MODITY_DATE = getdate(),
+		MODITY_ID = #MODITY_ID#,
+		CUVP_CODE = #CUGP_CODE#,
+		GRANT_PRICE = #GRANT_PRICE#,
+		LAST_PRICE = #LAST_PRICE#,
+		START_DATE = #START_DATE#,
+		END_DATE = #END_DATE#,
+		PRODUCT_ID = #PRODUCT_ID#,
+		REPEAT_CREDIT = #REPEAT_CREDIT#,
+		VOUCH_TYPE = #VOUCH_TYPE#,
+		CUVP_STATUS=0
+		WHERE PDVP_ID= #PDVP_ID#
+	  ]]>
+	</update>
+	
+	<!-- 创建日志 -->
+	<statement id="productcreditlog" parameterClass="map">
+	<![CDATA[
+	INSERT INTO T_PRODUCT_VOUCHLOG
+           (CREATE_ID
+           ,CREATE_DATE
+           ,MODITY_ID
+           ,MODITY_DATE
+           ,STATUS
+           ,TYPE
+           ,CUGL_STATUS
+           ,MEMO
+           ,PDVP_ID
+           ,GRANT_PRICE
+           ,LAST_PRICE
+           ,START_DATE
+           ,END_DATE)
+      SELECT #CREATE_ID#,GETDATE(),#MODITY_ID#,GETDATE(),0,0,#CUGL_STATUS#,#MEMO#,
+		      T.PDVP_ID,#GRANT_PRICE#,#LAST_PRICE#,#START_DATE#,#END_DATE#
+		  FROM T_PRODUCT_VOUCHPLAN  T
+		  WHERE VOUCH_NAME = #VOUCH_NAME# AND  VOUCH_CODE = #VOUCH_CODE#  AND VOUCH_TYPE = #TYPE#
+	]]>
+	</statement>
+	
+	<!-- 添加联合授信 -->
+	<insert id="insertUnion01" parameterClass="map">
+	  <![CDATA[
+	  	INSERT INTO T_PRODUCT_UNIONVOUCHPLAN (
+		  	CREATE_DATE,
+		  	CREATE_ID,
+		  	MODITY_DATE,
+		  	MODITY_ID,
+		 	TYPE,
+			STATUS,
+			UNION_VOUCH_PRICE,
+			PRODUCT_ID,
+			UNION_VOUCH_ID,
+			UNION_SUPPLIER_TYPE
+		  	)
+		  	VALUES(
+		  	getdate(),
+		 	#CREATE_ID#,
+		 	getdate(),
+		 	#MODIFY_ID#,
+		 	#VOUCH_TYPE#,
+			0,
+			#UNION_GRANT_PRICE#,
+			#PRODUCT_ID#,
+			#UNION_SUPPLIER_ID#,
+			#UNION_SUPPLIER_TYPE#
+	  	)
+	  ]]>
+	</insert>
+	
+	<!-- 查找日志 -->
+	<select id="queryLog" parameterClass="map" resultClass="java.util.HashMap">
+	 	  SELECT TPV.CREATE_ID
+           ,TPV.CREATE_DATE
+           ,TPV.MODITY_ID
+           ,TPV.MODITY_DATE
+           ,TPV.STATUS
+           ,TPV.TYPE
+           ,TPV.CUGL_STATUS
+           ,TPV.MEMO
+           ,TPV.PDVP_ID
+           ,TPV.GRANT_PRICE
+           ,TPV.LAST_PRICE
+           ,TPV.START_DATE
+           ,TPV.END_DATE
+           ,TSS.NAME
+		  FROM T_PRODUCT_VOUCHLOG TPV
+		  LEFT JOIN T_PRODUCT_VOUCHPLAN TPVP ON TPVP.PDVP_ID = TPV.PDVP_ID
+		  LEFT JOIN (select 1 TYPE,t.PJCCC_ID ID,t.CORP_NAME_CN NAME,t.ORGANIZATION_CODE_CERTIFICATE CODE
+						from T_PRJT_VOUCHCUSTOMERCORP t
+						LEFT JOIN T_PRJT_CREDIT T1 ON T.PRCD_ID=T1.ID
+						LEFT JOIN T_CUST_CUSTOMER T2 ON T1.CUST_ID = T2.CUST_ID
+						LEFT JOIN T_RENT_CONTRACT T3 ON T1.ID=T3.PRCD_ID
+						where t.STATUS=0 AND T1.STATUS=0
+						union
+						select 0 TYPE,t.PRON_ID ID,t.CUST_NAME NAME,T.NATU_IDCARD CODE
+						from T_PRJT_CREDITVOUCHNATU t
+						LEFT JOIN T_PRJT_CREDIT T1 ON T.PRCD_ID=T1.ID
+						LEFT JOIN T_CUST_CUSTOMER T2 ON T1.CUST_ID = T2.CUST_ID
+						LEFT JOIN T_RENT_CONTRACT T3 ON T1.ID=T3.PRCD_ID
+						where t.STATUS=0 AND T1.STATUS=0) TSS ON TSS.CODE = TPVP.VOUCH_CODE AND TSS.NAME=TPVP.VOUCH_NAME AND TSS.TYPE=TPVP.VOUCH_TYPE
+		    WHERE TPVP.VOUCH_NAME = #VOUCH_NAME# AND  TPVP.VOUCH_CODE = #VOUCH_CODE#  AND TPVP.VOUCH_TYPE = #TYPE#
+	 </select>
+	 
+	 <!-- 查询日志个数 -->
+	 <select id="queryLog_count" parameterClass="map" resultClass="int">
+	 	SELECT COUNT(1)
+			FROM T_PRODUCT_VOUCHLOG TPV
+			LEFT JOIN T_PRODUCT_VOUCHPLAN TPVP ON TPVP.PDVP_ID = TPV.PDVP_ID
+			  WHERE TPVP.VOUCH_NAME = #VOUCH_NAME# AND  TPVP.VOUCH_CODE = #VOUCH_CODE#  AND TPVP.VOUCH_TYPE = #TYPE#
+	 </select>
+	 
+	 <!-- 
+	  取消客户授信
+	  -->
+	 <update id="delCreditPlan" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_PRODUCT_VOUCHPLAN SET
+		CUVP_STATUS = 1
+		WHERE VOUCH_NAME=#VOUCH_NAME# AND VOUCH_CODE=#VOUCH_CODE# AND VOUCH_TYPE=#TYPE#
+	  ]]>
+	</update>
+	<update id="delUnionCreditPlan01" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_PRODUCT_UNIONVOUCHPLAN SET
+					STATUS = 1
+		WHERE PRODUCT_ID = #PRODUCT_ID# AND TYPE=#TYPE#
+	  ]]>
+	</update>
+	
+	<select id="getUnionByID" parameterClass="map" resultClass="java.util.HashMap">
+		select t1.UNION_VOUCH_PRICE,
+		       t2.NAME,
+		       t1.PUVP_ID,
+		       t1.UNION_VOUCH_ID,
+		       t1.PRODUCT_ID
+		from T_PRODUCT_UNIONVOUCHPLAN t1
+		left join (select 1 TYPE,t.PJCCC_ID ID,t.CORP_NAME_CN NAME,T.ORGANIZATION_CODE_CERTIFICATE CODE,T2.CUST_NAME,T1.CREDIT_CODE,T3.LEASE_CODE,T.TELEPHONE PHONE 
+				from T_PRJT_VOUCHCUSTOMERCORP t
+				LEFT JOIN T_PRJT_CREDIT T1 ON T.PRCD_ID=T1.ID
+				LEFT JOIN T_CUST_CUSTOMER T2 ON T1.CUST_ID = T2.CUST_ID
+				LEFT JOIN T_RENT_CONTRACT T3 ON T1.ID=T3.PRCD_ID
+				where t.STATUS=0 AND T1.STATUS=0
+				union
+				select 0 TYPE,t.PRON_ID ID,t.CUST_NAME NAME,T.NATU_IDCARD CODE,T2.CUST_NAME,T1.CREDIT_CODE,T3.LEASE_CODE,T.NATU_MOBILE PHONE 
+				from T_PRJT_CREDITVOUCHNATU t
+				LEFT JOIN T_PRJT_CREDIT T1 ON T.PRCD_ID=T1.ID
+				LEFT JOIN T_CUST_CUSTOMER T2 ON T1.CUST_ID = T2.CUST_ID
+				LEFT JOIN T_RENT_CONTRACT T3 ON T1.ID=T3.PRCD_ID
+				where t.STATUS=0 AND T1.STATUS=0) t2 on t2.ID = t1.UNION_VOUCH_ID
+		where t1.STATUS = 0 and t1.PUVP_ID = #PUVP_ID# 
+	 </select>
+	
+	<!-- 更新指定联合授信 -->
+	<update id="updateUnionPriceByID" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_PRODUCT_UNIONVOUCHPLAN SET
+					UNION_VOUCH_PRICE = #UNION_PRICE#
+		WHERE PUVP_ID = #UNION_ID#
+
+	  ]]>
+	</update>
+	
+	<!-- 取消指定联合授信 -->
+	<update id="delUnionPriceByID" parameterClass="map">
+	  <![CDATA[
+	  	UPDATE T_PRODUCT_UNIONVOUCHPLAN SET
+					STATUS = 1
+		WHERE PUVP_ID = #PUVP_ID#
+	  ]]>
+	</update>
+</sqlMap>

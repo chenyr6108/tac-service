@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="companyManage">
+	<!-- 查询所有公司的个数 -->
+ 	<select id="queryAllCompany_count" parameterClass="map" resultClass="java.lang.Integer">
+ 		<![CDATA[
+ 		select count(*) from t_dept_company tdcpy where tdcpy.status = 0
+ 		]]>
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				(tdcpy.DECP_NAME_CN like '%$content$%' 
+				or tdcpy.DECP_NAME_EN like '%$content$%' 
+				or tdcpy.LEGAL_PERSON like '%$content$%' 
+				or tdcpy.LEGAL_MOBILE_NUMBER like '%$content$%')  
+				]]>
+			</isNotEmpty>
+		</dynamic>	 
+ 	</select>
+	<!-- 查询所有公司      分页  -->
+ 	<select id="queryAllCompany" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+			select tdcp.decp_id DECP_ID,
+			       tdcp.decp_name_cn DECP_NAME_CN,
+			       tdcp.legal_mobile_number LEGAL_MOBILE_NUMBER,
+			       tdcp.legal_person LEGAL_PERSON,	
+			       tdcp.legelr LEGELR,			       		       
+			       tuu.name CREATE_NAME,		       
+			       tuu.name MODIFY_NAME,
+			       [ORDER]
+			  from t_dept_company tdcp
+			  left join t_user_user tuu on tuu.id = tdcp.create_id
+			  left join t_user_user tuu2 on tuu2.id = tdcp.modify_id
+			  where tdcp.status=0
+ 		]]>
+ 		<dynamic>
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				(tdcp.DECP_NAME_CN like '%$content$%' 
+				or tdcp.DECP_NAME_EN like '%$content$%' 
+				or tdcp.LEGAL_PERSON like '%$content$%' 
+				or tdcp.LEGAL_MOBILE_NUMBER like '%$content$%')
+				]]>
+			</isNotEmpty>
+		</dynamic>	
+		<![CDATA[
+ 		ORDER BY [ORDER] ASC
+ 		]]>
+ 	</select>
+ 
+	<!-- 根据decp_id查询对应公司记录 -->
+	<select id="getCompanyInfoById" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select tdcp.decp_id DECP_ID,
+			       tdcp.decp_name_cn DECP_NAME_CN,
+			       tdcp.legal_mobile_number LEGAL_MOBILE_NUMBER,
+			       tdcp.legal_person LEGAL_PERSON,	
+			       tdcp.legelr LEGELR,			       		       
+			       tuu.name CREATE_NAME,		       
+			       tuu.name MODIFY_NAME,
+			       tdcp.decp_name_en DECP_NAME_EN,
+			       tdcp.employee_count EMPLOYEE_COUNT,
+			       tdcp.corp_type CORP_TYPE,
+			       tdcp.business_licence_code BUSINESS_LICENCE_CODE,
+			       tdcp.business_time_limit BUSINESS_TIME_LIMIT,
+			       tdcp.tax_registration_number TAX_REGISTRATION_NUMBER,
+			       tdcp.incorporating_date INCORPORATING_DATE,
+			       tdcp.registered_capital REGISTERED_CAPITAL,
+			       tdcp.registered_office_address REGISTERED_OFFICE_ADDRESS,
+			       tdcp.managing_scope MANAGING_SCOPE,
+			       tdcp.telephone TELEPHONE,
+			       tdcp.fax FAX,
+			       tdcp.url URL,
+			       tdcp.memo MEMO,
+			       tdcp.postcode POSTCODE,
+			       tdcp.legal_id_card LEGAL_ID_CARD,
+			       tdcp.legal_telephone LEGAL_TELEPHONE,
+			       tdcp.legal_home_address LEGAL_HOME_ADDRESS,
+			       tdcp.legal_postcode LEGAL_POSTCODE,
+			       tdcp.open_account_bank OPEN_ACCOUNT_BANK,
+			       tdcp.bank_account BANK_ACCOUNT,
+			       tdcp.status,
+			       tdcp.type,
+			       tdcp.parent_id 	PARENT_ID,
+			       tdcpyy.decp_name_cn	ZONG_NAME,
+			       tdcp.alias	ALIAS,tdcp.COMMUNICATION_ADDRESS,
+			       tdcp.[ORDER]	       
+			  from t_dept_company tdcp
+			  left join t_user_user tuu on tuu.id = tdcp.create_id
+			  left join t_dept_company tdcpyy on tdcpyy.decp_id=tdcp.parent_id
+			  left join t_user_user tuu2 on tuu2.id = tdcp.modify_id
+			  where tdcp.status=0 and tdcp.decp_id = #decp_id#
+		]]>
+	</select>	
+	
+	
+	<!-- 作废一个公司的记录 -->
+	<update id="invalid" parameterClass="map">
+		<![CDATA[
+			update t_dept_company
+			   set status = -2, modify_time = getdate(), MODIFY_ID = #s_employeeId#
+			 where DECP_ID = #decp_id#		
+		]]>
+	</update>
+	
+	
+	<!-- 查询一个总公司下面分公司的个数 -->
+	<select id="getChildCountByParentId" parameterClass="map" resultClass="java.lang.Integer"> 
+		<![CDATA[
+			select count(tdcpy.DECP_ID) count from t_dept_company tdcpy
+			where tdcpy.status = 0  and  tdcpy.PARENT_ID =#decp_id# and tdcpy.legelr=2
+		]]>
+	</select>
+	
+			
+	<!-- 查找所有的总公司  用于添加-->
+	<select id="getParentCompany" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select tdcpy.decp_id DECP_ID,
+			    	tdcpy.decp_name_cn DECP_NAME_CN
+			from t_dept_company tdcpy
+			where tdcpy.status = 0 and tdcpy.legelr=1
+		]]>
+	</select>
+	<!-- 查找所有的总公司   用于修改 -->
+	<select id="getParentCompanyForUpdate" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select tdcpy.decp_id DECP_ID,
+			    	tdcpy.decp_name_cn DECP_NAME_CN
+			from t_dept_company tdcpy
+			where tdcpy.status = 0 and tdcpy.legelr=1 
+		]]>
+	</select>
+
+	<!-- 根据decp_id查询对应公司的父公司 -->
+	<select id="getParentCompanyInfoById" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		select tdcpy.decp_id DECP_ID,
+		    	tdcpy.decp_name_cn DECP_NAME_CN
+		from t_dept_company tdcpy
+		left join t_dept_company tdcpy2 on tdcpy2.decp_id = tdcpy.parent_id
+		where tdcpy.status = 0 and tdcpy.status = 0 and tdcpy.decp_id = #decp_id#
+		]]>
+	</select>	
+	<!-- 插入一条公司的信息 -->
+	<insert id="create" parameterClass="map">
+		<![CDATA[	
+			insert into t_dept_company
+			  (decp_name_cn,
+			   decp_name_en,
+			   employee_count,
+			   corp_type,
+			   business_licence_code,
+			   business_time_limit,
+			   tax_registration_number,
+			   incorporating_date,
+			   registered_capital,
+			   registered_office_address,
+			   managing_scope,
+			   telephone,
+			   fax,
+			   url,
+			   memo,
+			   postcode,
+			   legal_person,
+			   legal_id_card,
+			   legal_telephone,
+			   legal_home_address,
+			   legal_postcode,
+			   legal_mobile_number,
+			   create_time,
+			   create_id,
+			   open_account_bank,
+			   bank_account,
+			   status,
+			   legelr,
+			   parent_id,
+			   alias,COMMUNICATION_ADDRESS,[ORDER])
+			values
+			  (#DECP_NAME_CN#,
+			   #DECP_NAME_EN#,
+			   #EMPLOYEE_COUNT#,
+			   #CORP_TYPE#,
+			   #BUSINESS_LICENCE_CODE#,
+			   #BUSINESS_TIME_LIMIT#,
+			   #TAX_REGISTRATION_NUMBER#,
+			   cast(#INCORPORATING_DATE# as datetime),
+			   #REGISTERED_CAPITAL#,
+			   #REGISTERED_OFFICE_ADDRESS#,
+			   #MANAGING_SCOPE#,
+			   #TELEPHONE#,
+			   #FAX#,
+			   #URL#,
+			   #MEMO#,
+			   #POSTCODE#,
+			   #LEGAL_PERSON#,
+			   #LEGAL_ID_CARD#,
+			   #LEGAL_TELEPHONE#,
+			   #LEGAL_HOME_ADDRESS#,
+			   #LEGAL_POSTCODE#,
+			   #LEGAL_MOBILE_NUMBER#,
+			   getdate(),
+			   #s_employeeId#,
+			   #OPEN_ACCOUNT_BANK#,
+			   #BANK_ACCOUNT#,
+			   0,
+			   #type#,
+			   #PARENT_ID#,
+			   #ALIAS#,#COMMUNICATION_ADDRESS#,#ORDER#)
+		]]>
+	</insert>
+	<!-- 更新一条银行记录 -->
+	<update id="update" parameterClass="map">
+		<![CDATA[
+			update t_dept_company
+			   set   decp_name_cn              = #DECP_NAME_CN#,
+			       decp_name_en              = #DECP_NAME_EN#,
+			       employee_count            = #EMPLOYEE_COUNT#,
+			       corp_type                 = #CORP_TYPE#,
+			       business_licence_code     = #BUSINESS_LICENCE_CODE#,
+			       business_time_limit       = #BUSINESS_TIME_LIMIT#,
+			       tax_registration_number   = #TAX_REGISTRATION_NUMBER#,
+			       incorporating_date        =  cast(#INCORPORATING_DATE# as datetime),
+			       registered_capital        = #REGISTERED_CAPITAL#,
+			       registered_office_address = #REGISTERED_OFFICE_ADDRESS#,
+			       managing_scope            = #MANAGING_SCOPE#,
+			       telephone                 = #TELEPHONE#,
+			       fax                       = #FAX#,
+			       url                       = #URL#,
+			       memo                      = #MEMO#,
+			       postcode                  = #POSTCODE#,
+			       legal_person              = #LEGAL_PERSON#,
+			       legal_id_card             = #LEGAL_ID_CARD#,
+			       legal_telephone           = #LEGAL_TELEPHONE#,
+			       legal_home_address        = #LEGAL_HOME_ADDRESS#,
+			       legal_postcode            = #LEGAL_POSTCODE#,
+			       legal_mobile_number       = #LEGAL_MOBILE_NUMBER#,
+			       modify_time               = getdate(),
+			       open_account_bank         = #OPEN_ACCOUNT_BANK#,
+			       bank_account              = #BANK_ACCOUNT#,
+			       status                    = 0,
+			       modify_id                 = #s_employeeId#,
+			       legelr                    = #type#,
+			       parent_id                 = #FU#,
+			       alias					 =#ALIAS#,
+			       COMMUNICATION_ADDRESS     =#COMMUNICATION_ADDRESS#,
+			       [ORDER]					 =#ORDER#
+			 where decp_id = #DECP_ID#		
+		]]>
+	</update>
+	
+	<!-- wjw 2010-07-14 查询所有公司 select -->
+	<statement id="queryCompanyAlias" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T.DECP_ID,T.DECP_NAME_CN, T.ALIAS FROM T_DEPT_COMPANY T WHERE T.STATUS=0 ORDER BY T.DECP_NAME_CN
+	]]>
+	</statement>
+	<!-- wjw 2010-07-14 根据资信id 查询公司的简称 -->
+	<statement id="readCompanyAliasByPrcdId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T2.DECP_ID, T2.DECP_NAME_CN, T2.ALIAS
+		  FROM T_PRJT_CREDIT T1
+		  LEFT JOIN T_DEPT_COMPANY T2 ON T2.DECP_ID = T1.DECP_ID
+		 WHERE T1.ID = #PRCD_ID# AND T2.STATUS=0
+	]]>
+	</statement>
+	<!-- wjw 2010-07-19 根据员工id 查询公司的简称 -->
+	<statement id="readCompanyAliasByUserId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T3.DECP_NAME_CN, T3.ALIAS
+	       FROM T_USER_USER T1
+	       LEFT JOIN T_DEPT_DEPARTMENT T2 ON T2.ID = T1.DEPT_ID
+	       LEFT JOIN T_DEPT_COMPANY T3 ON T3.DECP_ID = T2.DECP_ID
+	      WHERE T1.ID = #s_employeeId#
+	]]>
+	</statement>
+	<!-- wjw 2010-07-21 read company info by rect_id -->
+	<statement id="readCompanyAliasByRectId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T2.DECP_NAME_CN,
+		       T2.REGISTERED_OFFICE_ADDRESS,
+		       T2.ALIAS,
+		       T2.LEGAL_PERSON,
+		       T2.TELEPHONE,
+		       T2.FAX,
+		       T2.OPEN_ACCOUNT_BANK,
+		       T2.BANK_ACCOUNT,
+		       T2.BUSINESS_LICENCE_CODE,
+		       T2.POSTCODE,
+		       T2.LEGAL_ID_CARD,
+		       T2.LEGAL_HOME_ADDRESS,
+		       T2.INCORPORATING_DATE
+		  FROM T_RENT_CONTRACT T1
+		  LEFT JOIN T_DEPT_COMPANY T2 ON T2.DECP_ID = T1.DECP_ID
+		 WHERE T1.RECT_ID = #RECT_ID# AND T2.STATUS=0
+	]]>
+	</statement>
+	<statement id="readCompanyAliasByDecpId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T1.DECP_ID,T1.DECP_NAME_CN, T1.ALIAS
+		  FROM T_DEPT_COMPANY T1
+		 WHERE T1.DECP_ID = #DECP_ID# AND T1.STATUS=0
+	]]>
+	</statement>
+	
+</sqlMap>

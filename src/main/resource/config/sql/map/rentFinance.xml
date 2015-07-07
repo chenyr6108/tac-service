@@ -1,0 +1,3267 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="rentFinance">
+	<!-- 保存来款上传excel中的数据 -->
+	<insert id="saveIncomeMoney">
+		INSERT INTO T_RENT_INCOME 
+			  (INCOME_DATE
+			  ,INCOME_MONEY
+			  ,INCOME_NAME
+			  ,INCOME_NAME_TRUE
+			  ,INCOME_ACCOUNT
+			  ,VIRTUAL_ACCOUNT
+			  ,RECEIPT_NAME
+			  ,RECEIPT_ACCOUNT
+			  ,DEAL_WAY
+			  ,REMARK
+			  ,STATUS
+			  ,UPLOAD_ID
+			  ,UPLOAD_TIME
+			  ,UPLOAD_FILE_NAME
+			  ,FIIN_ID
+			  ,ID) 
+	    VALUES (#opposing_date#
+	    	   ,#income_money#
+	    	   ,#opposing_unit#
+	    	   ,#opposing_unit_true#
+	    	   ,#opposing_bankno#
+	    	   ,#opposing_xuli#
+	    	   ,#receipt_unit#
+	    	   ,#receipt_bankno#
+	    	   ,#opposing_type#
+	    	   ,#opposing_memo#
+	    	   ,0
+	    	   ,#s_employeeId#
+	    	   ,GETDATE()
+	    	   ,#upload_file_name#
+	    	   ,#fiin_id#
+	    	   ,#ID#)
+	</insert>
+	
+	<select id="getIncomeInfoByIncomeId" resultClass="java.util.HashMap">
+		SELECT CONVERT(DATE,T1.INCOME_DATE) INCOME_DATE,(T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0)) INCOME_MONEY,T1.INCOME_NAME,T1.INCOME_ID,
+		       T1.INCOME_ACCOUNT,(SELECT TT.CUST_NAME
+	                                		   FROM T_CUST_CUSTOMER TT 
+		                              	      WHERE CONVERT(DATETIME,TT.CREATE_TIME)=(SELECT CONVERT(DATETIME,MAX(T.CREATE_TIME))
+		                                                    												    FROM T_CUST_CUSTOMER T 
+		                                                    											       WHERE T.STATUS=0 
+		                                                    											         AND T.CUST_NAME=TT.CUST_NAME 
+		                                                    									            GROUP BY T.CUST_NAME)
+		                                		    AND TT.STATUS=0
+		                                		    AND TT.CUST_CODE=#cust_code#) INCOME_NAME_TRUE
+		  FROM T_RENT_INCOME T1
+	 LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+	              FROM T_RENT_RECORD T2 
+	             WHERE T2.STATUS=0
+	               AND T2.RECORD_MONEY&lt;0 <!--金流小于0 代表非冲红,  如果是小于0类型的,待确认和已确认状态都应该从来款表中扣除此金额-->
+	               AND (T2.RECORD_STATUS=0 OR T2.RECORD_STATUS=1)  <!--0:待确认,1:已确认,2:驳回-->
+	          GROUP BY T2.INCOME_ID) O1 ON T1.INCOME_ID=O1.INCOME_ID
+     LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+                  FROM T_RENT_RECORD T2 
+                 WHERE T2.STATUS=0
+                   AND T2.RECORD_MONEY>0 <!--金流大于0 代表冲红,  如果是大于0类型的,只有已确认状态才能在来款表中加上此金额-->
+                   AND T2.RECORD_STATUS=1  <!--0:待确认,1:已确认,2:驳回-->
+              GROUP BY T2.INCOME_ID) O2 ON T1.INCOME_ID=O2.INCOME_ID
+		 WHERE T1.STATUS=0
+		   AND T1.INCOME_ID=#income_id# 
+	</select>
+	<!-- 通过客户名称拿到虚拟帐号,由于业务员建客户重复,数据问题同一个有效客户在数据库中有2条 -->
+	<select id="getVirtualCodeByCustName" resultClass="java.util.HashMap">
+		SELECT T1.CUST_NAME,T1.VIRTUAL_CODE
+		  FROM T_CUST_CUSTOMER T1 
+	     WHERE CONVERT(DATETIME,T1.CREATE_TIME)=(SELECT CONVERT(DATETIME,MAX(T.CREATE_TIME))<!-- 拿最新的有效客户 -->
+												   FROM T_CUST_CUSTOMER T 
+											      WHERE T.STATUS=0 
+											        AND T.CUST_NAME=T1.CUST_NAME 
+									           GROUP BY T.CUST_NAME)
+		   AND T1.STATUS=0
+		   AND T1.CUST_NAME=#content#
+	</select>
+	
+	<!-- 通过客户名称查看是否有支付表 -->
+	<select id="checkCustNameHasPayList" resultClass="java.lang.String">
+		SELECT DISTINCT T1.CUST_CODE
+		  FROM T_CUST_CUSTOMER T1
+     LEFT JOIN T_RENT_CONTRACT T2 ON T2.CUST_ID=T1.CUST_ID 
+	 LEFT JOIN T_RENT_COLLECTIONPLAN T3 ON T3.RECT_ID=T2.RECT_ID  
+	     WHERE CONVERT(DATETIME,T1.CREATE_TIME)=(SELECT CONVERT(DATETIME,MAX(T.CREATE_TIME))<!-- 拿最新的有效客户 -->
+												   FROM T_CUST_CUSTOMER T 
+											      WHERE T.STATUS=0 
+											        AND T.CUST_NAME=T1.CUST_NAME 
+									           GROUP BY T.CUST_NAME)
+		   AND T1.STATUS=0
+		   AND T2.STATUS=0
+		   AND T3.STATUS=0
+		   AND T1.CUST_NAME=#cust_name#
+		   AND NOT EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT T WHERE T.RECP_ID=T3.RECP_ID AND T.STATUS=0 AND (T.STATE=1 OR T.STATE=0))
+	</select>
+	
+	<select id="getCustCodeByVirtualCode" resultClass="java.lang.String"><!-- 通过虚拟帐号拿custCode -->
+		SELECT DISTINCT T1.CUST_CODE
+		  FROM T_CUST_CUSTOMER T1
+     LEFT JOIN T_RENT_CONTRACT T2 ON T2.CUST_ID=T1.CUST_ID 
+	 LEFT JOIN T_RENT_COLLECTIONPLAN T3 ON T3.RECT_ID=T2.RECT_ID  
+	     WHERE CONVERT(DATETIME,T1.CREATE_TIME)=(SELECT CONVERT(DATETIME,MAX(T.CREATE_TIME))<!-- 拿最新的有效客户 -->
+												   FROM T_CUST_CUSTOMER T 
+											      WHERE T.STATUS=0 
+											        AND T.CUST_NAME=T1.CUST_NAME 
+									           GROUP BY T.CUST_NAME)
+		   AND T1.STATUS=0
+		   AND T2.STATUS=0
+		   AND T3.STATUS=0
+		   AND T1.VIRTUAL_CODE=#virtualAccount#
+	</select>
+	
+	<select id="getCustCodeByIdCard" resultClass="java.lang.String"><!-- 通过身份证拿custCode -->
+		SELECT DISTINCT T1.CUST_CODE
+		  FROM T_CUST_CUSTOMER T1
+     LEFT JOIN T_RENT_CONTRACT T2 ON T2.CUST_ID=T1.CUST_ID 
+	 LEFT JOIN T_RENT_COLLECTIONPLAN T3 ON T3.RECT_ID=T2.RECT_ID  
+	     WHERE CONVERT(DATETIME,T1.CREATE_TIME)=(SELECT CONVERT(DATETIME,MAX(T.CREATE_TIME))<!-- 拿最新的有效客户 -->
+												   FROM T_CUST_CUSTOMER T 
+											      WHERE T.STATUS=0 
+											        AND T.CUST_NAME=T1.CUST_NAME 
+									           GROUP BY T.CUST_NAME)
+		   AND T1.STATUS=0
+		   AND T2.STATUS=0
+		   AND T3.STATUS=0
+		   AND T1.CUST_TYPE=0<!-- 自然人类型 -->
+		   AND T1.NATU_IDCARD=#id#
+	</select>
+	
+	<select id="getCustCodeByIncomeName" resultClass="java.lang.String"><!-- 通过来款户名拿custCode,可能返回很多 -->
+		SELECT DISTINCT T1.CUST_CODE
+		  FROM T_CUST_CUSTOMER T1
+     LEFT JOIN T_RENT_CONTRACT T2 ON T2.CUST_ID=T1.CUST_ID 
+	 LEFT JOIN T_RENT_COLLECTIONPLAN T3 ON T3.RECT_ID=T2.RECT_ID  
+	     WHERE T1.STATUS=0
+		   AND T2.STATUS=0
+		   AND T3.STATUS=0
+		   AND T1.CUST_NAME=#incomeName#
+	</select>
+	
+	<!-- 通过虚拟帐号获得客户名称 -->
+	<select id="getCustNameByVirtualCode" resultClass="java.lang.String">
+		SELECT DISTINCT CUST_NAME 
+		  FROM T_CUST_CUSTOMER 
+	     WHERE VIRTUAL_CODE=#opposing_xuli#
+	       AND STATUS=0
+	</select>
+	
+	<!-- 租金分解中未分解tab的SQL -->
+	<select id="getUnDecomposeMoney" resultClass="java.util.HashMap">
+            SELECT T1.INCOME_ID INCOME_ID,CONVERT(DATE,T1.INCOME_DATE) INCOME_DATE,T1.INCOME_NAME INCOME_NAME,T1.INCOME_NAME_TRUE INCOME_NAME_TRUE,
+            	   T1.INCOME_ACCOUNT INCOME_ACCOUNT,T1.VIRTUAL_ACCOUNT VIRTUAL_ACCOUNT,T1.RECEIPT_NAME RECEIPT_NAME,TUU.NAME UPLOAD_NAME,
+            	   T1.RECEIPT_ACCOUNT RECEIPT_ACCOUNT,T1.DEAL_WAY DEAL_WAY,T1.REMARK REMARK,T1.UPLOAD_TIME UPLOAD_TIME,T1.ID,
+                   (T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0)) INCOME_MONEY,ISNULL([FILE].COUNT,0) FILE_COUNT
+              FROM T_RENT_INCOME T1 <!--来款表与金流表计算出来的金额,是可以处理的金额,所以有以下2块逻辑(O1,O2)-->
+         LEFT JOIN (SELECT COUNT(ID) [COUNT],INCOME_ID 
+			          FROM T_RENT_RECEIPT_FILE 
+			         WHERE STATUS=0 GROUP BY INCOME_ID) [FILE] ON [FILE].INCOME_ID=T1.INCOME_ID
+         LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+                      FROM T_RENT_RECORD T2 
+                     WHERE T2.STATUS=0
+                       AND T2.RECORD_MONEY&lt;0 <!--金流小于0 代表非冲红,  如果是小于0类型的,待确认和已确认状态都应该从来款表中扣除此金额-->
+                       AND (T2.RECORD_STATUS=0 OR T2.RECORD_STATUS=1)  <!--0:待确认,1:已确认,2:驳回-->
+                  GROUP BY T2.INCOME_ID) O1 ON T1.INCOME_ID=O1.INCOME_ID
+         LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+                      FROM T_RENT_RECORD T2 
+                     WHERE T2.STATUS=0
+                       AND T2.RECORD_MONEY>0 <!--金流大于0 代表冲红,  如果是大于0类型的,只有已确认状态才能在来款表中加上此金额-->
+                       AND T2.RECORD_STATUS=1  <!--0:待确认,1:已确认,2:驳回-->
+                  GROUP BY T2.INCOME_ID) O2 ON T1.INCOME_ID=O2.INCOME_ID
+         LEFT JOIN T_USER_USER TUU ON TUU.ID=T1.UPLOAD_ID
+             WHERE T1.STATUS=0
+               AND (T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))>0
+        <isNotEmpty property="companyName">
+         	   AND T1.RECEIPT_NAME like '%$companyName$%'
+         </isNotEmpty>
+         
+         <isNotEmpty property="content">
+         	   AND (T1.INCOME_NAME LIKE '%$content$%' OR 
+         	   		T1.INCOME_NAME_TRUE LIKE '%$content$%' OR 
+         	   		T1.VIRTUAL_ACCOUNT LIKE '%$content$%' OR
+         	   		T1.RECEIPT_ACCOUNT LIKE '%$content$%')
+         </isNotEmpty>
+         <isNotEmpty property="fromDate">
+         	   AND DATEDIFF(DAY,T1.INCOME_DATE,#fromDate#)&lt;=0
+         </isNotEmpty>
+         <isNotEmpty property="toDate">
+         	   AND DATEDIFF(DAY,T1.INCOME_DATE,#toDate#)>=0
+         </isNotEmpty>
+         <isNotEmpty property="fromMoney">
+         	   AND (T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))>=#fromMoney#
+         </isNotEmpty>
+         <isNotEmpty property="toMoney">
+         	   AND (T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))&lt;=#toMoney#
+         </isNotEmpty>
+         <isEqual property="autoDecompose" compareValue="Y">
+         	   AND CONVERT(DATE,T1.UPLOAD_TIME)=CONVERT(DATE,GETDATE())
+         </isEqual>
+         <isEqual property="hasFile" compareValue="1">
+         	   AND ISNULL([FILE].COUNT,0)>0
+         </isEqual>
+         <isEqual  property="hasFile" compareValue="-1">
+         	   AND ISNULL([FILE].COUNT,0)=0
+         </isEqual>
+	</select>
+	<!-- 租金分解中分解中tab的SQL -->
+	<select id="getOnDecomposeMoney" resultClass="java.util.HashMap">
+        SELECT O.INCOME_MONEY,TRIE.INCOME_DATE,TRIE.INCOME_NAME,TRIE.DEAL_WAY,TUU.NAME,O.INCOME_ID,O.PERIOD_NUM,
+               TRIE.INCOME_ACCOUNT,TRIE.VIRTUAL_ACCOUNT,TRIE.REMARK,O.RECP_ID,TRIE.RECEIPT_ACCOUNT,O.DECOMPOSE_TYPE,
+               CUST.CUST_NAME
+          FROM (SELECT SUM(CASE WHEN TRDE.DECOMPOSE_TYPE=0 THEN -TRDE.DECOMPOSE_PRICE ELSE TRDE.DECOMPOSE_PRICE END) INCOME_MONEY,TRDE.DECOMPOSE_ID,
+                      TRDE.RECP_ID,TRDE.PERIOD_NUM,TRDE.INCOME_ID,TRDE.DECOMPOSE_TYPE      
+                 FROM T_RENT_DECOMPOSE TRDE   
+                WHERE TRDE.DECOMPOSE_STATUS=0
+             GROUP BY TRDE.RECP_ID,TRDE.PERIOD_NUM,TRDE.INCOME_ID,TRDE.DECOMPOSE_ID,TRDE.DECOMPOSE_TYPE) O
+     LEFT JOIN T_RENT_INCOME TRIE ON TRIE.STATUS=0 AND TRIE.INCOME_ID=O.INCOME_ID
+     LEFT JOIN T_USER_USER TUU ON TUU.ID=O.DECOMPOSE_ID
+     LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.STATUS=0 AND TRCN.RECP_ID=O.RECP_ID
+     LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TRC.RECT_ID=TRCN.RECT_ID
+     LEFT JOIN (SELECT TT.CUST_NAME,TT.CUST_ID
+         		  FROM T_CUST_CUSTOMER TT                  
+         	     WHERE TT.STATUS=0
+                   AND CONVERT(DATETIME,TT.CREATE_TIME)=(SELECT CONVERT(DATETIME,MAX(T.CREATE_TIME))
+        												   FROM T_CUST_CUSTOMER T 
+      											          WHERE T.STATUS=0 
+      											            AND T.CUST_NAME=TT.CUST_NAME 
+  									               	   GROUP BY T.CUST_NAME)) CUST ON CUST.CUST_ID=TRC.CUST_ID
+         WHERE 1=1
+         <isNotEmpty property="content">
+         	   AND (TRIE.INCOME_NAME LIKE '%$content$%' OR 
+         	   		TRIE.VIRTUAL_ACCOUNT LIKE '%$content$%' OR
+         	   		TRIE.RECEIPT_ACCOUNT LIKE '%$content$%' OR
+         	   		TUU.NAME LIKE '%$content$%' OR
+         	   		CUST.CUST_NAME '%$content$%')
+         </isNotEmpty>
+         <isNotEmpty property="fromDate">
+         	   AND DATEDIFF(DAY,TRIE.INCOME_DATE,#fromDate#)&lt;=0
+         </isNotEmpty>
+         <isNotEmpty property="toDate">
+         	   AND DATEDIFF(DAY,TRIE.INCOME_DATE,#toDate#)>=0
+         </isNotEmpty>
+         <isNotEmpty property="fromMoney">
+         	   AND O.INCOME_MONEY>=#fromMoney#
+         </isNotEmpty>
+         <isNotEmpty property="toMoney">
+         	   AND O.INCOME_MONEY&lt;=#toMoney#
+         </isNotEmpty>
+	</select>
+	
+	<!-- 租金分解中提交财务tab的SQL -->
+	<select id="getCommitDecomposeMoney" resultClass="java.util.HashMap">
+        SELECT O.INCOME_MONEY,TRIE.INCOME_DATE,TRIE.INCOME_NAME,TRIE.DEAL_WAY,TUU.NAME,O.INCOME_ID,O.PERIOD_NUM,O.IS_SETTLEMENT_DECOMPOSE,
+               TRIE.INCOME_ACCOUNT,TRIE.VIRTUAL_ACCOUNT,TRIE.REMARK,O.RECP_ID,TRIE.RECEIPT_ACCOUNT,O.DECOMPOSE_TYPE,
+               CUST.CUST_NAME
+          FROM (SELECT SUM(CASE WHEN TRDE.DECOMPOSE_TYPE=0 THEN -TRDE.DECOMPOSE_PRICE ELSE TRDE.DECOMPOSE_PRICE END) INCOME_MONEY,TRDE.DECOMPOSE_ID,
+                      TRDE.RECP_ID,TRDE.PERIOD_NUM,TRDE.INCOME_ID,TRDE.DECOMPOSE_TYPE,TRDE.IS_SETTLEMENT_DECOMPOSE
+                 FROM T_RENT_DECOMPOSE TRDE   
+                WHERE TRDE.DECOMPOSE_STATUS=1
+                  AND TRDE.BILL_CODE!='CLAIM'<!-- 分解确认中不出现暂收款类型 -->
+                  AND TRDE.BILL_CODE!='REFUND'
+             GROUP BY TRDE.RECP_ID,TRDE.PERIOD_NUM,TRDE.INCOME_ID,TRDE.DECOMPOSE_ID,TRDE.DECOMPOSE_TYPE,TRDE.IS_SETTLEMENT_DECOMPOSE) O
+     LEFT JOIN T_RENT_INCOME TRIE ON TRIE.STATUS=0 AND TRIE.INCOME_ID=O.INCOME_ID
+     LEFT JOIN T_USER_USER TUU ON TUU.ID=O.DECOMPOSE_ID
+     LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.STATUS=0 AND TRCN.RECP_ID=O.RECP_ID
+     LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TRC.RECT_ID=TRCN.RECT_ID
+     LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TRC.PRCD_ID=TPC.ID
+     LEFT JOIN (SELECT TT.CUST_NAME,TT.CUST_ID
+         		  FROM T_CUST_CUSTOMER TT                  
+         	     WHERE TT.STATUS=0
+                   AND CONVERT(DATETIME,TT.CREATE_TIME)=(SELECT CONVERT(DATETIME,MAX(T.CREATE_TIME))
+        												   FROM T_CUST_CUSTOMER T 
+      											          WHERE T.STATUS=0 
+      											            AND T.CUST_NAME=TT.CUST_NAME 
+  									               	   GROUP BY T.CUST_NAME)) CUST ON CUST.CUST_ID=TRC.CUST_ID
+         WHERE 1=1
+         <isNotEmpty property="content">
+         	   AND (TRIE.INCOME_NAME LIKE '%$content$%' OR 
+         	   		TRIE.VIRTUAL_ACCOUNT LIKE '%$content$%' OR
+         	   		TRIE.RECEIPT_ACCOUNT LIKE '%$content$%' OR
+         	   		TUU.NAME LIKE '%$content$%' OR
+       	   		    CUST.CUST_NAME LIKE '%$content$%')
+         </isNotEmpty>
+         <isNotEmpty property="fromDate">
+               AND DATEDIFF(DAY,TRIE.INCOME_DATE,#fromDate#)&lt;=0
+         </isNotEmpty>
+         <isNotEmpty property="toDate">
+               AND DATEDIFF(DAY,TRIE.INCOME_DATE,#toDate#)>=0
+         </isNotEmpty>
+         <isNotEmpty property="fromMoney">
+         	   AND O.INCOME_MONEY>=#fromMoney#
+         </isNotEmpty>
+         <isNotEmpty property="toMoney">
+         	   AND O.INCOME_MONEY&lt;=#toMoney#
+         </isNotEmpty>
+         <isEqual property="type" compareValue="1"><!-- 自动分解功能插入的ID是184 系统ID -->
+         	   AND TUU.ID!=184
+         	   AND O.DECOMPOSE_TYPE=0
+         </isEqual>
+         <isEqual property="type" compareValue="2">
+         	   AND TUU.ID=184
+         	   AND O.DECOMPOSE_TYPE=0
+         </isEqual>
+         <isEqual property="type" compareValue="3">
+         	   AND O.DECOMPOSE_TYPE=1
+         </isEqual>
+         <isNotEqual property="from" compareValue="-1">
+         	   AND ISNULL(O.IS_SETTLEMENT_DECOMPOSE,0)=#from#
+         </isNotEqual>
+         <isNotEmpty property="companyCode">
+         	   AND (TPC.COMPANY_CODE=#companyCode# 
+         	   		<isEqual property="companyCode" compareValue="1">OR TRIE.UPLOAD_ID!=398</isEqual>
+         	   		
+         	   		<isEqual property="companyCode" compareValue="2">OR TRIE.UPLOAD_ID=398</isEqual>
+         	   	    )
+         </isNotEmpty>
+	</select>
+	
+	<!-- 租金分解中财务确认tab的SQL -->
+	<select id="getConfirmDecomposeMoney" resultClass="java.util.HashMap">
+        SELECT O.INCOME_MONEY,TRIE.INCOME_DATE,TRIE.INCOME_NAME,TRIE.DEAL_WAY,TUU.NAME,O.INCOME_ID,O.PERIOD_NUM,ISNULL(O.IS_SETTLEMENT_DECOMPOSE,0) IS_SETTLEMENT_DECOMPOSE,
+               TRIE.INCOME_ACCOUNT,TRIE.VIRTUAL_ACCOUNT,TRIE.REMARK,O.RECP_ID,TRIE.RECEIPT_ACCOUNT,O.DECOMPOSE_TYPE,OO.CUST_NAME,ISNULL([FILE].COUNT,0) FILE_COUNT
+          FROM (SELECT SUM(CASE WHEN TRDE.DECOMPOSE_TYPE=0 THEN -TRDE.DECOMPOSE_PRICE ELSE TRDE.DECOMPOSE_PRICE END) INCOME_MONEY,TRDE.DECOMPOSE_ID,
+                      TRDE.RECP_ID,TRDE.PERIOD_NUM,TRDE.INCOME_ID,TRDE.DECOMPOSE_TYPE,TRDE.IS_SETTLEMENT_DECOMPOSE
+                 FROM T_RENT_DECOMPOSE TRDE   
+                WHERE TRDE.DECOMPOSE_STATUS=2
+             GROUP BY TRDE.RECP_ID,TRDE.PERIOD_NUM,TRDE.INCOME_ID,TRDE.DECOMPOSE_ID,TRDE.DECOMPOSE_TYPE,TRDE.IS_SETTLEMENT_DECOMPOSE) O
+     LEFT JOIN T_RENT_INCOME TRIE ON TRIE.STATUS=0 AND TRIE.INCOME_ID=O.INCOME_ID
+     LEFT JOIN (SELECT COUNT(ID) [COUNT],INCOME_ID 
+			          FROM T_RENT_RECEIPT_FILE 
+			         WHERE STATUS=0 GROUP BY INCOME_ID) [FILE] ON [FILE].INCOME_ID=O.INCOME_ID
+     LEFT JOIN T_USER_USER TUU ON TUU.ID=O.DECOMPOSE_ID
+     LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TRC.STATUS=0 AND O.RECP_ID=TRC.RECP_ID
+     LEFT JOIN T_RENT_CONTRACT TR ON TR.STATUS=0 AND TRC.RECT_ID=TR.RECT_ID
+     LEFT JOIN T_PRJT_CREDIT TPC ON TR.PRCD_ID=TPC.ID AND TPC.STATUS=0
+     LEFT JOIN (SELECT TT.CUST_NAME,TT.CUST_ID
+       		      FROM T_CUST_CUSTOMER TT 
+     	         WHERE CONVERT(DATETIME,TT.CREATE_TIME)=(SELECT CONVERT(DATETIME,MAX(T.CREATE_TIME))
+        												   FROM T_CUST_CUSTOMER T 
+      											          WHERE T.STATUS=0 
+      											            AND T.CUST_NAME=TT.CUST_NAME 
+							                   		   GROUP BY T.CUST_NAME)
+          		   AND TT.STATUS=0) OO ON OO.CUST_ID=TR.CUST_ID
+         WHERE 1=1
+         <isNotEmpty property="content">
+         	   AND (TRIE.INCOME_NAME LIKE '%$content$%' OR 
+         	   		TRIE.VIRTUAL_ACCOUNT LIKE '%$content$%' OR
+         	   		TRIE.RECEIPT_ACCOUNT LIKE '%$content$%' OR
+         	   		TUU.NAME LIKE '%$content$%' OR
+         	   		OO.CUST_NAME LIKE '%$content$%')
+         </isNotEmpty>
+         <isNotEmpty property="fromDate">
+               AND DATEDIFF(DAY,TRIE.INCOME_DATE,#fromDate#)&lt;=0
+         </isNotEmpty>
+         <isNotEmpty property="toDate">
+               AND DATEDIFF(DAY,TRIE.INCOME_DATE,#toDate#)>=0
+         </isNotEmpty>
+         <isNotEmpty property="fromMoney">
+         	   AND O.INCOME_MONEY>=#fromMoney#
+         </isNotEmpty>
+         <isNotEmpty property="toMoney">
+         	   AND O.INCOME_MONEY&lt;=#toMoney#
+         </isNotEmpty>
+         <isEqual property="type" compareValue="1"><!-- 自动分解功能插入的ID是184 系统ID -->
+         	   AND TUU.ID!=184
+         	   AND O.DECOMPOSE_TYPE=0
+         </isEqual>
+         <isEqual property="type" compareValue="2">
+         	   AND TUU.ID=184
+         	   AND O.DECOMPOSE_TYPE=0
+         </isEqual>
+         <isEqual property="type" compareValue="3">
+         	   AND O.DECOMPOSE_TYPE=1
+         </isEqual>
+         <isNotEqual property="from" compareValue="-1">
+         	   AND ISNULL(O.IS_SETTLEMENT_DECOMPOSE,0)=#from#
+         </isNotEqual>
+         <isNotEmpty property="companyCode">
+         	   AND (TPC.COMPANY_CODE=#companyCode# 
+         	   		<isEqual property="companyCode" compareValue="1">OR TRIE.UPLOAD_ID!=398</isEqual>
+         	   		
+         	   		<isEqual property="companyCode" compareValue="2">OR TRIE.UPLOAD_ID=398</isEqual>
+         	   	    )
+         </isNotEmpty>
+	</select>
+	
+	<!-- 租金分解中财务驳回tab的SQL -->
+	<select id="getRejectDecomposeMoney" resultClass="java.util.HashMap">
+        SELECT O.INCOME_MONEY,TRIE.INCOME_DATE,TRIE.INCOME_NAME,TRIE.DEAL_WAY,TUU.NAME,O.INCOME_ID,O.PERIOD_NUM,O.IS_SETTLEMENT_DECOMPOSE,
+               TRIE.INCOME_ACCOUNT,TRIE.VIRTUAL_ACCOUNT,TRIE.REMARK,O.RECP_ID,TRIE.RECEIPT_ACCOUNT,O.DECOMPOSE_TYPE,
+               CUST.CUST_NAME
+          FROM (SELECT SUM(CASE WHEN TRDE.DECOMPOSE_TYPE=0 THEN -TRDE.DECOMPOSE_PRICE ELSE TRDE.DECOMPOSE_PRICE END) INCOME_MONEY,TRDE.DECOMPOSE_ID,
+                      TRDE.RECP_ID,TRDE.PERIOD_NUM,TRDE.INCOME_ID,TRDE.DECOMPOSE_TYPE,TRDE.IS_SETTLEMENT_DECOMPOSE
+                 FROM T_RENT_DECOMPOSE TRDE   
+                WHERE TRDE.DECOMPOSE_STATUS=-1
+             GROUP BY TRDE.RECP_ID,TRDE.PERIOD_NUM,TRDE.INCOME_ID,TRDE.DECOMPOSE_ID,TRDE.DECOMPOSE_TYPE,TRDE.IS_SETTLEMENT_DECOMPOSE) O
+     LEFT JOIN T_RENT_INCOME TRIE ON TRIE.STATUS=0 AND TRIE.INCOME_ID=O.INCOME_ID
+     LEFT JOIN T_USER_USER TUU ON TUU.ID=O.DECOMPOSE_ID
+     LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.STATUS=0 AND TRCN.RECP_ID=O.RECP_ID
+     LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TRC.RECT_ID=TRCN.RECT_ID
+     LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TRC.PRCD_ID=TPC.ID
+     LEFT JOIN (SELECT TT.CUST_NAME,TT.CUST_ID
+         		  FROM T_CUST_CUSTOMER TT                  
+         	     WHERE TT.STATUS=0
+                   AND CONVERT(DATETIME,TT.CREATE_TIME)=(SELECT CONVERT(DATETIME,MAX(T.CREATE_TIME))
+        												   FROM T_CUST_CUSTOMER T 
+      											          WHERE T.STATUS=0 
+      											            AND T.CUST_NAME=TT.CUST_NAME 
+  									               	   GROUP BY T.CUST_NAME)) CUST ON CUST.CUST_ID=TRC.CUST_ID
+         WHERE 1=1
+         <isNotEmpty property="content">
+         	   AND (TRIE.INCOME_NAME LIKE '%$content$%' OR 
+         	   		TRIE.VIRTUAL_ACCOUNT LIKE '%$content$%' OR
+         	   		TRIE.RECEIPT_ACCOUNT LIKE '%$content$%' OR
+         	   		TUU.NAME LIKE '%$content$%' OR
+       	   		    CUST.CUST_NAME LIKE '%$content$%')
+         </isNotEmpty>
+         <isNotEmpty property="fromDate">
+               AND DATEDIFF(DAY,TRIE.INCOME_DATE,#fromDate#)&lt;=0
+         </isNotEmpty>
+         <isNotEmpty property="toDate">
+               AND DATEDIFF(DAY,TRIE.INCOME_DATE,#toDate#)>=0
+         </isNotEmpty>
+         <isNotEmpty property="fromMoney">
+         	   AND O.INCOME_MONEY>=#fromMoney#
+         </isNotEmpty>
+         <isNotEmpty property="toMoney">
+         	   AND O.INCOME_MONEY&lt;=#toMoney#
+         </isNotEmpty>
+         <isEqual property="type" compareValue="1">
+         	   AND TUU.ID!=184
+         	   AND O.DECOMPOSE_TYPE=0
+         </isEqual>
+         <isEqual property="type" compareValue="2">
+         	   AND TUU.ID=184
+         	   AND O.DECOMPOSE_TYPE=0
+         </isEqual>
+         <isEqual property="type" compareValue="3">
+         	   AND O.DECOMPOSE_TYPE=1
+         </isEqual>
+         <isNotEqual property="from" compareValue="-1">
+         	   AND ISNULL(O.IS_SETTLEMENT_DECOMPOSE,0)=#from#
+         </isNotEqual>
+         <isNotEmpty property="companyCode">
+         	   AND (TPC.COMPANY_CODE=#companyCode# 
+         	   		<isEqual property="companyCode" compareValue="1">OR TRIE.UPLOAD_ID!=398</isEqual>
+         	   		
+         	   		<isEqual property="companyCode" compareValue="2">OR TRIE.UPLOAD_ID=398</isEqual>
+         	   	    )
+         </isNotEmpty>
+	</select>
+	
+	<!-- *********************************************************展开租金分解列表start -->
+	<!-- 租金部分 -->
+	<select id="getLeasePriceByCustCode" resultClass="java.util.HashMap">
+	      SELECT TRCL.RECD_ID,TRC.RECT_ID,TRCN.RECP_ID,TRC.LEASE_CODE,CONVERT(DATE,TRCL.PAY_DATE) PAY_DATE,TRCN.RECP_CODE,
+	             '第'+CONVERT(VARCHAR,TRCL.PERIOD_NUM)+'期租金' DESCR,TRCL.PERIOD_NUM,
+	             TRCN.TAX_PLAN_CODE,
+	             (TRCL.IRR_MONTH_PRICE+ISNULL(TRCL.VALUE_ADDED_TAX,0))<!--遍历租金余额 -->
+	             +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--分解部分,提交财务或者财务确认状态就扣除 -->
+	                        FROM T_RENT_DECOMPOSE TRDE 
+	                       WHERE TRDE.STATUS=0
+	                         AND TRDE.RECP_ID=TRCN.RECP_ID
+	                         AND TRDE.PERIOD_NUM=TRCL.PERIOD_NUM
+	                         AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+	                         AND TRDE.DECOMPOSE_TYPE=0),0)
+	             +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--冲红部分,财务确认状态才能加上 -->
+	                        FROM T_RENT_DECOMPOSE TRDE 
+	                       WHERE TRDE.STATUS=0
+	                         AND TRDE.RECP_ID=TRCN.RECP_ID
+	                         AND TRDE.PERIOD_NUM=TRCL.PERIOD_NUM
+	                         AND TRDE.DECOMPOSE_STATUS=2
+	                         AND TRDE.DECOMPOSE_TYPE=1),0) SHOULD_PRICE,(TRCL.IRR_MONTH_PRICE+ISNULL(TRCL.VALUE_ADDED_TAX,0)) MONTH_PRICE,
+	             'RENT' FICB_CODE, <!-- 从数据字典得到中文描述 -->
+          ISNULL((SELECT DISTINCT 'Y' 
+                    FROM T_RENT_DECOMPOSE T 
+	               WHERE T.STATUS=0 
+	                 AND T.RECP_ID=TRCN.RECP_ID 
+	                 AND T.PERIOD_NUM=TRCL.PERIOD_NUM
+	                 AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK <!-- 确定此期租金是否有在财务确认或者提交中,如果有暂时锁定 -->
+	        FROM T_RENT_CONTRACT TRC
+	   LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.RECT_ID=TRC.RECT_ID AND TRCN.STATUS=0
+	   LEFT JOIN T_RENT_COLLECTIONDETAIL TRCL ON TRCL.RECP_ID=TRCN.RECP_ID AND TRCL.STATUS=0
+	       WHERE TRC.STATUS=0
+	         AND TRCN.RECP_STATUS=0
+	         AND TRC.CUST_CODE=#cust_code#
+	         AND TRCL.RECD_ID IS NOT NULL
+	         AND (TRCL.IRR_MONTH_PRICE+ISNULL(TRCL.VALUE_ADDED_TAX,0)-ISNULL(TRCL.REDUCE_OWN_PRICE,0))>0
+	         <!-- 如果此合同在结清流程中则不显示在分解列表中 -->
+	         AND NOT EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT TRSE WHERE TRSE.STATUS=0 AND TRSE.RECP_ID=TRCN.RECP_ID AND (TRSE.STATE=0 OR TRSE.STATE='' OR TRSE.STATE IS NULL))
+	    ORDER BY CONVERT(DATE,TRCL.PAY_DATE)
+	</select>
+	
+	<select id="getAllLeasePriceByCustCode" resultClass="java.util.HashMap">
+		  SELECT TRCL.RECD_ID,TRC.RECT_ID,TRCN.RECP_ID,TRC.LEASE_CODE,CONVERT(DATE,TRCL.PAY_DATE) PAY_DATE,TRCN.RECP_CODE,
+	             '第'+CONVERT(VARCHAR,TRCL.PERIOD_NUM)+'期租金' DESCR,TRCL.PERIOD_NUM,
+	             TRCN.TAX_PLAN_CODE,
+	             (TRCL.IRR_MONTH_PRICE+ISNULL(TRCL.VALUE_ADDED_TAX,0))<!--遍历租金余额 -->
+	             +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--分解部分,提交财务或者财务确认状态就扣除 -->
+	                        FROM T_RENT_DECOMPOSE TRDE 
+	                       WHERE TRDE.STATUS=0
+	                         AND TRDE.RECP_ID=TRCN.RECP_ID
+	                         AND TRDE.PERIOD_NUM=TRCL.PERIOD_NUM
+	                         AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+	                         AND TRDE.DECOMPOSE_TYPE=0),0)
+	             +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--冲红部分,财务确认状态才能加上 -->
+	                        FROM T_RENT_DECOMPOSE TRDE 
+	                       WHERE TRDE.STATUS=0
+	                         AND TRDE.RECP_ID=TRCN.RECP_ID
+	                         AND TRDE.PERIOD_NUM=TRCL.PERIOD_NUM
+	                         AND TRDE.DECOMPOSE_STATUS=2
+	                         AND TRDE.DECOMPOSE_TYPE=1),0) SHOULD_PRICE,(TRCL.IRR_MONTH_PRICE+ISNULL(TRCL.VALUE_ADDED_TAX,0)) MONTH_PRICE,
+	             'RENT' FICB_CODE <!-- 从数据字典得到中文描述 -->
+	        FROM T_RENT_CONTRACT TRC
+	   LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.RECT_ID=TRC.RECT_ID AND TRCN.STATUS=0
+	   LEFT JOIN T_RENT_COLLECTIONDETAIL TRCL ON TRCL.RECP_ID=TRCN.RECP_ID AND TRCL.STATUS=0
+	       WHERE TRC.STATUS=0
+	         AND TRCN.TAX_PLAN_CODE!='2'
+	         AND TRCN.RECP_STATUS=0
+	         AND TRC.CUST_CODE=#cust_code#
+	         AND TRCL.RECD_ID IS NOT NULL
+	         AND ((TRCL.IRR_MONTH_PRICE+ISNULL(TRCL.VALUE_ADDED_TAX,0))
+	             +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+	                        FROM T_RENT_DECOMPOSE TRDE 
+	                       WHERE TRDE.STATUS=0
+	                         AND TRDE.RECP_ID=TRCN.RECP_ID
+	                         AND TRDE.PERIOD_NUM=TRCL.PERIOD_NUM
+	                         AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+	                         AND TRDE.DECOMPOSE_TYPE=0),0)
+	             +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+	                        FROM T_RENT_DECOMPOSE TRDE 
+	                       WHERE TRDE.STATUS=0
+	                         AND TRDE.RECP_ID=TRCN.RECP_ID
+	                         AND TRDE.PERIOD_NUM=TRCL.PERIOD_NUM
+	                         AND TRDE.DECOMPOSE_STATUS=2
+	                         AND TRDE.DECOMPOSE_TYPE=1),0)>0)
+	    ORDER BY CONVERT(DATE,TRCL.PAY_DATE)
+	</select>
+	<select id="getTop1LeasePriceByCustCode" resultClass="java.util.HashMap">
+	      SELECT TOP 1 TRCL.RECD_ID,TRC.RECT_ID,TRCN.RECP_ID,TRC.LEASE_CODE,CONVERT(DATE,TRCL.PAY_DATE) PAY_DATE,TRCN.RECP_CODE,
+	             '第'+CONVERT(VARCHAR,TRCL.PERIOD_NUM)+'期租金' DESCR,TRCL.PERIOD_NUM,
+	             TRCN.TAX_PLAN_CODE,
+	             (TRCL.IRR_MONTH_PRICE+ISNULL(TRCL.VALUE_ADDED_TAX,0))<!--遍历租金余额 -->
+	             +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--分解部分,提交财务或者财务确认状态就扣除 -->
+	                        FROM T_RENT_DECOMPOSE TRDE 
+	                       WHERE TRDE.STATUS=0
+	                         AND TRDE.RECP_ID=TRCN.RECP_ID
+	                         AND TRDE.PERIOD_NUM=TRCL.PERIOD_NUM
+	                         AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+	                         AND TRDE.DECOMPOSE_TYPE=0),0)
+	             +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--冲红部分,财务确认状态才能加上 -->
+	                        FROM T_RENT_DECOMPOSE TRDE 
+	                       WHERE TRDE.STATUS=0
+	                         AND TRDE.RECP_ID=TRCN.RECP_ID
+	                         AND TRDE.PERIOD_NUM=TRCL.PERIOD_NUM
+	                         AND TRDE.DECOMPOSE_STATUS=2
+	                         AND TRDE.DECOMPOSE_TYPE=1),0) SHOULD_PRICE,(TRCL.IRR_MONTH_PRICE+ISNULL(TRCL.VALUE_ADDED_TAX,0)) MONTH_PRICE,
+	             'RENT' FICB_CODE <!-- 从数据字典得到中文描述 -->
+	        FROM T_RENT_CONTRACT TRC
+	   LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.RECT_ID=TRC.RECT_ID AND TRCN.STATUS=0
+	   LEFT JOIN T_RENT_COLLECTIONDETAIL TRCL ON TRCL.RECP_ID=TRCN.RECP_ID AND TRCL.STATUS=0
+	       WHERE TRC.STATUS=0
+	         AND TRCN.RECP_STATUS=0
+	         AND TRC.CUST_CODE=#cust_code#
+	         AND TRCL.RECD_ID IS NOT NULL
+	         AND ((TRCL.IRR_MONTH_PRICE+ISNULL(TRCL.VALUE_ADDED_TAX,0))
+	             +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+	                        FROM T_RENT_DECOMPOSE TRDE 
+	                       WHERE TRDE.STATUS=0
+	                         AND TRDE.RECP_ID=TRCN.RECP_ID
+	                         AND TRDE.PERIOD_NUM=TRCL.PERIOD_NUM
+	                         AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+	                         AND TRDE.DECOMPOSE_TYPE=0),0)
+	             +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+	                        FROM T_RENT_DECOMPOSE TRDE 
+	                       WHERE TRDE.STATUS=0
+	                         AND TRDE.RECP_ID=TRCN.RECP_ID
+	                         AND TRDE.PERIOD_NUM=TRCL.PERIOD_NUM
+	                         AND TRDE.DECOMPOSE_STATUS=2
+	                         AND TRDE.DECOMPOSE_TYPE=1),0)>0)
+	    ORDER BY CONVERT(DATE,TRCL.PAY_DATE)
+	</select>
+	<!-- 管理费,保险费押金代收款,家访费收入,设定费收入 ,其他收入-->
+	<select id="getFeeByCustCode" resultClass="java.util.HashMap">
+	   SELECT TRC.RECT_ID,TRCN.RECP_ID,TRC.LEASE_CODE,TRCN.RECP_CODE,TRCF.CREATE_SHOW_NAME DESCR,TRCF.ID,
+   			  TRCN.TAX_PLAN_CODE,CONVERT(DATE,TRCN.START_DATE) PAY_DATE,(CONVERT(VARCHAR,TRCF.ID)+TRCF.CREATE_FILED_NAME) RECD_ID,
+              TRCF.FEE
+	          +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--分解部分,提交财务或者财务确认状态就扣除 -->
+	                     FROM T_RENT_DECOMPOSE TRDE 
+	                    WHERE TRDE.STATUS=0
+	                      AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+	                      AND TRDE.DECOMPOSE_TYPE=0
+	                      AND TRDE.RECP_ID=TRCN.RECP_ID
+	                      AND TRDE.BILL_CODE=(SELECT CODE 
+	                                            FROM T_DATA_DICTIONARY 
+	                                           WHERE [TYPE]='租金分解类型' 
+	                                             AND STATUS=0 
+	                                             AND FLAG=TRCF.CREATE_SHOW_NAME)),0)
+	          +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--冲红部分,财务确认状态才能加上  -->
+	                     FROM T_RENT_DECOMPOSE TRDE 
+	                    WHERE TRDE.STATUS=0
+	                      AND TRDE.DECOMPOSE_STATUS=2
+	                      AND TRDE.RECP_ID=TRCN.RECP_ID
+	                      AND TRDE.DECOMPOSE_TYPE=1
+	                      AND TRDE.BILL_CODE=(SELECT CODE 
+	                                            FROM T_DATA_DICTIONARY 
+	                                           WHERE [TYPE]='租金分解类型' 
+	                                             AND STATUS=0 
+	                                             AND FLAG=TRCF.CREATE_SHOW_NAME)),0) SHOULD_PRICE,
+	           (SELECT CODE 
+	              FROM T_DATA_DICTIONARY 
+	             WHERE [TYPE]='租金分解类型' 
+	               AND STATUS=0 
+	               AND FLAG=TRCF.CREATE_SHOW_NAME) FICB_CODE,TRCF.FEE,
+          ISNULL((SELECT DISTINCT 'Y' 
+                    FROM T_RENT_DECOMPOSE T 
+	               WHERE T.STATUS=0 
+	                 AND T.RECP_ID=TRCN.RECP_ID 
+	                 AND T.PERIOD_NUM=0
+                     AND T.BILL_CODE=(SELECT CODE 
+                    	                FROM T_DATA_DICTIONARY 
+                      	               WHERE [TYPE]='租金分解类型' 
+                      	                 AND STATUS=0 
+                      	                 AND FLAG=TRCF.CREATE_SHOW_NAME)
+	                 AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK                               
+	        FROM T_RENT_CONTRACT TRC
+	   LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.RECT_ID=TRC.RECT_ID AND TRCN.STATUS=0
+	   LEFT JOIN T_RENT_CONTRACT_FEELIST TRCF ON TRC.RECT_ID=TRCF.RECT_ID
+	       WHERE TRC.STATUS=0
+	         AND TRCN.RECP_STATUS=0
+	         AND TRCF.FEE>0
+	         AND TRC.CUST_CODE=#cust_code#
+	         <!-- 如果此合同在结清流程中则不显示在分解列表中 -->
+	         AND NOT EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT TRSE WHERE TRSE.STATUS=0 AND TRSE.RECP_ID=TRCN.RECP_ID AND (TRSE.STATE=0 OR TRSE.STATE='' OR TRSE.STATE IS NULL))
+	</select>
+	
+	<!-- 保证金A -->
+	<select id="getPledgeAByCustCode" resultClass="java.util.HashMap">
+		   SELECT TRC.RECT_ID,TRCN.RECP_ID,TRC.LEASE_CODE,TRCN.RECP_CODE,'保证金A' DESCR,
+	              CONVERT(VARCHAR,TRC.RECT_ID)+CONVERT(VARCHAR,TRCN.RECP_ID)+'PA' RECD_ID,
+	              TRCN.TAX_PLAN_CODE,CONVERT(DATE,TRCN.START_DATE) PAY_DATE,
+	              TRCN.PLEDGE_ENTER_MCTOAG
+	              +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--分解部分,提交财务或者财务确认状态就扣除 -->
+		                     FROM T_RENT_DECOMPOSE TRDE 
+		                    WHERE TRDE.STATUS=0
+		                      AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+		                      AND TRDE.DECOMPOSE_TYPE=0
+		                      AND TRDE.RECP_ID=TRCN.RECP_ID
+		                      AND TRDE.BILL_CODE='DEPOSIT_A'),0)
+		          +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--冲红部分,财务确认状态才能加上  -->
+		                     FROM T_RENT_DECOMPOSE TRDE 
+		                    WHERE TRDE.STATUS=0
+		                      AND TRDE.DECOMPOSE_STATUS=2
+		                      AND TRDE.DECOMPOSE_TYPE=1
+		                      AND TRDE.RECP_ID=TRCN.RECP_ID
+		                      AND TRDE.BILL_CODE='DEPOSIT_A'),0) SHOULD_PRICE,              
+	              'DEPOSIT_A' FICB_CODE,TRCN.PLEDGE_ENTER_MCTOAG FEE,
+          ISNULL((SELECT DISTINCT 'Y' 
+                    FROM T_RENT_DECOMPOSE T 
+	               WHERE T.STATUS=0 
+	                 AND T.RECP_ID=TRCN.RECP_ID 
+	                 AND T.PERIOD_NUM=0
+                     AND T.BILL_CODE='DEPOSIT_A'
+	                 AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK
+	         FROM T_RENT_CONTRACT TRC
+	    LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.RECT_ID=TRC.RECT_ID AND TRCN.STATUS=0
+	        WHERE TRC.STATUS=0
+	          AND TRCN.RECP_STATUS=0
+	          AND TRCN.PLEDGE_ENTER_MCTOAG>0
+	          AND TRC.CUST_CODE=#cust_code#
+	          <!-- 如果此合同在结清流程中则不显示在分解列表中 -->
+	          AND NOT EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT TRSE WHERE TRSE.STATUS=0 AND TRSE.RECP_ID=TRCN.RECP_ID AND (TRSE.STATE=0 OR TRSE.STATE='' OR TRSE.STATE IS NULL))
+	</select>
+	
+	<!-- 保证金B -->
+	<select id="getPledgeBByCustCode" resultClass="java.util.HashMap">
+		   SELECT TRC.RECT_ID,TRCN.RECP_ID,TRC.LEASE_CODE,TRCN.RECP_CODE,'保证金B' DESCR,
+	              CONVERT(VARCHAR,TRC.RECT_ID)+CONVERT(VARCHAR,TRCN.RECP_ID)+'PB' RECD_ID,
+	              TRCN.TAX_PLAN_CODE,CONVERT(DATE,TRCN.START_DATE) PAY_DATE,
+	              TRCN.PLEDGE_LAST_PRICE
+	              +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--分解部分,提交财务或者财务确认状态就扣除 -->
+		                     FROM T_RENT_DECOMPOSE TRDE 
+		                    WHERE TRDE.STATUS=0
+		                      AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+		                      AND TRDE.DECOMPOSE_TYPE=0
+		                      AND TRDE.RECP_ID=TRCN.RECP_ID
+		                      AND TRDE.BILL_CODE='DEPOSIT_B'),0)
+		          +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--冲红部分,财务确认状态才能加上  -->
+		                     FROM T_RENT_DECOMPOSE TRDE 
+		                    WHERE TRDE.STATUS=0
+		                      AND TRDE.DECOMPOSE_STATUS=2
+		                      AND TRDE.DECOMPOSE_TYPE=1
+		                      AND TRDE.RECP_ID=TRCN.RECP_ID
+		                      AND TRDE.BILL_CODE='DEPOSIT_B'),0) SHOULD_PRICE,              
+	              'DEPOSIT_B' FICB_CODE,TRCN.PLEDGE_LAST_PRICE FEE,
+	      ISNULL((SELECT DISTINCT 'Y' 
+                    FROM T_RENT_DECOMPOSE T 
+	               WHERE T.STATUS=0 
+	                 AND T.RECP_ID=TRCN.RECP_ID 
+	                 AND T.PERIOD_NUM=0
+                     AND T.BILL_CODE='DEPOSIT_B'
+	                 AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK
+	         FROM T_RENT_CONTRACT TRC
+	    LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.RECT_ID=TRC.RECT_ID AND TRCN.STATUS=0
+	        WHERE TRC.STATUS=0
+	          AND TRCN.RECP_STATUS=0
+	          AND TRCN.PLEDGE_LAST_PRICE>0
+	          AND TRC.CUST_CODE=#cust_code#
+	          <!-- 如果此合同在结清流程中则不显示在分解列表中 -->
+	          AND NOT EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT TRSE WHERE TRSE.STATUS=0 AND TRSE.RECP_ID=TRCN.RECP_ID AND (TRSE.STATE=0 OR TRSE.STATE='' OR TRSE.STATE IS NULL))
+	</select>
+	
+	<!-- 保证金C -->
+	<select id="getPledgeCByCustCode" resultClass="java.util.HashMap">
+		   SELECT TRC.RECT_ID,TRCN.RECP_ID,TRC.LEASE_CODE,TRCN.RECP_CODE,'保证金C' DESCR,
+	              CONVERT(VARCHAR,TRC.RECT_ID)+CONVERT(VARCHAR,TRCN.RECP_ID)+'PC' RECD_ID,
+	              TRCN.TAX_PLAN_CODE,CONVERT(DATE,TRCN.START_DATE) PAY_DATE,
+	              TRCN.PLEDGE_BACK_PRICE
+	              +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--分解部分,提交财务或者财务确认状态就扣除 -->
+		                     FROM T_RENT_DECOMPOSE TRDE 
+		                    WHERE TRDE.STATUS=0
+		                      AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+		                      AND TRDE.DECOMPOSE_TYPE=0
+		                      AND TRDE.RECP_ID=TRCN.RECP_ID
+		                      AND TRDE.BILL_CODE='DEPOSIT_C'),0)
+		          +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--冲红部分,财务确认状态才能加上  -->
+		                     FROM T_RENT_DECOMPOSE TRDE 
+		                    WHERE TRDE.STATUS=0
+		                      AND TRDE.DECOMPOSE_STATUS=2
+		                      AND TRDE.DECOMPOSE_TYPE=1
+		                      AND TRDE.RECP_ID=TRCN.RECP_ID
+		                      AND TRDE.BILL_CODE='DEPOSIT_C'),0) SHOULD_PRICE,              
+	              'DEPOSIT_C' FICB_CODE,TRCN.PLEDGE_BACK_PRICE FEE,
+          ISNULL((SELECT DISTINCT 'Y' 
+                    FROM T_RENT_DECOMPOSE T 
+	               WHERE T.STATUS=0 
+	                 AND T.RECP_ID=TRCN.RECP_ID 
+	                 AND T.PERIOD_NUM=0
+                     AND T.BILL_CODE='DEPOSIT_C'
+	                 AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK
+	         FROM T_RENT_CONTRACT TRC
+	    LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.RECT_ID=TRC.RECT_ID AND TRCN.STATUS=0
+	        WHERE TRC.STATUS=0
+	          AND TRCN.RECP_STATUS=0
+	          AND TRCN.PLEDGE_BACK_PRICE>0
+	          AND TRC.CUST_CODE=#cust_code#
+	          <!-- 如果此合同在结清流程中则不显示在分解列表中 -->
+	          AND NOT EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT TRSE WHERE TRSE.STATUS=0 AND TRSE.RECP_ID=TRCN.RECP_ID AND (TRSE.STATE=0 OR TRSE.STATE='' OR TRSE.STATE IS NULL))
+	</select>
+	
+	<!-- 设备留购价 -->
+	<select id="getStayBuyByCustCode" resultClass="java.util.HashMap">
+	       SELECT TRC.RECT_ID,TRCN.RECP_ID,TRC.LEASE_CODE,TRCN.RECP_CODE,'设备留购价' DESCR,
+	              CONVERT(VARCHAR,TRC.RECT_ID)+CONVERT(VARCHAR,TRCN.RECP_ID)+'ST' RECD_ID,
+	              TRCN.TAX_PLAN_CODE,CONVERT(DATE,ISNULL(TRCN.END_DATE,GETDATE())) PAY_DATE,
+	              O.STAYBUY_PRICE
+	              +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--分解部分,提交财务或者财务确认状态就扣除 -->
+		                     FROM T_RENT_DECOMPOSE TRDE 
+		                    WHERE TRDE.STATUS=0
+		                      AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+		                      AND TRDE.DECOMPOSE_TYPE=0
+		                      AND TRDE.RECP_ID=TRCN.RECP_ID
+		                      AND TRDE.BILL_CODE='STAY_BUY_PRICE'),0)
+		          +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--冲红部分,财务确认状态才能加上  -->
+		                     FROM T_RENT_DECOMPOSE TRDE 
+		                    WHERE TRDE.STATUS=0
+		                      AND TRDE.DECOMPOSE_STATUS=2
+		                      AND TRDE.DECOMPOSE_TYPE=1
+		                      AND TRDE.RECP_ID=TRCN.RECP_ID
+		                      AND TRDE.BILL_CODE='STAY_BUY_PRICE'),0) SHOULD_PRICE,              
+	              'STAY_BUY_PRICE' FICB_CODE,O.STAYBUY_PRICE FEE,
+          ISNULL((SELECT DISTINCT 'Y' 
+                    FROM T_RENT_DECOMPOSE T 
+	               WHERE T.STATUS=0 
+	                 AND T.RECP_ID=TRCN.RECP_ID 
+	                 AND T.PERIOD_NUM=0
+                     AND T.BILL_CODE='STAY_BUY_PRICE'
+	                 AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK
+	         FROM T_RENT_CONTRACT TRC
+	    LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.RECT_ID=TRC.RECT_ID AND TRCN.STATUS=0
+        LEFT JOIN (SELECT RECT_ID,SUM(ISNULL(STAYBUY_PRICE,0)) STAYBUY_PRICE 
+                     FROM T_RENT_CONTRACTDETAIL 
+                    WHERE STATUS=0 
+                 GROUP BY RECT_ID) O ON O.RECT_ID=TRC.RECT_ID
+	        WHERE TRC.STATUS=0
+	          AND TRCN.RECP_STATUS=0	          
+	          AND TRC.CUST_CODE=#cust_code#
+	          <!-- 如果此合同在结清流程中则不显示在分解列表中 -->
+	          AND NOT EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT TRSE WHERE TRSE.STATUS=0 AND TRSE.RECP_ID=TRCN.RECP_ID AND (TRSE.STATE=0 OR TRSE.STATE='' OR TRSE.STATE IS NULL))
+	</select>
+	
+	<!-- 小车银行手续费收入 -->
+	<select id="getIncomePayByCustCode" resultClass="java.util.HashMap">
+             SELECT TRC.RECT_ID,TRCN.RECP_ID,TRC.LEASE_CODE,TRCN.RECP_CODE,'银行手续费收入' DESCR,
+                    CONVERT(VARCHAR,TRC.RECT_ID)+CONVERT(VARCHAR,TRCN.RECP_ID)+'BIN' RECD_ID,
+                    TRCN.TAX_PLAN_CODE,CONVERT(DATE,ISNULL(TRCN.END_DATE,GETDATE())) PAY_DATE,
+                    TPCE.INCOME_PAY+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--分解部分,提交财务或者财务确认状态就扣除 -->
+                    		                      FROM T_RENT_DECOMPOSE TRDE 
+                    		                     WHERE TRDE.STATUS=0
+                    		                       AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+                    		                       AND TRDE.DECOMPOSE_TYPE=0
+                    		                       AND TRDE.RECP_ID=TRCN.RECP_ID
+                    		                       AND TRDE.BILL_CODE='BANK_FEE_INCOME'),0)
+                    		           +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--冲红部分,财务确认状态才能加上  -->
+                    		                      FROM T_RENT_DECOMPOSE TRDE 
+                    		                     WHERE TRDE.STATUS=0
+                    		                       AND TRDE.DECOMPOSE_STATUS=2
+                    		                       AND TRDE.DECOMPOSE_TYPE=1
+                    		                       AND TRDE.RECP_ID=TRCN.RECP_ID
+                    		                       AND TRDE.BILL_CODE='BANK_FEE_INCOME'),0) SHOULD_PRICE,
+                    'BANK_FEE_INCOME' FICB_CODE,TPCE.INCOME_PAY FEE,
+                    ISNULL((SELECT DISTINCT 'Y' 
+                              FROM T_RENT_DECOMPOSE T 
+          	                 WHERE T.STATUS=0 
+        	                   AND T.RECP_ID=TRCN.RECP_ID 
+          	                   AND T.PERIOD_NUM=0
+                               AND T.BILL_CODE='BANK_FEE_INCOME'
+          	                   AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK
+               FROM T_PRJT_CREDITSCHEME TPCE
+          LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TPCE.CREDIT_ID=TRC.PRCD_ID
+		  LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.STATUS=0 AND TRC.RECT_ID=TRCN.RECT_ID       
+			  WHERE TPCE.STATUS=0
+				AND EXISTS (SELECT 1 FROM T_SUPL_PLAYDETIL T WHERE T.STATUS=0 AND T.BACKSTATE=0 AND T.STATE=3 AND T.CREDIT_ID=TPCE.CREDIT_ID AND CONVERT(DATE,T.PAY_DATE)>CONVERT(DATE,'1900-1-1'))
+	       	    AND TRCN.TAX_PLAN_CODE=5
+	            AND TRC.CUST_CODE=#cust_code#
+	</select>
+	<!-- 税金 -->
+	<select id="getTaxByCustCode" resultClass="java.util.HashMap">
+		   SELECT TRC.RECT_ID,TRCN.RECP_ID,TRC.LEASE_CODE,TRCN.RECP_CODE,'税金' DESCR,
+	              CONVERT(VARCHAR,TRC.RECT_ID)+CONVERT(VARCHAR,TRCN.RECP_ID)+'TAX' RECD_ID,
+	              TRCN.TAX_PLAN_CODE,CONVERT(DATE,TRCN.START_DATE) PAY_DATE,
+	              TRCN.PLEDGE_ENTER_MCTOAGRATE
+	              +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--分解部分,提交财务或者财务确认状态就扣除 -->
+		                     FROM T_RENT_DECOMPOSE TRDE 
+		                    WHERE TRDE.STATUS=0
+		                      AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+		                      AND TRDE.DECOMPOSE_TYPE=0
+		                      AND TRDE.RECP_ID=TRCN.RECP_ID
+		                      AND TRDE.BILL_CODE='TAX'),0)
+		          +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--冲红部分,财务确认状态才能加上  -->
+		                     FROM T_RENT_DECOMPOSE TRDE 
+		                    WHERE TRDE.STATUS=0
+		                      AND TRDE.DECOMPOSE_STATUS=2
+		                      AND TRDE.DECOMPOSE_TYPE=1
+		                      AND TRDE.RECP_ID=TRCN.RECP_ID
+		                      AND TRDE.BILL_CODE='TAX'),0) SHOULD_PRICE,              
+	              'TAX' FICB_CODE,TRCN.PLEDGE_ENTER_MCTOAGRATE FEE,
+       	  ISNULL((SELECT DISTINCT 'Y' 
+                    FROM T_RENT_DECOMPOSE T 
+	               WHERE T.STATUS=0 
+	                 AND T.RECP_ID=TRCN.RECP_ID 
+	                 AND T.PERIOD_NUM=0
+                     AND T.BILL_CODE='TAX'
+	                 AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK
+	         FROM T_RENT_CONTRACT TRC
+	    LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.RECT_ID=TRC.RECT_ID AND TRCN.STATUS=0
+	        WHERE TRC.STATUS=0
+	          AND TRCN.RECP_STATUS=0
+	          AND TRCN.PLEDGE_ENTER_MCTOAGRATE>0
+	          AND TRC.CUST_CODE=#cust_code#
+	          <!-- 如果此合同在结清流程中则不显示在分解列表中 -->
+	          AND NOT EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT TRSE WHERE TRSE.STATUS=0 AND TRSE.RECP_ID=TRCN.RECP_ID AND (TRSE.STATE=0 OR TRSE.STATE='' OR TRSE.STATE IS NULL))
+	</select>
+	
+	<!-- 法务费用 -->
+	<select id="getLawFeeByCustCode" resultClass="java.util.HashMap">
+		   SELECT TRC.RECT_ID,TRCN.RECP_ID,TRC.LEASE_CODE,TRCN.RECP_CODE,O.FEE_NAME DESCR,
+	              CONVERT(VARCHAR,TRC.RECT_ID)+CONVERT(VARCHAR,TRCN.RECP_ID)+O.CODE RECD_ID,
+	              TRCN.TAX_PLAN_CODE,CONVERT(DATE,GETDATE()) PAY_DATE,
+	              O.FEE
+	              +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--分解部分,提交财务或者财务确认状态就扣除 -->
+		                     FROM T_RENT_DECOMPOSE TRDE 
+		                    WHERE TRDE.STATUS=0
+		                      AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+		                      AND TRDE.DECOMPOSE_TYPE=0
+		                      AND TRDE.RECP_ID=TRCN.RECP_ID
+		                      AND TRDE.BILL_CODE=O.CODE),0)
+		          +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--冲红部分,财务确认状态才能加上  -->
+		                     FROM T_RENT_DECOMPOSE TRDE 
+		                    WHERE TRDE.STATUS=0
+		                      AND TRDE.DECOMPOSE_STATUS=2
+		                      AND TRDE.DECOMPOSE_TYPE=1
+		                      AND TRDE.RECP_ID=TRCN.RECP_ID
+		                      AND TRDE.BILL_CODE=O.CODE),0) SHOULD_PRICE,              
+	              O.CODE FICB_CODE,O.FEE,
+          ISNULL((SELECT DISTINCT 'Y' 
+                    FROM T_RENT_DECOMPOSE T 
+	               WHERE T.STATUS=0 
+	                 AND T.RECP_ID=TRCN.RECP_ID 
+	                 AND T.PERIOD_NUM=0
+                   	 AND T.BILL_CODE=O.CODE
+	                 AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK
+	         FROM T_RENT_CONTRACT TRC
+	    LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.RECT_ID=TRC.RECT_ID AND TRCN.STATUS=0
+        LEFT JOIN (SELECT TLFT.RECP_ID,TDD.FLAG FEE_NAME,UPPER(TDD.CODE) CODE,SUM(TLFT.FEE_VALUE) FEE
+                   	 FROM T_LAWY_FEELIST TLFT 
+              	LEFT JOIN T_DATA_DICTIONARY TDD ON TLFT.FEE_NAME=TDD.CODE 
+                  	WHERE TLFT.STATUS=0
+               	 GROUP BY TLFT.RECP_ID,TDD.FLAG,UPPER(TDD.CODE)
+                   HAVING SUM(TLFT.FEE_VALUE)>0) O ON O.RECP_ID=TRCN.RECP_ID
+	        WHERE TRC.STATUS=0
+	          AND TRCN.RECP_STATUS=0
+              AND O.FEE>0
+              AND TRC.CUST_CODE=#cust_code#
+              <!-- 如果此合同在结清流程中则不显示在分解列表中 -->
+	          AND NOT EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT TRSE WHERE TRSE.STATUS=0 AND TRSE.RECP_ID=TRCN.RECP_ID AND (TRSE.STATE=0 OR TRSE.STATE='' OR TRSE.STATE IS NULL))
+	</select>
+	<!-- *********************************************************展开租金分解列表end -->
+	
+	<select id="getDecomposePriceDetail" resultClass="java.util.HashMap">
+		    SELECT TRIE.INCOME_NAME,TRIE.INCOME_ACCOUNT,TRIE.INCOME_DATE,-TRCE.DECOMPOSE_PRICE INCOME_MONEY,
+		           TRCE.SHOULD_PRICE,-TRCE.DECOMPOSE_PRICE REAL_PRICE,TRCE.PAY_DATE,TRCE.BILL_CODE,(SELECT FLAG FROM T_DATA_DICTIONARY 
+	                                                                                                 WHERE STATUS=0 
+	                                                                                                   AND CODE=TRCE.BILL_CODE
+	                                                                                                   AND [TYPE]='租金分解类型') DESCR,
+		           (SELECT T.RECP_CODE FROM T_RENT_COLLECTIONPLAN T WHERE T.RECP_ID=TRCE.RECP_ID) RECP_CODE,
+		           (SELECT SUBSTRING(T.RECP_CODE,0,15) FROM T_RENT_COLLECTIONPLAN T WHERE T.RECP_ID=TRCE.RECP_ID) LEASE_CODE,
+		                  (SELECT TT.CUST_NAME
+	            		     FROM T_CUST_CUSTOMER TT 
+	            	        WHERE CONVERT(DATETIME,TT.CREATE_TIME)=(SELECT CONVERT(DATETIME,MAX(T.CREATE_TIME))
+                   												      FROM T_CUST_CUSTOMER T 
+                   											         WHERE T.STATUS=0 
+                   											           AND T.CUST_NAME=TT.CUST_NAME 
+               									            	  GROUP BY T.CUST_NAME)
+	              		      AND TT.STATUS=0
+	              		      AND EXISTS (SELECT 1 
+		                                    FROM T_RENT_CONTRACT TRC
+		                               LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.STATUS=0 AND TRC.RECT_ID=TRCN.RECT_ID
+		                                   WHERE TRCN.RECP_ID=TRCE.RECP_ID
+		                                     AND TRC.CUST_ID=TT.CUST_ID)) INCOME_NAME_TRUE,TRCE.BILL_ID,TRCE.IS_SETTLEMENT_DECOMPOSE,
+		                                     TRCE.AUDIT_TIME
+		      FROM T_RENT_DECOMPOSE TRCE
+		 LEFT JOIN T_RENT_INCOME TRIE ON TRCE.INCOME_ID=TRIE.INCOME_ID AND TRIE.STATUS=0
+		     WHERE TRCE.STATUS=0
+	     	   AND TRCE.INCOME_ID=#incomeId#
+		       AND TRCE.RECP_ID=#recpId#
+		       AND TRCE.PERIOD_NUM=#periodNum#
+		       AND TRCE.DECOMPOSE_STATUS=#decomposeStatus#
+	</select>
+	
+	<select id="getDecomposePrice" resultClass="java.util.HashMap">
+	  SELECT IRR_MONTH_PRICE,ISNULL(VALUE_ADDED_TAX,0) VALUE_ADDED_TAX,
+             ISNULL(REDUCE_OWN_PRICE,0) REDUCE_OWN_PRICE,
+             CASE WHEN ISNULL(REDUCE_OWN_PRICE,0)-ISNULL(VALUE_ADDED_TAX,0)>=0 THEN 0 <!--如果已销金额减去增值税大于等于0,说明增值税已经销完-->
+                  ELSE ISNULL(REDUCE_OWN_PRICE,0)-ISNULL(VALUE_ADDED_TAX,0) END DECOMPOSE_VALUE_ADD_TAX,
+             CASE WHEN ISNULL(REDUCE_OWN_PRICE,0)-ISNULL(VALUE_ADDED_TAX,0)>=0
+                  THEN -(IRR_MONTH_PRICE+ISNULL(VALUE_ADDED_TAX,0)-ISNULL(REDUCE_OWN_PRICE,0))
+                  ELSE -IRR_MONTH_PRICE
+                   END DECOMPOSE_RENT,PAY_DATE,IRR_MONTH_PRICE+ISNULL(VALUE_ADDED_TAX,0) SHOULD_PRICE
+        FROM T_RENT_COLLECTIONDETAIL 
+       WHERE STATUS=0
+         AND RECP_ID=#recp_id#
+         AND PERIOD_NUM=#period_num#
+	</select>
+	
+	<insert id="insertRentDecompose">
+		INSERT INTO T_RENT_DECOMPOSE
+		(INCOME_ID,RECP_ID,PERIOD_NUM,PAY_DATE,BILL_CODE,SHOULD_PRICE,DECOMPOSE_PRICE,DECOMPOSE_FROM,DECOMPOSE_STATUS,DECOMPOSE_TYPE,HAS_RED_DECOMPOSE,IS_SETTLEMENT_DECOMPOSE,
+		 DECOMPOSE_ID,DECOMPOSE_TIME,STATUS,CREATE_TIME,FICB_ID,REMARK)
+		VALUES
+		(#income_id#,#recp_id#,#period_num#,CONVERT(DATE,#pay_date#),#bill_code#,#should_price#,#decompose_price#,#decompose_from#,#decompose_status#,#decompose_type#,#has_red_decompose#,ISNULL(#is_settlement_decompose#,0),
+		 #s_employeeId#,GETDATE(),0,GETDATE(),#ficb_id#,#redRemark#)
+	    <selectKey resultClass="java.lang.Long" keyProperty="bill_id">
+			SELECT @@IDENTITY bill_id
+		</selectKey>
+	</insert>
+	
+	<insert id="insertRedDecompose">
+		INSERT INTO T_RENT_DECOMPOSE
+		(INCOME_ID,RECP_ID,PERIOD_NUM,PAY_DATE,BILL_CODE,SHOULD_PRICE,DECOMPOSE_PRICE,DECOMPOSE_FROM,DECOMPOSE_STATUS,DECOMPOSE_TYPE,HAS_RED_DECOMPOSE,IS_SETTLEMENT_DECOMPOSE,
+		 DECOMPOSE_ID,DECOMPOSE_TIME,STATUS,CREATE_TIME,FICB_ID)
+		(SELECT INCOME_ID,RECP_ID,PERIOD_NUM,PAY_DATE,BILL_CODE,SHOULD_PRICE,-DECOMPOSE_PRICE,DECOMPOSE_FROM,2 DECOMPOSE_STATUS,1 DECOMPOSE_TYPE,1 HAS_RED_DECOMPOSE,IS_SETTLEMENT_DECOMPOSE,
+		 		DECOMPOSE_ID,GETDATE() DECOMPOSE_TIME,STATUS,GETDATE() CREATE_TIME,FICB_ID
+		   FROM T_RENT_DECOMPOSE WHERE BILL_ID=#billId# AND STATUS=0)
+	    <selectKey resultClass="java.lang.Long" keyProperty="bill_id">
+		SELECT @@IDENTITY bill_id
+		</selectKey>
+	</insert>
+	
+	<insert id="insertRent">
+		INSERT INTO T_RENT_RECORD
+		(RECORD_MONEY,INCOME_ID,BILL_ID,RECORD_STATUS,RENT_DETAIL_TABLE,STATUS,CREATE_TIME,CREATE_BY)
+		VALUES
+		(#decompose_price#,#income_id#,#bill_id#,#decompose_status#,#table#,0,GETDATE(),#s_employeeId#)
+	</insert>
+	
+	<insert id="insertRed">
+		INSERT INTO T_RENT_RECORD
+		(RECORD_MONEY,INCOME_ID,BILL_ID,RECORD_STATUS,RENT_DETAIL_TABLE,STATUS,CREATE_TIME,CREATE_BY)
+		(SELECT -RECORD_MONEY,INCOME_ID,#bill_id# BILL_ID,RECORD_STATUS,RENT_DETAIL_TABLE,STATUS,GETDATE() CREATE_TIME,CREATE_BY FROM T_RENT_RECORD WHERE BILL_ID=#billId# AND STATUS=0)
+	</insert>
+	
+	<update id="commitDecompose">
+		UPDATE T_RENT_DECOMPOSE SET DECOMPOSE_STATUS=#decomposeStatus#,MODIFY_TIME=GETDATE() WHERE BILL_ID=#billId# AND STATUS=0
+	</update>
+	
+	<update id="confirmOrRejectDecompose">
+		UPDATE T_RENT_DECOMPOSE SET DECOMPOSE_STATUS=#decomposeStatus#,MODIFY_TIME=GETDATE(),AUDIT_ID=#s_employeeId#,AUDIT_TIME=GETDATE()
+		 WHERE BILL_ID=#billId# AND STATUS=0
+	</update>
+	
+	<update id="commitRecord">
+		UPDATE T_RENT_RECORD SET RECORD_STATUS=#decomposeStatus# WHERE BILL_ID=#billId# AND STATUS=0
+	</update>
+	
+	<select id="getRentPayDetail" resultClass="java.util.HashMap">
+		SELECT RECP_ID,PERIOD_NUM,-DECOMPOSE_PRICE DECOMPOSE_PRICE,INCOME_ID,DECOMPOSE_TYPE,
+			   IS_SETTLEMENT_DECOMPOSE,PAY_DATE
+		  FROM T_RENT_DECOMPOSE WHERE BILL_ID=#billId# AND STATUS=0
+	</select>
+	
+	<select id="getReduceOwnPrice" resultClass="java.util.HashMap">
+		SELECT ISNULL(REDUCE_OWN_PRICE,0) REDUCE_OWN_PRICE 
+		  FROM T_RENT_COLLECTIONDETAIL 
+		 WHERE STATUS=0
+		   AND RECP_ID=#RECP_ID#
+		   AND PERIOD_NUM=#PERIOD_NUM#
+	</select>
+	
+	<update id="updateReduceOwnPrice">
+		UPDATE T_RENT_COLLECTIONDETAIL SET REDUCE_OWN_PRICE=#REDUCE_OWN_PRICE#
+		 WHERE STATUS=0
+		   AND RECP_ID=#RECP_ID#
+		   AND PERIOD_NUM=#PERIOD_NUM#
+	</update>
+	
+	<update id="updateRecpStatus">
+		UPDATE T_RENT_COLLECTIONPLAN SET RECP_STATUS=1,FUND_STATUS=1 
+		 WHERE STATUS=0 
+		   AND RECP_ID=#recpId#
+	</update>
+	
+	<select id="checkRedDecomposeIsLock" resultClass="java.lang.String">
+	 SELECT CASE WHEN ISNULL((SELECT DISTINCT 'Y' FROM T_RENT_DECOMPOSE T             
+							   WHERE T.STATUS=0                  
+							     AND T.PERIOD_NUM=#periodNum# 
+							     AND T.INCOME_ID=#incomeId#
+							     AND T.DECOMPOSE_TYPE=1            
+							     AND T.RECP_ID=#recpId#     
+							     AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N')='N'
+				 THEN CASE WHEN #incomeId#!=(SELECT T.INCOME_ID 
+                                               FROM T_RENT_DECOMPOSE T 
+                                              WHERE T.RECP_ID=#recpId#
+                                                AND T.PERIOD_NUM=#periodNum#   
+                                                AND T.DECOMPOSE_STATUS=2
+                                                AND T.DECOMPOSE_TYPE=0
+                                                AND T.HAS_RED_DECOMPOSE=0
+                                                AND T.BILL_ID=(SELECT MAX(T1.BILL_ID) 
+                                                                        FROM T_RENT_DECOMPOSE T1 
+                                                                       WHERE T.RECP_ID=T1.RECP_ID
+                                                                         AND T.PERIOD_NUM=T1.PERIOD_NUM
+                                                                         AND T1.DECOMPOSE_STATUS=2
+                                                                         AND T1.DECOMPOSE_TYPE=0
+                                                                         AND T1.HAS_RED_DECOMPOSE=0))
+                            THEN 'Y'
+                            ELSE 'N'
+                             END
+                  ELSE 'Y'
+                   END
+	</select>
+	
+	<select id="checkRedDepositBCDecomposeIsLock" resultClass="java.lang.String">
+		SELECT 'Y' FROM T_RENT_DECOMPOSE WHERE BILL_ID=#billId# AND STATUS=0 AND HAS_RED_DECOMPOSE=1
+	</select>
+	
+	<select id="getRedDecomposeList" resultClass="java.util.HashMap">
+       	   SELECT CONVERT(DATE,TRI.INCOME_DATE) INCOME_DATE,TRI.INCOME_NAME,TRI.INCOME_ACCOUNT,TRD.IS_SETTLEMENT_DECOMPOSE,
+                  TRCN.RECP_CODE,TRD.RECP_ID,TRD.PERIOD_NUM,TRD.INCOME_ID,TRI.VIRTUAL_ACCOUNT,
+                  SUM(TRD.SHOULD_PRICE) SHOULD_PRICE,SUM(-TRD.DECOMPOSE_PRICE) DECOMPOSE_PRICE,
+                  <!-- (SELECT T2.FLAG 
+                     FROM T_RENT_DECOMPOSE T1
+                LEFT JOIN T_DATA_DICTIONARY T2 ON T2.STATUS=0 AND T1.BILL_CODE=T2.CODE
+                    WHERE T1.STATUS=0 AND T1.BILL_ID=MAX(TRD.BILL_ID)) DESCR, -->
+                  O.CUST_NAME,
+                  CASE WHEN<!-- 如果此行数据没有分解中或者提交财务中,在判断此条数据的是不是最后操作分解的 -->
+                  ISNULL((SELECT DISTINCT 'Y' FROM T_RENT_DECOMPOSE T 
+              			   WHERE T.STATUS=0
+              			     AND T.PERIOD_NUM=TRD.PERIOD_NUM
+              			     AND T.INCOME_ID=TRD.INCOME_ID
+              			     AND T.DECOMPOSE_TYPE=1
+              			     AND T.RECP_ID=TRD.RECP_ID
+              			     AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N')='N'
+                       THEN
+                            CASE WHEN TRD.INCOME_ID!=(SELECT T.INCOME_ID 
+                                                        FROM T_RENT_DECOMPOSE T 
+                                                       WHERE T.RECP_ID=TRD.RECP_ID
+                                                         AND T.PERIOD_NUM=TRD.PERIOD_NUM
+                                                         AND T.DECOMPOSE_STATUS=2
+                                                         AND T.DECOMPOSE_TYPE=0
+                                                         AND T.HAS_RED_DECOMPOSE=0
+                                                         AND T.BILL_ID=(SELECT MAX(T1.BILL_ID) 
+                                                                                 FROM T_RENT_DECOMPOSE T1 
+                                                                                WHERE T.RECP_ID=T1.RECP_ID
+                                                                                  AND T.PERIOD_NUM=T1.PERIOD_NUM
+                                                                                  AND T1.DECOMPOSE_STATUS=2
+                                                                                  AND T1.DECOMPOSE_TYPE=0
+                                                                                  AND T1.HAS_RED_DECOMPOSE=0))
+                                 THEN 'Y'
+                                 ELSE 'N'
+                                  END
+                        ELSE 'Y'
+                         END IS_LOCK
+             FROM T_RENT_DECOMPOSE TRD 
+        LEFT JOIN T_RENT_INCOME TRI ON TRD.INCOME_ID=TRI.INCOME_ID AND TRI.STATUS=0
+        LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.RECP_ID=TRD.RECP_ID AND TRCN.STATUS=0
+        LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TRC.RECT_ID=TRCN.RECT_ID        
+        LEFT JOIN (SELECT TT.CUST_NAME,TT.CUST_ID
+       		         FROM T_CUST_CUSTOMER TT
+       	            WHERE CONVERT(DATETIME,TT.CREATE_TIME)=(SELECT CONVERT(DATETIME,MAX(T.CREATE_TIME))
+       												          FROM T_CUST_CUSTOMER T 
+     											             WHERE T.STATUS=0 
+     											               AND T.CUST_NAME=TT.CUST_NAME 
+	 									                  GROUP BY T.CUST_NAME)
+       		            AND TT.STATUS=0) O ON TRC.CUST_ID=O.CUST_ID
+            WHERE TRD.DECOMPOSE_STATUS=2
+              AND TRD.STATUS=0 
+              AND TRD.DECOMPOSE_TYPE=0
+              AND TRD.HAS_RED_DECOMPOSE=0
+              AND (TRD.BILL_CODE='RENT' OR TRD.BILL_CODE='VALUE_ADD_TAX')
+            <isNotEmpty property="fromDate">
+              AND DATEDIFF(DAY,TRI.INCOME_DATE,#fromDate#)&lt;=0
+            </isNotEmpty>
+	        <isNotEmpty property="toDate">
+	          AND DATEDIFF(DAY,TRI.INCOME_DATE,#toDate#)>=0
+	        </isNotEmpty>
+	        <isNotEmpty property="fromMoney">
+	          AND SUM(O.DECOMPOSE_PRICE)>=#fromMoney#
+	        </isNotEmpty>
+	        <isNotEmpty property="toMoney">
+	          AND SUM(O.DECOMPOSE_PRICE)&lt;=#toMoney#
+	        </isNotEmpty>
+	        <isNotEmpty property="content">
+	          AND (TRI.INCOME_NAME LIKE '%$content$%' OR
+	           	   TRI.INCOME_ACCOUNT LIKE '%$content$%' OR
+	           	   TRI.VIRTUAL_ACCOUNT LIKE '%$content$%' OR
+	           	   TRCN.RECP_CODE LIKE '%$content$%' OR
+	           	   O.CUST_NAME LIKE '%$content$%')
+	        </isNotEmpty>
+	        <isNotEqual property="from" compareValue="-1">
+	          AND ISNULL(TRD.IS_SETTLEMENT_DECOMPOSE,0)=#from#
+	        </isNotEqual>
+         GROUP BY TRD.RECP_ID,TRD.PERIOD_NUM,TRD.INCOME_ID,CONVERT(DATE,TRI.INCOME_DATE),O.CUST_NAME,
+                  TRI.INCOME_NAME,TRI.INCOME_ACCOUNT,TRCN.RECP_CODE,TRI.VIRTUAL_ACCOUNT,TRD.IS_SETTLEMENT_DECOMPOSE
+	</select>
+	
+	<select id="getRedListByBillId" resultClass="java.util.HashMap">
+ 		  SELECT TRD.SHOULD_PRICE,TRD.DECOMPOSE_PRICE,TRD.RECP_ID,CONVERT(DATE,TRD.PAY_DATE) PAY_DATE,
+ 		  		 (SELECT FLAG FROM T_DATA_DICTIONARY WHERE CODE=TRD.BILL_CODE) DESCR,TRD.BILL_CODE,
+ 		  		 TRI.INCOME_NAME,TRD.BILL_ID,TRI.INCOME_ID,
+	             TRI.INCOME_ACCOUNT,TCC.CUST_NAME INCOME_NAME_TRUE,
+	             TRCT.LEASE_CODE,TRD.PERIOD_NUM,CONVERT(DATE,TRI.INCOME_DATE) INCOME_DATE
+            FROM T_RENT_DECOMPOSE TRD
+       LEFT JOIN T_RENT_INCOME TRI ON TRI.INCOME_ID=TRD.INCOME_ID AND TRI.STATUS=0
+	   LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TRC.RECP_ID=TRD.RECP_ID AND TRC.STATUS=0
+	   LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.RECT_ID=TRC.RECT_ID AND TRCT.STATUS=0
+	   LEFT JOIN T_CUST_CUSTOMER TCC ON TRCT.CUST_ID=TCC.CUST_ID AND TCC.STATUS=0
+           WHERE TRD.HAS_RED_DECOMPOSE=0 <!-- 未进行冲红过的数据 -->
+           	 AND TRD.STATUS=0
+             AND TRD.INCOME_ID=#incomeId#
+             AND TRD.PERIOD_NUM=#periodNum# 
+             AND TRD.RECP_ID=#recpId#
+	</select>
+	
+	<select id="getHasRedListByBillId" resultClass="java.util.HashMap">
+		  SELECT TRD.SHOULD_PRICE,TRD.DECOMPOSE_PRICE,TRD.RECP_ID,CONVERT(DATE,TRD.PAY_DATE) PAY_DATE,
+ 		  		 (SELECT FLAG FROM T_DATA_DICTIONARY WHERE CODE=TRD.BILL_CODE) DESCR,TRD.BILL_CODE,
+ 		  		 TRI.INCOME_NAME,TRD.BILL_ID,TRI.INCOME_ID,
+	             TRI.INCOME_ACCOUNT,TCC.CUST_NAME INCOME_NAME_TRUE,
+	             TRCT.LEASE_CODE,TRD.PERIOD_NUM,CONVERT(DATE,TRI.INCOME_DATE) INCOME_DATE
+            FROM T_RENT_DECOMPOSE TRD
+       LEFT JOIN T_RENT_INCOME TRI ON TRI.INCOME_ID=TRD.INCOME_ID AND TRI.STATUS=0
+	   LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TRC.RECP_ID=TRD.RECP_ID AND TRC.STATUS=0
+	   LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.RECT_ID=TRC.RECT_ID AND TRCT.STATUS=0
+	   LEFT JOIN T_CUST_CUSTOMER TCC ON TRCT.CUST_ID=TCC.CUST_ID AND TCC.STATUS=0
+           WHERE TRD.HAS_RED_DECOMPOSE=1 <!-- 进行冲红过的数据 -->
+             AND TRD.DECOMPOSE_TYPE=0
+           	 AND TRD.STATUS=0
+             AND TRD.INCOME_ID=#INCOME_ID#
+             AND TRD.PERIOD_NUM=#PERIOD_NUM# 
+             AND TRD.RECP_ID=#RECP_ID#
+	</select>
+	
+	<update id="updateRedFlag">
+		UPDATE T_RENT_DECOMPOSE SET HAS_RED_DECOMPOSE=#hasRedDecompose# WHERE BILL_ID=#BILL_ID#
+	</update>
+	
+	<!-- ****************************************************************结清模组**************************************************************** -->
+	<select id="getContractList" resultClass="java.util.HashMap">
+			  SELECT CASE WHEN TRCN.RECP_STATUS=0 THEN '正常'
+			  			  WHEN TRCN.RECP_STATUS=1 THEN '正常结清'
+			  			  WHEN TRCN.RECP_STATUS=3 THEN '提前结清'
+			  			  ELSE '' END RECP_STATUS_DESCR,TRCN.RECP_STATUS,
+			  		 MAX(TRI.INCOME_DATE) INCOME_DATE,
+			  		 TRCN.RECP_ID,TPC.CREDIT_RUNCODE,
+		             TRCN.RECP_CODE,TCC.CUST_NAME,T1.NAME,T2.NAME UP_NAME,
+		             CONVERT(DATE,TRCN.FIRST_PAYDATE) HIRE_DATE,
+		             ISNULL(O.SHOULD_PRICE,0) SHOULD_PRICE,ISNULL(O.REDUCE_OWN_PRICE,0) REDUCE_OWN_PRICE,
+		             ISNULL((SELECT 'N' FROM T_RENT_SETTLEMENT T WHERE T.RECP_ID=TRCN.RECP_ID AND T.STATUS=0 AND (T.STATE=0 OR T.STATE=1)),'Y') DISPLAY_COMMIT_LINK,
+		             TRCN.CREATE_TIME
+		        FROM T_RENT_COLLECTIONPLAN TRCN
+		   LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TRC.RECT_ID=TRCN.RECT_ID
+		   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TPC.ID=TRC.PRCD_ID
+		   LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TRC.CUST_ID=TCC.CUST_ID
+		   LEFT JOIN T_USER_USER T1 ON TPC.SENSOR_ID=T1.ID
+		   LEFT JOIN T_USER_USER T2 ON T1.UPPER_USER=T2.ID
+		   LEFT JOIN (SELECT SUM(ISNULL(TRCL.IRR_MONTH_PRICE,0)+ISNULL(TRCL.VALUE_ADDED_TAX,0)) SHOULD_PRICE,
+		                     SUM(ISNULL(TRCL.REDUCE_OWN_PRICE,0)) REDUCE_OWN_PRICE,TRCL.RECP_ID 
+		                FROM T_RENT_COLLECTIONDETAIL TRCL 
+		               WHERE TRCL.STATUS=0
+		            GROUP BY TRCL.RECP_ID) O ON O.RECP_ID=TRCN.RECP_ID
+		            <!-- *************************这段逻辑是 拿可结清案件最后期租金的来款时间 -->
+		   LEFT JOIN (SELECT MAX(PERIOD_NUM) PERIOD_NUM,RECP_ID,INCOME_ID
+                    FROM T_RENT_DECOMPOSE 
+                   WHERE STATUS=0 AND BILL_CODE='RENT'                    
+                GROUP BY RECP_ID,INCOME_ID) T ON TRCN.RECP_ID=T.RECP_ID AND TRCN.LEASE_PERIOD=T.PERIOD_NUM
+       	   LEFT JOIN T_RENT_INCOME TRI ON TRI.STATUS=0 AND T.INCOME_ID=TRI.INCOME_ID
+       	   			<!-- *************************这段逻辑是 拿可结清案件最后期租金的来款时间 -->
+		       WHERE TRCN.STATUS=0
+		     <isNotEmpty property="normal_settlement"><!-- 可正常结清申请 -->
+		     	AND O.REDUCE_OWN_PRICE>=O.SHOULD_PRICE
+		     	AND TRCN.RECP_STATUS=0
+		     	AND NOT EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT T WHERE T.STATUS=0 AND T.RECP_ID=TRCN.RECP_ID AND (STATE=0 OR STATE=1))
+		     </isNotEmpty>
+		     <isNotEmpty property="advance_settlement"><!-- 可提前结清申请 -->
+		     	AND O.REDUCE_OWN_PRICE&lt;O.SHOULD_PRICE
+		     	AND TRCN.RECP_STATUS=0
+		     	AND NOT EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT T WHERE T.STATUS=0 AND T.RECP_ID=TRCN.RECP_ID AND (T.STATE=0 OR T.STATE=1))
+		     </isNotEmpty>
+		     <isNotEmpty property="process_settlement"><!-- 结清流程进行中 -->
+		     	AND EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT T WHERE T.STATUS=0 AND T.RECP_ID=TRCN.RECP_ID AND T.STATE=0)
+		     </isNotEmpty>
+		     <isNotEmpty property="content">
+		        AND (TRCN.RECP_CODE LIKE '%$content$%' OR
+		        	 TPC.CREDIT_RUNCODE LIKE '%$content$%' OR
+		        	 T1.NAME LIKE '%$content$%' OR
+		        	 T2.NAME LIKE '%$content$%' OR
+		        	 TCC.CUST_NAME LIKE '%$content$%')
+		     </isNotEmpty>
+		     <isNotEqual property="recp_status" compareValue="-1">
+		     	AND TRCN.RECP_STATUS=#recp_status#
+		     </isNotEqual>
+		     <isEqual property="p_usernode" compareValue="1">
+		  	 	AND (TPC.SENSOR_ID=#s_employeeId# OR TPC.CLERK_ID=#s_employeeId#)
+		  	 </isEqual>
+			 <isEqual property="p_usernode" compareValue="2">
+				AND	EXISTS
+					(SELECT 1 
+					   FROM T_USER_USER
+					  WHERE DEPT_ID IN (SELECT UC.DEPT_ID FROM T_USER_USER2COMPANY UC
+										 WHERE UC.USER_ID=#s_employeeId#)
+										   AND ID=TPC.SENSOR_ID)
+			 </isEqual>
+			 GROUP BY TRCN.RECP_STATUS,
+			  		  TPC.CREDIT_RUNCODE,
+		              TRCN.RECP_CODE,TCC.CUST_NAME,T1.NAME,T2.NAME,
+		              CONVERT(DATE,TRCN.FIRST_PAYDATE),TRCN.RECP_ID,
+		              ISNULL(O.SHOULD_PRICE,0),ISNULL(O.REDUCE_OWN_PRICE,0),
+		              TRCN.CREATE_TIME
+	</select>
+	
+	<select id="getCustInfoByRecpId" resultClass="java.util.HashMap">
+			  SELECT TRCN.RECP_ID,TPC.CREDIT_RUNCODE,TRC.LEASE_CODE,TCC.CUST_NAME,
+		             O.SHOULD_PRICE,O.REDUCE_OWN_PRICE PAY_PRICE,O.[COUNT] PERIOD_NUM,TCC.CORP_ORAGNIZATION_CODE,
+	                 (SELECT COUNT(TRCL.RECD_ID) 
+	                    FROM T_RENT_COLLECTIONDETAIL TRCL 
+	                   WHERE TRCL.STATUS=0 
+	                     AND TRCL.REDUCE_OWN_PRICE>=(ISNULL(TRCL.IRR_MONTH_PRICE,0)+ISNULL(TRCL.VALUE_ADDED_TAX,0))
+	                     AND TRCL.RECP_ID=TRCN.RECP_ID) PAY_PERIOD,TT.EMAIL,TDD.DECP_ID
+		        FROM T_RENT_COLLECTIONPLAN TRCN
+		   LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TRC.RECT_ID=TRCN.RECT_ID
+		   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TPC.ID=TRC.PRCD_ID
+		   LEFT JOIN T_USER_USER T ON TPC.SENSOR_ID=T.ID
+           LEFT JOIN T_DEPT_DEPARTMENT TDD ON TDD.ID = T.DEPT_ID AND TDD.STATUS = 0
+		   LEFT JOIN T_USER_USER TT ON T.UPPER_USER=TT.ID
+		   LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TRC.CUST_ID=TCC.CUST_ID
+           LEFT JOIN (SELECT SUM(ISNULL(TRCL.IRR_MONTH_PRICE,0)+ISNULL(TRCL.VALUE_ADDED_TAX,0)) SHOULD_PRICE,
+		                     SUM(TRCL.REDUCE_OWN_PRICE) REDUCE_OWN_PRICE,TRCL.RECP_ID,COUNT(TRCL.RECD_ID) [COUNT]
+		                FROM T_RENT_COLLECTIONDETAIL TRCL 
+		               WHERE TRCL.STATUS=0
+		            GROUP BY TRCL.RECP_ID) O ON O.RECP_ID=TRCN.RECP_ID
+       		   WHERE TRCN.STATUS=0
+       		     AND TRCN.RECP_ID=#recpId#
+	</select>
+	
+	<!-- 获得结清本金 -->
+	<select id="getSettlementOwnPrice" resultClass="java.lang.Double">
+    SELECT SUM(O.OWN_PRICE)
+      FROM (         
+           SELECT CASE WHEN ISNULL(TRC.REDUCE_OWN_PRICE,0)>=(ISNULL(TRC.REN_PRICE,0)+ISNULL(TRC.VALUE_ADDED_TAX,0))  <!--如果当期已缴租金大于增值税与利息的和,则已缴租金中包含了本金 -->
+                       THEN ISNULL(TRC.IRR_MONTH_PRICE,0)-ISNULL(TRC.REN_PRICE,0)-(ISNULL(TRC.REDUCE_OWN_PRICE,0)-(ISNULL(TRC.REN_PRICE,0)+ISNULL(TRC.VALUE_ADDED_TAX,0)))
+                       ELSE ISNULL(TRC.IRR_MONTH_PRICE,0)-ISNULL(TRC.REN_PRICE,0)
+                        END OWN_PRICE
+             FROM T_RENT_COLLECTIONDETAIL TRC
+            WHERE TRC.STATUS=0
+              AND TRC.RECP_ID=#recpId#
+            ) O
+	</select>
+	
+	<!-- 获得结清增值税 -->
+	<select id="getSettlementValueAddedTax" resultClass="java.lang.Double">
+	SELECT SUM(O.VALUE_ADDED_TAX)
+      FROM (
+	        SELECT CASE WHEN CONVERT(DECIMAL,ISNULL(TRC.REDUCE_OWN_PRICE,0))>=CONVERT(DECIMAL,ISNULL(TRC.VALUE_ADDED_TAX,0))
+								THEN 0
+								ELSE (ISNULL(TRC.VALUE_ADDED_TAX,0)-ISNULL(TRC.REDUCE_OWN_PRICE,0))
+								 END VALUE_ADDED_TAX
+			  FROM T_RENT_COLLECTIONDETAIL TRC
+	 	     WHERE TRC.STATUS=0
+			   AND TRC.RECP_ID=#recpId#
+			 ) O
+	</select>
+	
+	<!-- 获得结清利息 -->
+	<select id="getSettlementInterest" resultClass="java.lang.Double">
+	SELECT SUM(O.REN_PRICE)
+      FROM (
+	        SELECT CASE WHEN CONVERT(DECIMAL,ISNULL(TRC.REDUCE_OWN_PRICE,0))&lt;=CONVERT(DECIMAL,ISNULL(TRC.VALUE_ADDED_TAX,0))
+						THEN ISNULL(TRC.REN_PRICE,0)
+	                    WHEN CONVERT(DECIMAL,ISNULL(TRC.REDUCE_OWN_PRICE,0))>CONVERT(DECIMAL,ISNULL(TRC.VALUE_ADDED_TAX,0)) AND CONVERT(DECIMAL,ISNULL(TRC.REDUCE_OWN_PRICE,0))&lt;=(CONVERT(DECIMAL,ISNULL(TRC.VALUE_ADDED_TAX,0))+CONVERT(DECIMAL,ISNULL(TRC.REN_PRICE,0)))
+						THEN ISNULL(TRC.REN_PRICE,0)-(ISNULL(TRC.REDUCE_OWN_PRICE,0)-ISNULL(TRC.VALUE_ADDED_TAX,0))
+	                    ELSE 0
+						 END REN_PRICE
+						FROM T_RENT_COLLECTIONDETAIL TRC
+					   WHERE TRC.STATUS=0
+						 AND TRC.RECP_ID=#recpId#
+			) O
+	</select>
+	
+	<!-- 获得结清留购价 -->
+	<select id="getSettlementStayFee" resultClass="java.lang.Double">
+	SELECT SUM(TRCN.STAYBUY_PRICE) 
+				  +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--分解部分,提交财务或者财务确认状态就扣除 -->
+		                     FROM T_RENT_DECOMPOSE TRDE 
+		                    WHERE TRDE.STATUS=0
+		                      AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+		                      AND TRDE.DECOMPOSE_TYPE=0
+		                      AND TRDE.RECP_ID=TRCN.RECP_ID
+		                      AND (TRDE.BILL_CODE='STAY_BUY_PRICE' OR TRDE.BILL_CODE='SETTLEMENT_STAY_PRICE')),0)
+		          +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE) <!--冲红部分,财务确认状态才能加上  -->
+		                     FROM T_RENT_DECOMPOSE TRDE 
+		                    WHERE TRDE.STATUS=0
+		                      AND TRDE.DECOMPOSE_STATUS=2
+		                      AND TRDE.DECOMPOSE_TYPE=1
+		                      AND TRDE.RECP_ID=TRCN.RECP_ID
+		                      AND (TRDE.BILL_CODE='STAY_BUY_PRICE' OR TRDE.BILL_CODE='SETTLEMENT_STAY_PRICE')),0) STAY_FEE
+	  FROM T_RENT_CONTRACTDETAIL TRCN
+	 WHERE TRCN.RECP_ID=#recpId#
+	   AND TRCN.STATUS=0
+  GROUP BY TRCN.RECP_ID
+	</select>
+	
+	<!-- 获得结清法务费用 -->
+	<select id="getSettlementLawFee" resultClass="java.lang.Double">
+                   SELECT SUM(O1.LAW_FEE) LAW_FEE 
+                     FROM (
+                        	  SELECT O.FEE+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+                         		                     FROM T_RENT_DECOMPOSE TRDE 
+                         		                    WHERE TRDE.STATUS=0
+                         		                      AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+                         		                      AND TRDE.DECOMPOSE_TYPE=0
+                         		                      AND TRDE.RECP_ID=O.RECP_ID
+                         		                      AND TRDE.BILL_CODE=O.CODE),0)
+                         		          +ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+                         		                     FROM T_RENT_DECOMPOSE TRDE 
+                         		                    WHERE TRDE.STATUS=0
+                         		                      AND TRDE.DECOMPOSE_STATUS=2
+                         		                      AND TRDE.DECOMPOSE_TYPE=1
+                         		                      AND TRDE.RECP_ID=O.RECP_ID
+                         		                      AND TRDE.BILL_CODE=O.CODE),0) LAW_FEE,O.RECP_ID
+                                FROM (SELECT TLFT.RECP_ID,TDD.FLAG FEE_NAME,UPPER(TDD.CODE) CODE,SUM(TLFT.FEE_VALUE) FEE
+                                  	    FROM T_LAWY_FEELIST TLFT 
+                             	   LEFT JOIN T_DATA_DICTIONARY TDD ON TLFT.FEE_NAME=TDD.CODE 
+                                 	   WHERE TLFT.STATUS=0
+                                         AND TLFT.RECP_ID IS NOT NULL                        
+                              	    GROUP BY TLFT.RECP_ID,TDD.FLAG,UPPER(TDD.CODE)
+                                  HAVING SUM(TLFT.FEE_VALUE)>0) O
+                           	   WHERE O.RECP_ID=#recpId#
+                           ) O1
+                   GROUP BY O1.RECP_ID
+	</select>
+	
+	<select id="checkDuplicateCommit" resultClass="java.lang.String">
+		SELECT 'Y' FROM T_RENT_SETTLEMENT WHERE STATUS=0 AND RECP_ID=#recpId# AND (STATE=0 OR STATE=1)
+	</select>
+	
+	<select id="checkPendingData" resultClass="java.lang.String">
+		SELECT DISTINCT 'Y' FROM T_RENT_DECOMPOSE WHERE STATUS=0 AND RECP_ID=#recpId# AND (DECOMPOSE_STATUS=0 OR DECOMPOSE_STATUS=1)
+	</select>
+	<!-- 插入提交单位主管的结清数据 -->
+	<insert id="insertSettlement">
+		INSERT INTO T_RENT_SETTLEMENT
+			(RECP_ID,SHOULD_PERIOD_NUM,PAY_PERIOD_NUM,PAY_PRICE,SHOULD_OWN_PRICE,PAY_OWN_PRICE,SHOULD_ACCRUAL_PRICE,PAY_ACCRUAL_PRICE,
+			 SHOULD_ADDED_VALUE_TAX,PAY_ADDED_VALUE_TAX,SHOULD_FINE,PAY_FINE,SHOULD_BREAK_FEE,PAY_BREAK_FEE,SHOULD_HARMFUL_FEE,PAY_HARMFUL_FEE,
+			 SHOULD_STAY_FEE,PAY_STAY_FEE,SHOULD_LAW_FEE,PAY_LAW_FEE,SHOULD_OTHER_FEE,PAY_OTHER_FEE,
+			 <!-- REMARK, -->
+			 APPLY_REMARK, APPLY_USER_ID, APPLY_TIME, STATE_CODE,CURRENT_USER_ID,
+			 STATE,SALES_MANAGER,SALES_DIRECT,SERVICE_DIRECT,GENERAL_MANAGER,FINANCIAL,CREATE_BY,CREATE_TIME,STATUS,FINANCIAL_STAFF,ACCOUNTANCY_STAFF)
+		VALUES
+			(#recp_id#,#should_period_num#,#pay_period_num#,#pay_price#,ISNULL(#should_own_price#,0),ISNULL(#pay_own_price#,0),ISNULL(#should_ren_price#,0),ISNULL(#pay_ren_price#,0),
+			 ISNULL(#should_value_added_tax#,0),ISNULL(#pay_value_added_tax#,0),ISNULL(#should_fine#,0),ISNULL(#pay_fine#,0),ISNULL(#should_break_fee#,0),ISNULL(#pay_break_fee#,0),ISNULL(#should_harmful_fee#,0),ISNULL(#pay_harmful_fee#,0),
+			 ISNULL(#should_stay_fee#,0),ISNULL(#pay_stay_fee#,0),ISNULL(#should_law_fee#,0),ISNULL(#pay_law_fee#,0),ISNULL(#should_other_fee#,0),ISNULL(#pay_other_fee#,0),
+			 <!-- <isNotEmpty property="remark">(SELECT NAME+'：' FROM T_USER_USER WHERE ID=#s_employeeId#)+</isNotEmpty>#remark#
+			 <isNotEmpty property="remark">+'   |申请时间：'+CONVERT(NVARCHAR,GETDATE(),120)</isNotEmpty>, -->
+			 #remark#,#s_employeeId#,GETDATE(),#firstState#,#firstUserId#,
+			 0,'','','','','',#s_employeeId#,GETDATE(),0,'','')
+	</insert>
+	
+	<select id="getSettlementHistoryByRecpId" resultClass="java.util.HashMap">
+		SELECT ISNULL(SHOULD_FINE,0) SHOULD_FINE,ISNULL(PAY_FINE,0) PAY_FINE,
+			   ISNULL(SHOULD_FINE,0)-ISNULL(PAY_FINE,0) FINE,SALES_MANAGER,STATE,
+		       SALES_DIRECT,SERVICE_DIRECT,GENERAL_MANAGER,FINANCIAL,CREATE_TIME,FINANCIAL_STAFF,
+		       (SELECT NAME FROM T_USER_USER WHERE ID=CREATE_BY) NAME,ISNULL(REMARK,' ') REMARK,ID,RECP_ID,ACCOUNTANCY_STAFF
+		  FROM T_RENT_SETTLEMENT
+		 WHERE STATUS=0
+		   AND RECP_ID=#recpId#
+	  ORDER BY ID
+	</select>
+	
+	<select id="getSettlementingByRecpId" resultClass="com.brick.rent.to.SettlementTO" parameterClass="java.util.HashMap">
+	 	SELECT 
+	 		TOP 1
+			TRS.ID id,
+			TRS.RECP_ID recpId,
+			TRS.STATE state,
+			TRS.MODIFY_BY modifyBy,
+			TRS.MODIFY_TIME modifyTime,
+			TRS.APPLY_REMARK applyRemark,
+			TRS.APPLY_USER_ID applyUserId,
+			TRS.APPLY_TIME applyTime,
+			TRS.STATE_CODE stateCode,
+			(TRS.PAY_OWN_PRICE + TRS.PAY_ACCRUAL_PRICE
+			   	+ TRS.PAY_ADDED_VALUE_TAX + TRS.PAY_FINE 
+			   	+ TRS.PAY_STAY_FEE + TRS.PAY_LAW_FEE
+			   	+ TRS.PAY_OTHER_FEE) totalPayPrice,
+			(TRS.SHOULD_OWN_PRICE + TRS.SHOULD_ACCRUAL_PRICE
+				+TRS.SHOULD_ADDED_VALUE_TAX + TRS.SHOULD_FINE
+				+TRS.SHOULD_STAY_FEE + TRS.SHOULD_LAW_FEE
+				+TRS.SHOULD_OTHER_FEE) totalPrice
+		FROM T_RENT_SETTLEMENT TRS
+		WHERE TRS.STATUS=0 AND TRS.STATE=0 AND TRS.RECP_ID=#recpId#
+		ORDER BY TRS.ID DESC
+	</select>
+	
+	<select id="queryCommitList" resultClass="java.util.HashMap">
+		SELECT 
+			T.*,
+			(T.TOTAL_PRICE-T.TOTAL_PAY_PRICE) REDUCTION_PRICE
+		FROM (
+			SELECT TPC.CREDIT_RUNCODE,TRC.LEASE_CODE,O.CUST_NAME,TU1.NAME,TU2.NAME UP_NAME,
+				   TRS.SALES_MANAGER,TRS.SALES_DIRECT,TRS.SERVICE_DIRECT,TRS.GENERAL_MANAGER,
+	     		   TRS.FINANCIAL,TRS.FINANCIAL_STAFF,TRS.REMARK,TRS.STATE,TRS.SETTLE_DATE,U.ID CURRENT_USER_ID,U.NAME CURRENT_USER_NAME,
+	               CASE WHEN TRS.COMPUTE_SETTLE_DATE IS NULL
+	                    THEN '申请正常结清'
+	                    ELSE '申请提前结清'
+                   END DESCR,TRS.COMPUTE_SETTLE_DATE,TRS.ID,TRS.RECP_ID,C.DECP_NAME_CN,C.DECP_ID,
+	               ISNULL(TRS.SHOULD_FINE,0) SHOULD_FINE,ISNULL(SHOULD_FINE,0)-ISNULL(PAY_FINE,0) FINE,
+	               TRS.ACCOUNTANCY_STAFF,
+	               TRS.STATE_CODE,
+	               (TRS.SHOULD_OWN_PRICE+TRS.SHOULD_ACCRUAL_PRICE+TRS.SHOULD_ADDED_VALUE_TAX+TRS.SHOULD_FINE+TRS.SHOULD_LAW_FEE+TRS.SHOULD_STAY_FEE+TRS.SHOULD_OTHER_FEE) TOTAL_PRICE,
+	               (TRS.PAY_OWN_PRICE + TRS.PAY_ACCRUAL_PRICE + TRS.PAY_ADDED_VALUE_TAX + TRS.PAY_FINE + TRS.PAY_LAW_FEE + TRS.PAY_STAY_FEE + TRS.PAY_OTHER_FEE) TOTAL_PAY_PRICE
+	               <!-- 迁移数据传入Migration，不执行下边语句，add by yangliu -->
+	               <isEmpty property="Migration">
+	               		<isEmpty property="allAuth">
+	               			,0 IS_MY
+	               		</isEmpty>
+	               		<isNotEmpty property="allAuth">
+			               ,(CASE WHEN TRS.STATE_CODE IN
+						 	<iterate open="(" close=")" conjunction="," property="allAuth">
+						 		#allAuth[]#
+						 	</iterate> THEN 1 ELSE 0 END) IS_MY
+	               		</isNotEmpty>
+	               </isEmpty>
+	         FROM T_RENT_SETTLEMENT TRS
+		     LEFT JOIN T_RENT_COLLECTIONPLAN TRCN ON TRCN.STATUS=0 AND TRS.RECP_ID=TRCN.RECP_ID
+		     LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TRCN.RECT_ID=TRC.RECT_ID
+		     LEFT JOIN (SELECT T1.CUST_NAME,T1.CUST_ID
+	      		        FROM T_CUST_CUSTOMER T1 
+	          	       	WHERE CONVERT(DATETIME,T1.CREATE_TIME)=(SELECT CONVERT(DATETIME,MAX(T.CREATE_TIME))
+	               											 	FROM T_CUST_CUSTOMER T 
+	                											WHERE T.STATUS=0 
+		                   										AND T.CUST_NAME=T1.CUST_NAME 
+		              									        GROUP BY T.CUST_NAME)
+		      		    AND T1.STATUS=0) O ON O.CUST_ID=TRC.CUST_ID
+		     LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TRC.PRCD_ID=TPC.ID
+		     LEFT JOIN T_USER_USER TU1 ON TU1.ID=TPC.SENSOR_ID
+		     LEFT JOIN T_USER_USER U ON U.ID=TRS.CURRENT_USER_ID
+		     LEFT JOIN T_USER_USER TU2 ON TU2.ID=TU1.UPPER_USER
+			 LEFT JOIN T_DEPT_DEPARTMENT D ON TU1.DEPT_ID = D.ID
+			 LEFT JOIN T_DEPT_COMPANY C ON D.DECP_ID = C.DECP_ID
+		         WHERE TRS.STATUS=0 
+				<isNotEmpty prepend="and" property="companyCode">
+					TPC.company_code = #companyCode#
+				</isNotEmpty>
+		         <!-- AND CONVERT(DATETIME,TRS.MODIFY_TIME) &lt; CONVERT(DATETIME,'2014-4-14 12:05:00') -->
+		         <isEqual property="type" compareValue="1"><!-- 1是正常结清 -->
+		           AND TRS.COMPUTE_SETTLE_DATE IS NULL
+		         </isEqual>
+		         <isEqual property="type" compareValue="2"><!-- 2是提前结清 -->
+		           AND TRS.COMPUTE_SETTLE_DATE IS NOT NULL
+		         </isEqual>
+		         <isNotEmpty property="content">
+		           AND (TPC.CREDIT_RUNCODE LIKE '%$content$%' OR
+		           		TRC.LEASE_CODE LIKE '%$content$%' OR
+		           		O.CUST_NAME LIKE '%$content$%' OR
+		           		TU1.NAME LIKE '%$content$%' OR
+		           		TU2.NAME LIKE '%$content$%')
+		         </isNotEmpty>
+		         <isNotEqual property="state" compareValue="-2">
+		           AND TRS.STATE=#state#
+		         </isNotEqual>
+		         <isEqual property="p_usernode" compareValue="1">
+		  	 	   AND (TPC.SENSOR_ID=#s_employeeId# OR TPC.CLERK_ID=#s_employeeId#)
+			  	 </isEqual>
+				 <isEqual property="p_usernode" compareValue="2">
+				   AND EXISTS
+						(SELECT 1 
+					   		FROM T_USER_USER
+					  		WHERE DEPT_ID IN (SELECT UC.DEPT_ID FROM T_USER_USER2COMPANY UC
+										 		WHERE UC.USER_ID=#s_employeeId#)
+										   		AND ID=TPC.SENSOR_ID)
+				 </isEqual>
+				 <isEqual property="isMy" compareValue="1" prepend="and">
+				 	TRS.CURRENT_USER_ID = #s_employeeId#
+				 </isEqual>
+			 ) T
+ 			<dynamic prepend="where">
+				<isNotEmpty property="fromMoney" prepend="and">
+					ISNULL(T.TOTAL_PRICE-T.TOTAL_PAY_PRICE,0)>=#fromMoney#
+				</isNotEmpty>
+				<isNotEmpty property="toMoney" prepend="and">
+					ISNULL(T.TOTAL_PRICE-T.TOTAL_PAY_PRICE,0)&lt;#toMoney#
+				</isNotEmpty>
+			</dynamic>
+			
+	</select>
+	
+	<update id="approveOrRejectSettlement">
+		UPDATE T_RENT_SETTLEMENT SET 
+			MODIFY_BY=#s_employeeId#,
+			MODIFY_TIME=GETDATE(),
+			STATE_CODE=#stateCode#,
+			CURRENT_USER_ID=#newUserId#
+			<!-- $column$=#result#,
+	   	   	$column$_MODIFY_ID=#s_employeeId#,
+	   	   	$column$_MODIFY_TIME=GETDATE()
+		   	<isNotEmpty property="remark">
+		   	   ,REMARK=(ISNULL((SELECT REMARK FROM T_RENT_SETTLEMENT WHERE ID=#id#),'')+'<![CDATA[<br>]]>'+(SELECT NAME FROM T_USER_USER WHERE ID=#s_employeeId#)+'：'+#remark#+'   |审批时间：'+CONVERT(NVARCHAR,GETDATE(),120))
+		   </isNotEmpty> -->
+		   <isEqual property="result" compareValue="N"><!-- 如果驳回的话,需要更新结清单状态 -->
+		   	   ,STATE=-1
+		   </isEqual>
+		 WHERE ID=#id#
+	</update>
+	
+	<insert id="insertSettlementLog" parameterClass="com.brick.rent.to.SettlementLogTO">
+		INSERT INTO T_RENT_SETTLEMENT_LOG(SETTLEMENT_ID, STATE_CODE, OP_USER_ID, OP_TIME, OP_MSG, OP_STATE)
+		VALUES(#settlementId#, #stateCode#, #opUserId#, #opTime#, #opMsg#, #opState#)
+	</insert>
+	
+	<update id="updateSettlementState">
+		UPDATE T_RENT_SETTLEMENT SET STATE=1,SETTLE_DATE=GETDATE() WHERE ID=#id#
+	</update>
+	
+	<select id="getSettlementDetailById" resultClass="java.util.HashMap">
+		SELECT TRS.*,U.NAME,UC.NAME CURRENT_USER_NAME,UP.ID UP_ID,UP.NAME UP_NAME,UU.DEPARTMENT,
+			   (TRS.PAY_OWN_PRICE + TRS.PAY_ACCRUAL_PRICE
+			   + TRS.PAY_ADDED_VALUE_TAX + TRS.PAY_FINE 
+			   + TRS.PAY_BREAK_FEE + TRS.PAY_HARMFUL_FEE 
+			   + TRS.PAY_STAY_FEE + TRS.PAY_LAW_FEE
+			   + TRS.PAY_OTHER_FEE) TOTAL_PAY_PRICE
+		FROM T_RENT_SETTLEMENT TRS
+		LEFT JOIN T_USER_USER U ON U.ID = TRS.APPLY_USER_ID
+		LEFT JOIN T_USER_USER UC ON UC.ID = TRS.CURRENT_USER_ID
+		LEFT JOIN T_RENT_COLLECTIONPLAN P ON P.STATUS = 0 AND P.RECP_ID = TRS.RECP_ID
+		LEFT JOIN T_RENT_CONTRACT CR ON CR.STATUS = 0 AND CR.RECT_ID = P.RECT_ID
+		LEFT JOIN T_PRJT_CREDIT C ON C.STATUS = 0 AND C.ID = CR.PRCD_ID
+		LEFT JOIN T_USER_USER UU ON C.SENSOR_ID=UU.ID
+		LEFT JOIN T_USER_USER UP ON UP.ID = UU.UPPER_USER
+		  WHERE TRS.STATUS=0 AND TRS.ID=#id#
+	</select>
+	
+	<select id="getSettlementById" resultClass="com.brick.rent.to.SettlementTO">
+		SELECT 
+			TRS.ID id,
+			TRS.RECP_ID recpId,
+			TRS.STATE state,
+			TRS.MODIFY_BY modifyBy,
+			TRS.MODIFY_TIME modifyTime,
+			TRS.APPLY_REMARK applyRemark,
+			TRS.APPLY_USER_ID applyUserId,
+			TRS.APPLY_TIME applyTime,
+			TRS.STATE_CODE stateCode,
+			U.ID currentUserId,
+			U.NAME currentUserName,
+			U.DEPARTMENT department,
+			UP.ID upUserId,
+			UP.NAME upUserName,
+			(TRS.PAY_OWN_PRICE + TRS.PAY_ACCRUAL_PRICE
+			   	+ TRS.PAY_ADDED_VALUE_TAX + TRS.PAY_FINE 
+			   	+ TRS.PAY_STAY_FEE + TRS.PAY_LAW_FEE
+			   	+ TRS.PAY_OTHER_FEE) totalPayPrice,
+			(TRS.SHOULD_OWN_PRICE + TRS.SHOULD_ACCRUAL_PRICE
+				+TRS.SHOULD_ADDED_VALUE_TAX + TRS.SHOULD_FINE
+				+TRS.SHOULD_STAY_FEE + TRS.SHOULD_LAW_FEE
+				+TRS.SHOULD_OTHER_FEE) totalPrice
+		FROM T_RENT_SETTLEMENT TRS
+		LEFT JOIN T_RENT_COLLECTIONPLAN P ON P.STATUS = 0 AND P.RECP_ID = TRS.RECP_ID
+		LEFT JOIN T_RENT_CONTRACT CR ON CR.STATUS = 0 AND CR.RECT_ID = P.RECT_ID
+		LEFT JOIN T_PRJT_CREDIT C ON C.STATUS = 0 AND C.ID = CR.PRCD_ID
+		LEFT JOIN T_USER_USER U ON C.SENSOR_ID=U.ID
+	   	LEFT JOIN T_USER_USER UP ON U.UPPER_USER=UP.ID
+		WHERE TRS.STATUS=0 AND TRS.ID=#id#
+	</select>
+	
+	<select id="getSettlementDetailByIdForEmail" resultClass="java.util.HashMap">
+		      SELECT SUBSTRING(TRC.RECP_CODE,0,15) LEASE_CODE,TUU.EMAIL
+		        FROM T_RENT_SETTLEMENT T 
+		   LEFT JOIN T_USER_USER TUU ON T.CREATE_BY=TUU.ID
+		   LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TRC.STATUS=0 AND T.RECP_ID=TRC.RECP_ID
+		       WHERE T.ID=#id#
+	</select>
+	
+	<select id="getSettlementPayTotalPriceByRecpId" resultClass="java.lang.Double">
+		SELECT (PAY_OWN_PRICE+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+           		                        FROM T_RENT_DECOMPOSE TRDE 
+           		                       WHERE TRDE.STATUS=0
+           		                         AND TRDE.DECOMPOSE_STATUS=2
+           		                         AND TRDE.DECOMPOSE_TYPE=0
+                                    	 AND TRDE.HAS_RED_DECOMPOSE=0
+           		                      	 AND TRDE.RECP_ID=TRS.RECP_ID
+           		                      	 AND TRDE.BILL_CODE='SETTLEMENT_OWN_PRICE'),0)+
+				PAY_ACCRUAL_PRICE+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+               		                        FROM T_RENT_DECOMPOSE TRDE 
+               		                       WHERE TRDE.STATUS=0
+               		                         AND TRDE.DECOMPOSE_STATUS=2
+               		                         AND TRDE.DECOMPOSE_TYPE=0
+                                             AND TRDE.HAS_RED_DECOMPOSE=0
+               		                      	 AND TRDE.RECP_ID=TRS.RECP_ID
+               		                      	 AND TRDE.BILL_CODE='SETTLEMENT_REN_PRICE'),0)+
+				PAY_ADDED_VALUE_TAX+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+               		                          FROM T_RENT_DECOMPOSE TRDE 
+               		                       	 WHERE TRDE.STATUS=0
+             		                           AND TRDE.DECOMPOSE_STATUS=2
+               		                           AND TRDE.DECOMPOSE_TYPE=0
+                                               AND TRDE.HAS_RED_DECOMPOSE=0
+               		                      	   AND TRDE.RECP_ID=TRS.RECP_ID
+               		                      	   AND TRDE.BILL_CODE='SETTLEMENT_VALUE_ADD_TAX'),0)+
+				PAY_FINE+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+   		                           FROM T_RENT_DECOMPOSE TRDE 
+   		                       	  WHERE TRDE.STATUS=0
+ 		                            AND TRDE.DECOMPOSE_STATUS=2
+   		                            AND TRDE.DECOMPOSE_TYPE=0
+                                    AND TRDE.HAS_RED_DECOMPOSE=0
+   		                      	    AND TRDE.RECP_ID=TRS.RECP_ID
+   		                      	    AND TRDE.BILL_CODE='SETTLEMENT_RENT_FINE'),0)+
+				PAY_BREAK_FEE+
+				PAY_HARMFUL_FEE+
+				PAY_STAY_FEE+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+       		                           FROM T_RENT_DECOMPOSE TRDE 
+       		                       	  WHERE TRDE.STATUS=0
+     		                            AND TRDE.DECOMPOSE_STATUS=2
+       		                            AND TRDE.DECOMPOSE_TYPE=0
+                                        AND TRDE.HAS_RED_DECOMPOSE=0
+       		                      	    AND TRDE.RECP_ID=TRS.RECP_ID
+       		                      	    AND TRDE.BILL_CODE='SETTLEMENT_STAY_PRICE'),0)+
+				PAY_LAW_FEE+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+       		                          FROM T_RENT_DECOMPOSE TRDE 
+       		                       	 WHERE TRDE.STATUS=0
+     		                           AND TRDE.DECOMPOSE_STATUS=2
+       		                           AND TRDE.DECOMPOSE_TYPE=0
+                                       AND TRDE.HAS_RED_DECOMPOSE=0
+       		                      	   AND TRDE.RECP_ID=TRS.RECP_ID
+       		                      	   AND TRDE.BILL_CODE='SETTLEMENT_LAW_FEE'),0)+
+				PAY_OTHER_FEE+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+       		                          	FROM T_RENT_DECOMPOSE TRDE 
+     		                       	   WHERE TRDE.STATUS=0
+     		                           	 AND TRDE.DECOMPOSE_STATUS=2
+       		                             AND TRDE.DECOMPOSE_TYPE=0
+                                         AND TRDE.HAS_RED_DECOMPOSE=0
+       		                      	     AND TRDE.RECP_ID=TRS.RECP_ID
+       		                      	     AND TRDE.BILL_CODE='SETTLEMENT_OTHER_FEE'),0)) TOTAL_PAY_PRICE
+		  FROM T_RENT_SETTLEMENT TRS 
+		 WHERE TRS.STATUS=0 
+		   AND TRS.RECP_ID=#recpId#
+		   AND TRS.STATE=1
+	</select>
+	
+	<select id="getSettlementDetailByRecpId" resultClass="java.util.HashMap">
+	SELECT TRS.RECP_ID,TRS.SETTLE_DATE,(SELECT SUBSTRING(RECP_CODE,1,14) FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=TRS.RECP_ID) LEASE_CODE,
+		   (SELECT FLAG FROM T_DATA_DICTIONARY WHERE CODE='SETTLEMENT_OWN_PRICE' AND STATUS=0) DESCR,
+		   (SELECT RECP_CODE FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=TRS.RECP_ID) RECP_CODE,
+           TRS.PAY_OWN_PRICE+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+           		                       FROM T_RENT_DECOMPOSE TRDE 
+           		                      WHERE TRDE.STATUS=0
+           		                        AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+           		                        AND TRDE.DECOMPOSE_TYPE=0
+                                    	AND TRDE.HAS_RED_DECOMPOSE=0
+           		                      	AND TRDE.RECP_ID=TRS.RECP_ID
+           		                      	AND TRDE.BILL_CODE='SETTLEMENT_OWN_PRICE'),0) SHOULD_PRICE,'SETTLEMENT_OWN_PRICE' BILL_CODE,
+           ISNULL((SELECT DISTINCT 'Y' 
+                    FROM T_RENT_DECOMPOSE T 
+	               WHERE T.STATUS=0 
+	                 AND T.RECP_ID=TRS.RECP_ID 
+	                 AND T.PERIOD_NUM=0
+                     AND T.BILL_CODE='SETTLEMENT_OWN_PRICE'
+	                 AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK
+	  FROM T_RENT_SETTLEMENT TRS
+	 WHERE TRS.STATUS=0
+	   AND TRS.RECP_ID=#recpId#
+	   AND TRS.STATE=1               
+           		                      	UNION ALL
+    SELECT TRS.RECP_ID,TRS.SETTLE_DATE,(SELECT SUBSTRING(RECP_CODE,1,14) FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=TRS.RECP_ID) LEASE_CODE,
+    	   (SELECT FLAG FROM T_DATA_DICTIONARY WHERE CODE='SETTLEMENT_REN_PRICE' AND STATUS=0) DESCR,
+		   (SELECT RECP_CODE FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=TRS.RECP_ID) RECP_CODE,
+           TRS.PAY_ACCRUAL_PRICE+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+               		                       FROM T_RENT_DECOMPOSE TRDE 
+               		                      WHERE TRDE.STATUS=0
+               		                        AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+               		                        AND TRDE.DECOMPOSE_TYPE=0
+                                            AND TRDE.HAS_RED_DECOMPOSE=0
+               		                      	AND TRDE.RECP_ID=TRS.RECP_ID
+               		                      	AND TRDE.BILL_CODE='SETTLEMENT_REN_PRICE'),0) SHOULD_PRICE,'SETTLEMENT_REN_PRICE' BILL_CODE,
+		   ISNULL((SELECT DISTINCT 'Y' 
+                    FROM T_RENT_DECOMPOSE T 
+	               WHERE T.STATUS=0 
+	                 AND T.RECP_ID=TRS.RECP_ID 
+	                 AND T.PERIOD_NUM=0
+                     AND T.BILL_CODE='SETTLEMENT_REN_PRICE'
+	                 AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK
+	  FROM T_RENT_SETTLEMENT TRS
+	 WHERE TRS.STATUS=0
+	   AND TRS.RECP_ID=#recpId#
+	   AND TRS.STATE=1               
+	                     		  		UNION ALL                 	
+    SELECT TRS.RECP_ID,TRS.SETTLE_DATE,(SELECT SUBSTRING(RECP_CODE,1,14) FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=TRS.RECP_ID) LEASE_CODE,
+    	   (SELECT FLAG FROM T_DATA_DICTIONARY WHERE CODE='SETTLEMENT_VALUE_ADD_TAX' AND STATUS=0) DESCR,
+		   (SELECT RECP_CODE FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=TRS.RECP_ID) RECP_CODE,
+   		   TRS.PAY_ADDED_VALUE_TAX+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+                     		                 FROM T_RENT_DECOMPOSE TRDE 
+                     		                WHERE TRDE.STATUS=0
+                     		                  AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+                     		                  AND TRDE.DECOMPOSE_TYPE=0
+                                              AND TRDE.HAS_RED_DECOMPOSE=0
+                     		                  AND TRDE.RECP_ID=TRS.RECP_ID
+                     		                  AND TRDE.BILL_CODE='SETTLEMENT_VALUE_ADD_TAX'),0) SHOULD_PRICE,'SETTLEMENT_VALUE_ADD_TAX' BILL_CODE,
+		   ISNULL((SELECT DISTINCT 'Y' 
+                    FROM T_RENT_DECOMPOSE T 
+	               WHERE T.STATUS=0 
+	                 AND T.RECP_ID=TRS.RECP_ID 
+	                 AND T.PERIOD_NUM=0
+                     AND T.BILL_CODE='SETTLEMENT_VALUE_ADD_TAX'
+	                 AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK
+	  FROM T_RENT_SETTLEMENT TRS
+	 WHERE TRS.STATUS=0
+	   AND TRS.RECP_ID=#recpId#
+	   AND TRS.STATE=1
+	   
+	   									UNION ALL
+    SELECT TRS.RECP_ID,TRS.SETTLE_DATE,(SELECT SUBSTRING(RECP_CODE,1,14) FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=TRS.RECP_ID) LEASE_CODE,
+           (SELECT FLAG FROM T_DATA_DICTIONARY WHERE CODE='SETTLEMENT_RENT_FINE' AND STATUS=0) DESCR,
+		   (SELECT RECP_CODE FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=TRS.RECP_ID) RECP_CODE,                           		                  
+           TRS.PAY_FINE+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+         		                  FROM T_RENT_DECOMPOSE TRDE 
+         		                 WHERE TRDE.STATUS=0
+         		                   AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+         		                   AND TRDE.DECOMPOSE_TYPE=0
+                                   AND TRDE.HAS_RED_DECOMPOSE=0
+         		                   AND TRDE.RECP_ID=TRS.RECP_ID
+         		                   AND TRDE.BILL_CODE='SETTLEMENT_RENT_FINE'),0) SHOULD_PRICE,'SETTLEMENT_RENT_FINE' BILL_CODE,
+		   ISNULL((SELECT DISTINCT 'Y' 
+                    FROM T_RENT_DECOMPOSE T 
+	               WHERE T.STATUS=0 
+	                 AND T.RECP_ID=TRS.RECP_ID 
+	                 AND T.PERIOD_NUM=0
+                     AND T.BILL_CODE='SETTLEMENT_RENT_FINE'
+	                 AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK
+	  FROM T_RENT_SETTLEMENT TRS
+	 WHERE TRS.STATUS=0
+	   AND TRS.RECP_ID=#recpId#
+	   AND TRS.STATE=1
+	   
+	   									UNION ALL
+    SELECT TRS.RECP_ID,TRS.SETTLE_DATE,(SELECT SUBSTRING(RECP_CODE,1,14) FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=TRS.RECP_ID) LEASE_CODE,
+           (SELECT FLAG FROM T_DATA_DICTIONARY WHERE CODE='SETTLEMENT_STAY_PRICE' AND STATUS=0) DESCR,
+		   (SELECT RECP_CODE FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=TRS.RECP_ID) RECP_CODE,      
+           TRS.PAY_STAY_FEE+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+             		                  FROM T_RENT_DECOMPOSE TRDE 
+             		                 WHERE TRDE.STATUS=0
+             		                   AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+             		                   AND TRDE.DECOMPOSE_TYPE=0
+                                       AND TRDE.HAS_RED_DECOMPOSE=0
+             		                   AND TRDE.RECP_ID=TRS.RECP_ID
+             		                   AND TRDE.BILL_CODE='SETTLEMENT_STAY_PRICE'),0) SHOULD_PRICE,'SETTLEMENT_STAY_PRICE' BILL_CODE,
+		   ISNULL((SELECT DISTINCT 'Y' 
+                    FROM T_RENT_DECOMPOSE T 
+	               WHERE T.STATUS=0 
+	                 AND T.RECP_ID=TRS.RECP_ID 
+	                 AND T.PERIOD_NUM=0
+                     AND T.BILL_CODE='SETTLEMENT_STAY_PRICE'
+	                 AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK
+	  FROM T_RENT_SETTLEMENT TRS
+	 WHERE TRS.STATUS=0
+	   AND TRS.RECP_ID=#recpId#
+	   AND TRS.STATE=1  
+	   									UNION ALL		                   
+    SELECT TRS.RECP_ID,TRS.SETTLE_DATE,(SELECT SUBSTRING(RECP_CODE,1,14) FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=TRS.RECP_ID) LEASE_CODE,
+    	   (SELECT FLAG FROM T_DATA_DICTIONARY WHERE CODE='SETTLEMENT_LAW_FEE' AND STATUS=0) DESCR,
+		   (SELECT RECP_CODE FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=TRS.RECP_ID) RECP_CODE,          		                   
+           TRS.PAY_LAW_FEE+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+             		                 FROM T_RENT_DECOMPOSE TRDE 
+             		                WHERE TRDE.STATUS=0
+             		                  AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+             		                  AND TRDE.DECOMPOSE_TYPE=0
+                                      AND TRDE.HAS_RED_DECOMPOSE=0
+             		                  AND TRDE.RECP_ID=TRS.RECP_ID
+             		                  AND TRDE.BILL_CODE='SETTLEMENT_LAW_FEE'),0) SHOULD_PRICE,'SETTLEMENT_LAW_FEE' BILL_CODE,
+		   ISNULL((SELECT DISTINCT 'Y' 
+                    FROM T_RENT_DECOMPOSE T 
+	               WHERE T.STATUS=0 
+	                 AND T.RECP_ID=TRS.RECP_ID 
+	                 AND T.PERIOD_NUM=0
+                     AND T.BILL_CODE='SETTLEMENT_LAW_FEE'
+	                 AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK
+	  FROM T_RENT_SETTLEMENT TRS
+	 WHERE TRS.STATUS=0
+	   AND TRS.RECP_ID=#recpId#
+	   AND TRS.STATE=1  
+	   									UNION ALL 		                  
+    SELECT TRS.RECP_ID,TRS.SETTLE_DATE,(SELECT SUBSTRING(RECP_CODE,1,14) FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=TRS.RECP_ID) LEASE_CODE,
+    	   (SELECT FLAG FROM T_DATA_DICTIONARY WHERE CODE='SETTLEMENT_OTHER_FEE' AND STATUS=0) DESCR,
+		   (SELECT RECP_CODE FROM T_RENT_COLLECTIONPLAN WHERE RECP_ID=TRS.RECP_ID) RECP_CODE,   		                  
+           TRS.PAY_OTHER_FEE+ISNULL((SELECT SUM(TRDE.DECOMPOSE_PRICE)
+               		                   FROM T_RENT_DECOMPOSE TRDE 
+               		                  WHERE TRDE.STATUS=0
+               		                    AND (TRDE.DECOMPOSE_STATUS=0 OR TRDE.DECOMPOSE_STATUS=1 OR TRDE.DECOMPOSE_STATUS=2)
+               		                    AND TRDE.DECOMPOSE_TYPE=0
+                                        AND TRDE.HAS_RED_DECOMPOSE=0
+               		                    AND TRDE.RECP_ID=TRS.RECP_ID
+               		                    AND TRDE.BILL_CODE='SETTLEMENT_OTHER_FEE'),0) SHOULD_PRICE,'SETTLEMENT_OTHER_FEE' BILL_CODE,
+           ISNULL((SELECT DISTINCT 'Y' 
+                    FROM T_RENT_DECOMPOSE T 
+	               WHERE T.STATUS=0 
+	                 AND T.RECP_ID=TRS.RECP_ID 
+	                 AND T.PERIOD_NUM=0
+                     AND T.BILL_CODE='SETTLEMENT_OTHER_FEE'
+	                 AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1)),'N') IS_LOCK
+	  FROM T_RENT_SETTLEMENT TRS
+	 WHERE TRS.STATUS=0
+	   AND TRS.RECP_ID=#recpId#
+	   AND TRS.STATE=1     		                    
+	</select>
+	
+	<update id="updatePayDetailTableByRecpId">
+		UPDATE T_RENT_COLLECTIONPLAN SET RECP_STATUS=1,FUND_STATUS=1 WHERE RECP_ID=#RECP_ID# AND STATUS=0
+	</update>
+	
+	<update id="updateSettleDateByRecpId">
+		UPDATE T_RENT_COLLECTIONPLAN SET SETTLE_DATE=GETDATE() WHERE RECP_ID=#RECP_ID# AND STATUS=0
+	</update>
+	
+	<select id="checkCanBeAutoDecompose" resultClass="java.lang.Integer"> <!-- 检查是否能自动分解,如果租金分解表中有提交中或者提交财务待确认的数据,就不给自动分解 -->
+		    SELECT COUNT(BILL_ID) 
+		      FROM T_RENT_DECOMPOSE 
+		     WHERE STATUS=0 AND (DECOMPOSE_STATUS=0 OR DECOMPOSE_STATUS=1)
+		       AND (BILL_CODE='RENT' OR BILL_CODE='VALUE_ADD_TAX')
+	</select>
+	
+	<select id="getEmailByRecpId" resultClass="java.lang.String">
+	      SELECT T.EMAIL
+	        FROM T_RENT_COLLECTIONPLAN TRCN
+	   LEFT JOIN T_RENT_CONTRACT TRC ON TRCN.RECT_ID=TRC.RECT_ID
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TRC.PRCD_ID=TPC.ID
+	   LEFT JOIN T_USER_USER T ON TPC.SENSOR_ID=T.ID
+	       WHERE TRCN.STATUS=0
+	         AND TRC.STATUS=0
+	         AND TRC.STATUS=0
+	         AND TRCN.RECP_ID=#RECP_ID#
+	</select>
+	
+	<select id="getCustInfo" resultClass="java.util.HashMap">
+			SELECT DISTINCT RECT.RECT_ID,RECT.CUST_NAME,
+		                (CASE WHEN RECT.CUST_TYPE=1 
+                          THEN '法人'
+			                    ELSE '自然人'
+			                     END) CUST_TYPE,
+		                (CASE WHEN RECT.CUST_TYPE=1 
+                          THEN '组织机构代码证'
+			                    ELSE '身份证号'
+			                     END) TYPE_NAME,
+		                (CASE WHEN RECT.CUST_TYPE=1 
+                          THEN RECT.CORP_ORAGNIZATION_CODE
+		                      ELSE RECT.NATU_IDCARD
+		                       END) TYPE_NO,
+		                TA.NAME ADD_NAME,RECT.CUST_CODE,
+		                RECT.CUST_NAME+'_'+(CASE WHEN RECT.CUST_TYPE=1 
+                                             THEN '法人'
+	                                           ELSE '自然人'
+		                                          END)+'_'+(CASE WHEN RECT.CUST_TYPE=1 
+                                                             THEN RECT.CORP_ORAGNIZATION_CODE
+		                                                         ELSE RECT.NATU_IDCARD
+		                                                          END)+'_'+TA.NAME CUSTINFO
+		                
+			  FROM T_RENT_CONTRACT RECT
+		 LEFT JOIN T_AREA TA ON RECT.PROVINCE_ID=TA.ID
+		 LEFT JOIN T_RENT_COLLECTIONPLAN RECP ON RECT.RECT_ID=RECP.RECT_ID
+		     WHERE RECP.RECP_ID IS NOT NULL
+		       AND RECP.STATUS=0 
+		       AND RECP.RECP_STATUS=0
+		       AND NOT EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT T WHERE T.RECP_ID=RECP.RECP_ID AND T.STATUS=0 AND (T.STATE=1 OR T.STATE=0))
+		  ORDER BY RECT.RECT_ID DESC
+	</select>
+	
+	<select id="getSettlementCustInfo" resultClass="java.util.HashMap">
+		    SELECT DISTINCT RECT.RECT_ID,RECT.CUST_NAME,RECP.RECP_ID,
+		                (CASE WHEN RECT.CUST_TYPE=1 
+                          THEN '法人'
+			                    ELSE '自然人'
+			                     END) CUST_TYPE,
+		                (CASE WHEN RECT.CUST_TYPE=1 
+                          THEN '组织机构代码证'
+			                    ELSE '身份证号'
+			                     END) TYPE_NAME,
+		                (CASE WHEN RECT.CUST_TYPE=1 
+                          THEN RECT.CORP_ORAGNIZATION_CODE
+		                      ELSE RECT.NATU_IDCARD
+		                       END) TYPE_NO,
+		                TA.NAME ADD_NAME,RECT.CUST_CODE,
+		                RECT.CUST_NAME+'_'+(CASE WHEN RECT.CUST_TYPE=1 
+                                             THEN '法人'
+	                                           ELSE '自然人'
+		                                          END)+'_'+(CASE WHEN RECT.CUST_TYPE=1 
+                                                             THEN RECT.CORP_ORAGNIZATION_CODE
+		                                                         ELSE RECT.NATU_IDCARD
+		                                                          END)+'_'+TA.NAME CUSTINFO
+		                
+			  FROM T_RENT_CONTRACT RECT
+		 LEFT JOIN T_AREA TA ON RECT.PROVINCE_ID=TA.ID
+		 LEFT JOIN T_RENT_COLLECTIONPLAN RECP ON RECT.RECT_ID=RECP.RECT_ID
+		     WHERE RECP.RECP_ID IS NOT NULL
+		       AND RECP.STATUS=0 
+		       AND RECP.RECP_STATUS=0
+		       AND EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT T WHERE T.RECP_ID=RECP.RECP_ID AND T.STATUS=0 AND T.STATE=1)
+		  ORDER BY RECT.RECT_ID DESC
+	</select>
+	
+	<!-- 获得保证金B,C红冲数据 -->
+	<select id="getDepositBCList" resultClass="java.util.HashMap">
+	     SELECT CONVERT(DATE,TRI.INCOME_DATE) INCOME_DATE,TRI.INCOME_NAME,TRI.INCOME_MONEY,TCC.CUST_NAME,T1.NAME DECOMPOSE_NAME,
+         		TRCT.LEASE_CODE,TPC.CREDIT_RUNCODE,-TRD.DECOMPOSE_PRICE DECOMPOSE_PRICE,TRD.DECOMPOSE_TIME,TRD.HAS_RED_DECOMPOSE,
+         		(SELECT FLAG FROM T_DATA_DICTIONARY WHERE CODE=TRD.BILL_CODE) DESCR,T2.NAME AUDIT_NAME,TRD.BILL_ID,TRD.BILL_CODE,
+         		PLEDGE_LAST_PRICE,PLEDGE_LAST_PERIOD,TRD.RECP_ID
+   		   FROM T_RENT_DECOMPOSE TRD
+   	  LEFT JOIN	T_RENT_COLLECTIONPLAN TRC ON TRC.STATUS=0 AND TRD.RECP_ID=TRC.RECP_ID      
+      LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.STATUS=0 AND TRC.RECT_ID=TRCT.RECT_ID
+      LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TRCT.CUST_ID=TCC.CUST_ID
+      LEFT JOIN T_RENT_INCOME TRI ON TRI.STATUS=0 AND TRD.INCOME_ID=TRI.INCOME_ID
+      LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TPC.ID=TRCT.PRCD_ID
+      LEFT JOIN T_USER_USER T1 ON T1.ID=TRD.DECOMPOSE_ID
+      LEFT JOIN T_USER_USER T2 ON T2.ID=TRD.AUDIT_ID
+   		  WHERE TRD.STATUS=0
+   		    AND TRD.DECOMPOSE_STATUS=2
+   		    AND TRD.DECOMPOSE_TYPE=0
+   		    AND (TRD.BILL_CODE='DEPOSIT_B' OR TRD.BILL_CODE='DEPOSIT_C')
+   		<isNotEmpty property="content">
+   			AND (TRI.INCOME_NAME LIKE '%$content$%' OR
+   				 TCC.CUST_NAME LIKE '%$content$%' OR
+   				 TRCT.LEASE_CODE LIKE '%$content$%' OR
+   				 TPC.CREDIT_RUNCODE LIKE '%$content$%' OR
+   				 T1.NAME LIKE '%$content$%' OR
+   				 T2.NAME LIKE '%$content$%')
+   		</isNotEmpty>
+   		<isNotEmpty property="fromDate">
+   			AND CONVERT(DATE,TRI.INCOME_DATE)>=CONVERT(DATE,#fromDate#)
+   		</isNotEmpty>
+   		<isNotEmpty property="toDate">
+   			AND CONVERT(DATE,TRI.INCOME_DATE)&lt;=CONVERT(DATE,#toDate#)
+   		</isNotEmpty>
+   		<isNotEmpty property="dFromDate">
+   			AND CONVERT(DATE,TRD.DECOMPOSE_TIME)>=CONVERT(DATE,#dFromDate#)
+   		</isNotEmpty>
+   		<isNotEmpty property="dToDate">
+   			AND CONVERT(DATE,TRD.DECOMPOSE_TIME)&lt;=CONVERT(DATE,#dToDate#)
+   		</isNotEmpty>
+   		<isNotEmpty property="fromMoney">
+   			AND -TRD.DECOMPOSE_PRICE>=#fromMoney#
+   		</isNotEmpty>
+   		<isNotEmpty property="toMoney">
+   			AND -TRD.DECOMPOSE_PRICE&lt;=#toMoney#
+   		</isNotEmpty>
+	</select>
+	
+	<select id="getLastDepositB" resultClass="java.util.HashMap">
+		SELECT PLEDGE_LAST_PRICE,PLEDGE_LAST_PERIOD FROM T_RENT_COLLECTIONPLAN WHERE STATUS=0 AND RECP_ID=#recp_id#
+	</select>
+	
+	<select id="getDepositBRedList" resultClass="java.util.HashMap">
+			 SELECT DECOMPOSE_PRICE+ISNULL((SELECT SUM(-T.DECOMPOSE_PRICE) FROM T_RENT_DECOMPOSE T 
+	                                         WHERE T.STATUS=0
+	                                           AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1 OR T.DECOMPOSE_STATUS=2)
+	                                           AND T.DECOMPOSE_TYPE=1
+	                                           AND T.BILL_CODE=O.BILL_CODE 
+	                                           AND T.RECP_ID=O.RECP_ID
+	                                           AND T.PERIOD_NUM=O.PERIOD_NUM),0) DECOMPOSE_PRICE,O.RECP_ID,O.PAY_DATE,O.LEASE_CODE,
+	                O.DESCR,O.BILL_CODE,O.INCOME_NAME,O.BILL_ID,O.INCOME_ID,O.INCOME_ACCOUNT,O.INCOME_NAME_TRUE,O.INCOME_NAME_TRUE,O.PERIOD_NUM,O.INCOME_DATE                            
+			   FROM (SELECT SUM(-TRD.DECOMPOSE_PRICE) DECOMPOSE_PRICE,TRD.RECP_ID,CONVERT(DATE,TRD.PAY_DATE) PAY_DATE,
+			 		  		 (SELECT FLAG FROM T_DATA_DICTIONARY WHERE CODE=TRD.BILL_CODE) DESCR,TRD.BILL_CODE,
+			 		  		 TRI.INCOME_NAME,TRD.BILL_ID,TRI.INCOME_ID,
+				             TRI.INCOME_ACCOUNT,TCC.CUST_NAME INCOME_NAME_TRUE,
+				             TRCT.LEASE_CODE,TRD.PERIOD_NUM,CONVERT(DATE,TRI.INCOME_DATE) INCOME_DATE
+			            FROM T_RENT_DECOMPOSE TRD
+			       LEFT JOIN T_RENT_INCOME TRI ON TRI.INCOME_ID=TRD.INCOME_ID AND TRI.STATUS=0
+				   LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TRC.RECP_ID=TRD.RECP_ID AND TRC.STATUS=0
+				   LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.RECT_ID=TRC.RECT_ID AND TRCT.STATUS=0
+				   LEFT JOIN T_CUST_CUSTOMER TCC ON TRCT.CUST_ID=TCC.CUST_ID AND TCC.STATUS=0
+			           WHERE TRD.HAS_RED_DECOMPOSE=0 <!-- 未进行冲红过的数据 -->
+			           	 AND TRD.STATUS=0
+			             AND TRD.INCOME_ID=#incomeId#
+			             AND TRD.PERIOD_NUM=#periodNum# 
+			             AND TRD.RECP_ID=#recpId#
+			             AND TRD.BILL_CODE='DEPOSIT_B'
+			        GROUP BY TRD.RECP_ID,CONVERT(DATE,TRD.PAY_DATE),TRD.BILL_CODE,TRI.INCOME_NAME,TRD.BILL_ID,TRI.INCOME_ID,
+				             TRI.INCOME_ACCOUNT,TCC.CUST_NAME,TRCT.LEASE_CODE,TRD.PERIOD_NUM,CONVERT(DATE,TRI.INCOME_DATE)) O
+			  WHERE DECOMPOSE_PRICE+ISNULL((SELECT SUM(-T.DECOMPOSE_PRICE) FROM T_RENT_DECOMPOSE T 
+	                                         WHERE T.STATUS=0
+	                                           AND (T.DECOMPOSE_STATUS=0 OR T.DECOMPOSE_STATUS=1 OR T.DECOMPOSE_STATUS=2)
+	                                           AND T.DECOMPOSE_TYPE=1
+	                                           AND T.BILL_CODE=O.BILL_CODE 
+	                                           AND T.RECP_ID=O.RECP_ID
+	                                           AND T.PERIOD_NUM=O.PERIOD_NUM),0)>0
+	</select>
+	
+	<select id="getPrincipalList" resultClass="java.util.HashMap">
+	      SELECT TRCN.RECP_ID,TCC.CUST_NAME,TRC.LEASE_CODE,ISNULL(O.IS_PRINT,0) IS_PRINT,TRCL.INVOICE_CODE,O.DECOMPOSE_TYPE,O.BILL_ID,
+	             O.PRINCIPAL_CODE,ISNULL(O.PRINCIPAL,0) PRINCIPAL,O.PERIOD_NUM,O.PRINCIPAL_CREATE_TIME,
+	             TRCL.IRR_MONTH_PRICE-TRCL.REN_PRICE PRINCIPAL_CALCULATE
+	        FROM T_RENT_COLLECTIONPLAN TRCN 
+	   LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TRCN.RECT_ID=TRC.RECT_ID
+	   left join t_prjt_credit tpc on tpc.id = TRC.prcd_id and tpc.status = 0
+	   LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TRC.CUST_ID=TCC.CUST_ID
+	   LEFT JOIN (SELECT T1.PERIOD_NUM,T1.RECP_ID,T1.DECOMPOSE_TYPE,T1.BILL_ID,
+	                     T1.PRINCIPAL_CODE,T1.PRINCIPAL,T1.IS_PRINT,CONVERT(DATE,T1.PRINCIPAL_CREATE_TIME) PRINCIPAL_CREATE_TIME
+	                FROM T_RENT_DECOMPOSE T1
+	               WHERE T1.STATUS=0 
+	                 AND T1.DECOMPOSE_STATUS=2
+	                 AND T1.DECOMPOSE_TYPE=0
+	                 AND T1.BILL_CODE='RENT'
+	                 AND T1.HAS_RED_DECOMPOSE=0
+	                 AND EXISTS (SELECT 1 
+	                               FROM T_RENT_DECOMPOSE T2 
+	                              WHERE T2.STATUS=0
+	                                AND T2.DECOMPOSE_TYPE=0
+	                                AND T2.DECOMPOSE_STATUS=2
+	                                AND T2.HAS_RED_DECOMPOSE=0
+	                                AND T2.BILL_CODE='RENT'
+	                           GROUP BY T2.RECP_ID,T2.PERIOD_NUM
+	                             HAVING T1.BILL_ID=MAX(T2.BILL_ID))
+	                 ) O ON TRCN.RECP_ID=O.RECP_ID
+	   LEFT JOIN T_RENT_COLLECTIONDETAIL TRCL ON TRCL.STATUS=0 AND O.RECP_ID=TRCL.RECP_ID AND O.PERIOD_NUM=TRCL.PERIOD_NUM                
+	       WHERE TRCN.STATUS=0 
+	         AND (TRCN.TAX_PLAN_CODE=2 OR TRCN.TAX_PLAN_CODE=3)  
+           	 AND TRCL.IRR_MONTH_PRICE+ISNULL(TRCL.VALUE_ADDED_TAX,0)=TRCL.REDUCE_OWN_PRICE <!-- 租金完整销完 -->
+       <isNotEmpty prepend="and" property="companyCode">
+			tpc.company_code = #companyCode#
+		</isNotEmpty>
+
+       <isNotEmpty property="content">
+       		 AND (TCC.CUST_NAME LIKE '%$content$%' OR
+       		 	  TRC.LEASE_CODE LIKE '%$content$%' OR
+       		 	  TRCL.INVOICE_CODE LIKE '%$content$%' OR
+       		 	  O.PRINCIPAL_CODE LIKE '%$content$%')
+       </isNotEmpty>
+       <isNotEmpty property="fromDate">
+       		 AND DATEDIFF(DAY,O.PRINCIPAL_CREATE_TIME,#fromDate#)&lt;=0
+   	   </isNotEmpty>
+   	   <isNotEmpty property="toDate">
+   	   	     AND DATEDIFF(DAY,O.PRINCIPAL_CREATE_TIME,#toDate#)>=0
+   	   </isNotEmpty>
+		<isNotEmpty property="fromMoney">
+   			 AND ISNULL(O.PRINCIPAL,0)>=#fromMoney#
+   		</isNotEmpty>
+   		<isNotEmpty property="toMoney">
+   			 AND ISNULL(O.PRINCIPAL,0)&lt;=#toMoney#
+   		</isNotEmpty>
+   		<isNotEqual property="isPrint" compareValue="-1">
+   			<isNotEqual property="isPrint" compareValue="-2">
+   			 AND ISNULL(O.IS_PRINT,0)=#isPrint#
+   			 AND LEN(TRCL.INVOICE_CODE)>0
+   			</isNotEqual>
+   			<isEqual property="isPrint" compareValue="-2">
+   			 AND (LEN(TRCL.INVOICE_CODE)&lt;1 OR TRCL.INVOICE_CODE IS NULL)
+   			</isEqual>
+   		</isNotEqual>
+	</select>
+	
+	<select id="getNullPrincipalList" resultClass="java.util.HashMap">
+		  SELECT TRCN.RECP_ID,TCC.CUST_NAME,TRC.LEASE_CODE,ISNULL(O.IS_PRINT,0) IS_PRINT,TRCL.INVOICE_CODE,O.DECOMPOSE_TYPE,O.BILL_ID,
+	             O.PRINCIPAL_CODE,ISNULL(O.PRINCIPAL,0) PRINCIPAL,O.PERIOD_NUM,O.PRINCIPAL_CREATE_TIME,
+	             TRCL.IRR_MONTH_PRICE-TRCL.REN_PRICE PRINCIPAL_CALCULATE
+	        FROM T_RENT_COLLECTIONPLAN TRCN 
+	   LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TRCN.RECT_ID=TRC.RECT_ID
+	   LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TRC.CUST_ID=TCC.CUST_ID
+	   LEFT JOIN (SELECT T1.PERIOD_NUM,T1.RECP_ID,T1.DECOMPOSE_TYPE,T1.BILL_ID,
+	                     T1.PRINCIPAL_CODE,T1.PRINCIPAL,T1.IS_PRINT,CONVERT(DATE,T1.PRINCIPAL_CREATE_TIME) PRINCIPAL_CREATE_TIME
+	                FROM T_RENT_DECOMPOSE T1
+	               WHERE T1.STATUS=0 
+	                 AND T1.DECOMPOSE_STATUS=2
+	                 AND T1.DECOMPOSE_TYPE=0
+	                 AND T1.BILL_CODE='RENT'
+	                 AND T1.HAS_RED_DECOMPOSE=0
+	                 AND EXISTS (SELECT 1 
+	                               FROM T_RENT_DECOMPOSE T2 
+	                              WHERE T2.STATUS=0
+	                                AND T2.DECOMPOSE_TYPE=0
+	                                AND T2.DECOMPOSE_STATUS=2
+	                                AND T2.HAS_RED_DECOMPOSE=0
+	                                AND T2.BILL_CODE='RENT'
+	                           GROUP BY T2.RECP_ID,T2.PERIOD_NUM
+	                             HAVING T1.BILL_ID=MAX(T2.BILL_ID))
+	                 ) O ON TRCN.RECP_ID=O.RECP_ID
+	   LEFT JOIN T_RENT_COLLECTIONDETAIL TRCL ON TRCL.STATUS=0 AND O.RECP_ID=TRCL.RECP_ID AND O.PERIOD_NUM=TRCL.PERIOD_NUM                
+	       WHERE TRCN.STATUS=0 
+	         AND (TRCN.TAX_PLAN_CODE=2 OR TRCN.TAX_PLAN_CODE=3)  
+           	 AND TRCL.IRR_MONTH_PRICE+ISNULL(TRCL.VALUE_ADDED_TAX,0)=TRCL.REDUCE_OWN_PRICE <!-- 租金完整销完 -->
+           	 AND (O.PRINCIPAL_CODE IS NULL OR O.PRINCIPAL_CODE='')
+	</select>
+	
+	<update id="updateNullPrincipalByBillIdPeriodNumRecpId">
+		UPDATE T_RENT_DECOMPOSE SET PRINCIPAL_CODE=#PRINCIPAL_CODE#,PRINCIPAL=#PRINCIPAL_CALCULATE#,IS_PRINT=0,PRINCIPAL_CREATE_TIME=GETDATE()
+		 WHERE BILL_ID=(SELECT TOP 1 BILL_ID 
+				          FROM T_RENT_DECOMPOSE 
+				         WHERE STATUS=0 
+				           AND BILL_ID BETWEEN #MIN_BILL_ID# AND #MAX_BILL_ID#
+				           AND DECOMPOSE_STATUS=2
+				           AND DECOMPOSE_TYPE=0
+				           AND PRINCIPAL IS NULL
+				           AND PERIOD_NUM=#PERIOD_NUM#
+				           AND RECP_ID=#RECP_ID#
+				           AND BILL_CODE='RENT'
+				      ORDER BY BILL_ID DESC)
+	</update>
+	
+	<update id="updateNullPrincipalByBillId">
+		UPDATE T_RENT_DECOMPOSE SET PRINCIPAL_CODE=#PRINCIPAL_CODE#,PRINCIPAL=#PRINCIPAL_CALCULATE#,IS_PRINT=0,PRINCIPAL_CREATE_TIME=GETDATE()
+		 WHERE BILL_ID=#BILL_ID#
+	</update>
+	
+	<select id="queryFundList" resultClass="java.util.HashMap">
+			SELECT T1.INCOME_ID,CONVERT(DATE,T1.INCOME_DATE) INCOME_DATE,T1.INCOME_NAME INCOME_NAME,T1.INCOME_NAME_TRUE INCOME_NAME_TRUE,
+            	   T1.INCOME_ACCOUNT INCOME_ACCOUNT,T1.VIRTUAL_ACCOUNT VIRTUAL_ACCOUNT,T1.RECEIPT_NAME RECEIPT_NAME,TUU.NAME UPLOAD_NAME,
+            	   T1.RECEIPT_ACCOUNT RECEIPT_ACCOUNT,T1.DEAL_WAY DEAL_WAY,T1.REMARK REMARK,T1.UPLOAD_TIME UPLOAD_TIME,ISNULL([FILE].COUNT,0) FILE_COUNT,
+                   T1.INCOME_MONEY,
+                   ISNULL(CLAIM1.COUNT,0)+ISNULL(REFUND1.COUNT,0) [COUNT],(T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0)) REST_MONEY,
+                   ISNULL(CLAIM2.COUNT,0)+ISNULL(REFUND2.COUNT,0) INIT_COUNT
+              FROM T_RENT_INCOME T1 <!--来款表与金流表计算出来的金额,是可以处理的金额,所以有以下2块逻辑(O1,O2)-->
+         LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+                      FROM T_RENT_RECORD T2 
+                     WHERE T2.STATUS=0
+                       AND T2.RECORD_MONEY&lt;0 <!--金流小于0 代表非冲红,  如果是小于0类型的,待确认和已确认状态都应该从来款表中扣除此金额-->
+                       AND (T2.RECORD_STATUS=0 OR T2.RECORD_STATUS=1)  <!--0:待确认,1:已确认,2:驳回-->
+                  GROUP BY T2.INCOME_ID) O1 ON T1.INCOME_ID=O1.INCOME_ID
+         LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+                      FROM T_RENT_RECORD T2 
+                     WHERE T2.STATUS=0
+                       AND T2.RECORD_MONEY>0 <!--金流大于0 代表冲红,  如果是大于0类型的,只有已确认状态才能在来款表中加上此金额-->
+                       AND T2.RECORD_STATUS=1  <!--0:待确认,1:已确认,2:驳回-->
+                  GROUP BY T2.INCOME_ID) O2 ON T1.INCOME_ID=O2.INCOME_ID
+         LEFT JOIN T_USER_USER TUU ON TUU.ID=T1.UPLOAD_ID
+         LEFT JOIN (SELECT COUNT(ID) [COUNT],INCOME_ID 
+			          FROM T_RENT_RECEIPT_FILE 
+			         WHERE STATUS=0 GROUP BY INCOME_ID) [FILE] ON [FILE].INCOME_ID=T1.INCOME_ID
+         LEFT JOIN (SELECT COUNT(T.ID) [COUNT],T.INCOME_ID 
+         			  FROM T_RENT_CLAIM T 
+         			 WHERE T.STATUS=0 
+         	      GROUP BY T.INCOME_ID) CLAIM1 ON CLAIM1.INCOME_ID=T1.INCOME_ID
+         LEFT JOIN (SELECT COUNT(T.ID) [COUNT],T.INCOME_ID
+         			  FROM T_RENT_REFUND T
+         			 WHERE T.STATUS=0
+         		  GROUP BY T.INCOME_ID) REFUND1 ON REFUND1.INCOME_ID=T1.INCOME_ID	      
+         LEFT JOIN (SELECT COUNT(T.ID) [COUNT],T.INCOME_ID 
+         			  FROM T_RENT_CLAIM T 
+         			 WHERE T.STATUS=0
+         			   AND T.STATE=0
+         	      GROUP BY T.INCOME_ID) CLAIM2 ON CLAIM2.INCOME_ID=T1.INCOME_ID
+         LEFT JOIN (SELECT COUNT(T.ID) [COUNT],T.INCOME_ID
+         			  FROM T_RENT_REFUND T
+         			 WHERE T.STATUS=0
+         			   AND T.STATE=0
+         		  GROUP BY T.INCOME_ID) REFUND2 ON REFUND2.INCOME_ID=T1.INCOME_ID	      
+             WHERE T1.STATUS=0
+         
+         
+         <isEqual property="initCount" compareValue="0">
+         	AND (
+               		(T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))>0 OR<!-- 显示有剩余金额的数据 -->
+               						((T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))=0 AND <!-- 如果剩余金额为0,在暂收款认领表里还有未审批的数据,也需要显示出来 -->
+               							EXISTS (SELECT 1 FROM T_RENT_CLAIM WHERE STATUS=0 AND STATE=0 AND INCOME_ID=T1.INCOME_ID)) OR
+               								((T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))=0 AND <!-- 如果剩余金额为0,在暂收款退款表里还有未审批的数据,也需要显示出来 -->
+               								    EXISTS (SELECT 1 FROM T_RENT_REFUND WHERE STATUS=0 AND STATE=0 AND INCOME_ID=T1.INCOME_ID))
+               	    )
+         </isEqual>
+         <isEqual property="initCount" compareValue="1">
+         	   AND (ISNULL(CLAIM1.COUNT,0)+ISNULL(REFUND1.COUNT,0))>0<!-- 有审核中的认退记录 -->
+         </isEqual>
+         <isEqual property="initCount" compareValue="-1">
+         	AND (
+               		(T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))>0 OR<!-- 显示有剩余金额的数据 -->
+               						((T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))=0 AND <!-- 如果剩余金额为0,在暂收款认领表里还有未审批的数据,也需要显示出来 -->
+               							EXISTS (SELECT 1 FROM T_RENT_CLAIM WHERE STATUS=0 AND STATE=0 AND INCOME_ID=T1.INCOME_ID)) OR
+               								((T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))=0 AND <!-- 如果剩余金额为0,在暂收款退款表里还有未审批的数据,也需要显示出来 -->
+               								    EXISTS (SELECT 1 FROM T_RENT_REFUND WHERE STATUS=0 AND STATE=0 AND INCOME_ID=T1.INCOME_ID))
+               	    )
+         	AND (ISNULL(CLAIM1.COUNT,0)+ISNULL(REFUND1.COUNT,0))=0
+         </isEqual>
+         
+         
+               
+         <isNotEmpty property="content">
+         	   AND (T1.INCOME_NAME LIKE '%$content$%' OR 
+         	   		T1.INCOME_NAME_TRUE LIKE '%$content$%' OR 
+         	   		T1.VIRTUAL_ACCOUNT LIKE '%$content$%' OR
+         	   		T1.RECEIPT_ACCOUNT LIKE '%$content$%')
+         </isNotEmpty>
+         <isNotEmpty property="fromDate">
+         	   AND CONVERT(DATE,T1.INCOME_DATE)>=CONVERT(DATE,#fromDate#)
+         </isNotEmpty>
+         <isNotEmpty property="toDate">
+         	   AND CONVERT(DATE,T1.INCOME_DATE)&lt;=CONVERT(DATE,#toDate#)
+         </isNotEmpty>
+         <isNotEmpty property="fromMoney">
+         	   AND T1.INCOME_MONEY>=#fromMoney#
+         </isNotEmpty>
+         <isNotEmpty property="toMoney">
+         	   AND T1.INCOME_MONEY&lt;=#toMoney#
+         </isNotEmpty>
+         <isNotEmpty property="restFromMoney">
+         	   AND (T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))>=#restFromMoney#
+         </isNotEmpty>
+         <isNotEmpty property="restToMoney">
+         	   AND (T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))&lt;=#restToMoney#
+         </isNotEmpty>
+         <isEqual property="hasRemark" compareValue="1">
+         	   AND T1.REMARK IS NOT NULL AND T1.REMARK!=''
+         </isEqual>
+         <isEqual property="hasRemark" compareValue="-1">
+         	   AND (T1.REMARK IS NULL OR T1.REMARK='')
+         </isEqual>
+         <isEqual property="hasFile" compareValue="1">
+         	   AND ISNULL([FILE].COUNT,0)>0
+         </isEqual>
+         <isEqual  property="hasFile" compareValue="-1">
+         	   AND ISNULL([FILE].COUNT,0)=0
+         </isEqual>
+         <isNotEmpty property="fromCount">
+         	   AND (ISNULL(CLAIM1.COUNT,0)+ISNULL(REFUND1.COUNT,0))>=#fromCount#
+         </isNotEmpty>
+         <isNotEmpty property="toCount">
+         	   AND (ISNULL(CLAIM1.COUNT,0)+ISNULL(REFUND1.COUNT,0))&lt;=#toCount#
+         </isNotEmpty>
+         <isNotEmpty property="companyName">
+         	   AND T1.RECEIPT_NAME like '%$companyName$%'
+         </isNotEmpty>
+	</select>
+	
+	<select id="checkClaimRefundAmount" resultClass="java.lang.Double">
+			SELECT (T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))
+              FROM T_RENT_INCOME T1 <!--来款表与金流表计算出来的金额,是可以处理的金额,所以有以下2块逻辑(O1,O2)-->
+         LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+                      FROM T_RENT_RECORD T2 
+                     WHERE T2.STATUS=0
+                       AND T2.RECORD_MONEY&lt;0 <!--金流小于0 代表非冲红,  如果是小于0类型的,待确认和已确认状态都应该从来款表中扣除此金额-->
+                       AND (T2.RECORD_STATUS=0 OR T2.RECORD_STATUS=1)  <!--0:待确认,1:已确认,2:驳回-->
+                  GROUP BY T2.INCOME_ID) O1 ON T1.INCOME_ID=O1.INCOME_ID
+         LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+                      FROM T_RENT_RECORD T2 
+                     WHERE T2.STATUS=0
+                       AND T2.RECORD_MONEY>0 <!--金流大于0 代表冲红,  如果是大于0类型的,只有已确认状态才能在来款表中加上此金额-->
+                       AND T2.RECORD_STATUS=1  <!--0:待确认,1:已确认,2:驳回-->
+                  GROUP BY T2.INCOME_ID) O2 ON T1.INCOME_ID=O2.INCOME_ID
+             WHERE T1.STATUS=0
+               AND (
+               		(T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))>0 OR<!-- 显示有剩余金额的数据 -->
+               						((T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))=0 AND <!-- 如果剩余金额为0,在暂收款认领表里还有未审批的数据,也需要显示出来 -->
+               							EXISTS (SELECT 1 FROM T_RENT_CLAIM WHERE STATUS=0 AND STATE=0 AND INCOME_ID=T1.INCOME_ID)) OR
+               								((T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))=0 AND <!-- 如果剩余金额为0,在暂收款退款表里还有未审批的数据,也需要显示出来 -->
+               								    EXISTS (SELECT 1 FROM T_RENT_REFUND WHERE STATUS=0 AND STATE=0 AND INCOME_ID=T1.INCOME_ID))
+               	    )
+               AND T1.INCOME_ID=#incomeId#
+	</select>
+	
+	<insert id="insertClaim"><!-- state:0申请中,1财务通过,2财务驳回 -->
+		INSERT INTO T_RENT_CLAIM
+		(INCOME_ID,AMOUNT,REASON,IS_OPEN_INVOICE,STATE,CREATE_TIME,CREATE_BY,STATUS)
+		VALUES
+		(#claimIncomeId#,#claimMoney#,#claimReason#,#claimIsOpenInvoice#,#claimState#,GETDATE(),#s_employeeId#,0)
+	</insert>
+	
+	<insert id="insertRefund">
+		INSERT INTO T_RENT_REFUND
+		(SERIAL_NUMBER,INCOME_ID,AMOUNT,PAYEE,REFUND_MONEY,FEE,REFUND_DATE,REFUND_TYPE,PAY_WAY,BANK_NAME,BANK_ACCOUNT,REMARK,STATE,CREATE_TIME,CREATE_BY,STATUS)
+		VALUES
+		(#serialNumber#,#refundIncomeId#,#amount#,#payee#,ISNULL(#refundMoney#,0),ISNULL(#fee#,0),#refundDate#,#refundType#,#payWay#,#bankName#,#bankAccount#,#remark#,#refundState#,GETDATE(),#s_employeeId#,0)
+		<selectKey resultClass="java.lang.Long" keyProperty="refundId">
+			SELECT @@IDENTITY refundId
+		</selectKey>
+	</insert>
+	
+	<insert id="insertRefundLog">
+		INSERT INTO T_RENT_REFUND_LOG
+		(CREATE_BY,CREATE_TIME,MEMO,REFUND_ID,STATUS)
+		VALUES
+		(#s_employeeId#,GETDATE(),#memo#,#refundId#,0)
+	</insert>
+	
+	<select id="showClaimRefundList" resultClass="java.util.HashMap">
+		    SELECT TRC.ID,TRC.INCOME_ID,TRC.AMOUNT,TRC.REASON,T1.NAME CREATE_BY,T2.NAME MODIFY_BY,T3.NAME AUTH_BY,
+		           TRC.STATE,TRC.CREATE_TIME,TRC.MODIFY_TIME,TRC.AUTH_TIME,'CLAIM' TYPE
+		      FROM T_RENT_CLAIM TRC
+		 LEFT JOIN T_USER_USER T1 ON TRC.CREATE_BY=T1.ID
+		 LEFT JOIN T_USER_USER T2 ON TRC.MODIFY_BY=T2.ID
+		 LEFT JOIN T_USER_USER T3 ON TRC.AUTH_BY=T3.ID
+		     WHERE TRC.STATUS=0
+		       AND TRC.INCOME_ID=#incomeId#
+		       UNION ALL
+		 	SELECT TRC.ID,TRC.INCOME_ID,TRC.AMOUNT,TRC.REFUND_TYPE REASON,T1.NAME CREATE_BY,T2.NAME MODIFY_BY,T3.NAME AUTH_BY,
+		           TRC.STATE,TRC.CREATE_TIME,TRC.MODIFY_TIME,TRC.AUTH_TIME,'REFUND' TYPE
+		      FROM T_RENT_REFUND TRC
+		 LEFT JOIN T_USER_USER T1 ON TRC.CREATE_BY=T1.ID
+		 LEFT JOIN T_USER_USER T2 ON TRC.MODIFY_BY=T2.ID
+		 LEFT JOIN T_USER_USER T3 ON TRC.AUTH_BY=T3.ID
+		     WHERE TRC.STATUS=0
+		       AND TRC.INCOME_ID=#incomeId#
+	</select>
+	
+	<update id="updateClaim">
+		UPDATE T_RENT_CLAIM SET STATE=#code#,AUTH_BY=#s_employeeId#,AUTH_TIME=GETDATE() WHERE ID=#id# AND STATUS=0 AND STATE=0
+	</update>
+	
+	<update id="updateRefund">
+		UPDATE T_RENT_REFUND SET STATE=#code#,AUTH_BY=#s_employeeId#,AUTH_TIME=GETDATE() WHERE ID=#id# AND STATUS=0 AND STATE=0
+	</update>
+	
+	<update id="batchUpdateClaim">
+		UPDATE T_RENT_CLAIM SET STATE=1,AUTH_BY=#s_employeeId#,AUTH_TIME=GETDATE() WHERE INCOME_ID=#incomeId# AND STATUS=0 AND STATE=0
+	</update>
+	
+	<update id="batchUpdateRefund">
+		UPDATE T_RENT_REFUND SET STATE=1,AUTH_BY=#s_employeeId#,AUTH_TIME=GETDATE() WHERE INCOME_ID=#incomeId# AND STATUS=0 AND STATE=0
+	</update>
+	
+	<update id="batchUpdateDecompose">
+		UPDATE T_RENT_DECOMPOSE SET DECOMPOSE_STATUS=#decomposeStatus#,MODIFY_TIME=GETDATE(),AUDIT_ID=#s_employeeId#,AUDIT_TIME=GETDATE()
+		 WHERE INCOME_ID=#incomeId# AND STATUS=0 AND (BILL_CODE='CLAIM' OR BILL_CODE='REFUND') AND DECOMPOSE_STATUS=1
+	</update>
+	
+	<select id="getBatchBillId" resultClass="java.lang.String">
+		SELECT BILL_ID FROM T_RENT_DECOMPOSE
+		 WHERE INCOME_ID=#incomeId# AND STATUS=0 AND (BILL_CODE='CLAIM' OR BILL_CODE='REFUND') AND DECOMPOSE_STATUS=1
+	</select>
+	
+	<select id="getBillIdByClaim" resultClass="java.lang.String">
+		SELECT TOP 1 BILL_ID 
+		  FROM T_RENT_DECOMPOSE 
+		 WHERE STATUS=0
+		   AND DECOMPOSE_STATUS=1
+		   AND BILL_CODE=#type#
+		   AND INCOME_ID=(SELECT INCOME_ID FROM T_RENT_CLAIM WHERE STATUS=0 AND ID=#id#)
+		   AND -DECOMPOSE_PRICE=(SELECT AMOUNT FROM T_RENT_CLAIM WHERE STATUS=0 AND ID=#id#)
+	</select>
+	
+	<select id="getBillIdByRefund" resultClass="java.lang.String">
+		SELECT TOP 1 BILL_ID 
+		  FROM T_RENT_DECOMPOSE 
+		 WHERE STATUS=0
+		   AND DECOMPOSE_STATUS=1
+		   AND BILL_CODE=#type#
+		   AND INCOME_ID=(SELECT INCOME_ID FROM T_RENT_REFUND WHERE STATUS=0 AND ID=#id#)
+		   AND -DECOMPOSE_PRICE=(SELECT AMOUNT FROM T_RENT_REFUND WHERE STATUS=0 AND ID=#id#)
+	</select>
+	
+	<update id="addRemark">
+		UPDATE T_RENT_INCOME SET 
+		   <isNotEmpty property="remark">
+		   	   REMARK=(ISNULL((SELECT REMARK FROM T_RENT_INCOME WHERE INCOME_ID=#incomeId#)+'<![CDATA[<br>]]>','')+(SELECT NAME FROM T_USER_USER WHERE ID=#s_employeeId#)+'：'+#remark#+'   |备注时间：'+CONVERT(NVARCHAR,GETDATE(),120))
+		   </isNotEmpty>
+		 WHERE INCOME_ID=#incomeId#
+	</update>
+	
+	<insert id="insertReceipt">
+		INSERT INTO T_RENT_RECEIPT_FILE
+		(PATH,TITLE,FILE_NAME,INCOME_ID,CREATE_BY,CREATE_TIME,STATUS)
+		VALUES
+		(#filePath#,#title#,#fileName#,#incomeId#,#s_employeeId#,GETDATE(),0)
+	</insert>
+	
+	<select id="getUploadFileList" resultClass="java.util.HashMap">
+		SELECT ID,PATH,TITLE,FILE_NAME,CREATE_TIME,INCOME_ID,
+			   (SELECT [NAME] FROM T_USER_USER WHERE ID=CREATE_BY) [NAME]
+		  FROM T_RENT_RECEIPT_FILE
+		 WHERE STATUS=0 AND INCOME_ID=#incomeId#
+		 <isNotEmpty property="id">
+		   AND ID=#id#
+		 </isNotEmpty>
+	</select>
+	
+	<insert id="insertPayDetail">
+		INSERT INTO T_SUPL_PLAYDETIL
+		(APPLICATION_DATE,CREATE_DATE,PAY_MONEY,CREATE_ID,STATUS,BANK_NAME,BANK_ACCOUNT,PAYCOUNT,STATE,BACKSTATE,BACKCOMP,EXPECTEDDATE,FSS_ID)
+		VALUES
+		(GETDATE(),GETDATE(),#amount#,#s_employeeId#,0,#bankName#,#bankAccount#,#amount#,0,5,#payee#,#refundDate#,#refundId#)
+	</insert>
+	
+	<!-- 获得销帐日报表,现金销帐,当日上传,当日销帐 -->
+	<select id="getCashReport" resultClass="java.util.HashMap">
+	      SELECT TRD.RECP_ID,TRD.PERIOD_NUM,TRC.TAX_PLAN_CODE,TDD2.FLAG TAX_PLAN,TRD.BILL_CODE,TCC.CUST_NAME,TRCT.LEASE_CODE,
+	             -TRD.DECOMPOSE_PRICE DECOMPOSE_PRICE,'' OWN_PRICE,'' REN_PRICE,TRI.RECEIPT_ACCOUNT,O.BANK_NAME,TCC.CUST_CODE,
+	             CASE WHEN TRD.BILL_CODE='RENT' OR TRD.BILL_CODE='VALUE_ADD_TAX' 
+	             	  THEN '第'+CONVERT(VARCHAR,TRD.PERIOD_NUM)+'期'+TDD1.FLAG
+	             	  ELSE TDD1.FLAG END BILL_DESCR,TRD.DECOMPOSE_TYPE,
+	             CMPY.DECP_ID,CMPY.DECP_NAME_CN,TRI.INCOME_DATE,TRD.DECOMPOSE_TIME,TRI.INCOME_ID,TRD.BILL_ID,TRD.PERIOD_NUM,
+	             0 REPORT_TYPE,
+	             CASE WHEN TRD.BILL_CODE='CLAIM' THEN (SELECT MAX(C.REASON) FROM T_RENT_CLAIM C WHERE C.STATUS=0 AND C.INCOME_ID=TRD.INCOME_ID)
+                      WHEN TRD.BILL_CODE='REFUND' THEN (SELECT MAX(D.REMARK) FROM T_RENT_REFUND D WHERE D.STATUS=0 AND D.INCOME_ID=TRD.INCOME_ID)
+                      ELSE ''
+                       END REASON
+	        FROM T_RENT_DECOMPOSE TRD
+	   LEFT JOIN T_RENT_INCOME TRI ON TRD.INCOME_ID=TRI.INCOME_ID AND TRI.STATUS=0
+	   LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TRC.STATUS=0 AND TRD.RECP_ID=TRC.RECP_ID
+	   LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.STATUS=0 AND TRC.RECT_ID=TRCT.RECT_ID
+	   LEFT JOIN T_USER_USER TUU ON TRCT.SENSOR_ID=TUU.ID
+	   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON TUU.DEPT_ID=DEPT.ID AND DEPT.STATUS=0
+	   LEFT JOIN T_DEPT_COMPANY CMPY ON DEPT.DECP_ID=CMPY.DECP_ID AND CMPY.STATUS=0
+	   LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TRCT.CUST_ID=TCC.CUST_ID
+	   LEFT JOIN T_DATA_DICTIONARY TDD1 ON TDD1.STATUS=0 AND TDD1.CODE=TRD.BILL_CODE AND TDD1.[TYPE]='租金分解类型'
+	   LEFT JOIN T_DATA_DICTIONARY TDD2 ON TDD2.CODE=TRC.TAX_PLAN_CODE AND TDD2.[TYPE]='税费方案'
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TPC.ID=TRCT.PRCD_ID
+	   LEFT JOIN (SELECT DISTINCT T2.BANK_NAME,T1.ACCOUNT_NO
+	                FROM T_BANK_BANKACCOUNT T1
+	           LEFT JOIN T_BANK_BANKINFO T2 ON T1.BABI_ID=T2.BABI_ID
+	               WHERE T1.STATUS=0
+	                 AND T2.STATUS=0) O ON O.ACCOUNT_NO=TRI.RECEIPT_ACCOUNT
+	       WHERE TRD.STATUS=0
+	         AND TRD.DECOMPOSE_STATUS=2
+	         AND CONVERT(DATE,TRD.AUDIT_TIME)=CONVERT(DATE,GETDATE())
+	         AND CONVERT(DATE,TRI.UPLOAD_TIME)=CONVERT(DATE,GETDATE())
+	         <isNotEmpty prepend="and" property="companyCode">
+				TPC.company_code = #companyCode#
+			</isNotEmpty>
+	      <isNotEmpty property="content">
+	      	 AND (TDD1.FLAG LIKE '%$content$%' OR
+	      	 	  TCC.CUST_NAME LIKE '%$content$%' OR
+	      	 	  TCC.CUST_CODE LIKE '%$content$%' OR
+	      	 	  TRCT.LEASE_CODE LIKE '%$content$%')
+	      </isNotEmpty>
+	      <isNotEmpty property="taxPlanCode">
+	         AND TRC.TAX_PLAN_CODE=#taxPlanCode#
+	      </isNotEmpty>
+	      <isNotEmpty property="fromMoney">
+	         AND -TRD.DECOMPOSE_PRICE>=#fromMoney#
+	      </isNotEmpty>
+	      <isNotEmpty property="toMoney">
+	      	 AND -TRD.DECOMPOSE_PRICE&lt;=#toMoney#
+	      </isNotEmpty>
+	      <isNotEmpty property="DEPT_ID">
+	      	 AND CMPY.DECP_ID=#DEPT_ID#
+	      </isNotEmpty>
+	      <isNotEmpty property="productionType">
+	      	 AND TPC.PRODUCTION_TYPE=#productionType#
+	      </isNotEmpty>
+	    ORDER BY TRD.RECP_ID,TRD.DECOMPOSE_TIME
+	</select>
+	
+	<select id="getHistoryCashReport" resultClass="java.util.HashMap">
+		  SELECT T.RECP_ID,T.CMPY_ID,T.CUST_NAME,T.CUST_CODE,T.LEASE_CODE,T.INCOME_DATE,T.DECOMPOSE_TIME,T.BILL_CODE,T.PERIOD_NUM,
+       			 T.DECOMPOSE_PRICE,T.OWN_PRICE,T.REN_PRICE,T.BANK_NAME,T.BANK_CODE,T.INCOME_ID,T.BILL_ID,TDD2.FLAG TAX_PLAN,
+       			 CASE WHEN T.BILL_CODE='RENT' OR T.BILL_CODE='VALUE_ADD_TAX' 
+	             	  THEN '第'+CONVERT(VARCHAR,T.PERIOD_NUM)+'期'+TDD1.FLAG
+	             	  ELSE TDD1.FLAG END BILL_DESCR,CMPY.DECP_NAME_CN,T.REASON
+		    FROM T_DECOMPOSE_DAILY_REPORT T
+	   LEFT JOIN T_DATA_DICTIONARY TDD1 ON TDD1.STATUS=0 AND TDD1.CODE=T.BILL_CODE AND TDD1.[TYPE]='租金分解类型'
+	   LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TRC.STATUS=0 AND T.RECP_ID=TRC.RECP_ID
+	   LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.STATUS=0 AND TRC.RECT_ID=TRCT.RECT_ID
+	   LEFT JOIN T_USER_USER TUU ON TRCT.SENSOR_ID=TUU.ID
+	   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON TUU.DEPT_ID=DEPT.ID AND DEPT.STATUS=0
+	   LEFT JOIN T_DEPT_COMPANY CMPY ON DEPT.DECP_ID=CMPY.DECP_ID AND CMPY.STATUS=0
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TPC.ID=TRCT.PRCD_ID
+	   LEFT JOIN T_DATA_DICTIONARY TDD2 ON TDD2.CODE=TRC.TAX_PLAN_CODE AND TDD2.[TYPE]='税费方案'	    
+		   WHERE T.STATUS=0
+		     AND T.REPORT_TYPE=0
+		     <isNotEmpty prepend="and" property="companyCode">
+				TPC.company_code = #companyCode#
+			</isNotEmpty>
+		  <isNotEmpty property="monthDate">
+		     AND T.FINANCE_DATE=#monthDate#
+		     AND CONVERT(DATE,T.INCOME_DATE) BETWEEN CONVERT(DATE,#startDate#) AND CONVERT(DATE,#endDate#)
+		  </isNotEmpty>
+		  <isEmpty property="monthDate">
+		   	 AND CONVERT(DATE,T.CREATE_TIME)=CONVERT(DATE,#queryDate#)
+		  </isEmpty>
+		  <isNotEmpty property="content">
+	      	 AND (TDD1.FLAG LIKE '%$content$%' OR
+	      	 	  T.CUST_NAME LIKE '%$content$%' OR
+	      	 	  T.CUST_CODE LIKE '%$content$%' OR
+	      	 	  T.LEASE_CODE LIKE '%$content$%')
+	      </isNotEmpty>
+	      <isNotEmpty property="taxPlanCode">
+	         AND TRC.TAX_PLAN_CODE=#taxPlanCode#
+	      </isNotEmpty>
+	      <isNotEmpty property="fromMoney">
+	         AND T.DECOMPOSE_PRICE>=#fromMoney#
+	      </isNotEmpty>
+	      <isNotEmpty property="toMoney">
+	      	 AND T.DECOMPOSE_PRICE&lt;=#toMoney#
+	      </isNotEmpty>
+	      <isNotEmpty property="DEPT_ID">
+	      	 AND T.CMPY_ID=#DEPT_ID#
+	      </isNotEmpty>
+	      <isNotEmpty property="productionType">
+	      	 AND TPC.PRODUCTION_TYPE=#productionType#
+	      </isNotEmpty>
+		ORDER BY T.INCOME_DATE DESC
+	</select>
+	
+	<!-- 获得销帐的金额本金与利息 -->
+	<select id="getOwnPriceAndRenPrice" resultClass="java.util.HashMap">
+		SELECT PERIOD_NUM,IRR_MONTH_PRICE,REN_PRICE,
+			   ISNULL(REDUCE_OWN_PRICE,0)-ISNULL(VALUE_ADDED_TAX,0) REDUCE_OWN_PRICE 
+		  FROM T_RENT_COLLECTIONDETAIL 
+		 WHERE STATUS=0 
+		   AND RECP_ID=#recpId#
+		   AND PERIOD_NUM=#periodNum#
+	</select>
+	
+	<select id="getClaimCause" resultClass="java.lang.String">
+		SELECT DISTINCT REASON FROM T_RENT_CLAIM 
+		 WHERE INCOME_ID=#incomeId# AND AMOUNT=#amount# AND STATUS=0 AND STATE=1
+		   AND CREATE_TIME=(SELECT MAX(CREATE_TIME) FROM T_RENT_CLAIM WHERE INCOME_ID=#incomeId# AND AMOUNT=#amount#)
+	</select>
+	
+	<select id="getRefundCause" resultClass="java.lang.String">
+		SELECT DISTINCT REMARK FROM T_RENT_REFUND 
+		 WHERE INCOME_ID=#incomeId# AND AMOUNT=#amount# AND STATUS=0 AND STATE=1
+		   AND CREATE_TIME=(SELECT MAX(CREATE_TIME) FROM T_RENT_REFUND WHERE INCOME_ID=#incomeId# AND AMOUNT=#amount#)
+	</select>
+	
+	<!-- 获得销帐日报表,暂收款销帐,非当日上传,当日销帐 -->
+	<select id="getFundReport" resultClass="java.util.HashMap">
+	      SELECT TRD.RECP_ID,TRD.PERIOD_NUM,TRC.TAX_PLAN_CODE,TDD2.FLAG TAX_PLAN,TRD.BILL_CODE,TCC.CUST_NAME,TRCT.LEASE_CODE,
+	             -TRD.DECOMPOSE_PRICE DECOMPOSE_PRICE,'' OWN_PRICE,'' REN_PRICE,TRI.RECEIPT_ACCOUNT,O.BANK_NAME,TCC.CUST_CODE,
+	             CASE WHEN TRD.BILL_CODE='RENT' OR TRD.BILL_CODE='VALUE_ADD_TAX' 
+	             	  THEN '第'+CONVERT(VARCHAR,TRD.PERIOD_NUM)+'期'+TDD1.FLAG
+	             	  ELSE TDD1.FLAG END BILL_DESCR,TRD.DECOMPOSE_TYPE,
+	             CMPY.DECP_ID,CMPY.DECP_NAME_CN,TRI.INCOME_DATE,TRD.DECOMPOSE_TIME,TRI.INCOME_ID,TRD.BILL_ID,TRD.PERIOD_NUM,
+	             1 REPORT_TYPE,
+	             CASE WHEN TRD.BILL_CODE='CLAIM' THEN (SELECT MAX(C.REASON) FROM T_RENT_CLAIM C WHERE C.STATUS=0 AND C.INCOME_ID=TRD.INCOME_ID)
+                      WHEN TRD.BILL_CODE='REFUND' THEN (SELECT MAX(D.REMARK) FROM T_RENT_REFUND D WHERE D.STATUS=0 AND D.INCOME_ID=TRD.INCOME_ID)
+                      ELSE ''
+                       END REASON
+	        FROM T_RENT_DECOMPOSE TRD
+	   LEFT JOIN T_RENT_INCOME TRI ON TRD.INCOME_ID=TRI.INCOME_ID AND TRI.STATUS=0
+	   LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TRC.STATUS=0 AND TRD.RECP_ID=TRC.RECP_ID
+	   LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.STATUS=0 AND TRC.RECT_ID=TRCT.RECT_ID
+	   LEFT JOIN T_USER_USER TUU ON TRCT.SENSOR_ID=TUU.ID
+	   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON TUU.DEPT_ID=DEPT.ID AND DEPT.STATUS=0
+	   LEFT JOIN T_DEPT_COMPANY CMPY ON DEPT.DECP_ID=CMPY.DECP_ID AND CMPY.STATUS=0
+	   LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TRCT.CUST_ID=TCC.CUST_ID
+	   LEFT JOIN T_DATA_DICTIONARY TDD1 ON TDD1.STATUS=0 AND TDD1.CODE=TRD.BILL_CODE AND TDD1.[TYPE]='租金分解类型'
+	   LEFT JOIN T_DATA_DICTIONARY TDD2 ON TDD2.CODE=TRC.TAX_PLAN_CODE AND TDD2.[TYPE]='税费方案'
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TPC.ID=TRCT.PRCD_ID
+	   LEFT JOIN (SELECT DISTINCT T2.BANK_NAME,T1.ACCOUNT_NO
+	                FROM T_BANK_BANKACCOUNT T1
+	           LEFT JOIN T_BANK_BANKINFO T2 ON T1.BABI_ID=T2.BABI_ID
+	               WHERE T1.STATUS=0
+	                 AND T2.STATUS=0) O ON O.ACCOUNT_NO=TRI.RECEIPT_ACCOUNT
+	       WHERE TRD.STATUS=0
+	         AND TRD.DECOMPOSE_STATUS=2
+	         AND CONVERT(DATE,TRD.AUDIT_TIME)=CONVERT(DATE,GETDATE())
+	         AND CONVERT(DATE,TRI.UPLOAD_TIME)!=CONVERT(DATE,GETDATE())
+	         <isNotEmpty prepend="and" property="companyCode">
+				TPC.company_code = #companyCode#
+			</isNotEmpty>
+	      <isNotEmpty property="content">
+	      	 AND (TDD1.FLAG LIKE '%$content$%' OR
+	      	 	  TCC.CUST_NAME LIKE '%$content$%' OR
+	      	 	  TCC.CUST_CODE LIKE '%$content$%' OR
+	      	 	  TRCT.LEASE_CODE LIKE '%$content$%')
+	      </isNotEmpty>
+	      <isNotEmpty property="taxPlanCode">
+	         AND TRC.TAX_PLAN_CODE=#taxPlanCode#
+	      </isNotEmpty>
+	      <isNotEmpty property="fromMoney">
+	         AND -TRD.DECOMPOSE_PRICE>=#fromMoney#
+	      </isNotEmpty>
+	      <isNotEmpty property="toMoney">
+	      	 AND -TRD.DECOMPOSE_PRICE&lt;=#toMoney#
+	      </isNotEmpty>
+	      <isNotEmpty property="DEPT_ID">
+	      	 AND CMPY.DECP_ID=#DEPT_ID#
+	      </isNotEmpty>
+	      <isNotEmpty property="productionType">
+	      	 AND TPC.PRODUCTION_TYPE=#productionType#
+	      </isNotEmpty>
+	    ORDER BY TRD.RECP_ID,TRD.DECOMPOSE_TIME
+	</select>
+	
+	<select id="getHistoryFundReport" resultClass="java.util.HashMap">
+		  SELECT T.RECP_ID,T.CMPY_ID,T.CUST_NAME,T.CUST_CODE,T.LEASE_CODE,T.INCOME_DATE,T.DECOMPOSE_TIME,T.BILL_CODE,T.PERIOD_NUM,
+       			 T.DECOMPOSE_PRICE,T.OWN_PRICE,T.REN_PRICE,T.BANK_NAME,T.BANK_CODE,T.INCOME_ID,T.BILL_ID,TDD2.FLAG TAX_PLAN,
+       			 CASE WHEN T.BILL_CODE='RENT' OR T.BILL_CODE='VALUE_ADD_TAX' 
+	             	  THEN '第'+CONVERT(VARCHAR,T.PERIOD_NUM)+'期'+TDD1.FLAG
+	             	  ELSE TDD1.FLAG END BILL_DESCR,CMPY.DECP_NAME_CN,T.REASON
+		    FROM T_DECOMPOSE_DAILY_REPORT T
+	   LEFT JOIN T_DATA_DICTIONARY TDD1 ON TDD1.STATUS=0 AND TDD1.CODE=T.BILL_CODE AND TDD1.[TYPE]='租金分解类型'
+	   LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TRC.STATUS=0 AND T.RECP_ID=TRC.RECP_ID
+	   LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.STATUS=0 AND TRC.RECT_ID=TRCT.RECT_ID
+	   LEFT JOIN T_USER_USER TUU ON TRCT.SENSOR_ID=TUU.ID
+	   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON TUU.DEPT_ID=DEPT.ID AND DEPT.STATUS=0
+	   LEFT JOIN T_DEPT_COMPANY CMPY ON DEPT.DECP_ID=CMPY.DECP_ID AND CMPY.STATUS=0
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TPC.ID=TRCT.PRCD_ID
+	   LEFT JOIN T_DATA_DICTIONARY TDD2 ON TDD2.CODE=TRC.TAX_PLAN_CODE AND TDD2.[TYPE]='税费方案'	    
+		   WHERE T.STATUS=0
+		     AND T.REPORT_TYPE=1
+			<isNotEmpty prepend="and" property="companyCode">
+				TPC.company_code = #companyCode#
+			</isNotEmpty>
+		  <isNotEmpty property="monthDate">
+		     AND T.FINANCE_DATE=#monthDate#
+		     <!-- AND CONVERT(DATE,T.INCOME_DATE) BETWEEN CONVERT(DATE,#startDate#) AND CONVERT(DATE,#endDate#) -->
+		  </isNotEmpty>
+		  <isEmpty property="monthDate">
+		   	 AND CONVERT(DATE,T.CREATE_TIME)=CONVERT(DATE,#queryDate#)
+		  </isEmpty>
+		  <isNotEmpty property="content">
+	      	 AND (TDD1.FLAG LIKE '%$content$%' OR
+	      	 	  T.CUST_NAME LIKE '%$content$%' OR
+	      	 	  T.CUST_CODE LIKE '%$content$%' OR
+	      	 	  T.LEASE_CODE LIKE '%$content$%')
+	      </isNotEmpty>
+	      <isNotEmpty property="taxPlanCode">
+	         AND TRC.TAX_PLAN_CODE=#taxPlanCode#
+	      </isNotEmpty>
+	      <isNotEmpty property="fromMoney">
+	         AND T.DECOMPOSE_PRICE>=#fromMoney#
+	      </isNotEmpty>
+	      <isNotEmpty property="toMoney">
+	      	 AND T.DECOMPOSE_PRICE&lt;=#toMoney#
+	      </isNotEmpty>
+	      <isNotEmpty property="DEPT_ID">
+	      	 AND T.CMPY_ID=#DEPT_ID#
+	      </isNotEmpty>
+	      <isNotEmpty property="productionType">
+	      	 AND TPC.PRODUCTION_TYPE=#productionType#
+	      </isNotEmpty>
+		ORDER BY T.INCOME_DATE DESC
+	</select>
+	
+	<!-- 获得销帐日报表,暂收款余额变动表 -->
+	<select id="getBalanceReport" resultClass="java.util.HashMap">
+	SELECT * FROM (
+		  <!-- 期初余额 -->
+			SELECT CONVERT(DATE,T1.INCOME_DATE) INCOME_DATE,T1.INCOME_NAME,T1.INCOME_ID,
+                   (T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0)) FINAL_BALANCE,<!--期初余额-->
+                   0 CURRENT_INCREASE,<!--本期新增-->
+                   0 CURRENT_REDUCE,<!--本期减少-->
+                   O.BANK_NAME,O.ACCOUNT_NO BANK_CODE
+              FROM T_RENT_INCOME T1
+         LEFT JOIN (SELECT DISTINCT T2.BANK_NAME,T1.ACCOUNT_NO
+    	              FROM T_BANK_BANKACCOUNT T1
+    	         LEFT JOIN T_BANK_BANKINFO T2 ON T1.BABI_ID=T2.BABI_ID
+    	             WHERE T1.STATUS=0
+    	               AND T2.STATUS=0) O ON O.ACCOUNT_NO=T1.RECEIPT_ACCOUNT
+         LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+                      FROM T_RENT_RECORD T2 
+                     WHERE T2.STATUS=0
+                       AND T2.RECORD_MONEY&lt;0
+                       AND (T2.RECORD_STATUS=0 OR T2.RECORD_STATUS=1)
+                  GROUP BY T2.INCOME_ID) O1 ON T1.INCOME_ID=O1.INCOME_ID
+         LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+                      FROM T_RENT_RECORD T2 
+                     WHERE T2.STATUS=0
+                       AND T2.RECORD_MONEY>0
+                       AND T2.RECORD_STATUS=1
+                  GROUP BY T2.INCOME_ID) O2 ON T1.INCOME_ID=O2.INCOME_ID         
+             WHERE T1.STATUS=0
+               AND (T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))>0
+               AND CONVERT(DATE,T1.UPLOAD_TIME)!=CONVERT(DATE,GETDATE())
+               <isNotEmpty prepend="and" property="companyName">
+					T1.RECEIPT_NAME LIKE '%$companyName$%'
+				</isNotEmpty>
+
+			UNION ALL
+			<!-- 本期新增,当日上传,未当日分解 -->
+            SELECT CONVERT(DATE,T1.INCOME_DATE) INCOME_DATE,T1.INCOME_NAME,T1.INCOME_ID,0 FINAL_BALANCE,<!--期初余额-->
+                   (T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0)) CURRENT_INCREASE,<!--本期新增-->
+                   0 CURRENT_REDUCE,<!--本期减少-->
+                   O.BANK_NAME,O.ACCOUNT_NO BANK_CODE
+              FROM T_RENT_INCOME T1
+         LEFT JOIN (SELECT DISTINCT T2.BANK_NAME,T1.ACCOUNT_NO
+    	              FROM T_BANK_BANKACCOUNT T1
+    	         LEFT JOIN T_BANK_BANKINFO T2 ON T1.BABI_ID=T2.BABI_ID
+    	             WHERE T1.STATUS=0
+    	               AND T2.STATUS=0) O ON O.ACCOUNT_NO=T1.RECEIPT_ACCOUNT
+         LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+                      FROM T_RENT_RECORD T2
+                     WHERE T2.STATUS=0
+                       AND T2.RECORD_MONEY&lt;0
+                       AND (T2.RECORD_STATUS=0 OR T2.RECORD_STATUS=1)
+                  GROUP BY T2.INCOME_ID) O1 ON T1.INCOME_ID=O1.INCOME_ID
+         LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+                      FROM T_RENT_RECORD T2 
+                     WHERE T2.STATUS=0
+                       AND T2.RECORD_MONEY>0
+                       AND T2.RECORD_STATUS=1
+                  GROUP BY T2.INCOME_ID) O2 ON T1.INCOME_ID=O2.INCOME_ID         
+             WHERE T1.STATUS=0
+               AND (T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))>0
+               AND CONVERT(DATE,T1.UPLOAD_TIME)=CONVERT(DATE,GETDATE())
+                <isNotEmpty prepend="and" property="companyName">
+					T1.RECEIPT_NAME LIKE '%$companyName$%'
+				</isNotEmpty>
+             UNION ALL  
+             <!-- 本期减少 -->
+	      SELECT T.INCOME_DATE,T.INCOME_NAME,T.INCOME_ID,T.FINAL_BALANCE,T.CURRENT_INCREASE,SUM(T.CURRENT_REDUCE) CURRENT_REDUCE,T.BANK_NAME,T.BANK_CODE FROM
+	            (
+	            SELECT CONVERT(DATE,T1.INCOME_DATE) INCOME_DATE,T1.INCOME_NAME,T1.INCOME_ID,
+	                   T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0) FINAL_BALANCE,
+	                   0 CURRENT_INCREASE,
+	                   -T2.DECOMPOSE_PRICE CURRENT_REDUCE,
+	                   O.BANK_NAME,O.ACCOUNT_NO BANK_CODE
+	              FROM T_RENT_INCOME T1
+	         LEFT JOIN T_RENT_DECOMPOSE T2 ON T1.INCOME_ID=T2.INCOME_ID AND T2.STATUS=0
+	         LEFT JOIN (SELECT DISTINCT T2.BANK_NAME,T1.ACCOUNT_NO
+	    	              FROM T_BANK_BANKACCOUNT T1
+	    	         LEFT JOIN T_BANK_BANKINFO T2 ON T1.BABI_ID=T2.BABI_ID
+	    	             WHERE T1.STATUS=0
+	    	               AND T2.STATUS=0) O ON O.ACCOUNT_NO=T1.RECEIPT_ACCOUNT
+	         LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+	                      FROM T_RENT_RECORD T2 
+	                 LEFT JOIN T_RENT_DECOMPOSE T3 ON T2.BILL_ID=T3.BILL_ID AND T3.STATUS=0
+	                     WHERE T2.STATUS=0
+	                       AND T2.RECORD_MONEY&lt;0
+	                       AND (T2.RECORD_STATUS=0 OR T2.RECORD_STATUS=1)
+	                       AND CONVERT(DATE,T3.AUDIT_TIME)!=CONVERT(DATE,GETDATE())
+	                  GROUP BY T2.INCOME_ID) O1 ON T1.INCOME_ID=O1.INCOME_ID
+	         LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+	                      FROM T_RENT_RECORD T2
+	                 LEFT JOIN T_RENT_DECOMPOSE T3 ON T2.BILL_ID=T3.BILL_ID AND T3.STATUS=0
+	                     WHERE T2.STATUS=0
+	                       AND T2.RECORD_MONEY>0
+	                       AND T2.RECORD_STATUS=1
+	                       AND CONVERT(DATE,T3.AUDIT_TIME)!=CONVERT(DATE,GETDATE())
+	                  GROUP BY T2.INCOME_ID) O2 ON T1.INCOME_ID=O2.INCOME_ID         
+	             WHERE T1.STATUS=0
+	               AND (T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0))>0
+	               AND CONVERT(DATE,T1.UPLOAD_TIME)!=CONVERT(DATE,GETDATE())
+	               AND CONVERT(DATE,T2.AUDIT_TIME)=CONVERT(DATE,GETDATE())
+	               AND T2.DECOMPOSE_STATUS=2
+	                <isNotEmpty prepend="and" property="companyName">
+						T1.RECEIPT_NAME LIKE '%$companyName$%'
+					</isNotEmpty>
+	               ) T GROUP BY T.INCOME_DATE,T.INCOME_NAME,T.FINAL_BALANCE,T.CURRENT_INCREASE,T.BANK_NAME,T.BANK_CODE,T.INCOME_ID
+	         ) I
+	         WHERE 1=1
+         <isNotEmpty property="content">
+         	   AND (I.INCOME_NAME LIKE '%$content$%' OR
+         	   		I.BANK_NAME LIKE '%$content$%' OR
+         	   		I.FINAL_BALANCE LIKE '%$content$%' OR
+         	   		I.CURRENT_INCREASE LIKE '%$content$%' OR
+         	   		I.CURRENT_REDUCE LIKE '%$content$%')
+         </isNotEmpty>
+	  ORDER BY I.INCOME_DATE DESC   
+	</select>
+	
+	<select id="getHistoryBalanceReport" resultClass="java.util.HashMap">
+		SELECT T.INCOME_NAME,T.INCOME_DATE,T.FINAL_BALANCE,T.CURRENT_INCREASE,T.CURRENT_REDUCE,
+       		   T.BANK_NAME,T.BANK_CODE,T.INCOME_ID,
+       		   T.FINAL_BALANCE+T.CURRENT_INCREASE-T.CURRENT_REDUCE FINAL_REST
+		  FROM T_DECOMPOSE_DYNAMIC_DAILY_REPORT T
+		  LEFT JOIN T_RENT_INCOME R ON R.INCOME_ID = T.INCOME_ID AND R.STATUS = 0		  
+		 WHERE T.STATUS=0
+		   AND CONVERT(DATE,T.CREATE_TIME)=CONVERT(DATE,#queryDate#)
+	     <isNotEmpty property="content">
+       	   AND (T.INCOME_NAME LIKE '%$content$%' OR
+       	   		T.BANK_NAME LIKE '%$content$%' OR
+       	   		T.FINAL_BALANCE LIKE '%$content$%' OR
+       	   		T.CURRENT_INCREASE LIKE '%$content$%' OR
+       	   		T.CURRENT_REDUCE LIKE '%$content$%')
+         </isNotEmpty>
+         <isNotEmpty prepend="and" property="companyName">
+			R.RECEIPT_NAME LIKE '%$companyName$%'
+		</isNotEmpty>
+	  ORDER BY T.INCOME_DATE DESC
+	</select>
+	<!-- 插入销帐日表job数据 -->
+	<insert id="insertDecomposeDailyReport">
+		INSERT INTO T_DECOMPOSE_DAILY_REPORT
+		(RECP_ID,CMPY_ID,CUST_NAME,CUST_CODE,LEASE_CODE,INCOME_DATE,DECOMPOSE_TIME,BILL_CODE,PERIOD_NUM,DECOMPOSE_PRICE,
+		 OWN_PRICE,REN_PRICE,BANK_NAME,BANK_CODE,INCOME_ID,BILL_ID,REPORT_TYPE,CREATE_TIME,FINANCE_DATE,STATUS,REASON)
+		VALUES
+		(#RECP_ID#,#DECP_ID#,#CUST_NAME#,#CUST_CODE#,#LEASE_CODE#,#INCOME_DATE#,#DECOMPOSE_TIME#,#BILL_CODE#,#PERIOD_NUM#,#DECOMPOSE_PRICE#,
+		 #OWN_PRICE#,#REN_PRICE#,#BANK_NAME#,#RECEIPT_ACCOUNT#,#INCOME_ID#,#BILL_ID#,#REPORT_TYPE#,GETDATE(),#FINANCE_DATE#,0,#REASON#)
+	</insert>
+	
+	<insert id="insertDecomposeDailyDynamicReport">
+		INSERT INTO T_DECOMPOSE_DYNAMIC_DAILY_REPORT
+		(INCOME_NAME,INCOME_DATE,FINAL_BALANCE,CURRENT_INCREASE,CURRENT_REDUCE,BANK_NAME,BANK_CODE,INCOME_ID,FINANCE_DATE,CREATE_TIME,STATUS)
+		VALUES
+		(#INCOME_NAME#,#INCOME_DATE#,#FINAL_BALANCE#,#CURRENT_INCREASE#,#CURRENT_REDUCE#,#BANK_NAME#,#BANK_CODE#,#INCOME_ID#,#FINANCE_DATE#,GETDATE(),0)
+	</insert>
+	
+	<!-- 获得保证金B自动冲租金的列表 -->
+	<select id="getAutoDecomposeList" resultClass="java.util.HashMap">
+		  SELECT TRC.RECP_ID,TRC.PLEDGE_LAST_PRICE,TRC.PLEDGE_LAST_PERIOD,
+                 TRC.PLEDGE_LAST_PRICE/TRC.PLEDGE_LAST_PERIOD DECOMPOSE_PRICE,TRC.TAX_PLAN_CODE
+            FROM T_RENT_COLLECTIONPLAN TRC 
+           WHERE TRC.STATUS=0
+             AND RECP_STATUS=0
+             AND EXISTS(SELECT 1
+                          FROM T_RENT_COLLECTIONDETAIL TRCL 
+                         WHERE TRCL.STATUS=0 
+                           AND TRC.RECP_ID=TRCL.RECP_ID
+                           AND (TRCL.REDUCE_OWN_PRICE IS NULL OR TRCL.REDUCE_OWN_PRICE=0
+                           AND TRC.PLEDGE_LAST_PRICE/TRC.PLEDGE_LAST_PERIOD=(TRCL.IRR_MONTH_PRICE+ISNULL(TRCL.VALUE_ADDED_TAX,0))))
+             AND TRC.PLEDGE_LAST_PERIOD>0
+	</select>
+	
+	<select id="getAutoDecomposeDetailList" resultClass="java.util.HashMap">
+		  SELECT RECD_ID,REDUCE_OWN_PRICE,CONVERT(VARCHAR,PAY_DATE,23) PAY_DATE,PERIOD_NUM,
+		  		 IRR_MONTH_PRICE,ISNULL(VALUE_ADDED_TAX,0) VALUE_ADDED_TAX
+            FROM T_RENT_COLLECTIONDETAIL 
+           WHERE STATUS=0
+             AND RECP_ID=#RECP_ID#
+             AND (REDUCE_OWN_PRICE IS NULL OR REDUCE_OWN_PRICE=0)
+        ORDER BY PAY_DATE ASC
+	</select>
+	
+	<select id="getPledgeBRecord" resultClass="java.util.HashMap">
+		  SELECT TOP 1 * FROM T_RENT_DECOMPOSE 
+		   WHERE RECP_ID=#RECP_ID# 
+		     AND DECOMPOSE_STATUS=2 
+		     AND DECOMPOSE_TYPE=0
+		     AND BILL_CODE='DEPOSIT_B'
+		     AND HAS_RED_DECOMPOSE=0
+	</select>
+	
+	<insert id="insertPledgeBLog">
+		INSERT INTO T_PLEDGEB_LOG
+		(RECP_ID,BILL_ID,PERIOD_NUM,STATUS,CREATE_TIME)
+		VALUES
+		(#recp_id#,#bill_id#,#period_num#,0,GETDATE())
+	</insert>
+	
+	<select id="getRefundDetail" resultClass="java.util.HashMap">
+		SELECT ID,INCOME_ID,AMOUNT,PAYEE,REFUND_MONEY AMOUNT_INPUT,FEE HANDLING_CHARGE,REFUND_DATE RETURNDATE,
+               REFUND_TYPE REASON,PAY_WAY PAY_TYPE,BANK_NAME,BANK_ACCOUNT,
+               REMARK,STATE,CREATE_TIME,CREATE_BY,MODIFY_TIME,MODIFY_BY,AUTH_TIME,
+               AUTH_BY, STATUS, SERIAL_NUMBER 
+          FROM T_RENT_REFUND WHERE STATUS=0 AND ID=#ID#
+	</select>
+	
+	<select id="getCashIncome" resultClass="java.util.HashMap">
+	  SELECT * FROM T_RENT_INCOME WHERE INCOME_ID=#incomeId# AND STATUS=0
+	</select>
+	
+	<select id="getCashFlow" resultClass="java.util.HashMap">
+      SELECT TRCT.LEASE_CODE,O.CUST_NAME,-T.DECOMPOSE_PRICE DECOMPOSE_PRICE,TDD.FLAG,
+             CASE WHEN T.DECOMPOSE_TYPE=0 THEN '分解' ELSE '红冲' END DECOMPOSE_TYPE,
+             CASE WHEN T.PERIOD_NUM>0 THEN T.PERIOD_NUM ELSE '' END PERIOD_NUM,T.BILL_ID
+        FROM T_RENT_DECOMPOSE T
+   LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TRC.STATUS=0 AND T.RECP_ID=TRC.RECP_ID
+   LEFT JOIN T_DATA_DICTIONARY TDD ON TDD.STATUS=0 AND T.BILL_CODE=TDD.CODE
+   LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.STATUS=0 AND TRC.RECT_ID=TRCT.RECT_ID
+   LEFT JOIN (SELECT TT.CUST_NAME,TT.CUST_ID
+        		FROM T_CUST_CUSTOMER TT 
+      	       WHERE CONVERT(DATETIME,TT.CREATE_TIME)=(SELECT CONVERT(DATETIME,MAX(T.CREATE_TIME))
+                            							 FROM T_CUST_CUSTOMER T 
+                          							    WHERE T.STATUS=0 
+                              							  AND T.CUST_NAME=TT.CUST_NAME 
+                              					     GROUP BY T.CUST_NAME)) O ON O.CUST_ID=TRCT.CUST_ID
+       WHERE T.INCOME_ID=#incomeId#
+         AND T.STATUS=0
+       ORDER BY T.BILL_ID
+	</select>
+	
+	<!-- 获得可结清案件明细基础SQL -->
+	<select id="getSettlementMailContent" resultClass="java.util.HashMap">
+			  SELECT MAX(TRI.INCOME_DATE) INCOME_DATE,
+			  		 TRCN.RECP_ID,TPC.CREDIT_RUNCODE,
+		             TRCN.RECP_CODE,TCC.CUST_NAME,T1.NAME,T2.NAME UP_NAME,
+		             CONVERT(DATE,TRCN.FIRST_PAYDATE) HIRE_DATE,TDC.DECP_NAME_CN,
+		             ISNULL(O.SHOULD_PRICE,0) SHOULD_PRICE,ISNULL(O.REDUCE_OWN_PRICE,0) REDUCE_OWN_PRICE,
+		             ISNULL((SELECT 'N' FROM T_RENT_SETTLEMENT T WHERE T.RECP_ID=TRCN.RECP_ID AND T.STATUS=0 AND (T.STATE=0 OR T.STATE=1)),'Y') DISPLAY_COMMIT_LINK,
+		             TRCN.CREATE_TIME,TRCN.LEASE_PERIOD,
+                 	 DATEDIFF(DAY,MAX(TRI.INCOME_DATE),GETDATE()) [DAY]
+		        FROM T_RENT_COLLECTIONPLAN TRCN
+		   LEFT JOIN T_RENT_CONTRACT TRC ON TRC.STATUS=0 AND TRC.RECT_ID=TRCN.RECT_ID
+		   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TPC.ID=TRC.PRCD_ID
+		   LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TRC.CUST_ID=TCC.CUST_ID
+		   LEFT JOIN T_USER_USER T1 ON TPC.SENSOR_ID=T1.ID
+		   LEFT JOIN T_DEPT_DEPARTMENT TDD ON TDD.STATUS=0 AND T1.DEPT_ID=TDD.ID
+       	   LEFT JOIN T_DEPT_COMPANY TDC ON TDC.STATUS=0 AND TDD.DECP_ID=TDC.DECP_ID
+		   LEFT JOIN T_USER_USER T2 ON T1.UPPER_USER=T2.ID
+		   LEFT JOIN (SELECT SUM(ISNULL(TRCL.IRR_MONTH_PRICE,0)+ISNULL(TRCL.VALUE_ADDED_TAX,0)) SHOULD_PRICE,
+		                     SUM(ISNULL(TRCL.REDUCE_OWN_PRICE,0)) REDUCE_OWN_PRICE,TRCL.RECP_ID 
+		                FROM T_RENT_COLLECTIONDETAIL TRCL 
+		               WHERE TRCL.STATUS=0
+		            GROUP BY TRCL.RECP_ID) O ON O.RECP_ID=TRCN.RECP_ID		            
+		   LEFT JOIN (SELECT MAX(PERIOD_NUM) PERIOD_NUM,RECP_ID,INCOME_ID
+	                    FROM T_RENT_DECOMPOSE 
+	                   WHERE STATUS=0 AND BILL_CODE='RENT'                    
+	                GROUP BY RECP_ID,INCOME_ID) T ON TRCN.RECP_ID=T.RECP_ID AND TRCN.LEASE_PERIOD=T.PERIOD_NUM
+       	   LEFT JOIN T_RENT_INCOME TRI ON TRI.STATUS=0 AND T.INCOME_ID=TRI.INCOME_ID       	   			
+		       WHERE TRCN.STATUS=0		    
+		     	 AND O.REDUCE_OWN_PRICE>=O.SHOULD_PRICE
+		     	 AND TRCN.RECP_STATUS=0
+		     	 AND NOT EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT T WHERE T.STATUS=0 AND T.RECP_ID=TRCN.RECP_ID AND (STATE=0 OR STATE=1))
+		    <isNotEmpty property="cmpyId">
+		    	 AND TDC.DECP_ID=#cmpyId#
+		    </isNotEmpty>
+		    <isNotEmpty property="userId">
+		    	 AND T1.ID=#userId#
+		    </isNotEmpty>
+	        GROUP BY TRCN.RECP_STATUS,
+			  		 TPC.CREDIT_RUNCODE,
+		             TRCN.RECP_CODE,TCC.CUST_NAME,T1.NAME,T2.NAME,
+		             CONVERT(DATE,TRCN.FIRST_PAYDATE),TRCN.RECP_ID,
+		             ISNULL(O.SHOULD_PRICE,0),ISNULL(O.REDUCE_OWN_PRICE,0),
+		             TDC.DECP_NAME_CN,TRCN.CREATE_TIME,TRCN.LEASE_PERIOD
+		    <isNotEmpty property="less">
+              HAVING DATEDIFF(DAY,MAX(TRI.INCOME_DATE),GETDATE())&lt;90
+            </isNotEmpty>
+            <isNotEmpty property="greater">
+              HAVING DATEDIFF(DAY,MAX(TRI.INCOME_DATE),GETDATE())>=90
+            </isNotEmpty>
+            ORDER BY DATEDIFF(DAY,MAX(TRI.INCOME_DATE),GETDATE()) DESC
+	</select>
+	
+	<select id="getDirectLeaseList" resultClass="java.util.HashMap">
+		SELECT  
+		    TRC.RECP_ID,
+			TCC.CUST_NAME,
+		    CON.LEASE_CODE,
+			<!-- 起租日 -->
+		    TRC.FIRST_PAYDATE,
+		    <!-- 30% -->
+		    TRC.PLEDGE_AVE_PRICE,
+		    TE.PERIOD_NUM,
+		    TE.DECOMPOSE_PRICE,
+		    TRCD.IRR_MONTH_PRICE,
+		    TRCD.INVOICE_CODE,
+		    ISNULL(TE.IS_PRINT,0) IS_PRINT,
+		    TE.BILL_ID,
+            TRCD.PAY_DATE,
+            TRCD.IRR_MONTH_PRICE-TE.DECOMPOSE_PRICE ARREARS,
+		    <!-- 首期支付日 -->
+            TRCD_F.PAY_DATE F_PAY_DAY
+		    <!-- (SELECT PAY_DATE FROM T_RENT_COLLECTIONDETAIL T1 WHERE T1.RECP_ID=TRC.RECP_ID AND T1.PERIOD_NUM=1 AND T1.STATUS=0 ) PAY_DATE -->
+		    <!-- 本金列印金额 -->
+		    <!-- (SELECT IRR_MONTH_PRICE FROM T_RENT_COLLECTIONDETAIL T1 WHERE T1.RECP_ID=TRC.RECP_ID AND T1.PERIOD_NUM=1 AND T1.STATUS=0 ) IRR_MONTH_PRICE -->
+		FROM T_RENT_COLLECTIONPLAN TRC
+		LEFT JOIN T_RENT_CONTRACT CON ON CON.RECT_ID = TRC.RECT_ID AND TRC.STATUS = 0
+		left join t_prjt_credit tpc on tpc.id = CON.prcd_id and tpc.status = 0
+		LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND CON.CUST_ID=TCC.CUST_ID
+        LEFT JOIN T_RENT_COLLECTIONDETAIL TRCD_F ON TRCD_F.RECP_ID = TRC.RECP_ID AND TRCD_F.PERIOD_NUM=1 AND TRCD_F.STATUS=0
+		<!-- 每期销帐 -->
+		LEFT JOIN (
+			<!-- recp与PERIOD_NUM相同时，根据BILL_ID最大（同IS_PRINT最大）的数据判断是否打印 -->
+		    SELECT SUM(-DECOMPOSE_PRICE) DECOMPOSE_PRICE,RECP_ID,PERIOD_NUM,MAX(IS_PRINT) IS_PRINT,MAX(BILL_ID) BILL_ID FROM T_RENT_DECOMPOSE 
+		    WHERE DECOMPOSE_STATUS=2
+			    AND BILL_CODE='RENT'
+	            AND RECP_ID > 0
+		    GROUP BY RECP_ID,PERIOD_NUM
+		) TE ON TE.RECP_ID = TRC.RECP_ID AND TE.RECP_ID IS NOT NULL
+		<!-- 每期租金 -->
+		LEFT JOIN T_RENT_COLLECTIONDETAIL TRCD 
+		    ON TRCD.RECP_ID = TE.RECP_ID AND TRCD.PERIOD_NUM = TE.PERIOD_NUM
+		WHERE 
+			TRC.TAX_PLAN_CODE=4 
+			AND TRC.STATUS = 0 
+			AND TE.RECP_ID IS NOT NULL
+		<isNotEmpty property="resultBeginDate" prepend="and">
+			<!-- CONVERT(DATE,TRCD.PAY_DATE) >= CONVERT(DATE,#resultBeginDate#) -->
+			CONVERT(DATE,TRCD.finance_date) >= CONVERT(DATE,#resultBeginDate#)
+		</isNotEmpty>
+		<isNotEmpty property="content" prepend="and">
+			(TCC.CUST_NAME LIKE '%$content$%' OR CON.LEASE_CODE LIKE '%$content$%')
+		</isNotEmpty>
+		<!-- 无发票号码 -->
+		<isEqual property="isPrint" prepend="and" compareValue="-2">
+			(TRCD.INVOICE_CODE IS NULL OR TRCD.INVOICE_CODE = '')
+		</isEqual>
+		<!-- 有发票号码已缴款但未打印（可打印） -->
+		<isEqual property="isPrint" prepend="and" compareValue="-3">
+			TRCD.INVOICE_CODE IS NOT NULL 
+			AND TRCD.INVOICE_CODE != '' 
+			AND ISNULL(TE.IS_PRINT,0) = 0
+			AND TRCD.IRR_MONTH_PRICE-TE.DECOMPOSE_PRICE = 0
+		</isEqual>
+		<!-- 已打印 -->
+		<isEqual property="isPrint" prepend="and" compareValue="1">
+			ISNULL(TE.IS_PRINT,0) = 1
+		</isEqual>
+		<!-- 未打印 -->
+		<isEqual property="isPrint" prepend="and" compareValue="0">
+			ISNULL(TE.IS_PRINT,0) = 0
+		</isEqual>
+		<isNotEmpty prepend="and" property="companyCode">
+			tpc.company_code = #companyCode#
+		</isNotEmpty>
+	</select>
+	
+	<select id="getFundReturnForPrint" parameterClass="map" resultClass="java.util.HashMap">
+		select rr.PAYEE
+		, convert(date, rr.REFUND_DATE) as REFUND_DATE
+		, rr.REFUND_MONEY
+		, rr.FEE
+		, rr.REFUND_TYPE
+		, rr.PAY_WAY
+		, rr.REMARK
+		, rr.BANK_NAME
+		, rr.BANK_ACCOUNT
+		, rr.AMOUNT
+		, rr.SERIAL_NUMBER
+		, rr.INCOME_ID
+		from T_RENT_REFUND rr
+		where rr.ID = #detail_id#
+	</select>
+	
+	<select id="queryFinanceIncome" parameterClass="map" resultClass="java.util.HashMap">
+		select convert(date, ic.INCOME_DATE) as INCOME_DATE
+		, ic.INCOME_MONEY
+		, ic.INCOME_NAME
+		from T_RENT_INCOME ic
+		where INCOME_ID = #INCOME_ID#
+	</select>
+	
+	<select id="queryFinanceBillDetail" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT DECOMPOSE_PRICE
+		, dd.FLAG as BILL_CODE
+		, u.[NAME]
+		, cp.RECP_CODE
+		, convert(date, rd.AUDIT_TIME) as AUDIT_TIME
+		FROM T_RENT_DECOMPOSE rd 
+		left join T_RENT_COLLECTIONPLAN cp on rd.RECP_ID = cp.RECP_ID
+		left join T_USER_USER u on rd.DECOMPOSE_ID = u.ID
+		left join T_DATA_DICTIONARY dd on upper(dd.CODE) = upper(rd.BILL_CODE)
+  			and dd.[TYPE] in ('租金分解类型', '法务费用')
+		WHERE rd.STATUS=0
+		and rd.INCOME_ID = #INCOME_ID#
+		AND rd.DECOMPOSE_STATUS = 2
+	</select>
+	
+	<select id="getAllAuthedFunds" parameterClass="map" resultClass="java.util.HashMap">
+		select t.*, ic.INCOME_DATE, ic.INCOME_MONEY, ic.INCOME_NAME, cu.[NAME] as 'CU', au.[NAME] as 'AU'
+		from (
+		  select r.ID, r.AMOUNT, r.REFUND_TYPE as REASON, r.CREATE_BY, r.CREATE_TIME, r.AUTH_BY, r.AUTH_TIME, r.INCOME_ID, '退款' as [TYPE]
+		  from T_RENT_REFUND r
+		  where r.STATUS = 0 and r.STATE = 1
+		  union
+		  select c.ID, c.AMOUNT, c.REASON, c.CREATE_BY, c.CREATE_TIME, c.AUTH_BY, c.AUTH_TIME, c.INCOME_ID, '认领款' as [TYPE]
+		  from T_RENT_CLAIM c
+		  where c.STATUS = 0 and c.STATE = 1
+		) t left join T_RENT_INCOME ic on ic.INCOME_ID = t.INCOME_ID
+		left join T_USER_USER cu on t.CREATE_BY = cu.ID
+		left join T_USER_USER au on t.AUTH_BY = au.ID
+		where 1 = 1
+         <isNotEmpty property="companyName">
+         	   AND ic.RECEIPT_NAME like '%$companyName$%'
+         </isNotEmpty>
+		<isNotEmpty property="amount_from">
+			<![CDATA[and t.AMOUNT >= #amount_from#]]>
+		</isNotEmpty>
+		<isNotEmpty property="amount_to">
+			<![CDATA[and t.AMOUNT <= #amount_to#]]>
+		</isNotEmpty>
+		<isNotEmpty property="income_money_from">
+			<![CDATA[and ic.INCOME_MONEY >= #income_money_from#]]>
+		</isNotEmpty>
+		<isNotEmpty property="income_money_to">
+			<![CDATA[and ic.INCOME_MONEY <= #income_money_to#]]>
+		</isNotEmpty>
+		<isNotEmpty property="opp_data_from">
+			<![CDATA[and ic.INCOME_DATE >= convert(date,#opp_data_from#)]]>
+		</isNotEmpty>
+		<isNotEmpty property="opp_data_to">
+			<![CDATA[and ic.INCOME_DATE <= convert(data,#opp_data_to#)]]>
+		</isNotEmpty>
+		<isNotEmpty property="fund_type">
+			<![CDATA[and t.TYPE = #fund_type#]]>
+		</isNotEmpty>
+		<isNotEmpty property="search_content">
+			<![CDATA[and (
+			  cu.[NAME] like '%$search_content$%'
+			  or au.[NAME] like '%$search_content$%'
+			  or ic.INCOME_NAME like '%$search_content$%'
+			  or t.REASON like '%$search_content$%'
+			)]]>
+		</isNotEmpty>
+	</select>
+	
+	<select id="getMonthDate1" resultClass="java.lang.String">
+		  SELECT FINANCE_DATE 
+		    FROM (SELECT DISTINCT FINANCE_DATE,CONVERT(DATE,FINANCE_DATE+'-1') D FROM T_DECOMPOSE_DAILY_REPORT) O
+		ORDER BY O.D DESC
+	</select>
+	
+	<!-- 获得所有有可结清案件的业务员 -->
+	<select id="getSettlementSalesEmail" resultClass="java.util.HashMap">
+		SELECT T.ID,T.NAME,T.EMAIL
+		  FROM T_USER_USER T
+		 WHERE T.STATUS=0 
+		   AND T.JOB='1'
+		   AND EXISTS
+		   (SELECT 1 FROM T_RENT_COLLECTIONPLAN TRC
+		        LEFT JOIN (SELECT TRCN.RECP_ID,SUM(ISNULL(TRCN.REDUCE_OWN_PRICE,0)) REDUCE_OWN_PRICE,
+		                          SUM(ISNULL(TRCN.IRR_MONTH_PRICE,0)+ISNULL(TRCN.VALUE_ADDED_TAX,0)) SHOULD_PRICE 
+		                     FROM T_RENT_COLLECTIONDETAIL TRCN 
+		                    WHERE TRCN.STATUS=0
+		                 GROUP BY TRCN.RECP_ID) O ON TRC.RECP_ID=O.RECP_ID
+		        LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.STATUS=0 AND TRC.RECT_ID=TRCT.RECT_ID
+		     WHERE TRC.STATUS=0
+		       AND O.REDUCE_OWN_PRICE>=O.SHOULD_PRICE
+		       AND TRCT.SENSOR_ID=T.ID
+		       AND TRC.RECP_STATUS=0
+		       AND NOT EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT TR WHERE TR.STATUS=0 AND TR.RECP_ID=TRC.RECP_ID AND (TR.STATE=0 OR TR.STATE=1)))
+	</select>
+	
+	<update id="updateIncomeInfo">
+		UPDATE T_RENT_INCOME
+		   SET $column$=#value#,LAST_UPDATED_BY=#s_employeeId#,LAST_UPDATED_TIME=GETDATE()
+		 WHERE INCOME_ID=#incomeId#
+		   AND STATUS=0
+	</update>
+	
+	<select id="getSettlementLogBySetId" resultClass="java.util.HashMap">
+		SELECT L.*,U.NAME FROM T_RENT_SETTLEMENT_LOG L 
+		LEFT JOIN T_USER_USER U ON U.ID = L.OP_USER_ID
+		WHERE L.SETTLEMENT_ID = #id# 
+		ORDER BY L.OP_TIME
+	</select>
+	
+	<!-- 迁移数据 开始 -->
+	<update id="updateQianYiSettlement">
+		UPDATE T_RENT_SETTLEMENT SET APPLY_REMARK = #APPLY_REMARK#,APPLY_USER_ID = #APPLY_USER_ID#, APPLY_TIME = CONVERT(DATETIME,#APPLY_TIME#) WHERE ID = #ID#
+	</update>
+	<update id="updateQianYiById">
+		UPDATE T_RENT_SETTLEMENT SET STATE_CODE = #currentState# WHERE ID = #ID#
+	</update>
+	<select id="getUserIdByName" resultClass="integer">
+		SELECT * FROM T_USER_USER 
+		WHERE NAME = #name#
+		AND STATUS = 
+		(SELECT MAX(STATUS) FROM T_USER_USER
+		WHERE NAME = #name# GROUP BY NAME)
+	</select>
+	<update id="updateQianYiTimeToNull">
+		UPDATE T_RENT_SETTLEMENT_LOG SET OP_TIME = NULL WHERE CONVERT(DATE,OP_TIME) = CONVERT(DATE,'1900/1/1 0:00:00')
+	</update>
+	<!-- 迁移数据 结束 -->
+	
+	<select id="getSettleDataDirectionAndUser" resultClass="java.util.HashMap">
+		SELECT D.*,U.NAME U_NAME,U.ID U_ID FROM T_DATA_DICTIONARY D
+		LEFT JOIN T_USER_USER U ON U.ID = (CASE WHEN ISNUMERIC(D.REMARK) = 1 THEN CONVERT(INT,D.REMARK) ELSE 0 END)
+		WHERE D.TYPE='结清审批状态'
+		ORDER BY D.LEVEL_NUM
+	</select>
+	
+	<!-- 获得保证金C红冲数据 -->
+	<select id="getDepositCList" resultClass="java.util.HashMap">
+	     SELECT CONVERT(DATE,TRI.INCOME_DATE) INCOME_DATE,TRI.INCOME_NAME,TRI.INCOME_MONEY,TCC.CUST_NAME,T1.NAME DECOMPOSE_NAME,
+         		TRCT.LEASE_CODE,TPC.CREDIT_RUNCODE,-TRD.DECOMPOSE_PRICE DECOMPOSE_PRICE,TRD.DECOMPOSE_TIME,TRD.HAS_RED_DECOMPOSE,
+         		(SELECT FLAG FROM T_DATA_DICTIONARY WHERE CODE=TRD.BILL_CODE) DESCR,T2.NAME AUDIT_NAME,TRD.BILL_ID,TRD.BILL_CODE,
+         		PLEDGE_LAST_PRICE,PLEDGE_LAST_PERIOD,TRD.RECP_ID
+   		   FROM T_RENT_DECOMPOSE TRD
+   	  LEFT JOIN	T_RENT_COLLECTIONPLAN TRC ON TRC.STATUS=0 AND TRD.RECP_ID=TRC.RECP_ID      
+      LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.STATUS=0 AND TRC.RECT_ID=TRCT.RECT_ID
+      LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TRCT.CUST_ID=TCC.CUST_ID
+      LEFT JOIN T_RENT_INCOME TRI ON TRI.STATUS=0 AND TRD.INCOME_ID=TRI.INCOME_ID
+      LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TPC.ID=TRCT.PRCD_ID
+      LEFT JOIN T_USER_USER T1 ON T1.ID=TRD.DECOMPOSE_ID
+      LEFT JOIN T_USER_USER T2 ON T2.ID=TRD.AUDIT_ID
+   		  WHERE TRD.STATUS=0
+   		    AND TRD.DECOMPOSE_STATUS=2
+   		    AND TRD.DECOMPOSE_TYPE=0
+   		    AND TRD.BILL_CODE='DEPOSIT_C'<!-- INSURANCE_DEPUTY_FEE -->
+   		<isNotEmpty property="content">
+   			AND (TRI.INCOME_NAME LIKE '%$content$%' OR
+   				 TCC.CUST_NAME LIKE '%$content$%' OR
+   				 TRCT.LEASE_CODE LIKE '%$content$%' OR
+   				 TPC.CREDIT_RUNCODE LIKE '%$content$%' OR
+   				 T1.NAME LIKE '%$content$%' OR
+   				 T2.NAME LIKE '%$content$%')
+   		</isNotEmpty>
+   		<isNotEmpty property="fromDate">
+   			AND CONVERT(DATE,TRI.INCOME_DATE)>=CONVERT(DATE,#fromDate#)
+   		</isNotEmpty>
+   		<isNotEmpty property="toDate">
+   			AND CONVERT(DATE,TRI.INCOME_DATE)&lt;=CONVERT(DATE,#toDate#)
+   		</isNotEmpty>
+   		<isNotEmpty property="dFromDate">
+   			AND CONVERT(DATE,TRD.DECOMPOSE_TIME)>=CONVERT(DATE,#dFromDate#)
+   		</isNotEmpty>
+   		<isNotEmpty property="dToDate">
+   			AND CONVERT(DATE,TRD.DECOMPOSE_TIME)&lt;=CONVERT(DATE,#dToDate#)
+   		</isNotEmpty>
+   		<isNotEmpty property="fromMoney">
+   			AND -TRD.DECOMPOSE_PRICE>=#fromMoney#
+   		</isNotEmpty>
+   		<isNotEmpty property="toMoney">
+   			AND -TRD.DECOMPOSE_PRICE&lt;=#toMoney#
+   		</isNotEmpty>
+	</select>
+	
+	<select id="test" resultClass="java.util.HashMap">
+		SELECT O.* FROM T_RENT_COLLECTIONPLAN TRC
+LEFT JOIN
+  (
+  SELECT TRS.RECP_ID,TRS.SETTLE_DATE FROM T_RENT_SETTLEMENT TRS WHERE TRS.STATUS=0 AND TRS.STATE=1
+  UNION
+  SELECT TRD.RECP_ID,MAX(TRD.CREATE_TIME) SETTLE_DATE
+    FROM T_RENT_DECOMPOSE TRD
+   WHERE TRD.STATUS=0
+     AND TRD.DECOMPOSE_TYPE=0
+     AND TRD.DECOMPOSE_STATUS=2
+     AND BILL_CODE IN ('RENT','VALUE_ADD_TAX','RENT_FINE','STAY_BUY_PRICE','SETTLEMENT_OWN_PRICE','SETTLEMENT_REN_PRICE','SETTLEMENT_VALUE_ADD_TAX','SETTLEMENT_RENT_FINE','SETTLEMENT_STAY_PRICE','SETTLEMENT_LAW_FEE')
+     GROUP BY TRD.RECP_ID) O ON TRC.RECP_ID=O.RECP_ID
+     WHERE TRC.STATUS=0
+       AND TRC.RECP_STATUS IN (1,3)
+       AND (TRC.SETTLE_DATE IS  NULL OR TRC.SETTLE_DATE='' OR CONVERT(DATE,TRC.SETTLE_DATE)=CONVERT(DATE,'1900-1-1'))       
+	</select>
+	<update id="testUpdate">
+		UPDATE T_RENT_COLLECTIONPLAN SET SETTLE_DATE=#SETTLE_DATE# WHERE RECP_ID=#RECP_ID# AND RECP_STATUS IN (1,3) AND STATUS=0
+	</update>
+	
+	<select id="getRecpAccountByRefundId" parameterClass="map" resultClass="java.lang.String">	    
+	    select distinct receipt_account from T_RENT_INCOME where INCOME_ID =(select income_id from T_RENT_REFUND where ID = #ID#)
+	</select>
+	
+	<!-- 获得结清支付表号 -->
+	<select id="getSettlementRecpId" resultClass="java.lang.String">
+		SELECT TRCN.RECP_ID 
+		  FROM T_RENT_COLLECTIONPLAN TRCN
+		 WHERE TRCN.STATUS=0
+		   AND TRCN.RECP_STATUS=3
+		   AND NOT EXISTS (SELECT 1 FROM T_RENT_SETTLEMENT_PAYMENT TRSP WHERE TRSP.STATUS=0 AND TRCN.RECP_ID=TRSP.RECP_ID)
+	</select>
+	<!-- 记录支付表提前结清时候的数据 -->
+	<insert id="insertSettlementPayment">
+		INSERT INTO T_RENT_SETTLEMENT_PAYMENT
+		(RECP_ID,LEASE_CODE,PERIOD_NUM,IRR_MONTH_PRICE,VALUE_ADDED_TAX,REDUCE_OWN_PRICE,STATUS,CREATE_TIME)
+		(SELECT T.RECP_ID,(SELECT SUBSTRING(TR.RECP_CODE,0,15) FROM T_RENT_COLLECTIONPLAN TR WHERE T.RECP_ID=TR.RECP_ID),PERIOD_NUM,
+		        IRR_MONTH_PRICE,ISNULL(VALUE_ADDED_TAX,0),ISNULL(REDUCE_OWN_PRICE,0),0,GETDATE()
+		   FROM T_RENT_COLLECTIONDETAIL T
+		  WHERE T.STATUS=0
+		    AND T.RECP_ID=#RECP_ID#)
+	</insert>
+	<!-- 更新支付表REDUCE_OWN_PRICE栏位 -->
+	<update id="updateSettlementPayment">
+	   UPDATE T_RENT_COLLECTIONDETAIL 
+	      SET REDUCE_OWN_PRICE=ISNULL(IRR_MONTH_PRICE,0)+ISNULL(VALUE_ADDED_TAX,0)
+	    WHERE STATUS=0
+	      AND ISNULL(REDUCE_OWN_PRICE,0)&lt;(ISNULL(IRR_MONTH_PRICE,0)+ISNULL(VALUE_ADDED_TAX,0))
+	      AND RECP_ID=#RECP_ID#
+	</update>
+</sqlMap>

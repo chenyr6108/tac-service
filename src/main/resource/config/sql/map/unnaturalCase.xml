@@ -1,0 +1,1135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="unnaturalCase">
+	<select id="getCaseCompare" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+		   SELECT DEPT_ID deptId,COUNT(DISTINCT CREDIT_ID) amount 
+		     FROM T_CASE_COMPARE 
+		    WHERE CONVERT(DATE,CREATE_ON)=CONVERT(DATE,GETDATE())
+		    <isEqual property="flag" compareValue="1">
+		      AND F_G>5											<!-- '进件~访厂' 访厂时间减进件时间大于5天的 -->
+		    </isEqual> 
+		    <isEqual property="flag" compareValue="2">
+		      AND E_F>5											<!-- '访厂~初次提交' 初次提交风控时间减访厂时间大于5天的 -->
+		    </isEqual>
+		    <isEqual property="flag" compareValue="3">
+		      AND D_E>5											<!-- '初次提交风控~最终提交风控' 最终提交风控时间减初次提交风控时间大于5天的 --> 
+		    </isEqual>
+		    <isEqual property="flag" compareValue="4"> 
+		      AND C_D>3											<!-- '最终提交风控~审查核准' 审查核准时间减最终提交风控时间大于3天的 --> 
+		    </isEqual>
+		    <isEqual property="flag" compareValue="5"> 
+		      AND B_C>30										<!-- '审查核准~业管初审' 业管初审时间减审查核准时间大于30天的--> 
+		    </isEqual>
+		    <isEqual property="flag" compareValue="6"> 
+		      AND A_B>5											<!-- '业管初审~拨款' 业管初审时间减拨款时间大于5天的 --> 
+		    </isEqual>
+		    <isEqual property="flag" compareValue="7"> 
+		      AND A_G>50										<!-- '进件~拨款' 拨款时间减去进件时间大于50天的 --> 
+		    </isEqual> 
+		 GROUP BY DEPT_ID 
+	</select>
+	
+	<insert id="insertCaseCompare" parameterClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+			INSERT INTO T_UNNATURAL_CASE_COMPARE
+			(ID,DEPT_ID,DEPT_NAME,A_B,B_C,C_D,D_E,E_F,F_G,A_G,STATUS,CREATE_ON)
+			VALUES
+			(#id#,#deptId#,#deptName#,#A_B#,#B_C#,#C_D#,#D_E#,#E_F#,#F_G#,#A_G#,0,GETDATE())		
+	</insert>
+	
+	<select id="getDateList1" resultClass="java.util.HashMap">
+			SELECT DISTINCT CONVERT(DATE,CREATE_ON),CONVERT(VARCHAR,CREATE_ON,23) [DATE],
+       			   CASE WHEN CONVERT(DATE,CREATE_ON,23)=CONVERT(DATE,GETDATE()-1,23)
+		           THEN 'Y'
+		           ELSE 'N'
+		            END FLAG
+			  FROM T_UNNATURAL_CASE_COMPARE
+			 WHERE STATUS=0
+		  ORDER BY CONVERT(DATE,CREATE_ON) ASC
+	</select>
+	<select id="getDateList2" resultClass="java.util.HashMap">
+			SELECT DISTINCT CONVERT(DATE,CREATE_ON),CONVERT(VARCHAR,CREATE_ON,23) [DATE],
+       			   CASE WHEN CONVERT(DATE,CREATE_ON,23)=CONVERT(DATE,GETDATE(),23)
+		           THEN 'Y'
+		           ELSE 'N'
+		            END FLAG
+			  FROM T_UNNATURAL_DUN_CASE
+			 WHERE STATUS=0
+		  ORDER BY CONVERT(DATE,CREATE_ON) ASC
+	</select>
+	<select id="getDateList3" resultClass="java.util.HashMap">
+			SELECT DISTINCT CONVERT(DATE,CREATE_ON),CONVERT(VARCHAR,CREATE_ON,23) [DATE],
+       			   CASE WHEN CONVERT(DATE,CREATE_ON,23)=CONVERT(DATE,GETDATE(),23)
+		           THEN 'Y'
+		           ELSE 'N'
+		            END FLAG
+			  FROM T_UNNATURAL_UNCOMPLETED_FILE_CASE
+			 WHERE STATUS=0
+		  ORDER BY CONVERT(DATE,CREATE_ON) ASC
+	</select>
+	<select id="getDateList4" resultClass="java.util.HashMap">
+			SELECT DISTINCT CONVERT(DATE,CREATE_ON) [DATE],
+						    CASE WHEN CONVERT(DATE,CREATE_ON,23)=CONVERT(DATE,GETDATE(),23)
+				           		 THEN 'Y'
+				           		 ELSE 'N'
+			            		  END FLAG 
+				      FROM T_UNNATURAL_ONGOING_INSURANCE_CASE 
+				  ORDER BY CONVERT(DATE,CREATE_ON)
+	</select>
+	<select id="getDateList5" resultClass="java.util.HashMap">
+			SELECT DISTINCT CONVERT(DATE,CREATE_ON) [DATE],
+						   CASE WHEN CONVERT(DATE,CREATE_ON,23)=CONVERT(DATE,GETDATE(),23)
+				           		THEN 'Y'
+				           		ELSE 'N'
+			            		 END FLAG 
+				      FROM T_UNNATURAL_DYNAMIC_CASE 
+				  ORDER BY CONVERT(DATE,CREATE_ON)
+	</select>
+	<select id="getDateList6" resultClass="java.util.HashMap">
+			SELECT DISTINCT CONVERT(DATE,CREATE_ON) [DATE],
+						   CASE WHEN CONVERT(DATE,CREATE_ON,23)=CONVERT(DATE,GETDATE()-1,23)
+				           		THEN 'Y'
+				           		ELSE 'N'
+			            		 END FLAG 
+				      FROM T_UNNATURAL_PENDING_APPROVE 
+				  ORDER BY CONVERT(DATE,CREATE_ON)
+	</select>
+	<select id="getDateList7" resultClass="java.util.HashMap">
+			SELECT DISTINCT CONVERT(DATE,CREATE_ON) [DATE],
+						   CASE WHEN CONVERT(DATE,CREATE_ON,23)=CONVERT(DATE,GETDATE()-1,23)
+				           		THEN 'Y'
+				           		ELSE 'N'
+			            		 END FLAG 
+				      FROM T_UNNATURAL_PENDING_COMMIT 
+				  ORDER BY CONVERT(DATE,CREATE_ON)
+	</select>
+	<select id="getDateList8" resultClass="java.util.HashMap">
+			SELECT DISTINCT CONVERT(DATE,CREATE_ON) [DATE],
+						    CASE WHEN CONVERT(DATE,CREATE_ON,23)=CONVERT(DATE,GETDATE(),23)
+				           		 THEN 'Y'
+				           		 ELSE 'N'
+			            		  END FLAG 
+				      FROM T_UNNATURAL_DUN_VISIT_CASE 
+				  ORDER BY CONVERT(DATE,CREATE_ON)
+	</select>
+	<select id="getUnnaturalCaseCompare" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+			SELECT TUCC.DEPT_ID deptId,TUCC.DEPT_NAME deptName,
+				   A_B,B_C,C_D,D_E,E_F,F_G,A_G,TDC.[ORDER] [order]
+			  FROM T_UNNATURAL_CASE_COMPARE TUCC
+	 	 LEFT JOIN T_DEPT_COMPANY TDC ON TDC.DECP_ID=TUCC.DEPT_ID AND TDC.STATUS=0 
+			 WHERE TUCC.STATUS=0
+		   <isNotEmpty property="DEPT_ID">
+		   	   AND TUCC.DEPT_ID=#DEPT_ID#
+		   </isNotEmpty>
+		   <isEmpty property="CREATE_ON">
+		   	   AND CONVERT(DATE,CREATE_ON)=CONVERT(DATE,GETDATE()-1)
+		   </isEmpty>
+		   <isNotEmpty property="CREATE_ON">
+		   	   AND CONVERT(DATE,CREATE_ON)=CONVERT(DATE,#CREATE_ON#)
+		   </isNotEmpty>
+	</select>
+	
+	<select id="getDunCase" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+		          SELECT TPC.ID creditId,TCC.CUST_ID custId,TCC.CUST_NAME custName,TRCP.RECP_CODE recpCode,
+		                 TUU.ID USER_ID,TUU.[NAME] [name],TUUU.[NAME] upName,COMP.DECP_ID deptId,COMP.DECP_NAME_CN deptName,
+		                 TDD.DUN_DAY dunDay,TDD.RECT_ID rectId,
+		                 TDD.RECP_ID recpId,TDD.SHOULD_PAYDATE shouldPayDate,
+		                 TDSUPL.FLAG suplTrue,                 
+		                 SUM(TDD.DUN_FINE) amerce,
+				         SUM(TDD.DUN_MONTHPRICE)+SUM(TDD.DUN_FINEINTEREST)+SUM(TDD.DUN_FINE) dunTotalPrice,
+				         ISNULL((SELECT 'Y' FROM (SELECT DISTINCT TRCP.RECP_ID
+                                            		FROM T_RENT_COLLECTIONPLAN TRCP			
+                                               LEFT JOIN T_RENT_COLLECTIONDETAIL TRCD ON TRCP.RECP_ID=TRCD.RECP_ID
+                                           		   WHERE TRCP.STATUS=0
+                                           			 AND (TRCP.FUND_STATUS=0 OR TRCP.FUND_STATUS=1)
+                                           			 AND TRCD.PAY_DATE&lt;=CAST(GETDATE() AS DATETIME)-1
+                                           			 AND ISNULL(TRCD.IRR_MONTH_PRICE,0)+ISNULL(TRCD.VALUE_ADDED_TAX,0)-ISNULL(TRCD.REDUCE_OWN_PRICE,0)>0.001
+                                                  	 AND TRCD.PERIOD_NUM>=1 AND TRCD.PERIOD_NUM&lt;=3
+                                                  	 AND DATEDIFF(D,TRCD.PAY_DATE,GETDATE())>=15
+                                                     UNION
+                                               SELECT DISTINCT TFCB.RECP_ID 
+                                                 FROM T_FINA_COLLECTIONBILL TFCB
+                                            LEFT JOIN T_FINA_INCOME TFI ON TFCB.FIIN_ID=TFI.FIIN_ID
+                                                WHERE (TFCB.FICB_STATE=4 OR TFCB.FICB_STATE=5)
+                                         		  AND TFI.RED_TYPE IS NULL 
+                                                  AND TFCB.FICB_TYPE='0'
+                                         		  AND (TFCB.FICB_ITEM=#CODE2#)  <!-- '租金' -->
+                                         		  AND DATEDIFF(D,TFCB.PAY_DATE,OPPOSING_DATE)>0 
+                                                  AND TFCB.RECD_PERIOD>=1 AND TFCB.RECD_PERIOD&lt;=3
+                                                  AND DATEDIFF(D,TFCB.PAY_DATE,OPPOSING_DATE)>=15
+                                                  AND TFCB.STATUS=0) K WHERE K.RECP_ID=TDD.RECP_ID),'N') isUnnaturalCase  	       
+		            FROM T_DUN_DAILY TDD
+		       LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.RECT_ID=TDD.RECT_ID AND TRCT.STATUS=0
+		       LEFT JOIN T_PRJT_CREDIT TPC ON TPC.ID=TRCT.PRCD_ID AND TPC.STATUS=0
+		       LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.CUST_ID=TDD.CUST_ID AND TCC.STATUS=0
+		       LEFT JOIN T_RENT_COLLECTIONPLAN TRCP ON TDD.RECP_ID=TRCP.RECP_ID AND TRCP.STATUS=0
+		       LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE=#CODE1# AND TDSUPL.CODE=TRCP.SUPL_TRUE  <!-- '供应商保证' -->     
+		       LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+		       LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+		       LEFT JOIN T_DEPT_COMPANY COMP ON DEPT.DECP_ID=COMP.DECP_ID AND COMP.STATUS=0
+		       LEFT JOIN T_USER_USER TUUU ON TUUU.ID=TPC.CLERK_ID
+		           WHERE CONVERT(DATE,TDD.CREATE_DATE)=CONVERT(DATE,GETDATE()) AND TDD.DUN_DAY>=32
+		             AND TDD.STATUS=0
+		             AND NOT EXISTS
+		             (
+		               SELECT 1 FROM (  SELECT TRCT.PRCD_ID CREDIT_ID
+		                                  FROM T_RENT_CONTRACT TRCT
+		                             LEFT JOIN (SELECT MAX(VISIT_DATE) VISIT_DATE,RECT_ID 
+		                                          FROM T_VISIT_REVIEWRECORDS 
+		                                         WHERE STATUS=0 
+		                                      GROUP BY RECT_ID) O ON O.RECT_ID=TRCT.RECT_ID
+		                                 WHERE O.VISIT_DATE IS NOT NULL) O1 
+		                        WHERE O1.CREDIT_ID=TPC.ID
+		             )		             
+		        GROUP BY TPC.ID,TCC.CUST_ID,TCC.CUST_NAME,
+		                 TUU.[NAME],TUUU.[NAME],TDD.DUN_DAY,TDD.RECT_ID,
+		                 TDD.RECP_ID,TDD.SHOULD_PAYDATE,
+		                 TDSUPL.FLAG,COMP.DECP_ID,COMP.DECP_NAME_CN,TUU.ID,TRCP.RECP_CODE
+		                 HAVING TCC.CUST_ID NOT IN
+			                     (
+			                       SELECT CUST_ID 
+			                         FROM T_RENT_CONTRACT TRC
+			                    LEFT JOIN (
+			                                SELECT MAX(VISIT_DATE) VISIT_DATE,RECT_ID 
+			                                  FROM T_VISIT_REVIEWRECORDS 
+			                                 WHERE STATUS=0 GROUP BY RECT_ID
+			                               ) O ON O.RECT_ID=TRC.RECT_ID
+			                        WHERE TRC.STATUS=0
+			                     GROUP BY CUST_ID
+			                       HAVING MAX(VISIT_DATE) IS NOT NULL AND DATEDIFF(DAY,MAX(VISIT_DATE),GETDATE())&lt;=60
+			                     )
+		                 UNION
+		     SELECT TPC.ID creditId,TCC.CUST_ID custId,TCC.CUST_NAME custName,TRCP.RECP_CODE recpCode,
+		                 TUU.ID USER_ID,TUU.[NAME] [name],TUUU.[NAME] upName,COMP.DECP_ID deptId,COMP.DECP_NAME_CN deptName,
+		                 TDD.DUN_DAY dunDay,TDD.RECT_ID rectId,
+		                 TDD.RECP_ID recpId,TDD.SHOULD_PAYDATE shouldPayDate,
+		                 TDSUPL.FLAG suplTrue,                 
+		                 SUM(TDD.DUN_FINE) amerce,
+				         SUM(TDD.DUN_MONTHPRICE)+SUM(TDD.DUN_FINEINTEREST)+SUM(TDD.DUN_FINE) dunTotalPrice,
+              	 		 'Y' isUnnaturalCase		          
+		            FROM T_DUN_DAILY TDD
+		       LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.RECT_ID=TDD.RECT_ID AND TRCT.STATUS=0
+		       LEFT JOIN T_PRJT_CREDIT TPC ON TPC.ID=TRCT.PRCD_ID AND TPC.STATUS=0
+		       LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.CUST_ID=TDD.CUST_ID AND TCC.STATUS=0
+		       LEFT JOIN T_RENT_COLLECTIONPLAN TRCP ON TDD.RECP_ID=TRCP.RECP_ID AND TRCP.STATUS=0
+		       LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE=#CODE1# AND TDSUPL.CODE=TRCP.SUPL_TRUE  <!-- '供应商保证' -->     
+		       LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+		       LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+		       LEFT JOIN T_DEPT_COMPANY COMP ON DEPT.DECP_ID=COMP.DECP_ID AND COMP.STATUS=0
+		       LEFT JOIN T_USER_USER TUUU ON TUUU.ID=TPC.CLERK_ID
+		           WHERE CONVERT(DATE,TDD.CREATE_DATE)=CONVERT(DATE,GETDATE())
+                 AND TDD.STATUS=0
+                 AND TDD.DUN_DAY&lt;25
+		             AND NOT EXISTS
+		             (
+		               SELECT 1 FROM (  SELECT TRCT.PRCD_ID CREDIT_ID
+		                                  FROM T_RENT_CONTRACT TRCT
+		                             LEFT JOIN (SELECT MAX(VISIT_DATE) VISIT_DATE,RECT_ID 
+		                                          FROM T_VISIT_REVIEWRECORDS 
+		                                         WHERE STATUS=0 
+		                                      GROUP BY RECT_ID) O ON O.RECT_ID=TRCT.RECT_ID
+		                                 WHERE O.VISIT_DATE IS NOT NULL) O1 
+		                        WHERE O1.CREDIT_ID=TPC.ID
+		             )	
+                AND TDD.RECP_ID IN
+                                           (SELECT DISTINCT TRCP.RECP_ID
+                                            			FROM T_RENT_COLLECTIONPLAN TRCP			
+                                             LEFT JOIN T_RENT_COLLECTIONDETAIL TRCD ON TRCP.RECP_ID=TRCD.RECP_ID
+                                            		 WHERE TRCP.STATUS=0
+                                            			 AND (TRCP.FUND_STATUS=0 OR TRCP.FUND_STATUS=1)
+                                            			 AND TRCD.PAY_DATE&lt;=CAST(GETDATE() AS DATETIME)-1
+                                            			 AND ISNULL(TRCD.IRR_MONTH_PRICE,0)+ISNULL(TRCD.VALUE_ADDED_TAX,0)-ISNULL(TRCD.REDUCE_OWN_PRICE,0)>0.001
+                                                   AND TRCD.PERIOD_NUM>=1 AND TRCD.PERIOD_NUM&lt;=3
+                                                   AND DATEDIFF(D,TRCD.PAY_DATE,GETDATE())>=15
+                                                      UNION
+                                                SELECT DISTINCT TFCB.RECP_ID 
+                                                  FROM T_FINA_COLLECTIONBILL TFCB
+                                             LEFT JOIN T_FINA_INCOME TFI ON TFCB.FIIN_ID=TFI.FIIN_ID
+                                                 WHERE (TFCB.FICB_STATE=4 OR TFCB.FICB_STATE=5)
+                                          			   AND TFI.RED_TYPE IS NULL 
+                                                   AND TFCB.FICB_TYPE='0'
+                                          			   AND (TFCB.FICB_ITEM=#CODE2#)  <!-- '租金' -->
+                                          			   AND DATEDIFF(D,TFCB.PAY_DATE,OPPOSING_DATE)>0 
+                                                   AND TFCB.RECD_PERIOD>=1 AND TFCB.RECD_PERIOD&lt;=3
+                                                   AND DATEDIFF(D,TFCB.PAY_DATE,OPPOSING_DATE)>=22
+                                                   AND TFCB.STATUS=0)
+		        GROUP BY TPC.ID,TCC.CUST_ID,TCC.CUST_NAME,
+		                 TUU.[NAME],TUUU.[NAME],TDD.DUN_DAY,TDD.RECT_ID,
+		                 TDD.RECP_ID,TDD.SHOULD_PAYDATE,
+		                 TDSUPL.FLAG,COMP.DECP_ID,COMP.DECP_NAME_CN,TUU.ID,TRCP.RECP_CODE
+		                 HAVING TCC.CUST_ID NOT IN
+			                     (
+			                       SELECT CUST_ID 
+			                         FROM T_RENT_CONTRACT TRC
+			                    LEFT JOIN (
+			                                SELECT MAX(VISIT_DATE) VISIT_DATE,RECT_ID 
+			                                  FROM T_VISIT_REVIEWRECORDS 
+			                                 WHERE STATUS=0 GROUP BY RECT_ID
+			                               ) O ON O.RECT_ID=TRC.RECT_ID
+			                        WHERE TRC.STATUS=0
+			                     GROUP BY CUST_ID
+			                       HAVING MAX(VISIT_DATE) IS NOT NULL AND DATEDIFF(DAY,MAX(VISIT_DATE),GETDATE())&lt;=60
+			                     )
+	</select>
+	
+	<!-- 获得锁码方式  -->
+	<select id="getLockCode" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+		 	SELECT DISTINCT TRCL.RECT_ID rectId,TDLOCK.FLAG lockCode 
+              FROM T_DATA_DICTIONARY TDLOCK
+         LEFT JOIN T_RENT_CONTRACTDETAIL TRCL ON TDLOCK.TYPE=#CODE# AND TDLOCK.CODE=TRCL.LOCK_CODE <!-- '锁码方式' -->
+             WHERE TRCL.RECT_ID IN ($rectId$)
+               AND TRCL.STATUS=0
+          ORDER BY TRCL.RECT_ID
+	</select>
+	<!-- 获得供应商名称  -->
+	<select id="getSuplNameForDunCase" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+			  SELECT DISTINCT TRCL.RECT_ID rectId,TRCL.BRAND suplName 
+	            FROM T_RENT_CONTRACTDETAIL TRCL
+	           WHERE TRCL.RECT_ID IN ($rectId$)
+	             AND TRCL.STATUS=0
+	        ORDER BY TRCL.RECT_ID
+	</select>
+	
+	<select id="getSuplNameForUncompletedFile" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+			SELECT DISTINCT CONVERT(VARCHAR,TPC.ID) creditId,TPCT.BRAND suplName 
+	          FROM T_PRJT_CREDIT TPC
+	     LEFT JOIN T_PRJT_CREDITEQUIPMENT TPCT ON TPCT.CREDIT_ID=TPC.ID
+	         WHERE TPC.STATUS=0
+	           AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+	           AND TPC.ID IN ($creditIds$)
+	</select>
+	
+	<insert id="insertDunCase" parameterClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+			INSERT INTO T_UNNATURAL_DUN_CASE
+			(ID,CREDIT_ID,CUST_ID,CUST_NAME,USER_ID,NAME,UP_NAME,DEPT_ID,DEPT_NAME,DUN_DAY,RECT_ID,
+			 RECP_ID,SHOULD_PAY_DATE,SUPL_TRUE,LOCK_CODE,AMERCE,DUN_TOTAL_PRICE,SUPL_NAME,STATUS,CREATE_ON,IS_UNNATURAL_CASE,RECP_CODE)
+			VALUES
+			(#id#,#creditId#,#custId#,#custName#,#userId#,#name#,#upName#,#deptId#,#deptName#,#dunDay#,#rectId#,
+			 #recpId#,#shouldPayDate#,#suplTrue#,#lockCode#,#amerce#,#dunTotalPrice#,#suplName#,0,GETDATE(),#isUnnaturalCase#,#recpCode#)
+	</insert>
+	
+	<select id="getUnnaturalDunCase" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+			        SELECT TUDC.CREDIT_ID creditId,TUDC.CUST_ID custId,TUDC.CUST_NAME custName,
+			               TUDC.[USER_ID] userId,TUDC.[NAME] [name],TUDC.UP_NAME upName,
+			               TUDC.DEPT_ID deptId,TUDC.DEPT_NAME deptName,TUDC.DUN_DAY dunDay,TUDC.RECT_ID rectId,
+			        	   TUDC.RECP_ID recpId,TUDC.SHOULD_PAY_DATE shouldPayDate,TUDC.SUPL_TRUE suplTrue,
+			               TUDC.LOCK_CODE lockCode,TUDC.AMERCE amerce,TUDC.DUN_TOTAL_PRICE dunTotalPrice,
+			               TUDC.SUPL_NAME suplName,TUDC.IS_UNNATURAL_CASE isUnnaturalCase,TUDC.RECP_CODE recpCode,
+			               TPC.CREDIT_RUNCODE creditRunCode
+			          FROM T_UNNATURAL_DUN_CASE TUDC
+			     LEFT JOIN T_DEPT_COMPANY TDC ON TDC.DECP_ID=TUDC.DEPT_ID
+			     LEFT JOIN T_PRJT_CREDIT TPC ON TPC.ID=TUDC.CREDIT_ID
+			         WHERE TUDC.STATUS=0
+			           AND TPC.STATUS=0
+			         <isEmpty property="DATE">
+			           AND CONVERT(DATE,TUDC.CREATE_ON)=CONVERT(DATE,GETDATE())
+			         </isEmpty>
+			         <isNotEmpty property="DATE">
+			           AND CONVERT(DATE,TUDC.CREATE_ON)=CONVERT(DATE,#DATE#)
+			         </isNotEmpty>
+			         <isNotEmpty property="IS_UNNATURAL_CASE">
+			           AND IS_UNNATURAL_CASE=#IS_UNNATURAL_CASE#
+			         </isNotEmpty>
+			         <isNotEmpty property="DEPT_ID">
+			           AND TUDC.DEPT_ID=#DEPT_ID#
+			         </isNotEmpty>
+			         <isNotEmpty property="CONTENT">
+			           AND (SUPL_NAME LIKE '%$CONTENT$%' OR CUST_NAME LIKE '%$CONTENT$%' OR TPC.CREDIT_RUNCODE LIKE '%$CONTENT$%')
+			         </isNotEmpty>
+	</select>
+	
+	<select id="getUnnaturalDunCaseCount" resultClass="java.util.HashMap">
+					SELECT COUNT(DISTINCT TUDC.CUST_ID) CUST_COUNT,COUNT(1) CASE_COUNT
+					    <isEmpty property="DATE">
+		           		   ,CONVERT(DATE,GETDATE()) [DATE]
+		         		</isEmpty>
+			         	<isNotEmpty property="DATE">
+			           	   ,CONVERT(DATE,#DATE#) [DATE]
+			         	</isNotEmpty>
+			          FROM T_UNNATURAL_DUN_CASE TUDC
+			     LEFT JOIN T_DEPT_COMPANY TDC ON TDC.DECP_ID=TUDC.DEPT_ID
+			     LEFT JOIN T_PRJT_CREDIT TPC ON TPC.ID=TUDC.CREDIT_ID
+			         WHERE TUDC.STATUS=0
+			           AND TPC.STATUS=0
+			     	 <isEmpty property="DATE">
+			           AND CONVERT(DATE,TUDC.CREATE_ON)=CONVERT(DATE,GETDATE())
+			         </isEmpty>
+			         <isNotEmpty property="DATE">
+			           AND CONVERT(DATE,TUDC.CREATE_ON)=CONVERT(DATE,#DATE#)
+			         </isNotEmpty>
+	</select>
+	
+	<select id="getUncompletedFileCase" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+	 		     SELECT TPC.LEASE_CODE leaseCode,TCC.CUST_NAME custName,TRF.FILE_NAME fileName,TPC.CREDIT_RUNCODE creditRunCode,
+			            T6.ID userId,T6.NAME [name],T9.DECP_ID deptId,T9.DECP_NAME_CN deptName,TRFD.FILE_MEMO fileRemark,CONVERT(VARCHAR,TPC.ID) creditId,
+			            TRFD.ISSURE_REASON issueReason,TPC.FINANCECONTRACT_DATE financeDate,
+		      			CASE 
+		      			WHEN TRFD.ISSURE_REASON='清偿文件' OR TRFD.ISSURE_REASON='发票联借出'
+            			THEN '  '
+					    ELSE
+		      			CONVERT(VARCHAR,DATEADD(DAY,15,TPC.FINANCECONTRACT_DATE),23)
+		      			 END shouldFinishDate,		
+		      			CASE 
+			            WHEN TPCA.[TYPE]=0 
+			            THEN '交机前拨款' 
+			            ELSE '交机后拨款' 
+			             END [type],
+		      			CASE 
+		      			WHEN TRFD.ISSURE_REASON='清偿文件' OR TRFD.ISSURE_REASON='发票联借出'
+			            THEN '  '
+		      			WHEN DATEDIFF(DAY,GETDATE(),DATEADD(DAY,15,TPC.FINANCECONTRACT_DATE))&lt;0 
+			            THEN CONVERT(VARCHAR,ABS(DATEDIFF(DAY,GETDATE(),DATEADD(DAY,15,TPC.FINANCECONTRACT_DATE))))+'天'
+		      			ELSE '  '
+		      			 END delayDay
+			       FROM T_RENT_FILEDETAIL TRFD 
+			  LEFT JOIN T_PRJT_CREDIT TPC ON TRFD.PRCD_ID=TPC.ID AND TPC.STATUS=0
+			  LEFT JOIN (SELECT MIN(TYPE) TYPE,CREDIT_ID FROM T_PRJT_CREDITAPPROPIATE WHERE STATUS=0 GROUP BY CREDIT_ID) TPCA ON TPC.ID=TPCA.CREDIT_ID 
+			  LEFT JOIN T_RENT_FILE TRF ON TRFD.REFI_ID=TRF.REFI_ID AND TRF.FILE_STATUS=0
+			  LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.CUST_ID=TPC.CUST_ID AND TCC.STATUS=0
+			  LEFT JOIN T_USER_USER T6 ON TPC.SENSOR_ID=T6.ID
+			  LEFT JOIN T_USER_USER UPPER ON UPPER.ID=T6.UPPER_USER
+			  LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=T6.DEPT_ID AND DEPT.STATUS=0
+			  LEFT JOIN T_DEPT_COMPANY T9 ON DEPT.DECP_ID=T9.DECP_ID AND T9.STATUS=0			  
+				  WHERE TRFD.IS_ALREADY ='0' 
+			        AND TRFD.FILE_TYPE='3'
+				    AND TRFD.REFD_ID IS NOT NULL 
+				    and TRFD.STATUS = 0
+			        AND TPC.STATUS=0 
+			        AND TPC.LEASE_CODE IS NOT NULL 
+			        AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+			        AND DATEDIFF(DAY,ISNULL(TRFD.CREATE_TIME,TRFD.SALES_CREATE_TIME),GETDATE())>=7	
+	</select>
+	
+	<insert id="insertUncompletedFileCase" parameterClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+			INSERT INTO T_UNNATURAL_UNCOMPLETED_FILE_CASE
+			(ID,LEASE_CODE,CUST_NAME,SUPL_NAME,FILE_NAME,CREDIT_RUNCODE,NAME,USER_ID,DEPT_ID,DEPT_NAME,
+			 FILE_REMARK,CREDIT_ID,ISSURE_REASON,FINANCECONTRACT_DATE,SHOULD_FINISH_DATE,TYPE,DELAY_DAY,STATUS,CREATE_ON)
+			VALUES
+			(#id#,#leaseCode#,#custName#,#suplName#,#fileName#,#creditRunCode#,#name#,#userId#,#deptId#,#deptName#,
+			 #fileRemark#,#creditId#,#issueReason#,#financeDate#,#shouldFinishDate#,#type#,#delayDay#,0,GETDATE())
+	</insert>
+	
+	<select id="getUnnaturalUncompletedFileCase" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+        SELECT LEASE_CODE leaseCode,CUST_NAME custName,
+               FILE_NAME fileName,CREDIT_RUNCODE creditRunCode,
+               NAME name,DEPT_NAME deptName,FILE_REMARK fileRemark,
+               CREDIT_ID creditId,ISSURE_REASON issueReason,
+               FINANCECONTRACT_DATE financeDate,
+               CASE WHEN CONVERT(VARCHAR,SHOULD_FINISH_DATE,23)=CONVERT(VARCHAR,'1900-01-01',23) THEN ''
+                    ELSE CONVERT(DATE,SHOULD_FINISH_DATE) END shouldFinishDate,
+               TYPE type,
+               CASE WHEN CONVERT(VARCHAR,SHOULD_FINISH_DATE,23)=CONVERT(VARCHAR,'1900-01-01',23) THEN -1
+                    ELSE CONVERT(INT,SUBSTRING(DELAY_DAY,0,LEN(DELAY_DAY))) END delayDay,SUPL_NAME suplName
+          FROM T_UNNATURAL_UNCOMPLETED_FILE_CASE
+         WHERE STATUS=0
+         <isEmpty property="DATE">
+           AND CONVERT(DATE,CREATE_ON)=CONVERT(DATE,GETDATE())
+         </isEmpty>
+         <isNotEmpty property="DATE">
+           AND CONVERT(DATE,CREATE_ON)=CONVERT(DATE,#DATE#)
+         </isNotEmpty>
+         <isNotEmpty property="DEPT_ID">
+           AND DEPT_ID=#DEPT_ID#
+         </isNotEmpty>
+         <isNotEmpty property="CONTENT">
+           AND (FILE_NAME LIKE '%$CONTENT$%' OR CUST_NAME LIKE '%$CONTENT$%' OR CREDIT_RUNCODE LIKE '%$CONTENT$%' OR SUPL_NAME LIKE '%$CONTENT$%' OR LEASE_CODE LIKE '%$CONTENT$%' OR ISSURE_REASON LIKE '%$CONTENT$%')
+         </isNotEmpty>
+         <!-- add by ZhangYizhou on 2014-06-13 Begin  -->
+		 <!-- NOTE：增加拨款方式查询条件  -->
+         <isNotEmpty prepend="and" property="TYPE">
+      	 	TYPE = '$TYPE$'
+      	 </isNotEmpty>
+      	 <!-- add by ZhangYizhou on 2014-06-13 End  -->
+      	 <isNotEmpty prepend="and" property="fileNames">
+      	 	FILE_NAME in $fileNames$
+      	 </isNotEmpty>
+      	 <isNotEmpty prepend="and" property="credit_id">
+      	 	CREDIT_ID = #credit_id#
+      	 </isNotEmpty>
+      	 
+	</select>
+	
+	<!-- 出险逾60天未理赔结案  -->
+	<select id="getOnGoingInsuranceCase" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+		      SELECT TPC.ID creditId,
+	             	 TPC.CREDIT_RUNCODE creditRunCode,
+	             	 INSU.INCU_CODE insuranceCode, 
+	      			 INSA.EQMT_ID eqmtDescr,
+	      			 INCP.INCP_NAME insuranceName,
+	      			 INSU.RECT_CODE leaseCode,
+	      			 CUST.CUST_NAME custName,
+	      			 INSA.CREATE_DATE startDate,
+	      			 DATEDIFF(DAY,INSA.CREATE_DATE,GETDATE()) dayDiff,
+	      			 (
+	      			  SELECT TOP 1 RECORD_REMARK
+	      			  FROM T_INSU_SATISFACTIONTRACK
+	      			  WHERE INSF_ID=INSA.INSF_ID
+	      			  ORDER BY RECORD_DATE DESC
+	      			 ) AS recordRemark,
+	      			 (
+	      			  SELECT TOP 1 RECORD_DATE
+	      			  FROM T_INSU_SATISFACTIONTRACK
+	      			  WHERE INSF_ID=INSA.INSF_ID
+	      			  ORDER BY RECORD_DATE DESC
+	      			 ) AS dealDate,
+	      			 U.ID userId,
+	      			 U.[NAME] [name],
+	      			 UU.[NAME] upName,
+             	     DECP.DECP_ID deptId,DECP.DECP_NAME_CN deptName
+      		    FROM T_INSU_SATISFACTION INSA
+     	   LEFT JOIN T_INSU_INSURANCELIST INSU ON INSA.INCU_ID=INSU.INCU_ID
+		   LEFT JOIN T_RENT_CONTRACT RECT ON RECT.LEASE_CODE=INSU.RECT_CODE
+     	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.ID=RECT.PRCD_ID AND TPC.STATUS=0
+		   LEFT JOIN T_CUST_CUSTOMER CUST ON RECT.CUST_ID=CUST.CUST_ID
+		   LEFT JOIN T_INSU_COMPANY INCP ON INSU.INCP_ID=INCP.INCP_ID
+		   LEFT JOIN T_USER_USER U ON RECT.SENSOR_ID=U.ID
+     	   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=U.DEPT_ID
+		   LEFT JOIN T_DEPT_COMPANY DECP ON DEPT.DECP_ID=DECP.DECP_ID
+		   LEFT JOIN T_USER_USER UU ON U.UPPER_USER=UU.ID
+		       WHERE INSA.STATUS=0
+		         AND DATEDIFF(DAY,INSA.CREATE_DATE,GETDATE())>60
+		         AND TPC.ID IS NOT NULL
+	</select>
+	
+	<insert id="insertOnGoingInsuranceCase">
+		INSERT INTO T_UNNATURAL_ONGOING_INSURANCE_CASE
+		(ID,CREIDT_ID,CREDIT_RUN_CODE,INSURANCE_CODE,EQMT_DESCR,INSURANCE_NAME,LEASE_CODE,CUST_NAME,
+		 START_DATE,RECORD_REMARK,DEAL_DATE,USER_ID,NAME,UP_NAME,DEPT_ID,DEPT_NAME,DAY_DIFF,STATUS,CREATE_ON)
+		VALUES
+		(#id#,#creditId#,#creditRunCode#,#insuranceCode#,#eqmtDescr#,#insuranceName#,#leaseCode#,#custName#,
+		 #startDate#,#recordRemark#,#dealDate#,#userId#,#name#,#upName#,#deptId#,#deptName#,#dayDiff#,0,GETDATE())
+	</insert>
+	
+	<select id="getUnnaturalOnGoingInsuranceCase" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+		    SELECT CREIDT_ID creditId,CREDIT_RUN_CODE creditRunCode,INSURANCE_CODE insuranceCode,DAY_DIFF dayDiff,
+           		   EQMT_DESCR eqmtDescr,INSURANCE_NAME insuranceName,LEASE_CODE leaseCode,CUST_NAME custName,
+		       	   START_DATE startDate,RECORD_REMARK recordRemark,DEAL_DATE dealDate,USER_ID userId,
+           		   NAME name,UP_NAME upName,DEPT_ID deptId,DEPT_NAME deptName
+		      FROM T_UNNATURAL_ONGOING_INSURANCE_CASE TUOIC 
+		 LEFT JOIN T_DEPT_COMPANY TDC ON TDC.DECP_ID=TUOIC.DEPT_ID AND TDC.STATUS=0
+		     WHERE TUOIC.STATUS=0
+		    <isNotEmpty property="DATE">
+		       AND CONVERT(DATE,TUOIC.CREATE_ON)=CONVERT(DATE,#DATE#)
+		    </isNotEmpty>
+		    <isEmpty property="DATE">
+		       AND CONVERT(DATE,TUOIC.CREATE_ON)=CONVERT(DATE,GETDATE())
+		    </isEmpty>
+		    <isNotEmpty property="CONTENT">
+		       AND (CREDIT_RUN_CODE LIKE '%$CONTENT$%' OR INSURANCE_CODE LIKE '%$CONTENT$%' OR INSURANCE_NAME LIKE '%$CONTENT$%' OR 
+		            LEASE_CODE LIKE '%$CONTENT$%' OR CUST_NAME LIKE '%$CONTENT$%')
+		    </isNotEmpty>
+		    <isNotEmpty property="DEPT_ID">
+		       AND DEPT_ID=#DEPT_ID#
+		    </isNotEmpty>
+	</select>
+	
+	<select id="getPendingApproveCase" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+			    SELECT PRCD.ID creditId,
+		    		   PRCD.CREDIT_RUNCODE creditRunCode,
+		           	   CUST.CUST_NAME custName, 
+		           	   DECP.DECP_ID deptId,
+					   DECP.DECP_NAME_CN deptName,
+		           	   UU.[NAME] upName,
+					   U.[NAME] [name],
+		           	   TT.MIN_COMMIT_DATE minCommitDate,
+					   DATEDIFF(DAY, TT.MIN_COMMIT_DATE, GETDATE()) dayDiff,
+				       PRSM.LEASE_RZE leaseRze,
+		      		   CASE WHEN (SELECT COUNT(0) 
+		                        	FROM T_PRJT_RISK_CONTROL
+		                		   WHERE CREDIT_ID=TT.CREDIT_ID AND STATE=3)>0 THEN '有'
+		                	ELSE '无' END isBack,
+				       CASE WHEN PRCD.STATE=1 THEN '评审中' ELSE '业务处理中' END state,
+			           ISNULL((SELECT TOP 1 MEMO_CONTENT
+			      		    FROM T_PRJT_CREDIT_MEMO
+			      		   WHERE CREDIT_ID=PRCD.ID
+			    		  ORDER BY CREATE_DATE DESC
+			      		  ),'') recordRemark
+				  		FROM (
+				        		SELECT CREDIT_ID, MIN(CREATE_TIME) AS MIN_COMMIT_DATE
+				        		  FROM T_PRJT_CREDITMEMO T
+				        		 WHERE T.STATUS=0
+				      		GROUP BY CREDIT_ID 
+				        		HAVING DATEDIFF(DAY,MIN(CREATE_TIME),GETDATE())>=12
+				        		   AND CREDIT_ID NOT IN(
+				        		SELECT CREDIT_ID 
+				              FROM T_PRJT_RISK_CONTROL
+				        		 WHERE (STATE=1 OR STATE=4)
+						        )) TT 
+		    	LEFT JOIN T_PRJT_CREDIT PRCD ON TT.CREDIT_ID=PRCD.ID
+				LEFT JOIN T_PRJT_CREDITSCHEME PRSM ON PRSM.CREDIT_ID=PRCD.ID
+				LEFT JOIN T_CUST_CUSTOMER CUST ON PRCD.CUST_ID=CUST.CUST_ID
+				LEFT JOIN T_USER_USER U ON PRCD.SENSOR_ID=U.ID
+				LEFT JOIN T_USER_USER UU ON U.UPPER_USER=UU.ID
+				LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=U.DEPT_ID
+				LEFT JOIN T_DEPT_COMPANY DECP ON DEPT.DECP_ID=DECP.DECP_ID
+				WHERE PRCD.STATUS=0
+		  		AND PRCD.STATE!=-1
+		  		AND (PRCD.WIND_STATE!=4 OR PRCD.WIND_STATE IS NULL)
+		  		AND (PRCD.STATE!=2 OR (PRCD.STATE=2 AND EXISTS(
+		      		  SELECT PRC_ID 
+		              FROM T_PRJT_RISK_CONTROL
+		      		   WHERE CREDIT_ID=PRCD.ID)))      		   
+	</select>
+	
+	<insert id="insertPendingApproveCase">
+			INSERT INTO T_UNNATURAL_PENDING_APPROVE
+			(ID,CREDIT_ID,CREDIT_RUN_CODE,CUST_NAME,DEPT_ID,DEPT_NAME,NAME,UP_NAME,MIN_COMMIT_DATE,DAY_DIFF,LEASE_RZE,IS_BACK,STATE,RECORD_REMARK,STATUS,CREATE_ON)
+			VALUES
+			(#id#,#creditId#,#creditRunCode#,#custName#,#deptId#,#deptName#,#name#,#upName#,#minCommitDate#,#dayDiff#,#leaseRze#,#isBack#,#state#,#recordRemark#,0,GETDATE())
+	</insert>
+	
+	<select id="getPendingCommitCase" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+					SELECT PRCD.ID creditId,
+    		   			   PRCD.CREDIT_RUNCODE creditRunCode,
+            			   CUST.CUST_NAME custName,
+           				   DECP.DECP_ID deptId,
+			     		   DECP.DECP_NAME_CN deptName,
+           				   UU.[NAME] upName, 
+			     		   U.[NAME] [name],
+           				   VI.REAL_VISIT_DATE visitDate,
+					       DATEDIFF(DAY, VI.REAL_VISIT_DATE,GETDATE()) dayDiff,
+					       ISNULL(VR.ADDED_INFO,'无') recordRemark, 
+			               ISNULL(PRSM.LEASE_RZE,0) leaseRze      		
+					  FROM T_PRJT_CREDIT PRCD
+				 LEFT JOIN T_PRJT_CREDITSCHEME PRSM ON PRSM.CREDIT_ID=PRCD.ID
+				 LEFT JOIN T_PRJT_VISIT VI ON VI.CREDIT_ID=PRCD.ID AND VI.STATUS=0 AND VI.VISIT_STATUS>=3
+				 LEFT JOIN T_CUST_CUSTOMER CUST ON PRCD.CUST_ID=CUST.CUST_ID
+				 LEFT JOIN T_USER_USER U ON PRCD.SENSOR_ID=U.ID
+				 LEFT JOIN T_USER_USER UU ON U.UPPER_USER=UU.ID
+				 LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=U.DEPT_ID
+				 LEFT JOIN T_DEPT_COMPANY DECP ON DEPT.DECP_ID=DECP.DECP_ID
+				 LEFT JOIN T_PRJT_VISIT_REPORT VR ON VR.VISIT_ID=VI.ID AND VR.STATUS=1
+		  		 WHERE DATEDIFF(DAY,VR.MODIFY_DATE,GETDATE())>=14
+		  		   AND PRCD.STATE!=1 AND PRCD.STATE!=-1
+		  		   AND NOT EXISTS (SELECT PRC_ID 
+		                             FROM T_PRJT_RISK_CONTROL
+		  		                    WHERE CREDIT_ID=PRCD.ID)
+	</select>
+	
+	<insert id="insertPendingCommitCase">
+			INSERT INTO T_UNNATURAL_PENDING_COMMIT
+			(ID,CREDIT_ID,CREDIT_RUN_CODE,CUST_NAME,DEPT_ID,DEPT_NAME,NAME,UP_NAME,VISIT_DATE,DAY_DIFF,LEASE_RZE,RECORD_REMARK,STATUS,CREATE_ON)
+			VALUES
+			(#id#,#creditId#,#creditRunCode#,#custName#,#deptId#,#deptName#,#name#,#upName#,#visitDate#,#dayDiff#,#leaseRze#,#recordRemark#,0,GETDATE())
+	</insert>
+	
+	<select id="getNotVisitCustomer" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+			    <!--未访厂,进件>5天-->
+			    SELECT TPC.ID creditId,TPC.CREDIT_RUNCODE creditRunCode,TCC.CUST_NAME custName,
+			           T1.ID userId,C.DECP_ID deptId,C.DECP_NAME_CN deptName,T1.[NAME] [name],
+			           T2.[NAME] upName,TPC.CREATE_DATE createOn,'进件~未访厂' flag
+			      FROM T_PRJT_CREDIT TPC
+			 LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TCC.CUST_ID=TPC.CUST_ID
+			 LEFT JOIN T_USER_USER T1 ON T1.ID=TPC.SENSOR_ID
+			 LEFT JOIN T_USER_USER T2 ON T1.UPPER_USER=T2.ID
+			 LEFT JOIN T_DEPT_DEPARTMENT P ON T1.DEPT_ID=P.ID AND P.STATUS=0
+			 LEFT JOIN T_DEPT_COMPANY C ON C.DECP_ID=P.DECP_ID AND C.STATUS=0
+			     WHERE TPC.STATUS=0 
+			       AND (TPC.STATE=0 OR TPC.STATE=3 OR TPC.STATE=5 OR TPC.STATE=2)
+			       AND (FINANCECONTRACT_DATE IS NULL OR CONVERT(VARCHAR,FINANCECONTRACT_DATE,23)=CONVERT(VARCHAR,'1900-01-01',23))
+			       AND DATEDIFF(DAY,TPC.CREATE_DATE,GETDATE())>5 
+			       AND (TPC.VIP_FLAG=0 OR TPC.VIP_FLAG IS NULL)
+			       AND NOT EXISTS
+			       (SELECT 1 FROM T_PRJT_VISIT VI 
+                   	    LEFT JOIN T_PRJT_VISIT_REPORT VR ON VR.VISIT_ID=VI.ID
+               				WHERE VI.CREDIT_ID=TPC.ID
+               				  AND VI.STATUS=0 
+               				  AND VI.VISIT_STATUS>=3 
+               				  AND VR.STATUS=1)
+	</select>
+	
+	<select id="getVisitCustomer" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+			    <!--已访厂,未提交风控>5天-->
+			    SELECT TPC.ID creditId,TPC.CREDIT_RUNCODE creditRunCode,TCC.CUST_NAME custName,
+			           T1.ID userId,C.DECP_ID deptId,C.DECP_NAME_CN deptName,T1.[NAME] [name],
+			           T2.[NAME] upName,VI.REAL_VISIT_DATE createOn,'已访厂~未提交风控' flag
+			      FROM T_PRJT_CREDIT TPC
+			 LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TCC.CUST_ID=TPC.CUST_ID
+			 LEFT JOIN T_USER_USER T1 ON T1.ID=TPC.SENSOR_ID
+			 LEFT JOIN T_USER_USER T2 ON T1.UPPER_USER=T2.ID
+			 LEFT JOIN T_DEPT_DEPARTMENT P ON T1.DEPT_ID=P.ID AND P.STATUS=0
+			 LEFT JOIN T_DEPT_COMPANY C ON C.DECP_ID=P.DECP_ID AND C.STATUS=0
+       		 LEFT JOIN T_PRJT_VISIT VI ON VI.CREDIT_ID=TPC.ID AND VI.STATUS=0 AND VI.VISIT_STATUS>=3
+			     WHERE TPC.STATUS=0 
+			       AND (TPC.STATE=0 OR TPC.STATE=3 OR TPC.STATE=5 OR TPC.STATE=2)
+			       AND (FINANCECONTRACT_DATE IS NULL OR CONVERT(VARCHAR,FINANCECONTRACT_DATE,23)=CONVERT(VARCHAR,'1900-01-01',23))
+			       AND DATEDIFF(DAY,VI.REAL_VISIT_DATE,GETDATE())>5 
+			       AND (TPC.VIP_FLAG=0 OR TPC.VIP_FLAG IS NULL)
+			       AND EXISTS
+			       (SELECT 1 FROM T_PRJT_VISIT VI 
+                   	    LEFT JOIN T_PRJT_VISIT_REPORT VR ON VR.VISIT_ID=VI.ID
+               				WHERE VI.CREDIT_ID=TPC.ID 
+               				  AND VI.STATUS=0 
+               				  AND VI.VISIT_STATUS>=3 
+               				  AND VR.STATUS=1)
+	</select>
+	
+	<select id="getFisrtWindControl" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+	        	SELECT TPC.ID creditId,TPC.CREDIT_RUNCODE creditRunCode,TCC.CUST_NAME custName,
+			           T1.ID userId,C.DECP_ID deptId,C.DECP_NAME_CN deptName,T1.[NAME] [name],
+			           T2.[NAME] upName,MIN(AA.COMMIT_TIME) createOn,'初次提交风控~未最终提交风控' flag
+	          	  FROM T_PRJT_CREDIT TPC          
+	     	 LEFT JOIN T_PRJT_RISK_CONTROL AA ON AA.CREDIT_ID=TPC.ID AND AA.STATUS=0
+	     	 LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TCC.CUST_ID=TPC.CUST_ID
+			 LEFT JOIN T_USER_USER T1 ON T1.ID=TPC.SENSOR_ID
+			 LEFT JOIN T_USER_USER T2 ON T1.UPPER_USER=T2.ID
+			 LEFT JOIN T_DEPT_DEPARTMENT P ON T1.DEPT_ID=P.ID AND P.STATUS=0
+			 LEFT JOIN T_DEPT_COMPANY C ON C.DECP_ID=P.DECP_ID AND C.STATUS=0
+	         WHERE TPC.STATUS=0
+	           AND (TPC.STATE=0 OR TPC.STATE=3 OR TPC.STATE=5 OR TPC.STATE=2)
+	           AND NOT EXISTS (SELECT 1 FROM T_PRJT_RISK_CONTROL T WHERE T.CREDIT_ID=TPC.ID AND T.STATE!=3)
+	           AND AA.PRC_ID IS NOT NULL
+	           AND (FINANCECONTRACT_DATE IS NULL OR CONVERT(VARCHAR,FINANCECONTRACT_DATE,23)=CONVERT(VARCHAR,'1900-01-01',23))
+	           AND (TPC.VIP_FLAG=0 OR TPC.VIP_FLAG IS NULL)           
+	      GROUP BY TPC.ID,TPC.CREDIT_RUNCODE,TCC.CUST_NAME,
+	               T1.ID,C.DECP_ID,C.DECP_NAME_CN,T1.[NAME],
+	               T2.[NAME]
+	        HAVING DATEDIFF(DAY,MIN(AA.COMMIT_TIME),GETDATE())>5
+	</select>
+	
+	<select id="getLastWindControl" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+	        SELECT TPC.ID creditId,TPC.CREDIT_RUNCODE creditRunCode,TCC.CUST_NAME custName,
+		           T1.ID userId,C.DECP_ID deptId,C.DECP_NAME_CN deptName,T1.[NAME] [name],
+		           T2.[NAME] upName,MAX(AA.COMMIT_TIME) createOn,'最终提交风控~审查未核准' flag
+	          FROM T_PRJT_CREDIT TPC          
+	   	 LEFT JOIN T_PRJT_RISK_CONTROL AA ON AA.CREDIT_ID=TPC.ID AND AA.STATUS=0
+	     LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TCC.CUST_ID=TPC.CUST_ID
+		 LEFT JOIN T_USER_USER T1 ON T1.ID=TPC.SENSOR_ID
+		 LEFT JOIN T_USER_USER T2 ON T1.UPPER_USER=T2.ID
+		 LEFT JOIN T_DEPT_DEPARTMENT P ON T1.DEPT_ID=P.ID AND P.STATUS=0
+		 LEFT JOIN T_DEPT_COMPANY C ON C.DECP_ID=P.DECP_ID AND C.STATUS=0
+	         WHERE TPC.STATUS=0
+	           AND TPC.STATE=1
+	           AND (FINANCECONTRACT_DATE IS NULL OR CONVERT(VARCHAR,FINANCECONTRACT_DATE,23)=CONVERT(VARCHAR,'1900-01-01',23))
+	           AND (TPC.VIP_FLAG=0 OR TPC.VIP_FLAG IS NULL) 
+	           AND AA.STATE=0
+	      GROUP BY TPC.ID,TPC.CREDIT_RUNCODE,TCC.CUST_NAME,
+	               T1.ID,C.DECP_ID,C.DECP_NAME_CN,T1.[NAME],
+	               T2.[NAME]
+	        HAVING DATEDIFF(DAY,MAX(AA.COMMIT_TIME),GETDATE())>3
+	</select>
+	
+	<select id="getApprovedNotAudit" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+	        SELECT TPC.ID creditId,TPC.CREDIT_RUNCODE creditRunCode,TCC.CUST_NAME custName,
+			       T1.ID userId,C.DECP_ID deptId,C.DECP_NAME_CN deptName,T1.[NAME] [name],
+			       T2.[NAME] upName,AA.FINISH_TIME createOn,'审查核准~业管未初审' flag
+	          FROM T_PRJT_CREDIT TPC          
+	     LEFT JOIN T_PRJT_RISK_CONTROL AA ON AA.CREDIT_ID=TPC.ID AND AA.STATUS=0
+	     LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TCC.CUST_ID=TPC.CUST_ID
+		 LEFT JOIN T_USER_USER T1 ON T1.ID=TPC.SENSOR_ID
+		 LEFT JOIN T_USER_USER T2 ON T1.UPPER_USER=T2.ID
+		 LEFT JOIN T_DEPT_DEPARTMENT P ON T1.DEPT_ID=P.ID AND P.STATUS=0
+		 LEFT JOIN T_DEPT_COMPANY C ON C.DECP_ID=P.DECP_ID AND C.STATUS=0
+	     LEFT JOIN T_RENT_CONTRACT TRC ON TRC.PRCD_ID=TPC.ID AND TRC.STATUS=0
+	         WHERE TPC.STATUS=0
+	           AND TPC.STATE=1
+	           AND (FINANCECONTRACT_DATE IS NULL OR CONVERT(VARCHAR,FINANCECONTRACT_DATE,23)=CONVERT(VARCHAR,'1900-01-01',23))
+	           AND (TPC.VIP_FLAG=0 OR TPC.VIP_FLAG IS NULL) 
+	           AND AA.STATE=1
+	           AND TRC.RECT_STATUS IS NULL
+	           AND (TPC.DELAY_PAY_STATUS IS NULL OR TPC.DELAY_PAY_STATUS=0)
+               AND DATEDIFF(DAY,AA.FINISH_TIME,GETDATE())&lt;=TPC.VALID_DAY
+	      GROUP BY TPC.ID,TPC.CREDIT_RUNCODE,TCC.CUST_NAME,
+	               T1.ID,C.DECP_ID,C.DECP_NAME_CN,T1.[NAME],
+	               T2.[NAME],AA.FINISH_TIME
+	        HAVING DATEDIFF(DAY,AA.FINISH_TIME,GETDATE())>30
+	</select>
+	
+	<select id="getHasAuditNotPay" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+		        SELECT TPC.ID creditId,TPC.CREDIT_RUNCODE creditRunCode,TCC.CUST_NAME custName,
+				       T1.ID userId,C.DECP_ID deptId,C.DECP_NAME_CN deptName,T1.[NAME] [name],
+				       T2.[NAME] upName,O.CREATE_DATE createOn,'业管初审~未拨款' flag
+		          FROM T_PRJT_CREDIT TPC          
+		     LEFT JOIN T_PRJT_RISK_CONTROL AA ON AA.CREDIT_ID=TPC.ID AND AA.STATUS=0
+		     LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TCC.CUST_ID=TPC.CUST_ID
+		     LEFT JOIN T_USER_USER T1 ON T1.ID=TPC.SENSOR_ID
+			 LEFT JOIN T_USER_USER T2 ON T1.UPPER_USER=T2.ID
+			 LEFT JOIN T_DEPT_DEPARTMENT P ON T1.DEPT_ID=P.ID AND P.STATUS=0
+			 LEFT JOIN T_DEPT_COMPANY C ON C.DECP_ID=P.DECP_ID AND C.STATUS=0
+		     LEFT JOIN T_RENT_CONTRACT TRC ON TRC.PRCD_ID=TPC.ID AND TRC.STATUS=0
+	         LEFT JOIN (SELECT MAX(CREATE_DATE) CREATE_DATE,CREDIT_ID FROM T_SYS_BUSINESSLOG 
+										 WHERE LOG_TITLE='初审' AND STATUS=0
+								  GROUP BY CREDIT_ID) O ON O.CREDIT_ID=TPC.ID
+		         WHERE TPC.STATUS=0
+		           AND TPC.STATE=1
+		           AND (FINANCECONTRACT_DATE IS NULL OR CONVERT(VARCHAR,FINANCECONTRACT_DATE,23)=CONVERT(VARCHAR,'1900-01-01',23))
+		           AND (TPC.VIP_FLAG=0 OR TPC.VIP_FLAG IS NULL) 
+		           AND AA.STATE=1
+		           AND TRC.RECT_STATUS=1
+		           AND (TPC.DELAY_PAY_STATUS IS NULL OR TPC.DELAY_PAY_STATUS=0)
+	               AND DATEDIFF(DAY,AA.FINISH_TIME,GETDATE())&lt;=TPC.VALID_DAY
+		      GROUP BY TPC.ID,TPC.CREDIT_RUNCODE,TCC.CUST_NAME,
+		               T1.ID,C.DECP_ID,C.DECP_NAME_CN,T1.[NAME],
+		               T2.[NAME],O.CREATE_DATE
+		        HAVING DATEDIFF(DAY,O.CREATE_DATE,GETDATE())>5
+	</select>
+	
+	<select id="getHasCreditNotPay" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+	            SELECT TPC.ID creditId,TPC.CREDIT_RUNCODE creditRunCode,TCC.CUST_NAME custName,
+			           T1.ID userId,C.DECP_ID deptId,C.DECP_NAME_CN deptName,T1.[NAME] [name],
+			           T2.[NAME] upName,TPC.CREATE_DATE createOn,'进件~未拨款' flag
+			      FROM T_PRJT_CREDIT TPC
+			 LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.STATUS=0 AND TCC.CUST_ID=TPC.CUST_ID
+			 LEFT JOIN T_USER_USER T1 ON T1.ID=TPC.SENSOR_ID
+			 LEFT JOIN T_USER_USER T2 ON T1.UPPER_USER=T2.ID
+			 LEFT JOIN T_DEPT_DEPARTMENT P ON T1.DEPT_ID=P.ID AND P.STATUS=0
+			 LEFT JOIN T_DEPT_COMPANY C ON C.DECP_ID=P.DECP_ID AND C.STATUS=0
+			     WHERE TPC.STATUS=0 
+			       AND (TPC.STATE=0 OR TPC.STATE=3 OR TPC.STATE=5 OR TPC.STATE=2)
+			       AND (FINANCECONTRACT_DATE IS NULL OR CONVERT(VARCHAR,FINANCECONTRACT_DATE,23)=CONVERT(VARCHAR,'1900-01-01',23))
+			       AND DATEDIFF(DAY,TPC.CREATE_DATE,GETDATE())>50 
+			       AND (TPC.VIP_FLAG=0 OR TPC.VIP_FLAG IS NULL)
+	</select>
+	
+	<insert id="insertDynamicCase">
+			INSERT INTO T_UNNATURAL_DYNAMIC_CASE
+			(ID,CREDIT_ID,CREDIT_RUN_CODE,CUST_NAME,USER_ID,DEPT_ID,DEPT_NAME,NAME,UP_NAME,CASE_DATE,FLAG,CREATE_ON,STATUS)
+			VALUES
+			(#id#,#creditId#,#creditRunCode#,#custName#,#userId#,#deptId#,#deptName#,#name#,#upName#,#createOn#,#flag#,GETDATE(),0)
+	</insert>
+	
+	<select id="getDynamicCaseCount" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+	      SELECT COUNT(1) num,DEPT_ID deptId,DEPT_NAME deptName 
+	        FROM T_UNNATURAL_DYNAMIC_CASE 
+	       WHERE CONVERT(DATE,CREATE_ON)=CONVERT(DATE,GETDATE())
+	         AND STATUS=0
+	         AND FLAG=#CODE#
+	    GROUP BY DEPT_ID,DEPT_NAME
+	</select>
+	
+	<insert id="insertDynamicCaseCount">
+			INSERT INTO T_UNNATURAL_DYNAMIC_CASE_COUNT
+			(DEPT_ID,DEPT_NAME,A,B,C,D,E,F,G,CREATE_ON,STATUS)
+			VALUES
+			(#deptId#,#deptName#,#a#,#b#,#c#,#d#,#e#,#f#,#g#,GETDATE(),0)
+	</insert>
+	
+	<select id="getDynamicCase" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+			SELECT DEPT_ID deptId,DEPT_NAME deptName,A a,B b,C c,D d,E e,F f,G g,[ORDER] [order],CONVERT(DATE,CREATE_ON) createOn
+			  FROM T_UNNATURAL_DYNAMIC_CASE_COUNT TUDCC
+		 LEFT JOIN T_DEPT_COMPANY TDC ON TDC.DECP_ID=TUDCC.DEPT_ID AND TDC.STATUS=0
+			 WHERE TUDCC.STATUS=0
+			<isNotEmpty property="DEPT_ID">
+			   AND TUDCC.DEPT_ID=#DEPT_ID#
+			</isNotEmpty>
+			<isNotEmpty property="DATE">
+			   AND CONVERT(DATE,CREATE_ON)=CONVERT(DATE,#DATE#)
+			</isNotEmpty>
+			<isEmpty property="DATE">
+			   AND CONVERT(DATE,CREATE_ON)=CONVERT(DATE,GETDATE())
+			</isEmpty>
+	</select>
+	
+	<select id="getDynamicCaseDetail" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+			SELECT CREDIT_ID creditId,CREDIT_RUN_CODE creditRunCode,
+				   CUST_NAME custName,USER_ID userId,DEPT_ID deptId,
+				   DEPT_NAME deptName,NAME name,UP_NAME upName,
+				   CASE_DATE createOn,FLAG flag,
+				   DATEDIFF(DAY,CASE_DATE,GETDATE()) dayDiff
+			  FROM T_UNNATURAL_DYNAMIC_CASE
+			 WHERE STATUS=0
+			   AND FLAG=#CODE#
+			   AND CONVERT(DATE,CREATE_ON)=CONVERT(DATE,#DATE#)
+			   AND DEPT_ID=#DEPT_ID#
+	</select>
+	
+	<select id="queryPendingApproveCase" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+		      SELECT DISTINCT CREDIT_ID creditId,CREDIT_RUN_CODE creditRunCode,
+		             CUST_NAME custName,DEPT_ID deptId,DEPT_NAME deptName,
+		             [NAME] [name],UP_NAME upName,CONVERT(DATE,MIN_COMMIT_DATE) minCommitDate,
+		             DAY_DIFF dayDiff,LEASE_RZE leaseRze,IS_BACK isBack,STATE state,[ORDER] [order]
+		        FROM T_UNNATURAL_PENDING_APPROVE TUPA
+		   LEFT JOIN T_DEPT_COMPANY TDC ON TDC.DECP_ID=TUPA.DEPT_ID AND TDC.STATUS=0
+       		   WHERE TUPA.STATUS=0
+         <isNotEmpty property="DATE">
+         		 AND CONVERT(DATE,TUPA.CREATE_ON)=CONVERT(DATE,#DATE#)
+         </isNotEmpty>
+         <isEmpty property="DATE">
+         		 AND CONVERT(DATE,TUPA.CREATE_ON)=CONVERT(DATE,GETDATE()-1)
+         </isEmpty>
+         <isNotEmpty property="DEPT_ID">
+         		 AND DEPT_ID=#DEPT_ID#
+         </isNotEmpty>
+	</select>
+	
+	<select id="queryPendingCommitCase" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+			      SELECT DISTINCT TUPC.CREDIT_ID creditId,CREDIT_RUN_CODE creditRunCode,
+			             CUST_NAME custName,DEPT_ID deptId,DEPT_NAME deptName,[ORDER] [order],
+			             [NAME] [name],UP_NAME upName,CONVERT(DATE,VISIT_DATE) visitDate,
+			             DAY_DIFF dayDiff,LEASE_RZE leaseRze,RECORD_REMARK recordRemark,CONVERT(DATE,VR.MODIFY_DATE) createOn
+			        FROM T_UNNATURAL_PENDING_COMMIT TUPC
+			   LEFT JOIN T_DEPT_COMPANY TDC ON TDC.DECP_ID=TUPC.DEPT_ID AND TDC.STATUS=0
+			   LEFT JOIN T_PRJT_VISIT VI ON VI.CREDIT_ID=TUPC.CREDIT_ID AND VI.STATUS=0 AND VI.VISIT_STATUS>=3
+			   LEFT JOIN T_PRJT_VISIT_REPORT VR ON VR.VISIT_ID=VI.ID
+			       WHERE TUPC.STATUS=0
+			   <isNotEmpty property="DATE">
+	         		 AND CONVERT(DATE,TUPC.CREATE_ON)=CONVERT(DATE,#DATE#)
+	           </isNotEmpty>
+	           <isEmpty property="DATE">
+	         		 AND CONVERT(DATE,TUPC.CREATE_ON)=CONVERT(DATE,GETDATE()-1)
+	           </isEmpty>  
+	           <isNotEmpty property="DEPT_ID">
+         		 	 AND DEPT_ID=#DEPT_ID#
+         	   </isNotEmpty>  
+	</select>
+	
+	<select id="getDunVisit" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+		   			   SELECT TPC.ID creditId,TPC.CREDIT_RUNCODE creditRunCode,TCC.CUST_NAME custName,
+                              TUU.NAME [name],C.DECP_ID deptId,C.DECP_NAME_CN deptName,REAL_VISIT_DATE visitDate,
+                              TPVR.CREATE_DATE createOn,TPV.VISIT_AREA visitArea,DATEDIFF(DAY,REAL_VISIT_DATE,GETDATE()) dayDiff
+                         FROM T_PRJT_VISIT TPV
+                    LEFT JOIN T_PRJT_VISIT_REPORT TPVR ON TPV.ID=TPVR.VISIT_ID
+                    LEFT JOIN T_PRJT_CREDIT TPC ON TPC.ID=TPV.CREDIT_ID AND TPC.STATUS=0
+                    LEFT JOIN T_CUST_CUSTOMER TCC ON TPC.CUST_ID=TCC.CUST_ID AND TCC.STATUS=0
+                    LEFT JOIN T_USER_USER TUU ON TPC.SENSOR_ID=TUU.ID
+                    LEFT JOIN T_DEPT_DEPARTMENT P ON TUU.DEPT_ID=P.ID AND P.STATUS=0
+                 	LEFT JOIN T_DEPT_COMPANY C ON C.DECP_ID=P.DECP_ID AND C.STATUS=0
+                        WHERE TPV.STATUS=0
+                          AND TPV.VISIT_STATUS=3 
+                          AND TPVR.STATUS=0 
+                          AND DATEDIFF(DAY,REAL_VISIT_DATE,GETDATE())>11
+	</select>
+	
+	<insert id="insertDunVisit">
+			INSERT INTO T_UNNATURAL_DUN_VISIT_CASE
+			(ID,CREDIT_ID,CREDIT_RUN_CODE,CUST_NAME,NAME,DEPT_ID,DEPT_NAME,VISIT_DATE,REPORT_CREATE_DATE,VISIT_AREA,DAY_DIFF,STATUS,CREATE_ON)
+			VALUES
+			(#id#,#creditId#,#creditRunCode#,#custName#,#name#,#deptId#,#deptName#,#visitDate#,#createOn#,#visitArea#,#dayDiff#,0,GETDATE())
+	</insert>
+	
+	<select id="queryDunVisitCase" resultClass="com.brick.unnaturalCase.to.UnnaturalCaseTO">
+			SELECT CREDIT_RUN_CODE creditRunCode,CUST_NAME custName,
+			       NAME name,DEPT_ID deptId,DEPT_NAME deptName,VISIT_DATE visitDate,
+			       REPORT_CREATE_DATE createOn,VISIT_AREA visitArea,DAY_DIFF dayDiff
+			  FROM T_UNNATURAL_DUN_VISIT_CASE
+			 WHERE STATUS=0
+			   <isNotEmpty property="DATE">
+	         		 AND CONVERT(DATE,CREATE_ON)=CONVERT(DATE,#DATE#)
+	           </isNotEmpty>
+	           <isEmpty property="DATE">
+	         		 AND CONVERT(DATE,CREATE_ON)=CONVERT(DATE,GETDATE())
+	           </isEmpty>  
+	           <isNotEmpty property="DEPT_ID">
+        		 	 AND DEPT_ID=#DEPT_ID#
+        	   </isNotEmpty> 
+	</select>
+	
+	<select id="getFilesAfterPayMoney" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	 <![CDATA[
+	       select t.creditRunCode,
+              t.leaseCode,
+              t.custName,
+              t.fileName,
+              t.name,
+              u.[NAME] as org_manager,
+              t.suplName,
+              convert(nvarchar(50),t.financeDate,111) financeDate,
+              t.shouldFinishDate,
+              max(t.delayDay) as delayDay,
+              t.issueReason,
+              t.type,
+              t1.pay_money,
+              (t2.LEASE_TOPRIC - t2.PLEDGE_ENTER_MCTOAG - t2.PLEDGE_ENTER_AG) as total_money
+       from(
+        SELECT CREDIT_ID,LEASE_CODE leaseCode,CUST_NAME custName,
+               FILE_NAME fileName,CREDIT_RUNCODE creditRunCode,
+               NAME name,DEPT_NAME deptName,
+               CREDIT_ID creditId,ISSURE_REASON issueReason,
+               FINANCECONTRACT_DATE financeDate,
+               CASE WHEN CONVERT(VARCHAR,SHOULD_FINISH_DATE,23)=CONVERT(VARCHAR,'1900-01-01',23) THEN ''
+                    ELSE CONVERT(DATE,SHOULD_FINISH_DATE) END shouldFinishDate,
+               TYPE type,
+               CASE WHEN CONVERT(VARCHAR,SHOULD_FINISH_DATE,23)=CONVERT(VARCHAR,'1900-01-01',23) THEN -1
+                    ELSE CONVERT(INT,SUBSTRING(DELAY_DAY,0,LEN(DELAY_DAY))) END delayDay,SUPL_NAME suplName
+          FROM T_UNNATURAL_UNCOMPLETED_FILE_CASE
+         WHERE STATUS=0 AND CONVERT(DATE,CREATE_ON)>= cast(#beginDate# as date)
+         and CONVERT(DATE,CREATE_ON)< cast(getDate() as date)
+
+        ) t 
+        left join T_PRJT_CREDIT p on p.ID = t.CREDIT_ID
+        left join T_USER_USER u on u.ID = p.ORG_UP_USER
+        left join (
+          select sum(PAY_MONEY) pay_money,CREDIT_ID from T_SUPL_PLAYDETIL where STATUS = 0
+          group by CREDIT_ID
+        ) t1 on t1.CREDIT_ID=t.CREDIT_ID
+        left join T_PRJT_CREDITSCHEME t2 on t2.CREDIT_ID=t.CREDIT_ID
+
+        where  cast (p.FINANCECONTRACT_DATE as date) >=  cast(#beginDate# as date)
+        and cast (p.FINANCECONTRACT_DATE as date) <=  cast(#endDate# as date)
+	      and p.production_type <> 3
+  
+        group by t.creditRunCode,
+              t.leaseCode,
+              t.custName,
+              t.fileName,
+              t.name,
+              u.[NAME],
+              t.suplName,
+              financeDate,
+              t.shouldFinishDate,
+              t.issueReason,
+              t.type,
+              t1.pay_money,
+              (t2.LEASE_TOPRIC - t2.PLEDGE_ENTER_MCTOAG - t2.PLEDGE_ENTER_AG)
+      order by t.financeDate
+  
+
+	]]>
+	</select>
+	
+	<select id="getUnnaturalCaseBirtReport" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+   
+        SELECT TPC.LEASE_CODE,
+            TCC.CUST_NAME,
+            TRF.FILE_NAME,
+			      T6.NAME [name],
+            T9.DECP_NAME_CN dept_Name,
+			      convert(NVARCHAR(10),TPC.FINANCECONTRACT_DATE,120) as pay_date,
+            isnull(p.LEASE_TOPRIC, 0) - isnull(p.PLEDGE_ENTER_MCTOAG, 0) - isnull(p.PLEDGE_ENTER_AG, 0) as pay_money,
+	          isnull(p.LEASE_TOPRIC,0) LEASE_TOPRIC,
+	          s.suplName as supl_name,
+	          isnull(p.LEASE_TOPRIC,0)*0.17 as tax,
+	          round(p.TR_IRR_RATE,2) as tr,
+            round(cp.RATE_DIFF,0) as RATE_DIFF
+			  FROM T_RENT_FILEDETAIL TRFD 
+			  LEFT JOIN T_PRJT_CREDIT TPC ON TRFD.PRCD_ID=TPC.ID AND TPC.STATUS=0
+			  LEFT JOIN (SELECT MIN(TYPE) TYPE,CREDIT_ID FROM T_PRJT_CREDITAPPROPIATE WHERE STATUS=0 GROUP BY CREDIT_ID) TPCA ON TPC.ID=TPCA.CREDIT_ID 
+			  LEFT JOIN T_RENT_FILE TRF ON TRFD.REFI_ID=TRF.REFI_ID AND TRF.FILE_STATUS=0
+			  LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.CUST_ID=TPC.CUST_ID AND TCC.STATUS=0
+			  LEFT JOIN T_USER_USER T6 ON TPC.SENSOR_ID=T6.ID
+			  LEFT JOIN T_USER_USER UPPER ON UPPER.ID=T6.UPPER_USER
+			  LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=T6.DEPT_ID AND DEPT.STATUS=0
+			  LEFT JOIN T_DEPT_COMPANY T9 ON DEPT.DECP_ID=T9.DECP_ID AND T9.STATUS=0		
+        left join T_PRJT_CREDITSCHEME p on TRFD.PRCD_ID = p.CREDIT_ID
+        left join t_rent_contract c on c.PRCD_ID = TPC.ID and c.STATUS = 0
+        left join T_RENT_COLLECTIONPLAN  cp on cp.RECT_ID = c.RECT_ID and cp.STATUS = 0
+        left join (
+             SELECT DISTINCT CONVERT(VARCHAR,TPC.ID) creditId,TPCT.BRAND suplName 
+	          FROM T_PRJT_CREDIT TPC
+	          LEFT JOIN T_PRJT_CREDITEQUIPMENT TPCT ON TPCT.CREDIT_ID=TPC.ID
+	          WHERE TPC.STATUS=0
+	           AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+        ) s on s.creditId =TRFD.PRCD_ID
+				WHERE TRFD.IS_ALREADY ='0' AND TRFD.FILE_TYPE='3' AND TRFD.STATUS=0
+				AND TRFD.REFD_ID IS NOT NULL 
+			  AND TPC.STATUS=0 
+			  AND TPC.LEASE_CODE IS NOT NULL 
+			  AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+        AND TRF.FILE_NAME like '%购置凭证（发票）%' 
+        AND TPC.CONTRACT_TYPE =7
+	      order by T9.DECP_NAME_CN
+	</select>
+	
+	<select id="getUnnaturalCaseBirtReportTotal" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	
+	        SELECT 
+            sum(isnull(p.LEASE_TOPRIC, 0) - isnull(p.PLEDGE_ENTER_MCTOAG, 0) - isnull(p.PLEDGE_ENTER_AG, 0)) as pay_money,
+	          sum(isnull(p.LEASE_TOPRIC,0)) LEASE_TOPRIC,
+	          sum(isnull(p.LEASE_TOPRIC,0))*0.17 as tax     
+			  FROM T_RENT_FILEDETAIL TRFD 
+			  LEFT JOIN T_PRJT_CREDIT TPC ON TRFD.PRCD_ID=TPC.ID AND TPC.STATUS=0
+			  LEFT JOIN (SELECT MIN(TYPE) TYPE,CREDIT_ID FROM T_PRJT_CREDITAPPROPIATE WHERE STATUS=0 GROUP BY CREDIT_ID) TPCA ON TPC.ID=TPCA.CREDIT_ID 
+			  LEFT JOIN T_RENT_FILE TRF ON TRFD.REFI_ID=TRF.REFI_ID AND TRF.FILE_STATUS=0
+			  LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.CUST_ID=TPC.CUST_ID AND TCC.STATUS=0
+			  LEFT JOIN T_USER_USER T6 ON TPC.SENSOR_ID=T6.ID
+			  LEFT JOIN T_USER_USER UPPER ON UPPER.ID=T6.UPPER_USER
+			  LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=T6.DEPT_ID AND DEPT.STATUS=0
+			  LEFT JOIN T_DEPT_COMPANY T9 ON DEPT.DECP_ID=T9.DECP_ID AND T9.STATUS=0		
+        left join T_PRJT_CREDITSCHEME p on TRFD.PRCD_ID = p.CREDIT_ID
+        left join (
+             SELECT DISTINCT CONVERT(VARCHAR,TPC.ID) creditId,TPCT.BRAND suplName 
+	          FROM T_PRJT_CREDIT TPC
+	          LEFT JOIN T_PRJT_CREDITEQUIPMENT TPCT ON TPCT.CREDIT_ID=TPC.ID
+	          WHERE TPC.STATUS=0
+	           AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+        ) s on s.creditId =TRFD.PRCD_ID
+				WHERE TRFD.IS_ALREADY ='0' AND TRFD.FILE_TYPE='3'
+				AND TRFD.REFD_ID IS NOT NULL 
+			  AND TPC.STATUS=0 
+			  AND TPC.LEASE_CODE IS NOT NULL 
+			  AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+        AND TRF.FILE_NAME like '%购置凭证（发票）%' 
+        AND TPC.CONTRACT_TYPE =7
+	
+	</select>
+	
+	<select id="getUnnaturalCaseBeforePayBirtReport" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+         SELECT TPC.LEASE_CODE,
+            TCC.CUST_NAME,
+            TRF.FILE_NAME,
+			      T6.NAME [name],
+            T9.DECP_NAME_CN dept_Name,
+			      convert(NVARCHAR(10),TPC.FINANCECONTRACT_DATE,120) as pay_date,
+            isnull(p.LEASE_TOPRIC, 0) - isnull(p.PLEDGE_ENTER_MCTOAG, 0) - isnull(p.PLEDGE_ENTER_AG, 0) as pay_money,
+	          isnull(p.LEASE_TOPRIC,0) LEASE_TOPRIC,
+	          s.suplName as supl_name,
+	          isnull(p.LEASE_TOPRIC,0)*0.17 as tax,
+	          round(p.TR_IRR_RATE,2) as tr,
+            round(cp.RATE_DIFF,0) as RATE_DIFF
+			  FROM T_RENT_FILEDETAIL TRFD 
+			  LEFT JOIN T_PRJT_CREDIT TPC ON TRFD.PRCD_ID=TPC.ID AND TPC.STATUS=0
+			  LEFT JOIN (SELECT MIN(TYPE) TYPE,CREDIT_ID FROM T_PRJT_CREDITAPPROPIATE WHERE STATUS=0 GROUP BY CREDIT_ID) TPCA ON TPC.ID=TPCA.CREDIT_ID 
+			  LEFT JOIN T_RENT_FILE TRF ON TRFD.REFI_ID=TRF.REFI_ID AND TRF.FILE_STATUS=0
+			  LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.CUST_ID=TPC.CUST_ID AND TCC.STATUS=0
+			  LEFT JOIN T_USER_USER T6 ON TPC.SENSOR_ID=T6.ID
+			  LEFT JOIN T_USER_USER UPPER ON UPPER.ID=T6.UPPER_USER
+			  LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=T6.DEPT_ID AND DEPT.STATUS=0
+			  LEFT JOIN T_DEPT_COMPANY T9 ON DEPT.DECP_ID=T9.DECP_ID AND T9.STATUS=0		
+        left join T_PRJT_CREDITSCHEME p on TRFD.PRCD_ID = p.CREDIT_ID
+        left join t_rent_contract c on c.PRCD_ID = TPC.ID and c.STATUS = 0
+        left join T_RENT_COLLECTIONPLAN  cp on cp.RECT_ID = c.RECT_ID and cp.STATUS = 0
+        left join (
+             SELECT DISTINCT CONVERT(VARCHAR,TPC.ID) creditId,TPCT.BRAND suplName 
+	          FROM T_PRJT_CREDIT TPC
+	          LEFT JOIN T_PRJT_CREDITEQUIPMENT TPCT ON TPCT.CREDIT_ID=TPC.ID
+	          WHERE TPC.STATUS=0
+	           AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+        ) s on s.creditId =TRFD.PRCD_ID
+				WHERE TRFD.IS_ALREADY ='0' AND TRFD.FILE_TYPE='3'
+				AND TRFD.REFD_ID IS NOT NULL 
+			  AND TPC.STATUS=0 
+			  AND TPC.LEASE_CODE IS NOT NULL 
+			  AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+        AND TRFD.ISSURE_REASON NOT LIKE '%清偿文件%'
+        AND TPC.CONTRACT_TYPE =7
+        AND TPCA.[TYPE]=0
+	      order by T9.DECP_NAME_CN
+	</select>
+	
+	<select id="getUnnaturalCaseBeforePayBirtReportTotal" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	
+	        SELECT 
+            sum(isnull(p.LEASE_TOPRIC, 0) - isnull(p.PLEDGE_ENTER_MCTOAG, 0) - isnull(p.PLEDGE_ENTER_AG, 0)) as pay_money,
+	          sum(isnull(p.LEASE_TOPRIC,0)) LEASE_TOPRIC,
+	          sum(isnull(p.LEASE_TOPRIC,0))*0.17 as tax     
+			  FROM T_RENT_FILEDETAIL TRFD 
+			  LEFT JOIN T_PRJT_CREDIT TPC ON TRFD.PRCD_ID=TPC.ID AND TPC.STATUS=0
+			  LEFT JOIN (SELECT MIN(TYPE) TYPE,CREDIT_ID FROM T_PRJT_CREDITAPPROPIATE WHERE STATUS=0 GROUP BY CREDIT_ID) TPCA ON TPC.ID=TPCA.CREDIT_ID 
+			  LEFT JOIN T_RENT_FILE TRF ON TRFD.REFI_ID=TRF.REFI_ID AND TRF.FILE_STATUS=0
+			  LEFT JOIN T_CUST_CUSTOMER TCC ON TCC.CUST_ID=TPC.CUST_ID AND TCC.STATUS=0
+			  LEFT JOIN T_USER_USER T6 ON TPC.SENSOR_ID=T6.ID
+			  LEFT JOIN T_USER_USER UPPER ON UPPER.ID=T6.UPPER_USER
+			  LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=T6.DEPT_ID AND DEPT.STATUS=0
+			  LEFT JOIN T_DEPT_COMPANY T9 ON DEPT.DECP_ID=T9.DECP_ID AND T9.STATUS=0		
+        left join T_PRJT_CREDITSCHEME p on TRFD.PRCD_ID = p.CREDIT_ID
+        left join (
+             SELECT DISTINCT CONVERT(VARCHAR,TPC.ID) creditId,TPCT.BRAND suplName 
+	          FROM T_PRJT_CREDIT TPC
+	          LEFT JOIN T_PRJT_CREDITEQUIPMENT TPCT ON TPCT.CREDIT_ID=TPC.ID
+	          WHERE TPC.STATUS=0
+	           AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+        ) s on s.creditId =TRFD.PRCD_ID
+				WHERE TRFD.IS_ALREADY ='0' AND TRFD.FILE_TYPE='3'
+				AND TRFD.REFD_ID IS NOT NULL 
+			  AND TPC.STATUS=0 
+			  AND TPC.LEASE_CODE IS NOT NULL 
+			  AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+        AND TRFD.ISSURE_REASON NOT LIKE '%清偿文件%'
+        AND TPC.CONTRACT_TYPE =7
+        AND TPCA.[TYPE]=0
+	
+	</select>
+	
+</sqlMap>

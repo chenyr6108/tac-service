@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="salesLeads">
+	 <!-- 
+	 查询个数 
+	 -->
+	<select id="getSalesLeads_count" parameterClass="map" resultClass="int">
+		<![CDATA[ 
+			select count(1) count from t_sales_leads t1
+			
+			where t1.status=0 
+		]]>
+		<isNotEmpty prepend="and" property="start_date">
+   	   		<![CDATA[
+   	   			  t1.create_time>=CONVERT(datetime,#start_date#)
+   	   		  ]]>
+   	    </isNotEmpty>
+   	    <isNotEmpty  prepend="and" property="end_date">
+   	   		<![CDATA[
+   	   			  t1.create_time<=CONVERT(datetime,#end_date#)+1
+   	   		  ]]>
+   	    </isNotEmpty>
+   	    <isNotEmpty  prepend="and" property="chance_stage_id">
+   	   		<![CDATA[
+   	   			  t1.chance_stage_id=#chance_stage_id#
+   	   		  ]]>
+   	    </isNotEmpty>
+		<isNotEmpty prepend="and" property="content">
+			<![CDATA[
+	   	   	 	(t1.theme like '%$content$%' 
+                or t1.cust_name like '%$content$%')
+             ]]>
+   	    </isNotEmpty>
+   	    
+	</select>
+	 <!-- 
+	 查询所有 
+	 -->
+	<select id="getSalesLeads" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+			select t1.sales_id sales_id,
+				t1.theme theme,
+				t1.cust_name cust_name,
+				t1.sources_id sources_id,
+				t1.chance_stage_id chance_stage_id,
+				t1.expect_money expect_money,
+				t1.expect_income_money expect_income_money,
+				t1.principal principal
+				from t_sales_leads t1
+			
+				where t1.status=0 
+		]]>
+		<isNotEmpty prepend="and" property="start_date">
+   	   		<![CDATA[
+   	   			  t1.create_time>=CONVERT(datetime,#start_date#)
+   	   		  ]]>
+   	    </isNotEmpty>
+   	    <isNotEmpty  prepend="and" property="end_date">
+   	   		<![CDATA[
+   	   			  t1.create_time<=CONVERT(datetime,#end_date#)+1
+   	   		  ]]>
+   	    </isNotEmpty>
+   	    <isNotEmpty  prepend="and" property="chance_stage_id">
+   	   		<![CDATA[
+   	   			  t1.chance_stage_id=#chance_stage_id#
+   	   		  ]]>
+   	    </isNotEmpty>
+		<isNotEmpty prepend="and" property="content">
+			<![CDATA[
+	   	   	 	(t1.theme like '%$content$%' 
+                or t1.cust_name like '%$content$%')
+             ]]>
+   	    </isNotEmpty>
+   	    <![CDATA[ order by t1.create_time desc  ]]>
+	</select>
+	
+	<insert id="create" parameterClass="map">
+		<![CDATA[
+			insert into t_sales_leads(
+				principal,
+				theme,cust_id,
+				linkman_id,phone,
+				sources_id,finish_date,
+				chance_stage_id,create_time,
+				modify_time,expect_money,
+				possibility,expect_income_money,
+				content,remark,
+				currency_id,status,
+				cust_name,linkman_name)
+			values(
+				#principal#,
+				#theme#,#cust_id#,
+				#linkman_id#,#phone#,
+				#sources_id#,CONVERT(datetime,#finish_date#),
+				#chance_stage_ids#,getdate(),
+				getdate(),#expect_money#,
+				#possibility#,#expect_income_money#,
+				#contents#,#remark#,
+				#currency_id#,0,
+				#cust_name#,#linkman_name#)
+		]]>
+	</insert>
+	
+ 	 <!-- 
+ 	 查询所有客户 
+ 	 -->
+	<select id="getCustAll" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t1.cust_id,
+			       t1.cust_name,
+			       (case
+			         when t1.cust_type = 1 then
+			          #corp#
+			         else
+			          #natu#
+			       end) cust_type,
+			       (case
+			         when t1.cust_level = t2.code then
+			          t2.flag
+			       end) cust_level,
+			       t1.cust_name + '_' + (case
+			         when t1.cust_type = 1 then
+			          #corp#
+			         else
+			          #natu#
+			       end) + '_' + (case
+			         when t1.cust_level = t2.code then
+			          t2.flag
+			       end) cust_info
+			  from t_cust_customer t1, t_data_dictionary t2
+			 where t1.status = 0
+			   and t2.type = #custType#
+			   and t1.cust_level=t2.code
+		]]>
+	</select>
+	
+ 	 <!-- 
+ 	 查询联系人 
+ 	 -->
+	<select id="getLinkAll" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select culm_id,
+		       link_name,
+		       link_relation2cust,
+		       (link_name + '_' + link_relation2cust) link_info
+		  from t_cust_linkman
+		 where status = 0
+		]]>
+		<isNotEmpty prepend="and" property="cust_id">
+			<![CDATA[ cust_id=#cust_id# ]]>
+  	    </isNotEmpty>
+	</select>
+	
+	<!-- 
+	修改销售机会 
+	-->
+	<update id="updateSalesLeadsById" parameterClass="map">
+		<![CDATA[
+			update t_sales_leads set 
+				principal=#principal#,
+				theme=#theme#,cust_id=#cust_id#,
+				linkman_id=#linkman_id#,phone=#phone#,
+				sources_id=#sources_id#,finish_date=CONVERT(varchar,#finish_date#,23),
+				chance_stage_id=#chance_stage_ids#,
+				modify_time=getdate(),
+				expect_money=#expect_money#,
+				possibility=#possibility#,expect_income_money=#expect_income_money#,
+				content=#contents#,remark=#remark#,
+				currency_id=#currency_id#,
+				cust_name=#cust_name#,linkman_name=#linkman_name#
+			where sales_id=#sales_id#
+		]]>
+	</update>
+	
+	<!-- 
+	删除销售机会 
+	-->
+	<update id="delSalesLeadsById" parameterClass="map">
+		<![CDATA[
+			update t_sales_leads set status = -2 where sales_id=#sales_id#
+		]]>
+	</update>
+	
+	<!-- 
+	查询销售机会 
+	-->
+	<select id="getSalesLeadsById" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t1.principal,
+			       t1.theme,
+			       t1.phone,
+			       t1.finish_date,
+			       t1.expect_income_money,
+			       t1.expect_money,
+			       t1.possibility,
+			       t1.content,
+			       t1.remark,
+			       t1.cust_name,
+			       t1.linkman_name,
+			       t1.sources_id sources_id,
+			       t1.chance_stage_id chance_stage_id,
+			       t1.currency_id currency_id
+			  from t_sales_leads t1
+			  
+			 where sales_id = #sales_id#
+		]]>
+	</select>
+	
+	<!-- 
+	查询销售机会 
+	-->
+	<select id="getSalesFunnel" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t1.flag flag,
+			       (case
+			         when t1.code not in (select distinct t3.chance_stage_id
+			                                   from t_sales_leads t3
+			                                  where t3.status = 0) then
+			          0
+			         else
+			          count(t2.chance_stage_id)
+			       end) count,
+			       (case
+			         when sum(t2.expect_money) is null then
+			          0
+			         else
+			          sum(t2.expect_money)
+			       end) expect_money_sum
+			  from t_data_dictionary t1
+			  left join (select * from t_sales_leads t4 where t4.status = 0
+			  ]]>
+			  <isNotEmpty prepend="and" property="start_date">
+	   	   		<![CDATA[
+	   	   			  t4.create_time>CONVERT(datetime,#start_date#)
+	   	   		  ]]>
+	   	      </isNotEmpty>
+	   	      <isNotEmpty  prepend="and" property="end_date">
+	   	   		<![CDATA[
+	   	   			  t4.create_time<CONVERT(datetime,#end_date#)
+	   	   		  ]]>
+	   	      </isNotEmpty>
+			<![CDATA[
+			  ) t2 on t2.chance_stage_id = t1.code
+			 where t1.type = #type#
+			group by t1.flag, t1.code order by t1.code 
+		]]>
+	</select>
+	
+</sqlMap>

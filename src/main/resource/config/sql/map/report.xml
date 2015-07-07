@@ -1,0 +1,4195 @@
+<?xml version="1.0" encoding="GBK" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="report">
+	<!-- 按年份分组查询每年的应收账款信息 -->
+	<select id="noDecomposeConstructAnalysis" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select (select count(1)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and fiin.opposing_type = '待分解来款'
+			                        union
+			                        select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and fiin.opposing_unit is null
+			                           and fiin.opposing_date is null
+			                           and fiin.opposing_postscript is null)se1)se2) count_all,
+			       (select isnull(sum(income_money),0)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and fiin.opposing_type = '待分解来款'
+			                        union
+			                        select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and fiin.opposing_unit is null
+			                           and fiin.opposing_date is null
+			                           and fiin.opposing_postscript is null)se3)se4) / 10000 money_all,
+			       (select count(1)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and fiin.opposing_unit is null
+			                           and fiin.opposing_date is null
+			                           and fiin.opposing_postscript is null)se5)se6) count_nothing,
+			       (select isnull(sum(income_money),0)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and fiin.opposing_unit is null
+			                           and fiin.opposing_date is null
+			                           and fiin.opposing_postscript is null)se7)se8) / 10000 money_nothing,
+			       (select count(1)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and fiin.opposing_type = '待分解来款')se0)sr) count_left,
+			       (select isnull(sum(income_money),0)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and fiin.opposing_type = '待分解来款')sr1)sr2) / 10000 money_left
+			   
+		]]>
+	</select>
+	<!-- 根据年份查询该年每个季度的应收账款信息 -->
+	<select id="noDecomposeTimesAnalysis" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select (select count(1)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and (datediff(dd,0,getdate())
+									    -  datediff(dd,0,fiin.opposing_date) ) between 0 and 1)se) se3) count_0_1,
+			       (select isnull(sum(income_money), 0)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and (datediff(dd,0,getdate())
+									   - datediff(dd,0,fiin.opposing_date)) between 0 and 1)sd)sd2) /
+			       10000 money_0_1,
+			       (select count(1)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and (datediff(dd,0,getdate())
+									    - datediff(dd,0,fiin.opposing_date)) between 2 and 3)sc)sc3) count_2_3,
+			       (select isnull(sum(income_money), 0)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and (datediff(dd,0,getdate())
+									    - datediff(dd,0,fiin.opposing_date)) between 2 and 3)ss)ss3) /
+			       10000 money_2_3,
+			       (select count(1)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and ( datediff(dd,0,getdate())
+									    -  datediff(dd,0,fiin.opposing_date)) between 4 and 15)sq)sq3) count_4_15,
+			       (select isnull(sum(income_money), 0)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and (datediff(dd,0,getdate())
+									    - datediff(dd,0,fiin.opposing_date)) between 4 and 15)sd)sd2) /
+			       10000 money_4_15,
+			       (select count(1)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and (datediff(dd,0,getdate())
+									    - datediff(dd,0,fiin.opposing_date)) between 16 and 30)sp)sp6) count_16_30,
+			       (select isnull(sum(income_money), 0)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and ( datediff(dd,0,getdate())
+									    - datediff(dd,0,fiin.opposing_date)) between 16 and 30)sf)sf4) /
+			       10000 money_16_30,
+			       (select count(1)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and (datediff(dd,0,getdate())
+									    - datediff(dd,0,fiin.opposing_date)) >= 31) sda)sda2) count_m_31,
+			       (select isnull(sum(income_money), 0)
+			          from (select distinct *
+			                  from (select fiin.income_money, fiin.fiin_id
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and (fiin.decompose_status = 1 or
+			                               fiin.decompose_status = 2 or
+			                               fiin.decompose_status = 3)
+			                           and ( datediff(dd,0,getdate())
+									    - datediff(dd,0,fiin.opposing_date)) >= 31)sdt)sdt3) /
+			       10000 money_m_31
+		]]>
+	</select>
+	<!-- 根据年份，季度查询每个月的应收账款信息 -->
+	<select id="decomposeExecutePercent" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select '来款数' item,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23)  = '2009-09') count_all_0909,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2009-10') count_all_0910,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2009-11') count_all_0911,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2009-12') count_all_0912,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-01') count_all_1001,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-02') count_all_1002,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-03') count_all_1003,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-04') count_all_1004,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-05') count_all_1005,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-06') count_all_1006,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-07') count_all_1007,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-08') count_all_1008,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(4),fiin.opposing_date,23) = '2010') count_all_2010
+			  
+			union
+			select '分解数' item,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2009-09'
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)) count_node_0909,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2009-10'
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)) count_node_0910,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2009-11'
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)) count_node_0911,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2009-12'
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)) count_node_0912,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-01'
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)) count_node_1001,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-02'
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)) count_node_1002,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-03'
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)) count_node_1003,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-04'
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)) count_node_1004,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-05'
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)) count_node_1005,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-06'
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)) count_node_1006,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-07'
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)) count_node_1007,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010-08'
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)) count_node_1008,
+			       (select count(1)
+			          from t_fina_income fiin
+			         where fiin.status = 0
+			           and convert(varchar(7),fiin.opposing_date,23) = '2010'
+			           and (fiin.decompose_status = 4 or fiin.decompose_status = 5)) count_node_1010
+			  
+			union
+			select '比率' item,
+			       round((select (select count(1)
+			                  from t_fina_income fiin
+			                 where fiin.status = 0
+			                   and convert(varchar(7),fiin.opposing_date,23) = '2009-09'
+			                   and (fiin.decompose_status = 4 or
+			                       fiin.decompose_status = 5)) /
+			               (select (case
+			                         when sum_num = 0 then
+			                          1
+			                         else
+			                          sum_num
+			                       end)
+			                  from (select count(1) sum_num
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and convert(varchar(7),fiin.opposing_date,23) =
+			                               '2009-09') t)
+			           ),2) percent_0909,
+			       round((select (select count(1)
+			                  from t_fina_income fiin
+			                 where fiin.status = 0
+			                   and convert(varchar(7),fiin.opposing_date,23) = '2009-10'
+			                   and (fiin.decompose_status = 4 or
+			                       fiin.decompose_status = 5)) /
+			               (select (case
+			                         when sum_num = 0 then
+			                          1
+			                         else
+			                          sum_num
+			                       end)
+			                  from (select count(1) sum_num
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and convert(varchar(7),fiin.opposing_date,23) =
+			                               '2009-10') t)
+			           ),2) percent_0910,
+			       round((select (select count(1)
+			                  from t_fina_income fiin
+			                 where fiin.status = 0
+			                   and convert(varchar(7),fiin.opposing_date,23) = '2009-11'
+			                   and (fiin.decompose_status = 4 or
+			                       fiin.decompose_status = 5)) /
+			               (select (case
+			                         when sum_num = 0 then
+			                          1
+			                         else
+			                          sum_num
+			                       end)
+			                  from (select count(1) sum_num
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and convert(varchar(7),fiin.opposing_date,23) =
+			                               '2009-11') t)
+			           ),2) percent_0911,
+			       round((select (select count(1)
+			                  from t_fina_income fiin
+			                 where fiin.status = 0
+			                   and convert(varchar(7),fiin.opposing_date,23) = '2009-12'
+			                   and (fiin.decompose_status = 4 or
+			                       fiin.decompose_status = 5)) /
+			               (select (case
+			                         when sum_num = 0 then
+			                          1
+			                         else
+			                          sum_num
+			                       end)
+			                  from (select count(1) sum_num
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and convert(varchar(7),fiin.opposing_date,23) =
+			                               '2009-12') t)
+			           ),2) percent_0912,
+			       round((select (select count(1)
+			                  from t_fina_income fiin
+			                 where fiin.status = 0
+			                   and convert(varchar(7),fiin.opposing_date,23) = '2010-01'
+			                   and (fiin.decompose_status = 4 or
+			                       fiin.decompose_status = 5)) /
+			               (select (case
+			                         when sum_num = 0 then
+			                          1
+			                         else
+			                          sum_num
+			                       end)
+			                  from (select count(1) sum_num
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and convert(varchar(7),fiin.opposing_date,23) =
+			                               '2010-01') t)
+			          ),2) percent_1001,
+			       round((select (select count(1)
+			                  from t_fina_income fiin
+			                 where fiin.status = 0
+			                   and convert(varchar(7),fiin.opposing_date,23) = '2010-02'
+			                   and (fiin.decompose_status = 4 or
+			                       fiin.decompose_status = 5)) /
+			               (select (case
+			                         when sum_num = 0 then
+			                          1
+			                         else
+			                          sum_num
+			                       end)
+			                  from (select count(1) sum_num
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and  convert(varchar(7),fiin.opposing_date,23) =
+			                               '2010-02') t)
+			           ),2) percent_1002,
+			       round((select (select count(1)
+			                  from t_fina_income fiin
+			                 where fiin.status = 0
+			                   and convert(varchar(7),fiin.opposing_date,23) = '2010-03'
+			                   and (fiin.decompose_status = 4 or
+			                       fiin.decompose_status = 5)) /
+			               (select (case
+			                         when sum_num = 0 then
+			                          1
+			                         else
+			                          sum_num
+			                       end)
+			                  from (select count(1) sum_num
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and convert(varchar(7),fiin.opposing_date,23) =
+			                               '2010-03') t)
+			           ),2) percent_1003,
+			       round((select (select count(1)
+			                  from t_fina_income fiin
+			                 where fiin.status = 0
+			                   and convert(varchar(7),fiin.opposing_date,23) = '2010-04'
+			                   and (fiin.decompose_status = 4 or
+			                       fiin.decompose_status = 5)) /
+			               (select (case
+			                         when sum_num = 0 then
+			                          1
+			                         else
+			                          sum_num
+			                       end)
+			                  from (select count(1) sum_num
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and convert(varchar(7),fiin.opposing_date,23) =
+			                               '2010-04') t)
+			           ),2)cent_1004,
+			       round((select (select count(1)
+			                  from t_fina_income fiin
+			                 where fiin.status = 0
+			                   and convert(varchar(7),fiin.opposing_date,23) = '2010-05'
+			                   and (fiin.decompose_status = 4 or
+			                       fiin.decompose_status = 5)) /
+			               (select (case
+			                         when sum_num = 0 then
+			                          1
+			                         else
+			                          sum_num
+			                       end)
+			                  from (select count(1) sum_num
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and convert(varchar(7),fiin.opposing_date,23) =
+			                               '2010-05') t)
+			          ),2) percent_1005,
+			       round((select (select count(1)
+			                  from t_fina_income fiin
+			                 where fiin.status = 0
+			                   and convert(varchar(7),fiin.opposing_date,23) = '2010-06'
+			                   and (fiin.decompose_status = 4 or
+			                       fiin.decompose_status = 5)) /
+			               (select (case
+			                         when sum_num = 0 then
+			                          1
+			                         else
+			                          sum_num
+			                       end)
+			                  from (select count(1) sum_num
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and convert(varchar(7),fiin.opposing_date,23) =
+			                               '2010-06') t)
+			           ),2) percent_1006,
+			       round((select (select count(1)
+			                  from t_fina_income fiin
+			                 where fiin.status = 0
+			                   and convert(varchar(7),fiin.opposing_date,23) = '2010-07'
+			                   and (fiin.decompose_status = 4 or
+			                       fiin.decompose_status = 5)) /
+			               (select (case
+			                         when sum_num = 0 then
+			                          1
+			                         else
+			                          sum_num
+			                       end)
+			                  from (select count(1) sum_num
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and convert(varchar(7),fiin.opposing_date,23) =
+			                               '2010-07') t)
+			          ),2) percent_1007,
+			       round((select (select count(1)
+			                  from t_fina_income fiin
+			                 where fiin.status = 0
+			                   and convert(varchar(7),fiin.opposing_date,23) = '2010-08'
+			                   and (fiin.decompose_status = 4 or
+			                       fiin.decompose_status = 5)) /
+			               (select (case
+			                         when sum_num = 0 then
+			                          1
+			                         else
+			                          sum_num
+			                       end)
+			                  from (select count(1) sum_num
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and convert(varchar(7),fiin.opposing_date,23) =
+			                               '2010-08') t)
+			           ),2) percent_1008,
+			       round((select (select count(1)
+			                  from t_fina_income fiin
+			                 where fiin.status = 0
+			                   and convert(varchar(7),fiin.opposing_date,23) = '2010'
+			                   and (fiin.decompose_status = 4 or
+			                       fiin.decompose_status = 5)) /
+			               (select (case
+			                         when sum_num = 0 then
+			                          1
+			                         else
+			                          sum_num
+			                       end)
+			                  from (select count(1) sum_num
+			                          from t_fina_income fiin
+			                         where fiin.status = 0
+			                           and convert(varchar(7),fiin.opposing_date,23) = '2010') t)
+			          ),2) percent_2010
+			   
+		]]>
+	</select>
+	
+	
+	<select id="queryDunCondition" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select (select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and CONVERT(VARCHAR,GETDATE(), 23) =
+			               CONVERT(VARCHAR,duda.create_date, 23)) num,
+			       (select ISNULL(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and CONVERT(VARCHAR,GETDATE(), 23) =
+			               CONVERT(VARCHAR,duda.create_date, 23)) monthprice,
+			       (select ISNULL(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and CONVERT(VARCHAR,GETDATE(), 23) =
+			               CONVERT(VARCHAR,duda.create_date, 23)) renprice,
+			       (select ISNULL(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and CONVERT(VARCHAR,GETDATE(), 23) =
+			               CONVERT(VARCHAR,duda.create_date,  23)) fine,
+			       (select sum(ISNULL(recd.month_price, 0))
+			          from t_rent_collectiondetail recd
+			          left join t_rent_collectionplan recp on recd.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and CONVERT(varchar(7),recd.pay_date, 23) =
+			               CONVERT(varchar(7),GETDATE(), 23)) month_price,
+			       ((select sum(ISNULL(recd.month_price, 0))
+			           from t_rent_collectiondetail recd
+			           left join t_rent_collectionplan recp on recd.recp_id =
+			                                                   recp.recp_id
+			          where recp.status = 0
+			            and recp.version_code =
+			                (select max(recp2.version_code)
+			                   from t_rent_collectionplan recp2
+			                  where recp2.recp_code = recp.recp_code)
+			            and CONVERT(varchar(7),recd.pay_date, 23) =
+			                CONVERT(varchar(7),GETDATE(), 23)) +
+			       (select sum(ISNULL(recd.month_price, 0)) month_price
+			           from t_rent_collectiondetail recd
+			           left join t_rent_collectionplan recp on recd.recp_id =
+			                                                   recp.recp_id
+			          where recp.status = 0
+			            and recp.version_code =
+			                (select max(recp2.version_code)
+			                   from t_rent_collectionplan recp2
+			                  where recp2.recp_code = recp.recp_code)
+			            and CONVERT(varchar(7),recd.pay_date, 23) =
+			                CONVERT(varchar(7),dateadd("m",1,GETDATE()), 23))) receivables1,
+			       ((select sum(ISNULL(recd.month_price, 0))
+			           from t_rent_collectiondetail recd
+			           left join t_rent_collectionplan recp on recd.recp_id =
+			                                                   recp.recp_id
+			          where recp.status = 0
+			            and recp.version_code =
+			                (select max(recp2.version_code)
+			                   from t_rent_collectionplan recp2
+			                  where recp2.recp_code = recp.recp_code)
+			            and CONVERT(varchar(7),recd.pay_date, 23) =
+			                CONVERT(varchar(7),GETDATE(), 23)) +
+			       (select sum(ISNULL(recd.own_price, 0))
+			           from t_rent_collectiondetail recd
+			           left join t_rent_collectionplan recp on recd.recp_id =
+			                                                   recp.recp_id
+			          where recp.status = 0
+			            and recp.version_code =
+			                (select max(recp2.version_code)
+			                   from t_rent_collectionplan recp2
+			                  where recp2.recp_code = recp.recp_code)
+			            and CONVERT(varchar(7),recd.pay_date, 23) =
+			                CONVERT(varchar(7),dateadd("m",1,GETDATE()), 23))) receivables2,
+			        ]]>
+			        <!-- 汇总率应为 逾期金额+该支付表剩余irr_month_price总和   除以  所有支付表总和  
+			       (
+			      	SELECT 
+						ROUND((T.YUQIZUJIN + T.YUQISHENGYUZUJIN) / T.TOTAL * 100,2) 
+					FROM (
+						SELECT 	(
+									select ISNULL(sum(recd.IRR_MONTH_PRICE), 0) 
+									from t_dun_daily duda
+										left join t_rent_collectionplan recp on duda.recp_id =  recp.recp_id AND recp.STATUS = 0
+										left join T_RENT_COLLECTIONDETAIL recd on duda.RECP_ID = recd.RECP_ID AND recd.STATUS = 0
+									where duda.status = 0
+									   and recp.version_code =
+										   (select max(recp2.version_code)
+											  from t_rent_collectionplan recp2
+											 where recp2.recp_code = recp.recp_code)
+									   and CONVERT(VARCHAR,GETDATE(), 23) = CONVERT(VARCHAR,duda.create_date, 23)
+									   and CONVERT(VARCHAR,GETDATE(), 23) < CONVERT(VARCHAR,recd.PAY_DATE, 23)
+								 ) YUQISHENGYUZUJIN ,   
+								 ( 
+									select ISNULL(sum(duda.dun_monthprice), 0)
+									  from t_dun_daily duda
+									  left join t_rent_collectionplan recp on duda.recp_id = recp.recp_id AND recp.STATUS = 0
+									 where duda.status = 0
+									   and recp.version_code =
+										   (select max(recp2.version_code)
+											  from t_rent_collectionplan recp2
+											 where recp2.recp_code = recp.recp_code)
+									   and CONVERT(VARCHAR,GETDATE(), 23) =
+										   CONVERT(VARCHAR,duda.create_date, 23)
+								  ) YUQIZUJIN ,
+								  (
+										SELECT 
+											ISNULL(SUM(T1.IRR_MONTH_PRICE),0)
+										FROM
+											T_RENT_COLLECTIONPLAN T 
+											LEFT JOIN T_RENT_COLLECTIONDETAIL T1 ON T1.RECP_ID = T.RECP_ID AND T1.STATUS = 0
+										WHERE
+											T.STATUS = 0
+											AND T.VERSION_CODE = (	select max(recp2.version_code)
+																	from t_rent_collectionplan recp2
+																	where recp2.recp_code = T.recp_code)
+								  ) TOTAL
+						) T
+			       ) percentt
+			       -->
+			        <!-- 汇总率应为 该支付表剩余irr_month_price总和   除以  所有支付表剩余总和  -->
+			        <![CDATA[
+			       (
+			      	SELECT 
+						ROUND(( T.YUQISHENGYUZUJIN) / T.TOTAL * 100,2) 
+					FROM (
+						SELECT 	(
+								select ISNULL(sum(recd.IRR_MONTH_PRICE), 0)  - ISNULL(SUM(recd.REDUCE_OWN_PRICE),0)
+								from t_dun_daily duda
+									left join t_rent_collectionplan recp on duda.recp_id =  recp.recp_id AND recp.STATUS = 0
+									left join T_RENT_COLLECTIONDETAIL recd on duda.RECP_ID = recd.RECP_ID AND recd.STATUS = 0
+								where duda.status = 0
+								   and recp.version_code =
+									   (select max(recp2.version_code)
+										  from t_rent_collectionplan recp2
+										 where recp2.recp_code = recp.recp_code)
+								   and CONVERT(VARCHAR,GETDATE(), 23) = CONVERT(VARCHAR,duda.create_date, 23)
+							 ) YUQISHENGYUZUJIN ,   
+							 ( 
+								select ISNULL(sum(duda.dun_monthprice), 0)
+								  from t_dun_daily duda
+								  left join t_rent_collectionplan recp on duda.recp_id = recp.recp_id AND recp.STATUS = 0
+								 where duda.status = 0
+								   and recp.version_code =  (select max(recp2.version_code)
+															  from t_rent_collectionplan recp2
+															 where recp2.recp_code = recp.recp_code)
+								   and CONVERT(VARCHAR,GETDATE(), 23) =
+									   CONVERT(VARCHAR,duda.create_date, 23)
+							  ) YUQIZUJIN ,
+							  (
+									SELECT 
+										ISNULL(SUM(T1.IRR_MONTH_PRICE),0) - ISNULL(SUM(T1.REDUCE_OWN_PRICE),0)
+									FROM
+										T_RENT_COLLECTIONPLAN T 
+										LEFT JOIN T_RENT_COLLECTIONDETAIL T1 ON T1.RECP_ID = T.RECP_ID AND T1.STATUS = 0
+									WHERE
+										T.STATUS = 0
+										AND T.VERSION_CODE = (	select max(recp2.version_code)
+																from t_rent_collectionplan recp2
+																where recp2.recp_code = T.recp_code)
+							  ) TOTAL
+					) T
+			       ) percentt
+			       ]]>
+		<!-- 
+			select (select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and CONVERT(VARCHAR,GETDATE(), 23) =
+			               CONVERT(VARCHAR,duda.create_date, 23)) num,
+			       (select ISNULL(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and CONVERT(VARCHAR,GETDATE(), 23) =
+			               CONVERT(VARCHAR,duda.create_date, 23)) monthprice,
+			       (select ISNULL(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and CONVERT(VARCHAR,GETDATE(), 23) =
+			               CONVERT(VARCHAR,duda.create_date, 23)) renprice,
+			       (select ISNULL(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and CONVERT(VARCHAR,GETDATE(), 23) =
+			               CONVERT(VARCHAR,duda.create_date,  23)) fine,
+			       (select sum(ISNULL(recd.month_price, 0))
+			          from t_rent_collectiondetail recd
+			          left join t_rent_collectionplan recp on recd.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and CONVERT(varchar(7),recd.pay_date, 23) =
+			               CONVERT(varchar(7),GETDATE(), 23)) month_price,
+			       ((select sum(ISNULL(recd.month_price, 0))
+			           from t_rent_collectiondetail recd
+			           left join t_rent_collectionplan recp on recd.recp_id =
+			                                                   recp.recp_id
+			          where recp.status = 0
+			            and recp.version_code =
+			                (select max(recp2.version_code)
+			                   from t_rent_collectionplan recp2
+			                  where recp2.recp_code = recp.recp_code)
+			            and CONVERT(varchar(7),recd.pay_date, 23) =
+			                CONVERT(varchar(7),GETDATE(), 23)) +
+			       (select sum(ISNULL(recd.month_price, 0)) month_price
+			           from t_rent_collectiondetail recd
+			           left join t_rent_collectionplan recp on recd.recp_id =
+			                                                   recp.recp_id
+			          where recp.status = 0
+			            and recp.version_code =
+			                (select max(recp2.version_code)
+			                   from t_rent_collectionplan recp2
+			                  where recp2.recp_code = recp.recp_code)
+			            and CONVERT(varchar(7),recd.pay_date, 23) =
+			                CONVERT(varchar(7),dateadd("m",1,GETDATE()), 23))) receivables1,
+			       ((select sum(ISNULL(recd.month_price, 0))
+			           from t_rent_collectiondetail recd
+			           left join t_rent_collectionplan recp on recd.recp_id =
+			                                                   recp.recp_id
+			          where recp.status = 0
+			            and recp.version_code =
+			                (select max(recp2.version_code)
+			                   from t_rent_collectionplan recp2
+			                  where recp2.recp_code = recp.recp_code)
+			            and CONVERT(varchar(7),recd.pay_date, 23) =
+			                CONVERT(varchar(7),GETDATE(), 23)) +
+			       (select sum(ISNULL(recd.own_price, 0))
+			           from t_rent_collectiondetail recd
+			           left join t_rent_collectionplan recp on recd.recp_id =
+			                                                   recp.recp_id
+			          where recp.status = 0
+			            and recp.version_code =
+			                (select max(recp2.version_code)
+			                   from t_rent_collectionplan recp2
+			                  where recp2.recp_code = recp.recp_code)
+			            and CONVERT(varchar(7),recd.pay_date, 23) =
+			                CONVERT(varchar(7),dateadd("m",1,GETDATE()), 23))) receivables2,
+			       round((select count(1)
+			                from t_dun_daily duda
+			                left join t_rent_collectionplan recp on duda.recp_id =
+			                                                        recp.recp_id
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)
+			                 and CONVERT(varchar,GETDATE(), 23) =
+			                     CONVERT(varchar,duda.create_date, 23)) /
+			             (select count(1)
+			                from t_rent_collectionplan recp
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)),
+			             2) percentt
+		-->
+	</select>
+	
+	<select id="queryDunOne" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select (select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day < 5) num_l_5,
+			       (select isnull(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day < 5) monthprice_l_5,
+			       (
+			       			SELECT 
+							ROUND(( T.YUQISHENGYUZUJIN) / T.TOTAL * 100,2) 
+						FROM (
+							SELECT 	(
+									select ISNULL(sum(recd.IRR_MONTH_PRICE), 0)  - ISNULL(SUM(recd.REDUCE_OWN_PRICE),0)
+									from t_dun_daily duda
+										left join t_rent_collectionplan recp on duda.recp_id =  recp.recp_id AND recp.STATUS = 0
+										left join T_RENT_COLLECTIONDETAIL recd on duda.RECP_ID = recd.RECP_ID AND recd.STATUS = 0
+									where duda.status = 0
+									   and recp.version_code =
+										   (select max(recp2.version_code)
+											  from t_rent_collectionplan recp2
+											 where recp2.recp_code = recp.recp_code)
+									   and CONVERT(VARCHAR,GETDATE(), 23) = CONVERT(VARCHAR,duda.create_date, 23)
+									     and duda.dun_day < 5
+								 ) YUQISHENGYUZUJIN ,   
+								 ( 
+									select ISNULL(sum(duda.dun_monthprice), 0)
+									  from t_dun_daily duda
+									  left join t_rent_collectionplan recp on duda.recp_id = recp.recp_id AND recp.STATUS = 0
+									 where duda.status = 0
+									   and recp.version_code =  (select max(recp2.version_code)
+																  from t_rent_collectionplan recp2
+																 where recp2.recp_code = recp.recp_code)
+									   and CONVERT(VARCHAR,GETDATE(), 23) =
+										   CONVERT(VARCHAR,duda.create_date, 23)
+										and duda.dun_day < 5
+									
+								  ) YUQIZUJIN ,
+								  (
+										SELECT 
+											ISNULL(SUM(T1.IRR_MONTH_PRICE),0) - ISNULL(SUM(T1.REDUCE_OWN_PRICE),0)
+										FROM
+											T_RENT_COLLECTIONPLAN T 
+											LEFT JOIN T_RENT_COLLECTIONDETAIL T1 ON T1.RECP_ID = T.RECP_ID AND T1.STATUS = 0
+										WHERE
+											T.STATUS = 0
+											AND T.VERSION_CODE = (	select max(recp2.version_code)
+																	from t_rent_collectionplan recp2
+																	where recp2.recp_code = T.recp_code)
+								  ) TOTAL
+						) T
+			       ) percent_l_5,
+			       (select isnull(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day < 5) renprice_l_5,
+			       (select isnull(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date,23)
+			           and duda.dun_day < 5) fine_l_5,
+			       (select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 5
+			           and duda.dun_day <= 15) num_5_15,
+			       (select isnull(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 5
+			           and duda.dun_day <= 15) monthprice_5_15,
+			       (
+			       			SELECT 
+							ROUND(T.YUQISHENGYUZUJIN / T.TOTAL * 100,2) 
+						FROM (
+							SELECT 	(
+										select ISNULL(sum(recd.IRR_MONTH_PRICE), 0)  - ISNULL(SUM(recd.REDUCE_OWN_PRICE),0)
+										from t_dun_daily duda
+											left join t_rent_collectionplan recp on duda.recp_id =  recp.recp_id AND recp.STATUS = 0
+											left join T_RENT_COLLECTIONDETAIL recd on duda.RECP_ID = recd.RECP_ID AND recd.STATUS = 0
+										where duda.status = 0
+										   and recp.version_code =
+											   (select max(recp2.version_code)
+												  from t_rent_collectionplan recp2
+												 where recp2.recp_code = recp.recp_code)
+										   and CONVERT(VARCHAR,GETDATE(), 23) = CONVERT(VARCHAR,duda.create_date, 23)
+										   and duda.dun_day >= 5
+										   and duda.DUN_DAY <= 15
+									 ) YUQISHENGYUZUJIN ,   
+									 ( 
+										select ISNULL(sum(duda.dun_monthprice), 0)
+										  from t_dun_daily duda
+										  left join t_rent_collectionplan recp on duda.recp_id = recp.recp_id AND recp.STATUS = 0
+										 where duda.status = 0
+										   and recp.version_code =
+											   (select max(recp2.version_code)
+												  from t_rent_collectionplan recp2
+												 where recp2.recp_code = recp.recp_code)
+										   and CONVERT(VARCHAR,GETDATE(), 23) =
+											   CONVERT(VARCHAR,duda.create_date, 23)
+										   and duda.dun_day >= 5
+										   and duda.DUN_DAY <= 15
+									  ) YUQIZUJIN ,
+									  (
+											SELECT 
+												ISNULL(SUM(T1.IRR_MONTH_PRICE),0) - ISNULL(SUM(T1.REDUCE_OWN_PRICE),0)
+											FROM
+												T_RENT_COLLECTIONPLAN T 
+												LEFT JOIN T_RENT_COLLECTIONDETAIL T1 ON T1.RECP_ID = T.RECP_ID AND T1.STATUS = 0
+											WHERE
+												T.STATUS = 0
+												AND T.VERSION_CODE = (	select max(recp2.version_code)
+																		from t_rent_collectionplan recp2
+																		where recp2.recp_code = T.recp_code)
+									  ) TOTAL
+							) T
+			       ) percent_5_15,
+			       (select isnull(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 5
+			           and duda.dun_day <= 15) renprice_5_15,
+			       (select isnull(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 5
+			           and duda.dun_day <= 15) fine_5_15,
+			       (select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 16
+			           and duda.dun_day <= 30) num_16_30,
+			       (select isnull(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date,23)
+			           and duda.dun_day >= 16
+			           and duda.dun_day <= 30) monthprice_16_30,
+			       (
+			       			SELECT 
+							ROUND(T.YUQISHENGYUZUJIN / T.TOTAL * 100,2) 
+						FROM (
+							SELECT 	(
+										select ISNULL(sum(recd.IRR_MONTH_PRICE), 0)  - ISNULL(SUM(recd.REDUCE_OWN_PRICE),0)
+										from t_dun_daily duda
+											left join t_rent_collectionplan recp on duda.recp_id =  recp.recp_id AND recp.STATUS = 0
+											left join T_RENT_COLLECTIONDETAIL recd on duda.RECP_ID = recd.RECP_ID AND recd.STATUS = 0
+										where duda.status = 0
+										   and recp.version_code =
+											   (select max(recp2.version_code)
+												  from t_rent_collectionplan recp2
+												 where recp2.recp_code = recp.recp_code)
+										   and CONVERT(VARCHAR,GETDATE(), 23) = CONVERT(VARCHAR,duda.create_date, 23)
+										   and duda.dun_day >= 16
+										   and duda.DUN_DAY <= 30
+									 ) YUQISHENGYUZUJIN ,   
+									 ( 
+										select ISNULL(sum(duda.dun_monthprice), 0)
+										  from t_dun_daily duda
+										  left join t_rent_collectionplan recp on duda.recp_id = recp.recp_id AND recp.STATUS = 0
+										 where duda.status = 0
+										   and recp.version_code =
+											   (select max(recp2.version_code)
+												  from t_rent_collectionplan recp2
+												 where recp2.recp_code = recp.recp_code)
+										   and CONVERT(VARCHAR,GETDATE(), 23) =
+											   CONVERT(VARCHAR,duda.create_date, 23)
+										   and duda.dun_day >= 16
+										   and duda.DUN_DAY <= 30
+									  ) YUQIZUJIN ,
+									  (
+											SELECT 
+												ISNULL(SUM(T1.IRR_MONTH_PRICE),0) - ISNULL(SUM(T1.REDUCE_OWN_PRICE),0)
+											FROM
+												T_RENT_COLLECTIONPLAN T 
+												LEFT JOIN T_RENT_COLLECTIONDETAIL T1 ON T1.RECP_ID = T.RECP_ID AND T1.STATUS = 0
+											WHERE
+												T.STATUS = 0
+												AND T.VERSION_CODE = (	select max(recp2.version_code)
+																		from t_rent_collectionplan recp2
+																		where recp2.recp_code = T.recp_code)
+									  ) TOTAL
+							) T
+			       ) percent_16_30,
+			       (select isnull(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 16
+			           and duda.dun_day <= 30) renprice_16_30,
+			       (select isnull(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date,23)
+			           and duda.dun_day >= 16
+			           and duda.dun_day <= 30) fine_16_30
+			           ]]>
+			  <!--
+			select (select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day < 5) num_l_5,
+			       (select isnull(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day < 5) monthprice_l_5,
+			       round((select count(1)
+			                from t_dun_daily duda
+			                left join t_rent_collectionplan recp on duda.recp_id =
+			                                                        recp.recp_id
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)
+			                 and convert(varchar,getdate(), 23) =
+			                     convert(varchar,duda.create_date, 23)
+			                 and duda.dun_day < 5) /
+			             (select count(1)
+			                from t_rent_collectionplan recp
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)),
+			             2) percent_l_5,
+			       (select isnull(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day < 5) renprice_l_5,
+			       (select isnull(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date,23)
+			           and duda.dun_day < 5) fine_l_5,
+			       (select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 5
+			           and duda.dun_day <= 15) num_5_15,
+			       (select isnull(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 5
+			           and duda.dun_day <= 15) monthprice_5_15,
+			       round((select count(1)
+			                from t_dun_daily duda
+			                left join t_rent_collectionplan recp on duda.recp_id =
+			                                                        recp.recp_id
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)
+			                 and convert(varchar,getdate(), 23) =
+			                     convert(varchar,duda.create_date, 23)
+			                 and duda.dun_day >= 5
+			                 and duda.dun_day <= 15) /
+			             (select count(1)
+			                from t_rent_collectionplan recp
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)),
+			             2) percent_5_15,
+			       (select isnull(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 5
+			           and duda.dun_day <= 15) renprice_5_15,
+			       (select isnull(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 5
+			           and duda.dun_day <= 15) fine_5_15,
+			       (select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 16
+			           and duda.dun_day <= 30) num_16_30,
+			       (select isnull(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date,23)
+			           and duda.dun_day >= 16
+			           and duda.dun_day <= 30) monthprice_16_30,
+			       round((select count(1)
+			                from t_dun_daily duda
+			                left join t_rent_collectionplan recp on duda.recp_id =
+			                                                        recp.recp_id
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)
+			                 and convert(varchar,getdate(), 23) =
+			                     convert(varchar,duda.create_date, 23)
+			                 and duda.dun_day >= 16
+			                 and duda.dun_day <= 30) /
+			             (select count(1)
+			                from t_rent_collectionplan recp
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)),
+			             2) percent_16_30,
+			       (select isnull(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 16
+			           and duda.dun_day <= 30) renprice_16_30,
+			       (select isnull(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date,23)
+			           and duda.dun_day >= 16
+			           and duda.dun_day <= 30) fine_16_30
+			  -->
+	</select>
+	<select id="queryDunTwo" parameterClass="map"
+		resultClass="java.util.HashMap">
+		<![CDATA[
+			select ( select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date,23)
+			           and duda.dun_day <= 30) num_l_30,
+			       (select isnull(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day < 30) monthprice_l_30,
+			       (
+			       		SELECT 
+							ROUND(T.YUQISHENGYUZUJIN / T.TOTAL * 100,2) 
+						FROM (
+							SELECT 	(
+										select ISNULL(sum(duda.dun_monthprice), 0)
+										  from t_dun_daily duda
+										  left join t_rent_collectionplan recp on duda.recp_id = recp.recp_id AND recp.STATUS = 0
+										 where duda.status = 0
+										   and recp.version_code =  (select max(recp2.version_code)
+																	  from t_rent_collectionplan recp2
+																	 where recp2.recp_code = recp.recp_code)
+										   and CONVERT(VARCHAR,GETDATE(), 23) =
+											   CONVERT(VARCHAR,duda.create_date, 23)
+										   and duda.dun_day < 30
+									 ) YUQISHENGYUZUJIN ,   
+									 ( 
+										select ISNULL(sum(duda.dun_monthprice), 0)
+										  from t_dun_daily duda
+										  left join t_rent_collectionplan recp on duda.recp_id = recp.recp_id AND recp.STATUS = 0
+										 where duda.status = 0
+										   and recp.version_code =
+											   (select max(recp2.version_code)
+												  from t_rent_collectionplan recp2
+												 where recp2.recp_code = recp.recp_code)
+										   and CONVERT(VARCHAR,GETDATE(), 23) =
+											   CONVERT(VARCHAR,duda.create_date, 23)
+										   and duda.dun_day < 30
+									  ) YUQIZUJIN ,
+									  (
+											SELECT 
+												ISNULL(SUM(T1.IRR_MONTH_PRICE),0) - ISNULL(SUM(T1.REDUCE_OWN_PRICE),0)
+											FROM
+												T_RENT_COLLECTIONPLAN T 
+												LEFT JOIN T_RENT_COLLECTIONDETAIL T1 ON T1.RECP_ID = T.RECP_ID AND T1.STATUS = 0
+											WHERE
+												T.STATUS = 0
+												AND T.VERSION_CODE = (	select max(recp2.version_code)
+																		from t_rent_collectionplan recp2
+																		where recp2.recp_code = T.recp_code)
+									  ) TOTAL
+							) T
+			       ) percent_l_30,
+			       (select isnull(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day < 30) renprice_l_30,
+			       (select isnull(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day < 30) fine_l_30,
+			       (select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 31
+			           and duda.dun_day <= 60) num_31_60,
+			       (select isnull(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 31
+			           and duda.dun_day <= 60) monthprice_31_60,
+			       (
+			       		SELECT 
+							ROUND(T.YUQISHENGYUZUJIN / T.TOTAL * 100,2) 
+						FROM (
+							SELECT 	(
+										select ISNULL(sum(recd.IRR_MONTH_PRICE), 0)  - ISNULL(SUM(recd.REDUCE_OWN_PRICE),0)
+										from t_dun_daily duda
+											left join t_rent_collectionplan recp on duda.recp_id =  recp.recp_id AND recp.STATUS = 0
+											left join T_RENT_COLLECTIONDETAIL recd on duda.RECP_ID = recd.RECP_ID AND recd.STATUS = 0
+										where duda.status = 0
+										   and recp.version_code =
+											   (select max(recp2.version_code)
+												  from t_rent_collectionplan recp2
+												 where recp2.recp_code = recp.recp_code)
+										   and CONVERT(VARCHAR,GETDATE(), 23) = CONVERT(VARCHAR,duda.create_date, 23)
+										   and duda.dun_day >= 31
+										   and duda.DUN_DAY <= 60
+									 ) YUQISHENGYUZUJIN ,   
+									 ( 
+										select ISNULL(sum(duda.dun_monthprice), 0)
+										  from t_dun_daily duda
+										  left join t_rent_collectionplan recp on duda.recp_id = recp.recp_id AND recp.STATUS = 0
+										 where duda.status = 0
+										   and recp.version_code =
+											   (select max(recp2.version_code)
+												  from t_rent_collectionplan recp2
+												 where recp2.recp_code = recp.recp_code)
+										   and CONVERT(VARCHAR,GETDATE(), 23) =
+											   CONVERT(VARCHAR,duda.create_date, 23)
+										   and duda.dun_day >= 31
+										   and duda.DUN_DAY <= 60
+									  ) YUQIZUJIN ,
+									  (
+											SELECT 
+												ISNULL(SUM(T1.IRR_MONTH_PRICE),0) - ISNULL(SUM(T1.REDUCE_OWN_PRICE),0)
+											FROM
+												T_RENT_COLLECTIONPLAN T 
+												LEFT JOIN T_RENT_COLLECTIONDETAIL T1 ON T1.RECP_ID = T.RECP_ID AND T1.STATUS = 0
+											WHERE
+												T.STATUS = 0
+												AND T.VERSION_CODE = (	select max(recp2.version_code)
+																		from t_rent_collectionplan recp2
+																		where recp2.recp_code = T.recp_code)
+									  ) TOTAL
+							) T
+			       ) percent_31_60,
+			       (select isnull(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 31
+			           and duda.dun_day <= 60) renprice_31_60,
+			       (select isnull(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 31
+			           and duda.dun_day <= 60) fine_31_60,
+			       (select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 61
+			           and duda.dun_day <= 90) num_61_90,
+			       (select isnull(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 61
+			           and duda.dun_day <= 90) monthprice_61_90,
+			       (
+			       		SELECT 
+							ROUND( T.YUQISHENGYUZUJIN / T.TOTAL * 100,2) 
+						FROM (
+							SELECT 	(
+										select ISNULL(sum(recd.IRR_MONTH_PRICE), 0)  - ISNULL(SUM(recd.REDUCE_OWN_PRICE),0)
+										from t_dun_daily duda
+											left join t_rent_collectionplan recp on duda.recp_id =  recp.recp_id AND recp.STATUS = 0
+											left join T_RENT_COLLECTIONDETAIL recd on duda.RECP_ID = recd.RECP_ID AND recd.STATUS = 0
+										where duda.status = 0
+										   and recp.version_code =
+											   (select max(recp2.version_code)
+												  from t_rent_collectionplan recp2
+												 where recp2.recp_code = recp.recp_code)
+										   and CONVERT(VARCHAR,GETDATE(), 23) = CONVERT(VARCHAR,duda.create_date, 23)
+										   and duda.dun_day >= 61
+										   and duda.DUN_DAY <= 90
+									 ) YUQISHENGYUZUJIN ,   
+									 ( 
+										select ISNULL(sum(duda.dun_monthprice), 0)
+										  from t_dun_daily duda
+										  left join t_rent_collectionplan recp on duda.recp_id = recp.recp_id AND recp.STATUS = 0
+										 where duda.status = 0
+										   and recp.version_code =
+											   (select max(recp2.version_code)
+												  from t_rent_collectionplan recp2
+												 where recp2.recp_code = recp.recp_code)
+										   and CONVERT(VARCHAR,GETDATE(), 23) =
+											   CONVERT(VARCHAR,duda.create_date, 23)
+										   and duda.dun_day >= 61
+										   and duda.DUN_DAY <= 90
+									  ) YUQIZUJIN ,
+									  (
+											SELECT 
+												ISNULL(SUM(T1.IRR_MONTH_PRICE),0) - ISNULL(SUM(T1.REDUCE_OWN_PRICE),0)
+											FROM
+												T_RENT_COLLECTIONPLAN T 
+												LEFT JOIN T_RENT_COLLECTIONDETAIL T1 ON T1.RECP_ID = T.RECP_ID AND T1.STATUS = 0
+											WHERE
+												T.STATUS = 0
+												AND T.VERSION_CODE = (	select max(recp2.version_code)
+																		from t_rent_collectionplan recp2
+																		where recp2.recp_code = T.recp_code)
+									  ) TOTAL
+							) T
+			       ) percent_61_90,
+			       (select isnull(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 61
+			           and duda.dun_day <= 90) renprice_61_90,
+			       (select isnull(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 61
+			           and duda.dun_day <= 90) fine_61_90,
+			       (select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 91) num_m_91,
+			       (select isnull(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 91) monthprice_m_91,
+			       (
+			       		SELECT 
+							ROUND(  T.YUQISHENGYUZUJIN / T.TOTAL * 100,2) 
+						FROM (
+							SELECT 	(
+										select ISNULL(sum(recd.IRR_MONTH_PRICE), 0)  - ISNULL(SUM(recd.REDUCE_OWN_PRICE),0)
+										from t_dun_daily duda
+											left join t_rent_collectionplan recp on duda.recp_id =  recp.recp_id AND recp.STATUS = 0
+											left join T_RENT_COLLECTIONDETAIL recd on duda.RECP_ID = recd.RECP_ID AND recd.STATUS = 0
+										where duda.status = 0
+										   and recp.version_code =
+											   (select max(recp2.version_code)
+												  from t_rent_collectionplan recp2
+												 where recp2.recp_code = recp.recp_code)
+										   and CONVERT(VARCHAR,GETDATE(), 23) = CONVERT(VARCHAR,duda.create_date, 23)
+										   and duda.dun_day >= 91
+									 ) YUQISHENGYUZUJIN ,   
+									 ( 
+										select ISNULL(sum(duda.dun_monthprice), 0)
+										  from t_dun_daily duda
+										  left join t_rent_collectionplan recp on duda.recp_id = recp.recp_id AND recp.STATUS = 0
+										 where duda.status = 0
+										   and recp.version_code =
+											   (select max(recp2.version_code)
+												  from t_rent_collectionplan recp2
+												 where recp2.recp_code = recp.recp_code)
+										   and CONVERT(VARCHAR,GETDATE(), 23) =
+											   CONVERT(VARCHAR,duda.create_date, 23)
+										   and duda.dun_day >= 91
+									  ) YUQIZUJIN ,
+									  (
+											SELECT 
+												ISNULL(SUM(T1.IRR_MONTH_PRICE),0) - ISNULL(SUM(T1.REDUCE_OWN_PRICE),0)
+											FROM
+												T_RENT_COLLECTIONPLAN T 
+												LEFT JOIN T_RENT_COLLECTIONDETAIL T1 ON T1.RECP_ID = T.RECP_ID AND T1.STATUS = 0
+											WHERE
+												T.STATUS = 0
+												AND T.VERSION_CODE = (	select max(recp2.version_code)
+																		from t_rent_collectionplan recp2
+																		where recp2.recp_code = T.recp_code)
+									  ) TOTAL
+							) T
+			       ) percent_m_91,
+			       (select isnull(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 91) renprice_m_91,
+			       (select isnull(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 91) fine_m_91
+			           ]]>
+		<!--
+			select ( select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date,23)
+			           and duda.dun_day <= 30) num_l_30,
+			       (select isnull(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day < 30) monthprice_l_30,
+			       round((select count(1)
+			                from t_dun_daily duda
+			                left join t_rent_collectionplan recp on duda.recp_id =
+			                                                        recp.recp_id
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)
+			                 and convert(varchar,getdate(), 23) =
+			                     convert(varchar,duda.create_date, 23)
+			                 and duda.dun_day < 30) /
+			             (select count(1)
+			                from t_rent_collectionplan recp
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)),
+			             2) percent_l_30,
+			       (select isnull(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(), 23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day < 30) renprice_l_30,
+			       (select isnull(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day < 30) fine_l_30,
+			       (select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 31
+			           and duda.dun_day <= 60) num_31_60,
+			       (select isnull(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 31
+			           and duda.dun_day <= 60) monthprice_31_60,
+			       round((select count(1)
+			                from t_dun_daily duda
+			                left join t_rent_collectionplan recp on duda.recp_id =
+			                                                        recp.recp_id
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)
+			                 and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			                 and duda.dun_day >= 31
+			                 and duda.dun_day <= 60) /
+			             (select count(1)
+			                from t_rent_collectionplan recp
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)),
+			             2) percent_31_60,
+			       (select isnull(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 31
+			           and duda.dun_day <= 60) renprice_31_60,
+			       (select isnull(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 31
+			           and duda.dun_day <= 60) fine_31_60,
+			       (select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 61
+			           and duda.dun_day <= 90) num_61_90,
+			       (select isnull(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 61
+			           and duda.dun_day <= 90) monthprice_61_90,
+			       round((select count(1)
+			                from t_dun_daily duda
+			                left join t_rent_collectionplan recp on duda.recp_id =
+			                                                        recp.recp_id
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)
+			                 and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			                 and duda.dun_day >= 61
+			                 and duda.dun_day <= 90) /
+			             (select count(1)
+			                from t_rent_collectionplan recp
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)),
+			             2) percent_61_90,
+			       (select isnull(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 61
+			           and duda.dun_day <= 90) renprice_61_90,
+			       (select isnull(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 61
+			           and duda.dun_day <= 90) fine_61_90,
+			       (select count(1)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 91) num_m_91,
+			       (select isnull(sum(duda.dun_monthprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 91) monthprice_m_91,
+			       round((select count(1)
+			                from t_dun_daily duda
+			                left join t_rent_collectionplan recp on duda.recp_id =
+			                                                        recp.recp_id
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)
+			                 and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			                 and duda.dun_day >= 91) /
+			             (select count(1)
+			                from t_rent_collectionplan recp
+			               where recp.status = 0
+			                 and recp.version_code =
+			                     (select max(recp2.version_code)
+			                        from t_rent_collectionplan recp2
+			                       where recp2.recp_code = recp.recp_code)),
+			             2) percent_m_91,
+			       (select isnull(sum(duda.dun_renprice), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 91) renprice_m_91,
+			       (select isnull(sum(duda.dun_fine), 0)
+			          from t_dun_daily duda
+			          left join t_rent_collectionplan recp on duda.recp_id =
+			                                                  recp.recp_id
+			         where recp.status = 0
+			           and recp.version_code =
+			               (select max(recp2.version_code)
+			                  from t_rent_collectionplan recp2
+			                 where recp2.recp_code = recp.recp_code)
+			           and convert(varchar,getdate(),23) =
+			               convert(varchar,duda.create_date, 23)
+			           and duda.dun_day >= 91) fine_m_91
+		-->
+	</select>
+	
+	<!-- 2012/02/06 Yang Yun 新增逾期状况统计表 -->
+	<!-- 2012/12/28 zhangbo 增加了筛选类型,重车、设备 -->
+	<select id="getDunInformation"  parameterClass="map" resultClass="java.util.HashMap">
+	
+			select DECP_NAME,
+				TOTAL_DUN_COUNT, TOTAL_DUN_PRICE,
+				DUN_COUNT_8 ,
+				DUN_PRICE_8 ,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,DUN_COUNT_8) / convert(decimal,TOTAL_DUN_COUNT) * 100 
+			    end as DUN_COUNT_PER_8 ,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,DUN_PRICE_8) / convert(decimal,TOTAL_DUN_PRICE) * 100 
+			    end as DUN_PRICE_PER_8 ,
+				DUN_COUNT_15 ,
+				DUN_PRICE_15 ,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,DUN_COUNT_15) / convert(decimal,TOTAL_DUN_COUNT) * 100 
+			    end as DUN_COUNT_PER_15 ,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,DUN_PRICE_15) / convert(decimal,TOTAL_DUN_PRICE) * 100 
+			    end as DUN_PRICE_PER_15 ,
+				DUN_COUNT_31 ,
+				DUN_PRICE_31 ,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,DUN_COUNT_31) / convert(decimal,TOTAL_DUN_COUNT) * 100 
+			    end as DUN_COUNT_PER_31 ,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,DUN_PRICE_31) / convert(decimal,TOTAL_DUN_PRICE) * 100 
+			    end as DUN_PRICE_PER_31,
+				DUN_COUNT_61 ,
+				DUN_PRICE_61 ,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,DUN_COUNT_61) / convert(decimal,TOTAL_DUN_COUNT) * 100 
+			    end as DUN_COUNT_PER_61 ,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,DUN_PRICE_61) / convert(decimal,TOTAL_DUN_PRICE) * 100 
+			    end as DUN_PRICE_PER_61 ,
+			    
+			    DUN_COUNT_31 + DUN_COUNT_61 + DUN_COUNT_90 + DUN_COUNT_180 AS DUN_COUNT_31_TOTAL,
+				DUN_PRICE_31 + DUN_PRICE_61 + DUN_PRICE_90 + DUN_PRICE_180 AS DUN_PRICE_31_TOTAL,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,(DUN_COUNT_31 + DUN_COUNT_61 + DUN_COUNT_90 + DUN_COUNT_180)) / convert(decimal,TOTAL_DUN_COUNT) * 100 
+			    end as DUN_COUNT_PER_31_TOTAL ,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,(DUN_PRICE_31 + DUN_PRICE_61 + DUN_PRICE_90 + DUN_PRICE_180)) / convert(decimal,TOTAL_DUN_PRICE) * 100 
+			    end as DUN_PRICE_PER_31_TOTAL ,
+			    
+				DUN_COUNT_90 + DUN_COUNT_180 AS DUN_COUNT_91_TOTAL,
+				DUN_PRICE_90 + DUN_PRICE_180 AS DUN_PRICE_91_TOTAL,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,(DUN_COUNT_90 + DUN_COUNT_180)) / convert(decimal,TOTAL_DUN_COUNT) * 100 
+			    end as DUN_COUNT_PER_91_TOTAL ,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,(DUN_PRICE_90 + DUN_PRICE_180)) / convert(decimal,TOTAL_DUN_PRICE) * 100 
+			    end as DUN_PRICE_PER_91_TOTAL ,
+			    
+			    DUN_COUNT_180 ,
+				DUN_PRICE_180 ,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,DUN_COUNT_180) / convert(decimal,TOTAL_DUN_COUNT) * 100 
+			    end as DUN_COUNT_PER_180 ,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,DUN_PRICE_180) / convert(decimal,TOTAL_DUN_PRICE) * 100 
+			    end as DUN_PRICE_PER_180 ,
+			    
+				SUB_DUN_COUNT ,
+				SUB_DUN_PRICE ,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,SUB_DUN_COUNT) / convert(decimal,TOTAL_DUN_COUNT) * 100 
+			    end as SUB_DUN_COUNT_PER ,
+			    case when TOTAL_DUN_COUNT = 0 then 0 else
+				convert(decimal,SUB_DUN_PRICE) / convert(decimal,TOTAL_DUN_PRICE) * 100 
+			    end as SUB_DUN_PRICE_PER,
+			    ISNULL((SELECT DISTINCT 'Y' FROM T_DUN_CASE_BY_USER TDCBU WHERE TDCBU.STATUS=0 AND DECP_NAME=DEPT_NAME AND CONVERT(DATE,CREATE_ON)=CONVERT(DATE,#search_dun_day#)),'N') FLAG
+			from T_DUN_REPORT t
+			where datediff(day,create_date,convert(date,#search_dun_day#)) = 0
+			<isNotEmpty prepend="" property="QUERY_TYPE">
+					<isEqual prepend="and" property="QUERY_TYPE" compareValue="1">
+						 (DECP_NAME LIKE '%$TYPE1$' OR DECP_NAME LIKE '%$TYPE2$')
+					</isEqual>
+					<isEqual prepend="and" property="QUERY_TYPE" compareValue="2">
+						 (DECP_NAME LIKE '%$TYPE1$' OR DECP_NAME LIKE '%$TYPE2$')
+					</isEqual>
+					<isEqual prepend="and" property="QUERY_TYPE" compareValue="3">
+						 (DECP_NAME LIKE '%$TYPE1$%' OR DECP_NAME LIKE '%$TYPE2$%')
+					</isEqual>
+			</isNotEmpty>
+			<isNotEmpty property="cmpyList">
+				AND DECP_NAME IN ($cmpyList$)
+			</isNotEmpty>
+			union all
+			select '$sub_total$',sum(TOTAL_DUN_COUNT), sum(TOTAL_DUN_PRICE),
+			isnull(sum(isnull(DUN_COUNT_8,0)),0) as DUN_COUNT_8,
+			isnull(sum(isnull(DUN_PRICE_8,0)),0) as DUN_PRICE_8,
+			isnull(convert(decimal(20,2),sum(isnull(DUN_COUNT_8,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100,0) as DUN_COUNT_per_8,
+			isnull(convert(decimal(20,2),sum(isnull(DUN_PRICE_8,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100,0) as DUN_PRICE_per_8,
+			isnull(sum(isnull(DUN_COUNT_15,0)),0) as DUN_COUNT_15,
+			isnull(sum(isnull(DUN_PRICE_15,0)),0) as DUN_PRICE_15,
+			isnull(convert(decimal(20,2),sum(isnull(DUN_COUNT_15,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100,0) as DUN_COUNT_per_15,
+			isnull(convert(decimal(20,2),sum(isnull(DUN_PRICE_15,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100,0) as DUN_PRICE_per_15,
+			isnull(sum(isnull(DUN_COUNT_31,0)),0) as DUN_COUNT_31,
+			isnull(sum(isnull(DUN_PRICE_31,0)),0) as DUN_PRICE_31,
+			isnull(convert(decimal(20,2),sum(isnull(DUN_COUNT_31,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100,0) as DUN_COUNT_per_31,
+			isnull(convert(decimal(20,2),sum(isnull(DUN_PRICE_31,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100,0) as DUN_PRICE_per_31,
+			isnull(sum(isnull(DUN_COUNT_61,0)),0) as DUN_COUNT_61,
+			isnull(sum(isnull(DUN_PRICE_61,0)),0) as DUN_PRICE_61,
+			isnull(convert(decimal(20,2),sum(isnull(DUN_COUNT_61,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100,0) as DUN_COUNT_per_61,
+			isnull(convert(decimal(20,2),sum(isnull(DUN_PRICE_61,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100,0) as DUN_PRICE_per_61,
+			
+			isnull(sum(isnull(DUN_COUNT_31,0)),0) + 
+			isnull(sum(isnull(DUN_COUNT_61,0)),0) +
+			isnull(sum(isnull(DUN_COUNT_90,0)),0) +
+			isnull(sum(isnull(DUN_COUNT_180,0)),0) as DUN_COUNT_30_TOTAL,
+			isnull(sum(isnull(DUN_PRICE_31,0)),0) +
+			isnull(sum(isnull(DUN_PRICE_61,0)),0) +
+			isnull(sum(isnull(DUN_PRICE_90,0)),0) +
+			isnull(sum(isnull(DUN_PRICE_180,0)),0) as DUN_PRICE_30_TOTAL,
+			isnull(convert(decimal(20,2),(isnull(sum(isnull(DUN_COUNT_31,0)),0) + 
+			isnull(sum(isnull(DUN_COUNT_61,0)),0) +
+			isnull(sum(isnull(DUN_COUNT_90,0)),0) +
+			isnull(sum(isnull(DUN_COUNT_180,0)),0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100,0) as DUN_COUNT_per_30_TOTAL,
+			isnull(convert(decimal(20,2),(isnull(sum(isnull(DUN_PRICE_31,0)),0) +
+			isnull(sum(isnull(DUN_PRICE_61,0)),0) +
+			isnull(sum(isnull(DUN_PRICE_90,0)),0) +
+			isnull(sum(isnull(DUN_PRICE_180,0)),0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100,0) as DUN_PRICE_per_30_TOTAL,
+			
+			isnull(sum(isnull(DUN_COUNT_90,0)),0) +
+			isnull(sum(isnull(DUN_COUNT_180,0)),0) as DUN_COUNT_90_TOTAL,
+			isnull(sum(isnull(DUN_PRICE_90,0)),0) +
+			isnull(sum(isnull(DUN_PRICE_180,0)),0) as DUN_PRICE_90_TOTAL,
+			isnull(convert(decimal(20,2),(isnull(sum(isnull(DUN_COUNT_90,0)),0) +
+			isnull(sum(isnull(DUN_COUNT_180,0)),0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100,0) as DUN_COUNT_per_90_TOTAL,
+			isnull(convert(decimal(20,2),(isnull(sum(isnull(DUN_PRICE_90,0)),0) +
+			isnull(sum(isnull(DUN_PRICE_180,0)),0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100,0) as DUN_PRICE_per_90_TOTAL,
+			
+			isnull(sum(isnull(DUN_COUNT_180,0)),0) as DUN_COUNT_180,
+			isnull(sum(isnull(DUN_PRICE_180,0)),0) as DUN_PRICE_180,
+			isnull(convert(decimal(20,2),sum(isnull(DUN_COUNT_180,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100,0) as DUN_COUNT_per_180,
+			isnull(convert(decimal(20,2),sum(isnull(DUN_PRICE_180,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100,0) as DUN_PRICE_per_180,
+			
+			isnull(sum(isnull(SUB_DUN_COUNT,0)),0) as SUB_DUN_COUNT,
+			isnull(sum(isnull(SUB_DUN_PRICE,0)),0) as SUB_DUN_PRICE,
+			isnull(convert(decimal(20,2),sum(isnull(SUB_DUN_COUNT,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100,0) as DUN_COUNT_per_sub,
+			isnull(convert(decimal(20,2),sum(isnull(SUB_DUN_PRICE,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100,0) as DUN_PRICE_per_sub,
+			'N' FLAG
+			from T_DUN_REPORT
+			where datediff(day,create_date,convert(date,#search_dun_day#)) = 0
+			<isNotEmpty prepend="" property="QUERY_TYPE">
+					<isEqual prepend="and" property="QUERY_TYPE" compareValue="1">
+						 (DECP_NAME LIKE '%$TYPE1$' OR DECP_NAME LIKE '%$TYPE2$')
+					</isEqual>
+					<isEqual prepend="and" property="QUERY_TYPE" compareValue="2">
+						 (DECP_NAME LIKE '%$TYPE1$' OR DECP_NAME LIKE '%$TYPE2$')
+					</isEqual>
+					<isEqual prepend="and" property="QUERY_TYPE" compareValue="3">
+						 (DECP_NAME LIKE '%$TYPE1$%' OR DECP_NAME LIKE '%$TYPE2$%')
+					</isEqual>
+			</isNotEmpty>
+			<isNotEmpty property="cmpyList">
+				AND DECP_NAME IN ($cmpyList$)
+			</isNotEmpty>
+	</select>
+	
+	<select id="getTypesByYear" parameterClass="map" resultClass="hashMap">
+		select 
+		case when prcd.CONTRACT_TYPE = 3 then 4
+		else prcd.CONTRACT_TYPE end as t
+		from T_PRJT_CREDIT prcd
+		left join (
+		  select credit_id, min(COMMIT_TIME) as COMMIT_TIME
+		  from T_PRJT_RISK_CONTROL
+		  where STATUS = 0
+		  group by CREDIT_ID
+		) prc on prc.CREDIT_ID = prcd.ID
+		where prc.COMMIT_TIME is not null
+		and prcd.STATUS = 0
+		and year(prc.COMMIT_TIME) = #year#
+		group by case when prcd.CONTRACT_TYPE = 3 then 4
+		else prcd.CONTRACT_TYPE end
+	</select>
+	
+	<select id="getInfoForApprovedReport" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[
+		select count(0) as c
+		from T_PRJT_CREDIT prcd
+		left join (
+		  select credit_id, min(COMMIT_TIME) as COMMIT_TIME
+		  from T_PRJT_RISK_CONTROL
+		  where STATUS = 0
+		  group by CREDIT_ID
+		) prc on prc.CREDIT_ID = prcd.ID
+		where prc.COMMIT_TIME is not null
+		and prcd.STATUS = 0
+		and convert(date, prc.COMMIT_TIME) >= convert(date, #start_date#)
+		and convert(date, prc.COMMIT_TIME) <= convert(date, #end_date#)
+		]]>
+		<isEqual property="type" compareValue="4">
+			and (prcd.CONTRACT_TYPE = 3
+				or prcd.CONTRACT_TYPE = 4)
+		</isEqual>
+		<isNotEqual property="type" compareValue="4">
+			and prcd.CONTRACT_TYPE = #type#
+		</isNotEqual>
+		<isEqual property="isApproved" compareValue="Y">
+			and exists(
+			  select 0 from T_PRJT_RISK_CONTROL r
+			  where r.STATE = 1
+			  and r.CREDIT_ID = prcd.ID
+			)
+		</isEqual>
+	</select>
+	
+	<select id="getVipProjectInfoReport" parameterClass="map" resultClass="hashMap">
+		select * from T_PRJT_REPORT_VIP
+		where 
+		<!-- convert(date, CREATE_DATE) >= convert(date, #start_date#)
+		and convert(date, CREATE_DATE) <= convert(date, #end_date#) -->
+		year(CREATE_DATE) = #year#
+		and month(CREATE_DATE) = #month#
+		order by CREATE_DATE
+	</select>
+	
+	<select id="getAvgTrReportByYearAndMonth" parameterClass="map" resultClass="java.lang.Double">
+		select convert(decimal(20,2), 
+			isnull(sum(ps.LEASE_RZE * ps.TR_IRR_RATE) / sum(ps.LEASE_RZE), 0)
+			)as AVG_TR
+		from  T_PRJT_CREDITSCHEME ps
+		left join T_PRJT_CREDIT pc on ps.CREDIT_ID = pc.ID
+		left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY dc on dp.DECP_ID = dc.DECP_ID
+		<isEqual property="code_type" compareValue="3">
+			left join (
+			  select min(c.COMMIT_TIME) as COMMIT_TIME, c.CREDIT_ID
+			  from T_PRJT_RISK_CONTROL c
+			  where c.STATE = 1 and c.STATUS = 0
+			  group by c.CREDIT_ID
+			) risk on risk.CREDIT_ID = pc.ID
+		</isEqual>
+		where pc.STATUS = 0
+		<isNotEmpty property="decp">
+			and dc.DECP_ID = #decp#
+		</isNotEmpty>
+		<isNotEmpty property="busi_type">
+			and pc.PRODUCTION_TYPE = #busi_type#
+		</isNotEmpty>
+		<isEqual property="code_type" compareValue="1">
+			<![CDATA[
+			and pc.FINANCECONTRACT_DATE is not null
+			and pc.FINANCECONTRACT_DATE >= convert(date, #start_date#)
+			and pc.FINANCECONTRACT_DATE <= convert(date, #end_date#)
+			]]>
+		</isEqual>
+		<isEqual property="code_type" compareValue="2">
+			<![CDATA[
+			and ps.TR_IRR_RATE > 0
+			and (pc.VIP_FLAG is null or pc.VIP_FLAG = 0)
+			and pc.CREATE_DATE >= convert(date, #start_date#)
+			and pc.CREATE_DATE <= convert(date, #end_date#)
+			]]>
+		</isEqual>
+		<isEqual property="code_type" compareValue="3">
+			<![CDATA[
+			and risk.COMMIT_TIME is not null
+			and ps.TR_IRR_RATE > 0
+			and (pc.VIP_FLAG is null or pc.VIP_FLAG = 0)
+			and risk.COMMIT_TIME >= convert(date, #start_date#)
+			and risk.COMMIT_TIME <= convert(date, #end_date#)
+			]]>
+		</isEqual>
+	</select>
+	
+	<select id="getAvgPeriodReportByYearAndMonth" parameterClass="map" resultClass="java.lang.Double">
+		select convert(decimal(20,2), 
+				  isnull(avg(ps.LEASE_TERM), 0)
+				)as AVG_PERIOD
+		from T_PRJT_CREDITSCHEME ps
+		left join T_PRJT_CREDIT pc on ps.CREDIT_ID = pc.ID
+		left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY dc on dp.DECP_ID = dc.DECP_ID		
+		where pc.FINANCECONTRACT_DATE is not null and pc.STATUS =0
+		<isNotEmpty property="decp">
+			and dc.DECP_NAME_CN = #decp#
+		</isNotEmpty>
+		<isNotEmpty property="busi_type">
+			and pc.PRODUCTION_TYPE = #busi_type#
+		</isNotEmpty>
+		<![CDATA[
+		and pc.FINANCECONTRACT_DATE >= convert(date, #start_date#)
+		and pc.FINANCECONTRACT_DATE <= convert(date, #end_date#)
+		]]>
+		
+	</select>
+	
+	<select id="getAvgTrReport" parameterClass="map" resultClass="hashMap">
+		select
+		<isEqual property="code_type" compareValue="1">
+			year(pc.FINANCECONTRACT_DATE)as Y
+			, month(pc.FINANCECONTRACT_DATE)as M
+		</isEqual>
+		<isEqual property="code_type" compareValue="2">
+			year(pc.CREATE_DATE)as Y
+			, month(pc.CREATE_DATE)as M
+		</isEqual>
+		<isEqual property="code_type" compareValue="3">
+			year(risk.COMMIT_TIME)as Y
+			, month(risk.COMMIT_TIME)as M
+		</isEqual>
+		, convert(decimal(20,2), 
+		  sum(ps.LEASE_RZE * ps.TR_IRR_RATE) / sum(ps.LEASE_RZE)
+		)as AVG_TR
+		<isNotEmpty property="decp">
+			, dc.DECP_NAME_CN
+		</isNotEmpty>
+		<isEmpty property="decp">
+			, '全公司' as DECP_NAME_CN
+		</isEmpty>
+		from T_PRJT_CREDIT pc
+		left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY dc on dp.DECP_ID = dc.DECP_ID
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		<isEqual property="code_type" compareValue="3">
+			left join (
+			  select min(c.COMMIT_TIME) as COMMIT_TIME, c.CREDIT_ID
+			  from T_PRJT_RISK_CONTROL c
+			  where c.STATE = 1 and c.STATUS = 0
+			  group by c.CREDIT_ID
+			) risk on risk.CREDIT_ID = pc.ID
+		</isEqual>
+		where pc.STATUS = 0
+		<isEqual property="code_type" compareValue="1">
+			and pc.FINANCECONTRACT_DATE is not null
+		</isEqual>
+		<isEqual property="code_type" compareValue="2">
+			and ps.TR_IRR_RATE > 0
+			and (pc.VIP_FLAG is null or pc.VIP_FLAG = 0)
+		</isEqual>
+		<isEqual property="code_type" compareValue="3">
+			and risk.COMMIT_TIME is not null
+			and ps.TR_IRR_RATE > 0
+			and (pc.VIP_FLAG is null or pc.VIP_FLAG = 0)
+		</isEqual>
+		<isNotEmpty property="busi_type">
+			and pc.PRODUCTION_TYPE = $busi_type$
+		</isNotEmpty>
+		group by 
+		
+		<isEqual property="code_type" compareValue="1">
+			year(pc.FINANCECONTRACT_DATE)
+			, month(pc.FINANCECONTRACT_DATE)
+		</isEqual>
+		<isEqual property="code_type" compareValue="2">
+			year(pc.CREATE_DATE)
+			, month(pc.CREATE_DATE)
+		</isEqual>
+		<isEqual property="code_type" compareValue="3">
+			year(risk.COMMIT_TIME)
+			, month(risk.COMMIT_TIME)
+		</isEqual>
+		
+		<isNotEmpty property="decp">
+			, dc.DECP_ID, dc.DECP_NAME_CN
+		</isNotEmpty>
+		
+		<isEqual property="code_type" compareValue="1">
+			having year(pc.FINANCECONTRACT_DATE) = #year#
+		</isEqual>
+		<isEqual property="code_type" compareValue="2">
+			having year(pc.CREATE_DATE) = #year#
+		</isEqual>
+		<isEqual property="code_type" compareValue="3">
+			having year(risk.COMMIT_TIME) = #year#
+		</isEqual>
+		
+		
+		<isNotEmpty property="decp">
+			and dc.DECP_NAME_CN = #decp#
+		</isNotEmpty>
+		order by 
+		<isEqual property="code_type" compareValue="1">
+			month(pc.FINANCECONTRACT_DATE)
+		</isEqual>
+		<isEqual property="code_type" compareValue="2">
+			month(pc.CREATE_DATE)
+		</isEqual>
+		<isEqual property="code_type" compareValue="3">
+			month(risk.COMMIT_TIME)
+		</isEqual>
+		
+	</select>
+	
+	<select id="getAvgTrReportByYear" parameterClass="map" resultClass="hashMap">
+		select 
+		<isEqual property="code_type" compareValue="1">
+			year(pc.FINANCECONTRACT_DATE)as Y
+		</isEqual>
+		<isEqual property="code_type" compareValue="2">
+			year(pc.CREATE_DATE)as Y
+		</isEqual>
+		<isEqual property="code_type" compareValue="3">
+			year(risk.COMMIT_TIME)as Y
+		</isEqual>
+		
+		, convert(decimal(20,2), 
+		  sum(ps.LEASE_RZE * ps.TR_IRR_RATE) / sum(ps.LEASE_RZE)
+		)as AVG_TR
+		<isNotEmpty property="decp">
+			, dc.DECP_NAME_CN
+		</isNotEmpty>
+		<isEmpty property="decp">
+			, '全公司' as DECP_NAME_CN
+		</isEmpty>
+		from T_PRJT_CREDIT pc
+		left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY dc on dp.DECP_ID = dc.DECP_ID
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		<isEqual property="code_type" compareValue="3">
+			left join (
+			  select min(c.COMMIT_TIME) as COMMIT_TIME, c.CREDIT_ID
+			  from T_PRJT_RISK_CONTROL c
+			  where c.STATE = 1 and c.STATUS = 0
+			  group by c.CREDIT_ID
+			) risk on risk.CREDIT_ID = pc.ID
+		</isEqual>
+		where pc.STATUS = 0
+		<isEqual property="code_type" compareValue="1">
+			and pc.FINANCECONTRACT_DATE is not null
+		</isEqual>
+		<isEqual property="code_type" compareValue="2">
+			and ps.TR_IRR_RATE > 0
+			and (pc.VIP_FLAG is null or pc.VIP_FLAG = 0)
+		</isEqual>
+		<isEqual property="code_type" compareValue="3">
+			and risk.COMMIT_TIME is not null
+			and ps.TR_IRR_RATE > 0
+			and (pc.VIP_FLAG is null or pc.VIP_FLAG = 0)
+		</isEqual>
+		
+		<isNotEmpty property="decp">
+			and dc.DECP_NAME_CN = #decp#
+		</isNotEmpty>
+		<isNotEmpty property="busi_type">
+			and pc.PRODUCTION_TYPE = $busi_type$
+		</isNotEmpty>
+		group by 
+		<isEqual property="code_type" compareValue="1">
+			year(pc.FINANCECONTRACT_DATE)
+		</isEqual>
+		<isEqual property="code_type" compareValue="2">
+			year(pc.CREATE_DATE)
+		</isEqual>
+		<isEqual property="code_type" compareValue="3">
+			year(risk.COMMIT_TIME)
+		</isEqual>
+		<isNotEmpty property="decp">
+			, dc.DECP_NAME_CN
+		</isNotEmpty>
+		<isEqual property="code_type" compareValue="1">
+			having year(pc.FINANCECONTRACT_DATE) = #year#
+		</isEqual>
+		<isEqual property="code_type" compareValue="2">
+			having year(pc.CREATE_DATE) = #year#
+		</isEqual>
+		<isEqual property="code_type" compareValue="3">
+			having year(risk.COMMIT_TIME) = #year#
+		</isEqual>
+	</select>
+	
+	<select id="getAvgPeriodReport" parameterClass="map" resultClass="hashMap">
+		select year(pc.FINANCECONTRACT_DATE)as Y
+		, month(pc.FINANCECONTRACT_DATE)as M
+		, convert(decimal(20,2), 
+		  avg(ps.LEASE_TERM)
+		)as AVG_PERIOD
+		<isNotEmpty property="decp">
+			, dc.DECP_NAME_CN
+		</isNotEmpty>
+		<isEmpty property="decp">
+			, '全公司' as DECP_NAME_CN
+		</isEmpty>
+		from T_PRJT_CREDIT pc
+		left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY dc on dp.DECP_ID = dc.DECP_ID
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		where pc.STATUS = 0
+		and pc.FINANCECONTRACT_DATE is not null
+		group by year(pc.FINANCECONTRACT_DATE)
+		, month(pc.FINANCECONTRACT_DATE)
+		<isNotEmpty property="decp">
+			, dc.DECP_ID, dc.DECP_NAME_CN
+		</isNotEmpty>
+		having year(pc.FINANCECONTRACT_DATE) = #year#
+		<isNotEmpty property="decp">
+			and dc.DECP_NAME_CN = #decp#
+		</isNotEmpty>
+		order by month(pc.FINANCECONTRACT_DATE)
+	</select>
+	
+	<select id="getAvgPeriodReportByYear" parameterClass="map" resultClass="hashMap">
+		select year(pc.FINANCECONTRACT_DATE)as Y
+		, convert(decimal(20,2), 
+		  avg(ps.LEASE_TERM)
+		)as AVG_PERIOD
+		<isNotEmpty property="decp">
+			, dc.DECP_NAME_CN
+		</isNotEmpty>
+		<isEmpty property="decp">
+			, '全公司' as DECP_NAME_CN
+		</isEmpty>
+		from T_PRJT_CREDIT pc
+		left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY dc on dp.DECP_ID = dc.DECP_ID
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		where pc.STATUS = 0
+		and pc.FINANCECONTRACT_DATE is not null
+		<isNotEmpty property="decp">
+			and dc.DECP_NAME_CN = #decp#
+		</isNotEmpty>
+		group by year(pc.FINANCECONTRACT_DATE)
+		<isNotEmpty property="decp">
+			, dc.DECP_NAME_CN
+		</isNotEmpty>
+		having year(pc.FINANCECONTRACT_DATE) = #year#
+	</select>
+	
+	<select id="getRiskAvgTimeReport" parameterClass="map" resultClass="hashMap">
+		select t.decp as 'DECP_NAME'
+		, convert(decimal(8,0),avg(t.day_diff)) as 'AVG_DAY'
+		, month(t.COMMIT_TIME) as 'MONTH'
+		from (
+		  select pc.COMMIT_TIME
+		  , convert(float,datediff(day, pc.COMMIT_TIME, pm.CREATE_TIME)) day_diff
+		  , case when pr.VIP_FLAG = 1 then '绿色通道'
+		    else decp.DECP_NAME_CN end as 'decp'
+		  from T_PRJT_RISK_CONTROL pc
+		  left join (
+		    select tpm.PRC_ID, min(tpm.CREATE_TIME) as  CREATE_TIME
+		    from T_PRJT_RISK_CONTROLMEMO tpm
+		    where tpm.STATUS = 0
+		    group by tpm.PRC_ID
+		  ) pm on pm.PRC_ID = pc.PRC_ID
+		  left join T_PRJT_CREDIT pr on pc.CREDIT_ID = pr.ID
+		  left join T_USER_USER u on pr.SENSOR_ID = u.ID
+		  left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		  left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID
+		  where pc.STATUS = 0
+		  and pc.COMMIT_TIME = (
+		    select min(r.COMMIT_TIME)
+		    from T_PRJT_RISK_CONTROL r
+		    where r.STATUS = 0
+		    and r.CREDIT_ID = pc.CREDIT_ID
+		  )
+		  and pm.CREATE_TIME is not null
+		  and year(pc.COMMIT_TIME) = #year#
+		) t
+		group by t.decp, month(t.COMMIT_TIME)
+	</select>
+	
+	<select id="getRiskAvgTimeReportTotal" parameterClass="map" resultClass="hashMap">
+		select '合计' as 'decp_name'
+		, convert(decimal(8,0),avg(t.day_diff)) as 'avg_day'
+		, month(t.COMMIT_TIME) as 'month'
+		from (
+		  select pc.COMMIT_TIME
+		  , convert(float,datediff(day, pc.COMMIT_TIME, pm.CREATE_TIME)) day_diff
+		  , case when pr.VIP_FLAG = 1 then '绿色通道'
+		    else decp.DECP_NAME_CN end as 'decp'
+		  from T_PRJT_RISK_CONTROL pc
+		  left join (
+		    select tpm.PRC_ID, min(tpm.CREATE_TIME) as  CREATE_TIME
+		    from T_PRJT_RISK_CONTROLMEMO tpm
+		    where tpm.STATUS = 0
+		    group by tpm.PRC_ID
+		  ) pm on pm.PRC_ID = pc.PRC_ID
+		  left join T_PRJT_CREDIT pr on pc.CREDIT_ID = pr.ID
+		  left join T_USER_USER u on pr.SENSOR_ID = u.ID
+		  left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		  left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID
+		  where pc.STATUS = 0
+		  and pc.COMMIT_TIME = (
+		    select min(r.COMMIT_TIME)
+		    from T_PRJT_RISK_CONTROL r
+		    where r.STATUS = 0
+		    and r.CREDIT_ID = pc.CREDIT_ID
+		  )
+		  and pm.CREATE_TIME is not null
+		  and year(pc.COMMIT_TIME) = #year#
+		) t
+		group by month(t.COMMIT_TIME)
+	</select>
+	
+	<select id="getCompareSamePeriodReport" parameterClass="map" resultClass="hashMap">
+		select  t.pay_month,t.PAY_MONEY,t1.pay_money as credit_money,(t.pay_money + t1.pay_money) as total_money 
+		  from 
+		  (
+		    select '1' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and year(PAY_DATE) = #year# and month(PAY_DATE) = 1 
+		
+		    union all 
+		
+		    select '2' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and year(PAY_DATE) =  #year# and month(PAY_DATE) = 2
+		
+		    union all 
+		
+		    select '3' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and year(PAY_DATE) =  #year# and month(PAY_DATE) = 3
+		
+		
+		    union all 
+		
+		    select '4' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and year(PAY_DATE) =  #year# and month(PAY_DATE) = 4
+		
+		
+		    union all 
+		
+		    select '5' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and year(PAY_DATE) =  #year# and month(PAY_DATE) = 5
+		
+		    union all 
+		
+		    select '6' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and year(PAY_DATE) =  #year# and month(PAY_DATE) = 6
+		
+		    union all 
+		
+		    select '7' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and year(PAY_DATE) =  #year# and month(PAY_DATE) = 7
+		
+		    union all 
+		
+		    select '8' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and year(PAY_DATE) =  #year# and month(PAY_DATE) = 8
+		
+		    union all 
+		
+		    select '9' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and year(PAY_DATE) =  #year# and month(PAY_DATE) = 9
+		
+		    union all 
+		
+		    select '10' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and year(PAY_DATE) =  #year# and month(PAY_DATE) = 10
+		
+		    union all 
+		
+		    select '11' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and year(PAY_DATE) =  #year# and month(PAY_DATE) = 11
+		
+		    union all 
+		
+		    select '12' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and year(PAY_DATE) =  #year# and month(PAY_DATE) = 12
+		    
+		    union all 
+		
+		    select '合计' as pay_month, isnull(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and year(PAY_DATE) =  #year#
+		  ) t 
+		  inner join (
+		    select * from 
+		    (
+		      select '1' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and year(PAY_DATE) =  #year# and month(PAY_DATE)=1  and case_status_id = 2
+		      
+		      union all
+		          
+		      select '2' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and year(PAY_DATE) =  #year# and month(PAY_DATE)=2   and case_status_id = 2
+		      
+		      union all
+		          
+		      select '3' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and year(PAY_DATE) =  #year# and month(PAY_DATE)=3  and case_status_id = 2
+		      
+		      union all
+		          
+		      select '4' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and year(PAY_DATE) =  #year# and month(PAY_DATE)=4  and case_status_id = 2
+		      
+		      union all
+		          
+		      select '5' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and year(PAY_DATE) =  #year# and month(PAY_DATE)=5  and case_status_id = 2
+		      
+		      union all
+		          
+		      select '6' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and year(PAY_DATE) =  #year# and month(PAY_DATE)=6  and case_status_id = 2
+		      
+		      union all
+		          
+		      select '7' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and year(PAY_DATE) =  #year# and month(PAY_DATE)=7  and case_status_id = 2
+		      
+		      union all
+		          
+		      select '8' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and year(PAY_DATE) =  #year# and month(PAY_DATE)=8  and case_status_id = 2
+		      
+		      union all
+		          
+		      select '9' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and year(PAY_DATE) =  #year# and month(PAY_DATE)=9  and case_status_id = 2
+		      
+		      union all
+		          
+		      select '10' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and year(PAY_DATE) =  #year# and month(PAY_DATE)=10  and case_status_id = 2
+		      
+		      union all
+		          
+		      select '11' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and year(PAY_DATE) =  #year# and month(PAY_DATE)=11  and case_status_id = 2
+		      
+		      union all
+		          
+		      select '12' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and year(PAY_DATE) =  #year# and month(PAY_DATE)=12 and case_status_id = 2
+		      
+		      union all 
+		      
+		      select '合计' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money 
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and year(PAY_DATE) =  #year# and case_status_id = 2
+		    
+		    ) t1
+		    
+		  ) t1 on t1.pay_month = t.pay_month
+	
+	</select>
+	
+	<select id="getCompareSamePeriodReport_new" parameterClass="map" resultClass="hashMap">
+		<![CDATA[select  t.pay_month,t.PAY_MONEY,t1.pay_money as credit_money,(t.pay_money + t1.pay_money) as total_money 
+		  from 
+		  (
+		    select '1' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and cast(PAY_DATE as date )>= #begintime_1#
+		    and cast(PAY_DATE as date )<= #endtime_1#
+		
+		    union all 
+		
+		    select '2' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and cast(PAY_DATE as date )>= #begintime_2#
+		    and cast(PAY_DATE as date )<= #endtime_2#
+		
+		    union all 
+		
+		    select '3' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and cast(PAY_DATE as date )>= #begintime_3#
+		    and cast(PAY_DATE as date )<= #endtime_3#
+		
+		
+		    union all 
+		
+		    select '4' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and cast(PAY_DATE as date )>= #begintime_4#
+		    and cast(PAY_DATE as date )<= #endtime_4#
+		
+		
+		    union all 
+		
+		    select '5' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and cast(PAY_DATE as date )>= #begintime_5#
+		    and cast(PAY_DATE as date )<= #endtime_5#
+		
+		    union all 
+		
+		    select '6' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and cast(PAY_DATE as date )>= #begintime_6#
+		    and cast(PAY_DATE as date )<= #endtime_6#
+		
+		    union all 
+		
+		    select '7' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and cast(PAY_DATE as date )>= #begintime_7#
+		    and cast(PAY_DATE as date )<= #endtime_7#
+		
+		    union all 
+		
+		    select '8' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and cast(PAY_DATE as date )>= #begintime_8#
+		    and cast(PAY_DATE as date )<= #endtime_8#
+		
+		    union all 
+		
+		    select '9' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and cast(PAY_DATE as date )>= #begintime_9#
+		    and cast(PAY_DATE as date )<= #endtime_9#
+		
+		    union all 
+		
+		    select '10' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and cast(PAY_DATE as date )>= #begintime_10#
+		    and cast(PAY_DATE as date )<= #endtime_10#
+		
+		    union all 
+		
+		    select '11' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and cast(PAY_DATE as date )>= #begintime_11#
+		    and cast(PAY_DATE as date )<= #endtime_11#
+		
+		    union all 
+		
+		    select '12' as pay_month,ISNULL(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and cast(PAY_DATE as date )>= #begintime_12#
+		    and cast(PAY_DATE as date )<= #endtime_12#
+		    
+		    union all 
+		
+		    select '合计' as pay_month, isnull(sum(PAY_MONEY),0) as pay_money
+		    from T_SUPL_PLAYDETIL
+		    where STATUS = 0
+		    and BACKSTATE = 0
+		    and STATE = 3
+		    and cast(PAY_DATE as date )>= #begintime#
+		    and cast(PAY_DATE as date )<= #endtime#
+		  ) t 
+		  inner join (
+		    select * from 
+		    (
+		      select '1' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and cast(PAY_DATE as date )>= #begintime_1#
+		      and cast(PAY_DATE as date )<= #endtime_1#
+		      and case_status_id = 2
+		      
+		      union all
+		          
+		      select '2' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and cast(PAY_DATE as date )>= #begintime_2#
+		      and cast(PAY_DATE as date )<= #endtime_2#
+		      and case_status_id = 2
+		      
+		      union all
+		          
+		      select '3' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and cast(PAY_DATE as date )>= #begintime_3#
+		      and cast(PAY_DATE as date )<= #endtime_3#
+		      and case_status_id = 2
+		      
+		      union all
+		          
+		      select '4' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and cast(PAY_DATE as date )>= #begintime_4#
+		      and cast(PAY_DATE as date )<= #endtime_4#
+		      and case_status_id = 2
+		      
+		      union all
+		          
+		      select '5' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and cast(PAY_DATE as date )>= #begintime_5#
+		      and cast(PAY_DATE as date )<= #endtime_5#
+		      and case_status_id = 2
+		      
+		      union all
+		          
+		      select '6' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and cast(PAY_DATE as date )>= #begintime_6#
+		      and cast(PAY_DATE as date )<= #endtime_6#
+		      and case_status_id = 2
+		      
+		      union all
+		          
+		      select '7' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and cast(PAY_DATE as date )>= #begintime_7#
+		      and cast(PAY_DATE as date )<= #endtime_7#
+		      and case_status_id = 2
+		      
+		      union all
+		          
+		      select '8' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and cast(PAY_DATE as date )>= #begintime_8#
+		      and cast(PAY_DATE as date )<= #endtime_8#
+		      and case_status_id = 2
+		      
+		      union all
+		          
+		      select '9' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and cast(PAY_DATE as date )>= #begintime_9#
+		      and cast(PAY_DATE as date )<= #endtime_9#
+		      and case_status_id = 2
+		      
+		      union all
+		          
+		      select '10' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and cast(PAY_DATE as date )>= #begintime_10#
+		      and cast(PAY_DATE as date )<= #endtime_10#
+		      and case_status_id = 2
+		      
+		      union all
+		          
+		      select '11' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and cast(PAY_DATE as date )>= #begintime_11#
+		      and cast(PAY_DATE as date )<= #endtime_11#
+		      and case_status_id = 2
+		      
+		      union all
+		          
+		      select '12' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and cast(PAY_DATE as date )>= #begintime_12#
+		      and cast(PAY_DATE as date )<= #endtime_12#
+		      and case_status_id = 2
+		      
+		      union all 
+		      
+		      select '合计' as pay_month
+		      , ISNULL(sum(PAY_MONEY),0) as pay_money 
+		      from T_LOAN_CASE
+		      where STATUS = 0
+		      and cast(PAY_DATE as date )>= #begintime#
+		      and cast(PAY_DATE as date )<= #endtime#
+		      and case_status_id = 2
+		    
+		    ) t1
+		    
+		  ) t1 on t1.pay_month = t.pay_month
+	]]>
+	</select>
+	
+	<select id="getYearList" resultClass="java.lang.Integer">
+    	SELECT DISTINCT year(PAY_DATE) FROM T_SUPL_PLAYDETIL WHERE STATUS=0 AND PAY_DATE is not null order by year(PAY_DATE) asc
+    </select>
+    
+    <select id="getAduitedRentContractReport" parameterClass="map" resultClass="hashMap">         
+       	 select
+	      tt.dispatch_name,tt.userid,tt.status,
+	      max(case tt.column_title when '1' then tt.total else 0 end) qty_1,
+	      max(case tt.column_title when '2' then tt.total else 0 end) qty_2,
+	      max(case tt.column_title when '3' then tt.total else 0 end) qty_3,
+	      max(case tt.column_title when '4' then tt.total else 0 end) qty_4,
+	      max(case tt.column_title when '5' then tt.total else 0 end) qty_5,
+	      max(case tt.column_title when '6' then tt.total else 0 end) qty_6,
+	      max(case tt.column_title when '7' then tt.total else 0 end) qty_7,
+	      max(case tt.column_title when '8' then tt.total else 0 end) qty_8,
+	      max(case tt.column_title when '9' then tt.total else 0 end) qty_9,
+	      max(case tt.column_title when '10' then tt.total else 0 end) qty_10,
+	      max(case tt.column_title when '11' then tt.total else 0 end) qty_11,
+	      max(case tt.column_title when '12' then tt.total else 0 end) qty_12,
+	      sum(tt.total) qty_total,
+	      max(case tt.column_title when '1' then round(tt.time/tt.total,2) else 0 end) avg_time_1,
+	      max(case tt.column_title when '2' then round(tt.time/tt.total,2) else 0 end) avg_time_2,
+	      max(case tt.column_title when '3' then round(tt.time/tt.total,2) else 0 end) avg_time_3,
+	      max(case tt.column_title when '4' then round(tt.time/tt.total,2) else 0 end) avg_time_4,
+	      max(case tt.column_title when '5' then round(tt.time/tt.total,2) else 0 end) avg_time_5,
+	      max(case tt.column_title when '6' then round(tt.time/tt.total,2) else 0 end) avg_time_6,
+	      max(case tt.column_title when '7' then round(tt.time/tt.total,2) else 0 end) avg_time_7,
+	      max(case tt.column_title when '8' then round(tt.time/tt.total,2) else 0 end) avg_time_8,
+	      max(case tt.column_title when '9' then round(tt.time/tt.total,2) else 0 end) avg_time_9,
+	      max(case tt.column_title when '10' then round(tt.time/tt.total,2) else 0 end) avg_time_10,
+	      max(case tt.column_title when '11' then round(tt.time/tt.total,2) else 0 end) avg_time_11,
+	      max(case tt.column_title when '12' then round(tt.time/tt.total,2) else 0 end) avg_time_12,
+	      round(sum(tt.time)/sum(tt.total),2) avg_time
+	 	 from 
+		 (	SELECT cast(MONTH(TRFS.HW_AUDIT_TIME) as varchar(2)) as column_title,COUNT(*) total,dispa_user.name as dispatch_name,dispa_user.id as userid,dispa_user.status as status,sum(round(DATEDIFF ( minute , TRFS.HW_TIME,TRFS.HW_AUDIT_TIME )/60.0,2)) time
+		    FROM T_RENT_FILE_SENDER_STATE TRFS 
+		    left join T_PRJT_CREDIT T1 on TRFS.credit_id=t1.id and t1.status=0
+		    left join t_rent_contract t2 on t1.ID=t2.prcd_id               
+		    left join T_USER_USER dispa_user on dispa_user.id=TRFS.DISPATCH_USER_ID             
+		    WHERE TRFS.STATUS=0   and  TRFS.DISPATCH_USER_ID  is not null
+		    and YEAR(TRFS.HW_AUDIT_TIME ) = #year# 
+		    GROUP BY dispa_user.name,dispa_user.id,dispa_user.status,MONTH(TRFS.HW_AUDIT_TIME)
+		        
+		    
+		    union all 
+		    
+	      SELECT  cast(MONTH(TRFS.HW_AUDIT_TIME ) as varchar(2))as column_title,COUNT(*) total,'合计' as dispatch_name,null as userid,0 as status,sum(round(DATEDIFF ( minute , TRFS.HW_TIME,TRFS.HW_AUDIT_TIME )/60.0,2)) time
+		    FROM T_RENT_FILE_SENDER_STATE TRFS 
+		    left join T_PRJT_CREDIT T1 on TRFS.credit_id=t1.id and t1.status=0
+		    left join t_rent_contract t2 on t1.ID=t2.prcd_id               
+		    left join T_USER_USER dispa_user on dispa_user.id=TRFS.DISPATCH_USER_ID             
+		    WHERE TRFS.STATUS=0   and TRFS.DISPATCH_USER_ID  is not null
+		    and YEAR(TRFS.HW_AUDIT_TIME ) = #year# 
+	      group by MONTH(TRFS.HW_AUDIT_TIME )
+		   
+	    ) tt
+	    
+	    GROUP BY tt.dispatch_name,tt.userid,tt.status
+	    order by tt.userid desc
+    </select>
+    
+  	<select id="getRentContractYearList" resultClass="java.lang.Integer">
+    	SELECT DISTINCT year(HW_AUDIT_TIME) FROM T_RENT_FILE_SENDER_STATE 
+		WHERE STATUS=0 and HW_AUDIT_TIME is not null 
+		order by year(HW_AUDIT_TIME) asc
+    </select>
+    
+    <select id="queryAduitedRentContractDtl" parameterClass="map" resultClass="hashMap">
+   	 	SELECT TRFS.STATE,TRFS.ID,
+						 T2.RECT_ID,T1.CONTRACT_TYPE,
+						 T1.LEASE_CODE,
+						 T3.CUST_NAME,
+						 upper.NAME CLERK_NAME,
+						 T6.NAME SENSOR_NAME,
+					  	t9.DECP_NAME_CN,t1.CREDIT_RUNCODE,dispa_user.name  DISPATCH_NAME,TRFS.MODIFY_TIME,
+					  	TRFS.SALES_MANAGE_TIME,TRFS.HW_TIME,t1.ID CREDIT_ID,TRFS.DISPATCH_USER_ID,assistant.NAME ASSISTANT_NAME,
+					  	TRFS.HW_AUDIT_TIME as HW_AUDIT_TIME,DATEDIFF ( minute , TRFS.HW_TIME,TRFS.HW_AUDIT_TIME ) DEAL_TIME
+			  FROM T_RENT_FILE_SENDER_STATE TRFS
+			  left join T_PRJT_CREDIT T1 on TRFS.credit_id=t1.id and t1.status=0
+			  left join t_rent_contract t2 on t1.ID=t2.prcd_id
+			  LEFT JOIN T_CUST_CUSTOMER T3 ON T1.CUST_ID = T3.CUST_ID
+			  LEFT JOIN T_USER_USER T6 ON T1.SENSOR_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+      	  	  left join T_USER_USER dispa_user on dispa_user.id=TRFS.DISPATCH_USER_ID
+      	  	  left join T_USER_USER assistant on assistant.id=TRFS.MODIFY_ID
+		WHERE TRFS.STATUS=0  and TRFS.DISPATCH_USER_ID  is not null
+	    	 and YEAR(TRFS.HW_AUDIT_TIME ) = #year# 
+	     <isNotEmpty property="month" prepend="and">
+	     	MONTH(TRFS.HW_AUDIT_TIME ) = #month#
+	     </isNotEmpty>
+	     <isNotEmpty property="userid" prepend="and">
+	     	TRFS.DISPATCH_USER_ID = #userid#
+	     </isNotEmpty>
+    
+    </select>
+    
+
+	<select id="getModifyOrderReport" parameterClass="map" resultClass="hashMap">
+		
+SELECT
+		    RS.USERID,RS.USERNAME,
+		    max(case RS.DEAL_MONTH WHEN 1 THEN RS.QTY ELSE 0 END) QTY_1,
+		    max(case RS.DEAL_MONTH WHEN 2 THEN RS.QTY ELSE 0 END) QTY_2,
+		    max(case RS.DEAL_MONTH WHEN 3 THEN RS.QTY ELSE 0 END) QTY_3,
+		    max(case RS.DEAL_MONTH WHEN 4 THEN RS.QTY ELSE 0 END) QTY_4,
+		    max(case RS.DEAL_MONTH WHEN 5 THEN RS.QTY ELSE 0 END) QTY_5,
+		    max(case RS.DEAL_MONTH WHEN 6 THEN RS.QTY ELSE 0 END) QTY_6,
+		    max(case RS.DEAL_MONTH WHEN 7 THEN RS.QTY ELSE 0 END) QTY_7,
+		    max(case RS.DEAL_MONTH WHEN 8 THEN RS.QTY ELSE 0 END) QTY_8,
+		    max(case RS.DEAL_MONTH WHEN 9 THEN RS.QTY ELSE 0 END) QTY_9,
+		    max(case RS.DEAL_MONTH WHEN 10 THEN RS.QTY ELSE 0 END) QTY_10,
+		    max(case RS.DEAL_MONTH WHEN 11 THEN RS.QTY ELSE 0 END) QTY_11,
+		    max(case RS.DEAL_MONTH WHEN 12 THEN RS.QTY ELSE 0 END) QTY_12,
+		    sum(RS.QTY) as QTY_TOTAL,
+		    max(case RS.DEAL_MONTH WHEN 1 THEN round(RS.DEAL_TIMES/RS.QTY/60.0,2) ELSE 0.00 END) DEAL_TIMES_1,
+		    max(case RS.DEAL_MONTH WHEN 2 THEN round(RS.DEAL_TIMES/RS.QTY/60.0,2) ELSE 0.00 END) DEAL_TIMES_2,
+		    max(case RS.DEAL_MONTH WHEN 3 THEN round(RS.DEAL_TIMES/RS.QTY/60.0,2) ELSE 0.00 END) DEAL_TIMES_3,
+		    max(case RS.DEAL_MONTH WHEN 4 THEN round(RS.DEAL_TIMES/RS.QTY/60.0,2) ELSE 0.00 END) DEAL_TIMES_4,
+		    max(case RS.DEAL_MONTH WHEN 5 THEN round(RS.DEAL_TIMES/RS.QTY/60.0,2) ELSE 0.00 END) DEAL_TIMES_5,
+		    max(case RS.DEAL_MONTH WHEN 6 THEN round(RS.DEAL_TIMES/RS.QTY/60.0,2) ELSE 0.00 END) DEAL_TIMES_6,
+		    max(case RS.DEAL_MONTH WHEN 7 THEN round(RS.DEAL_TIMES/RS.QTY/60.0,2) ELSE 0.00 END) DEAL_TIMES_7,
+		    max(case RS.DEAL_MONTH WHEN 8 THEN round(RS.DEAL_TIMES/RS.QTY/60.0,2) ELSE 0.00 END) DEAL_TIMES_8,
+		    max(case RS.DEAL_MONTH WHEN 9 THEN round(RS.DEAL_TIMES/RS.QTY/60.0,2) ELSE 0.00 END) DEAL_TIMES_9,
+		    max(case RS.DEAL_MONTH WHEN 10 THEN round(RS.DEAL_TIMES/RS.QTY/60.0,2) ELSE 0.00 END) DEAL_TIMES_10,
+		    max(case RS.DEAL_MONTH WHEN 11 THEN round(RS.DEAL_TIMES/RS.QTY/60.0,2) ELSE 0.00 END) DEAL_TIMES_11,
+		    max(case RS.DEAL_MONTH WHEN 12 THEN round(RS.DEAL_TIMES/RS.QTY/60.0,2) ELSE 0.00 END) DEAL_TIMES_12,
+		    round(sum(RS.DEAL_TIMES)/sum(RS.QTY)/60.0,2) as DEAL_TIMES
+		from
+		(
+			<!-- 已处理的结果集 -->
+		      SELECT 
+		            TT.LOG_USER_ID AS USERID,
+		            TUU.[NAME] AS USERNAME,
+		            month(T2.APPLY_TIME) AS DEAL_MONTH,
+		            COUNT(*) AS QTY,
+		            SUM(DATEDIFF(minute,T1.ADUIT_TIME,TT.DEAL_TIME)) AS DEAL_TIMES
+		      from 
+		        (
+		          SELECT T.CREATE_TIME as DEAL_TIME,T.MODIFY_ID,T.LOG_USER_ID
+		          FROM T_MODIFY_ORDER_LOG T
+		          where T.CREATE_TIME = (select max(TMOG.CREATE_TIME) from  T_MODIFY_ORDER_LOG TMOG
+		            where TMOG.MODIFY_ID = T.MODIFY_ID and TMOG.ORDER_STATUS_LOG='0' AND
+		        	TMOG.ORDER_TYPE_LOG='1' )
+		        ) TT
+		      LEFT join 
+		        (
+		          SELECT
+		      		MAX(CREATE_TIME) AS ADUIT_TIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG TMOG
+		      		WHERE ORDER_STATUS_LOG='1' AND ORDER_TYPE_LOG='0' 
+		      		GROUP BY MODIFY_ID
+		        ) T1 ON TT.MODIFY_ID = T1.MODIFY_ID 
+		      INNER JOIN
+		        (  
+		          SELECT
+				      MIN(CREATE_TIME) AS APPLY_TIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG TMOG
+				      WHERE ORDER_STATUS_LOG='0' AND
+				      ORDER_TYPE_LOG='0' AND year(CREATE_TIME) = #year#
+				      GROUP BY MODIFY_ID       
+		        ) T2 ON TT.MODIFY_ID = T2.MODIFY_ID
+		      LEFT JOIN T_USER_USER TUU ON TUU.ID= TT.LOG_USER_ID 
+		      GROUP BY TT.LOG_USER_ID,TUU.[NAME],month(T2.APPLY_TIME)
+		      
+		      UNION ALL 
+		      
+		      <!-- 已处理的结果集合计统计 -->
+		      SELECT
+		         NULL AS USERID,
+		        '合计' AS USERNAME,
+		        month(T2.APPLY_TIME) DEAL_MONTH,
+		        count(*) AS QTY,
+		        SUM(DATEDIFF(minute,T1.ADUIT_TIME,T.DEAL_TIME)) AS DEAL_TIMES 
+		      FROM 
+		      (
+		        SELECT
+		      	  MAX(CREATE_TIME)AS DEAL_TIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG
+		      	WHERE ORDER_STATUS_LOG='0' AND ORDER_TYPE_LOG='1'
+		        GROUP BY MODIFY_ID
+		       ) T
+		       LEFT JOIN 
+		       (
+		          SELECT
+		      		MAX(CREATE_TIME) AS ADUIT_TIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG
+		      		WHERE ORDER_STATUS_LOG='1' AND
+		      		ORDER_TYPE_LOG='0'
+		      		GROUP BY MODIFY_ID
+		       ) T1 on T1.MODIFY_ID = T.MODIFY_ID
+		       INNER JOIN
+		        (  
+		          SELECT
+				      MIN(CREATE_TIME) AS APPLY_TIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG TMOG
+				      WHERE ORDER_STATUS_LOG='0' AND
+				      ORDER_TYPE_LOG='0' AND year(CREATE_TIME) =   #year#
+				      GROUP BY MODIFY_ID       
+		        ) T2 ON T2.MODIFY_ID = T.MODIFY_ID
+		       GROUP BY month(T2.APPLY_TIME)
+		       
+		       UNION ALL
+		       <!-- 未处理的结果集统计 -->
+		       SELECT 
+		        -1 AS USERID,
+		        '其他' AS USERNAME,
+		        month(T1.TIME) AS DEAL_MONTH,
+		        COUNT(*) AS QTY,
+		        0 AS DEAL_TIMES
+		      from T_MODIFY_ORDER T
+		      LEFT JOIN 
+		      (
+		        SELECT
+		      		MIN(CREATE_TIME) AS TIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG TMOG
+		      		WHERE ORDER_STATUS_LOG='0' AND
+		      		ORDER_TYPE_LOG='0' 
+		      		GROUP BY MODIFY_ID
+		      ) T1 ON T.MODIFY_ID = T1.MODIFY_ID
+		      LEFT JOIN 
+		      (
+		        SELECT
+		      		MAX(CREATE_TIME) AS TIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG
+		      		WHERE ORDER_STATUS_LOG='1' AND
+		      		ORDER_TYPE_LOG='0'
+		      		GROUP BY MODIFY_ID
+		      ) T2 ON T.MODIFY_ID = T2.MODIFY_ID
+		      LEFT JOIN 
+		      (
+		        SELECT
+		      	MAX(CREATE_TIME)AS TIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG
+		      	WHERE
+		      	ORDER_STATUS_LOG='0' AND
+		      	ORDER_TYPE_LOG='1' GROUP BY MODIFY_ID 
+		      ) T3 ON T.MODIFY_ID = T3.MODIFY_ID
+		      WHERE YEAR(T1.TIME)=  #year# AND (T2.TIME IS NULL OR T3.TIME IS NULL)
+		      GROUP BY month(T1.TIME)
+		      
+		) RS GROUP BY RS.USERID,RS.USERNAME
+		ORDER BY USERID DESC
+	</select>
+	
+	<select id="getModifyOrderYearList" resultClass="java.lang.Integer">
+	    SELECT
+	    	distinct year(MIN(CREATE_TIME))
+	    FROM T_MODIFY_ORDER_LOG TMOG
+			WHERE ORDER_STATUS_LOG='0' AND
+			ORDER_TYPE_LOG='0' 
+			GROUP BY MODIFY_ID	
+	</select>
+	
+	<select id="queryModifyOrderDetail" parameterClass="map" resultClass="hashMap">
+		select 
+		  T.APPLY_NAME,
+		  TUU.[NAME] as USERNAME,		  
+		  T.MODIFY_ORDER_CODE,
+		  T1.TIME as APPLY_TIME,
+		  T2.TIME as ADUIT_TIME,
+		  T3.TIME as DEAL_TIME,
+		  T4.TIME as END_TIME,
+		  DATEDIFF(minute,T2.TIME,T3.TIME) as DEAL_TIMES,
+      	  DATEDIFF(minute,T1.TIME,T4.TIME) as END_TIMES
+		from T_MODIFY_ORDER T
+		LEFT JOIN 
+		(
+		  SELECT
+				MIN(CREATE_TIME) AS TIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG TMOG
+				WHERE ORDER_STATUS_LOG='0' AND
+				ORDER_TYPE_LOG='0' 
+				GROUP BY MODIFY_ID
+		) T1 ON T.MODIFY_ID = T1.MODIFY_ID
+		LEFT JOIN 
+		(
+		  SELECT
+				MAX(CREATE_TIME) AS TIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG
+				WHERE ORDER_STATUS_LOG='1' AND
+				ORDER_TYPE_LOG='0'
+				GROUP BY MODIFY_ID
+		) T2 ON T.MODIFY_ID = T2.MODIFY_ID
+		LEFT JOIN 
+		(
+		   SELECT TT.CREATE_TIME as TIME,TT.MODIFY_ID,TT.LOG_USER_ID
+		   FROM T_MODIFY_ORDER_LOG TT
+		   where TT.CREATE_TIME = (select max(TMOG.CREATE_TIME) from  T_MODIFY_ORDER_LOG TMOG
+		            where TMOG.MODIFY_ID = TT.MODIFY_ID and TMOG.ORDER_STATUS_LOG='0' AND
+		        	TMOG.ORDER_TYPE_LOG='1' )
+		) T3 ON T.MODIFY_ID = T3.MODIFY_ID
+		LEFT JOIN
+		(
+		  SELECT
+				CREATE_TIME AS TIME, MODIFY_ID FROM T_MODIFY_ORDER_LOG
+				WHERE ( ORDER_STATUS_LOG='1' AND
+				ORDER_TYPE_LOG='2') OR
+				ORDER_TYPE_LOG='5'
+		) T4 ON T.MODIFY_ID = T4.MODIFY_ID
+		LEFT JOIN T_USER_USER TUU ON TUU.ID= T3.LOG_USER_ID 
+		WHERE YEAR(T1.TIME)= #year# 
+		<isNotEmpty prepend="and" property="month">
+			MONTH(T1.TIME)= #month# 
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="userid">
+			<isEqual prepend="" property="userid" compareValue="-1">
+				T3.TIME IS NULL
+			</isEqual>
+			<isGreaterEqual property="userid" compareValue="0">
+				T3.LOG_USER_ID = #userid#
+			</isGreaterEqual>			
+		</isNotEmpty>
+
+	</select>
+	
+	
+	<select id="getHighQualityCustomerReport" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		select 
+			t.LEASE_CODE,u.[NAME] as SALE_MANAGER,DD1.DECP_NAME_CN,c.CUST_NAME,tcl.LINK_NAME,
+			tcl.LINK_MOBILE,ps.LEASE_TERM,cast(round(ps.TR_IRR_RATE*1.00,2) as numeric(8,2))as TR,CONVERT(varchar(100),
+			p.FINANCECONTRACT_DATE, 111) as PAY_DATE,CONVERT(varchar(100), r.END_DATE, 111) as END_DATE,
+			isNUll(t1.real_preiod,0) as PAY_TERM,(ps.LEASE_TERM - isNUll(t1.real_preiod,0)) as LEFT_TERM,isnull(t2.OVERDUE,0) as OVERDUE,
+		cast(round((case when isNUll(t1.real_preiod,0) >0 then isNUll(t2.days,0)*1.00/(isNUll(t1.real_preiod,0))else 0.00 end),2) as   numeric(8,2)) as AVG_DAYS
+		from T_RENT_CONTRACT t
+		LEFT JOIN T_PRJT_CREDIT p on p.ID = t.PRCD_ID
+		LEFT JOIN T_USER_USER u on u.ID = t.SENSOR_ID
+		LEFT JOIN T_DEPT_DEPARTMENT DD ON DD.ID=u.DEPT_ID AND DD.STATUS=0       
+		LEFT JOIN T_DEPT_COMPANY DD1 ON DD1.STATUS=0 AND DD1.DECP_ID=DD.DECP_ID   
+		LEFT JOIN T_CUST_CUSTOMER c ON p.CUST_ID = c.CUST_ID 
+		LEFT JOIN (
+		  select t.CUST_ID,t.CUST_NAME,tcl.LINK_NAME,tcl.LINK_MOBILE
+		  from T_CUST_CUSTOMER t
+		  left join t_cust_linkman tcl on tcl.CUST_ID = t.CUST_ID and tcl.STATUS = 0 and tcl.LINK_TYPE =0
+		  where t.STATUS =0
+		  group by t.CUST_ID,t.CUST_NAME,tcl.LINK_NAME,tcl.LINK_MOBILE
+		) tcl on tcl.CUST_ID = p.CUST_ID 
+		LEFT JOIN T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = t.PRCD_ID
+		LEFT JOIN T_RENT_COLLECTIONPLAN r on r.RECT_ID = t.RECT_ID
+		LEFT JOIN (
+		    select COUNT(*) as real_preiod,T.RECP_ID from T_RENT_COLLECTIONDETAIL T  
+		    where T.STATUS=0 
+		    and( (T.IRR_MONTH_PRICE+isnull(T.VALUE_ADDED_TAX,0))- T.REDUCE_OWN_PRICE)<= 0.005
+		    GROUP BY T.RECP_ID
+		) t1 on t1.RECP_ID = r.RECP_ID
+		LEFT JOIN (
+		  select 		
+		    t.RECP_ID,
+		    count(t.dun_day) as OVERDUE,
+		    sum(t.dun_day) as days
+		  from(  
+		          select 
+		            tfcb.RECP_ID,
+		            tfcb.RECD_PERIOD as period_num,
+		            max(datediff(d,tfcb.pay_date,opposing_date))  dun_day
+		  			  from t_fina_collectionbill tfcb
+		  			  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+		  			  where (tfcb.ficb_state=4 or tfcb.ficb_state=5) 
+		    			  and tfi.red_type is null and tfcb.FICB_type='0'
+		    			  and (tfcb.FICB_ITEM='租金' or tfcb.FICB_ITEM='增值税')
+		    			  and datediff(d,tfcb.pay_date,opposing_date)>0 
+		    		group by RECP_ID,recp_code,tfcb.RECD_PERIOD 
+		        
+		          union all
+		          
+		        select 
+		          trcp.recp_id,
+		  			  trcp.period_num,
+		  			  datediff(d,trcp.pay_date,getdate())  dun_day         
+		  			from (          
+		  			  select 
+		             trcd.period_num,
+		  			     trcp.recp_id,
+		  			     trcd.pay_date
+		  			  from t_rent_collectionplan trcp
+		  			  left join t_rent_contract trc on trcp.rect_id =trc.rect_id
+		  			  left join t_rent_collectiondetail trcd on trcp.recp_id = trcd.recp_id
+		  			  where trcp.status = 0 and trc.status=0
+		  			    and (trcp.fund_status=0 or trcp.fund_status=1)
+		  			    and  trcd.pay_date < = cast(getdate() as datetime)-1
+		  			    and isnull(trcd.IRR_MONTH_PRICE, 0)+isnull(trcd.VALUE_ADDED_TAX, 0)-isnull(trcd.reduce_own_price, 0)>0.001
+		        ) trcp 
+		  			left join  (
+		          select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+		    			  from t_fina_collectionbill tfcb
+		    			  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+		    			  where tfi.opposing_date <= cast(getdate() as datetime)
+		    			  and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+		    			  and tfi.red_type is null 
+		    			  group by recp_id
+		  			) tfcd on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+		  			where (case when tfcd.opposing_date is null or tfcd.opposing_date <= trcp.pay_date then datediff(d,trcp.pay_date,getdate()) else datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+		  ) t 
+		  group by   t.RECP_ID
+		
+		) t2 on t2.RECP_ID = r.RECP_ID
+		where   r.RECP_STATUS=0 and p.FINANCECONTRACT_DATE is not null
+		and  not exists(
+		  select 		
+		    distinct t.RECP_ID
+		  from(
+		          select 
+		            distinct tfcb.RECP_ID
+		  			  from t_fina_collectionbill tfcb
+		  			  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+		  			  where (tfcb.ficb_state=4 or tfcb.ficb_state=5) 
+		    			  and tfi.red_type is null and tfcb.FICB_type='0'
+		    			  and (tfcb.FICB_ITEM='租金' or tfcb.FICB_ITEM='增值税')
+		    			  and datediff(d,tfcb.pay_date,opposing_date)>7 
+		
+		        
+		          union all
+		          
+		          select 
+		            distinct trcp.recp_id     
+		    			from (          
+		    			  select 
+		               trcd.period_num,
+		    			     trcp.recp_id,
+		    			     trcd.pay_date
+		    			  from t_rent_collectionplan trcp
+		    			  left join t_rent_contract trc on trcp.rect_id =trc.rect_id
+		    			  left join t_rent_collectiondetail trcd on trcp.recp_id = trcd.recp_id
+		    			  where trcp.status = 0 and trc.status=0
+		    			    and (trcp.fund_status=0 or trcp.fund_status=1)
+		    			    and  trcd.pay_date < = cast(getdate() as datetime)-1
+		    			    and isnull(trcd.IRR_MONTH_PRICE, 0)+isnull(trcd.VALUE_ADDED_TAX, 0)-isnull(trcd.reduce_own_price, 0)>0.001
+		          ) trcp 
+		    			left join  (
+		            select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+		      			  from t_fina_collectionbill tfcb
+		      			  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+		      			  where tfi.opposing_date <= cast(getdate() as datetime)
+		      			  and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+		      			  and tfi.red_type is null 
+		      			  group by recp_id
+		    			) tfcd on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+		    			where (case when tfcd.opposing_date is null or tfcd.opposing_date <= trcp.pay_date then datediff(d,trcp.pay_date,getdate()) else datediff(d,tfcd.opposing_date,getdate()) end) > 7 
+		  ) t
+		  where t.RECP_ID = r.RECP_ID
+		) and CONVERT(varchar(10), r.END_DATE, 112) >= #startDate# and  CONVERT(varchar(10), r.END_DATE, 112) < #endDate#
+		ORDER BY p.FINANCECONTRACT_DATE
+		]]>
+	</select>
+	
+	
+	<select id="getInsuDataForAcc" parameterClass="map" resultClass="java.util.HashMap">
+		select pc.LEASE_CODE, incp.INCP_NAME
+		, cust.CUST_NAME
+		, insu.INSU_START_DATE
+		, insu.INSU_END_DATE
+		, convert(date,rp.FIRST_PAYDATE) as FIRST_PAYDATE
+		, convert(date,rp.END_DATE) as END_DATE
+		, case when insu.INSU_END_DATE = convert(date,rp.END_DATE)
+		then '全年' else '分年' end as 'insu_type'
+		from T_PRJT_CREDIT pc
+		left join T_RENT_CONTRACT rc on rc.PRCD_ID = pc.ID
+		left join T_RENT_COLLECTIONPLAN rp on rp.RECT_ID = rc.RECT_ID
+		left join T_INSU_INSURANCELIST insu on insu.RECT_ID = rc.RECT_ID
+		and insu.STATUS = 0
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		left join T_CUST_CUSTOMER cust on rc.CUST_ID = cust.CUST_ID
+		where pc.PRODUCTION_TYPE = 1
+		<isNotEmpty prepend="and" property="companyCode">
+			pc.company_code = #companyCode#
+		</isNotEmpty>
+		
+		and convert(date,pc.FINANCECONTRACT_DATE) >= convert(date, #start_date#)
+		<![CDATA[and convert(date,pc.FINANCECONTRACT_DATE) <= convert(date, #end_date#)]]>
+	</select>
+	
+	<select id="getSettleDataForAcc" parameterClass="map" resultClass="java.util.HashMap">
+		select rp.SETTLE_DATE
+		, rc.CUST_NAME, rc.LEASE_CODE, rp.LEASE_PERIOD
+		, incp.INCP_NAME
+		, insu.INSU_START_DATE
+		, insu.INSU_END_DATE
+		, insu.INSU_PRICE
+		, rp.LEASE_TOPRIC
+		, decp.DECP_NAME_CN
+		, case when rp.RECP_STATUS = 1 then '正常结清'
+		  else '提前结清' end as RECP_STATUS
+		from T_RENT_CONTRACT rc
+		left join T_PRJT_CREDIT pc on rc.PRCD_ID = pc.ID
+		left join T_USER_USER u on pc.ORG_SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID
+		left join T_RENT_COLLECTIONPLAN rp on rp.RECT_ID = rc.RECT_ID
+		left join T_INSU_INSURANCELIST insu on insu.RECT_ID = rc.RECT_ID
+		and insu.STATUS = 0
+		left join T_INSU_COMPANY incp on insu.INCP_ID = incp.INCP_ID
+		where rp.SETTLE_DATE is not null
+		and pc.PRODUCTION_TYPE = 1
+		and rp.SETTLE_DATE is not null
+		and convert(date,rp.SETTLE_DATE) >= convert(date, #start_date#)
+		<![CDATA[and convert(date,rp.SETTLE_DATE) <= convert(date, #end_date#)]]>
+		<isNotEmpty prepend="and" property="companyCode">
+			pc.company_code = #companyCode#
+		</isNotEmpty>
+	</select>
+	
+	<select id="getContractExceptRent" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+					select 	
+    	      t.y,
+		      t.m,
+	      	convert(money ,sum(t.price)) as price,
+	      	convert(money ,sum(t.interest)) as interest   
+			from(
+				SELECT       
+					YEAR( T1.PAY_DATE) AS y,
+				  month( T1.PAY_DATE) AS m,
+				  case 
+				    when isnull(T1.REDUCE_OWN_PRICE,0) > 0  
+				        then isnull(T1.IRR_MONTH_PRICE,0) + isnull(T1.VALUE_ADDED_TAX,0) - isnull(T1.REDUCE_OWN_PRICE,0)
+				    else 
+				        T1.MONTH_PRICE + isnull(T1.VALUE_ADDED_TAX,0)
+					end as price,
+				  case when isnull(T1.REDUCE_OWN_PRICE,0) >  (T1.REN_PRICE/1.17)
+				      then 0
+				    else 
+				      (T1.REN_PRICE/1.17) -isnull(T1.REDUCE_OWN_PRICE,0)
+				  end as interest
+				FROM T_RENT_COLLECTIONDETAIL T1
+				LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECP_ID = T1.RECP_ID AND T2.STATUS = 0
+				LEFT JOIN T_RENT_CONTRACT c on c.RECT_ID = T2.RECT_ID and c.STATUS = 0
+				LEFT JOIN T_PRJT_CREDIT p on p.ID = c.PRCD_ID AND T1.STATUS = 0 
+				LEFT JOIN T_PRJT_CREDITSCHEME TPCE ON TPCE.CREDIT_ID = P.ID AND TPCE.STATUS = 0
+				WHERE T1.STATUS = 0
+				and cast(p.FINANCECONTRACT_DATE as date)< =cast(#date# as date )
+				and cast(T1.PAY_DATE as date)> cast(#date# as date )
+				and TPCE.TAX_PLAN_CODE <> 1 and   TPCE.TAX_PLAN_CODE <> 2 and TPCE.TAX_PLAN_CODE <> 5   
+	           
+	            union all
+	                    
+	          	SELECT       
+					YEAR( T1.PAY_DATE) AS y,
+				  month( T1.PAY_DATE) AS m,
+				  case 
+				    when isnull(T1.REDUCE_OWN_PRICE,0) > 0  
+				        then isnull(T1.IRR_MONTH_PRICE,0) + isnull(T1.VALUE_ADDED_TAX,0) - isnull(T1.REDUCE_OWN_PRICE,0)
+				    else 
+				        T1.MONTH_PRICE + isnull(T1.VALUE_ADDED_TAX,0)
+					end as price,
+				  case when isnull(T1.REDUCE_OWN_PRICE,0) > (T1.REN_PRICE)
+				      then 0
+				    else 
+				      (T1.REN_PRICE) -isnull(T1.REDUCE_OWN_PRICE,0)
+				  end as interest
+				FROM T_RENT_COLLECTIONDETAIL T1
+				LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECP_ID = T1.RECP_ID AND T2.STATUS = 0
+				LEFT JOIN T_RENT_CONTRACT c on c.RECT_ID = T2.RECT_ID and c.STATUS = 0
+				LEFT JOIN T_PRJT_CREDIT p on p.ID = c.PRCD_ID AND T1.STATUS = 0 
+				LEFT JOIN T_PRJT_CREDITSCHEME TPCE ON TPCE.CREDIT_ID = P.ID AND TPCE.STATUS = 0
+				WHERE T1.STATUS = 0
+				and cast(p.FINANCECONTRACT_DATE as date)< =cast(#date# as date )
+				and cast(T1.PAY_DATE as date)> cast(#date# as date )
+				and (TPCE.TAX_PLAN_CODE = 1  or TPCE.TAX_PLAN_CODE = 2  )            
+	     	) t 
+			group by t.y,t.m
+			having sum(t.price) >0
+			order by t.y,t.m
+ 		]]>
+	</select>
+	
+	<select id="getContractExceptRentTotal" parameterClass="map" resultClass="java.util.HashMap">
+			<![CDATA[
+			select 	
+	      	convert(money,sum(t.price)) as price,
+	      	convert(money,sum(t.interest)) as interest   
+			from(
+				SELECT       
+					YEAR( T1.PAY_DATE) AS y,
+				  month( T1.PAY_DATE) AS m,
+				  case 
+				    when isnull(T1.REDUCE_OWN_PRICE,0) > 0  
+				        then isnull(T1.IRR_MONTH_PRICE,0) + isnull(T1.VALUE_ADDED_TAX,0) - isnull(T1.REDUCE_OWN_PRICE,0)
+				    else 
+				        T1.MONTH_PRICE  + isnull(T1.VALUE_ADDED_TAX,0)
+					end as price,
+				  case when isnull(T1.REDUCE_OWN_PRICE,0) >  (T1.REN_PRICE/1.17)
+				      then 0
+				    else 
+				      (T1.REN_PRICE/1.17) -isnull(T1.REDUCE_OWN_PRICE,0)
+				  end as interest
+				FROM T_RENT_COLLECTIONDETAIL T1
+				LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECP_ID = T1.RECP_ID AND T2.STATUS = 0
+				LEFT JOIN T_RENT_CONTRACT c on c.RECT_ID = T2.RECT_ID and c.STATUS = 0
+				LEFT JOIN T_PRJT_CREDIT p on p.ID = c.PRCD_ID AND T1.STATUS = 0 
+				LEFT JOIN T_PRJT_CREDITSCHEME TPCE ON TPCE.CREDIT_ID = P.ID AND TPCE.STATUS = 0
+				WHERE T1.STATUS = 0
+				and cast(p.FINANCECONTRACT_DATE as date)< =cast(#date# as date )
+				and cast(T1.PAY_DATE as date)> cast(#date# as date )
+				and TPCE.TAX_PLAN_CODE <> 1 and   TPCE.TAX_PLAN_CODE <> 2 and TPCE.TAX_PLAN_CODE <> 5   
+	              	           
+	       union all
+	                    
+	      	SELECT       
+					YEAR( T1.PAY_DATE) AS y,
+				  month( T1.PAY_DATE) AS m,
+				  case 
+				    when isnull(T1.REDUCE_OWN_PRICE,0) > 0  
+				        then isnull(T1.IRR_MONTH_PRICE,0) + isnull(T1.VALUE_ADDED_TAX,0) - isnull(T1.REDUCE_OWN_PRICE,0)
+				    else 
+				        isnull(T1.MONTH_PRICE,0) + isnull(T1.VALUE_ADDED_TAX,0)
+					end as price,
+				  case when isnull(T1.REDUCE_OWN_PRICE,0) > (T1.REN_PRICE)
+				      then 0
+				    else 
+				      (T1.REN_PRICE) -isnull(T1.REDUCE_OWN_PRICE,0)
+				  end as interest
+				FROM T_RENT_COLLECTIONDETAIL T1
+				LEFT JOIN T_RENT_COLLECTIONPLAN T2 ON T2.RECP_ID = T1.RECP_ID AND T2.STATUS = 0
+				LEFT JOIN T_RENT_CONTRACT c on c.RECT_ID = T2.RECT_ID and c.STATUS = 0
+				LEFT JOIN T_PRJT_CREDIT p on p.ID = c.PRCD_ID AND T1.STATUS = 0 
+				LEFT JOIN T_PRJT_CREDITSCHEME TPCE ON TPCE.CREDIT_ID = P.ID AND TPCE.STATUS = 0
+				WHERE T1.STATUS = 0
+				and cast(p.FINANCECONTRACT_DATE as date)< =cast(#date# as date )
+				and cast(T1.PAY_DATE as date)> cast(#date# as date )
+				and (TPCE.TAX_PLAN_CODE = 1  or TPCE.TAX_PLAN_CODE = 2  )
+        )t     
+	     ) t 
+ 		]]>
+	
+	</select>
+	
+	<select id="getAreaCmpy" resultClass="java.util.HashMap">
+		SELECT DECP_ID,DECP_NAME_CN 
+		  FROM T_DEPT_COMPANY 
+		 WHERE STATUS=0 
+		   AND DECP_ID IN (SELECT DECP_ID 
+		   					 FROM T_DEPT_DEPARTMENT 
+	   					    WHERE STATUS=0 
+	   					      AND ID IN ($areaList$))
+	</select>
+	
+	<select id="getCarContractMoney" resultClass="java.util.HashMap" parameterClass="map">
+		<![CDATA[
+			select 
+			  y,m,convert(money,sum(t.month_price)) as month_price,convert(money,sum(t.own_price)) as own_price
+			from
+			(
+			  select 
+			    case 
+			      when (trcd.pay_date > cast(#date# as date) and isnull(trcd.REDUCE_OWN_PRICE,0) = 0)
+			          then isnull(trcd.month_price,0)
+			      else 
+			          isnull(trcd.irr_month_price,0) - isnull(trcd.REDUCE_OWN_PRICE,0)
+			    end  as MONTH_PRICE,
+			    case 
+			      when ISNULL(trcd.REDUCE_OWN_PRICE,0)>=(ISNULL(trcd.REN_PRICE,0)+ISNULL(trcd.VALUE_ADDED_TAX,0)) 
+			          then ISNULL(trcd.IRR_MONTH_PRICE,0)-ISNULL(trcd.REN_PRICE,0)-(ISNULL(trcd.REDUCE_OWN_PRICE,0)-(ISNULL(trcd.REN_PRICE,0)+ISNULL(trcd.VALUE_ADDED_TAX,0)))
+			      else 
+			          ISNULL(trcd.IRR_MONTH_PRICE,0)-ISNULL(trcd.REN_PRICE,0)
+			    end as OWN_PRICE,
+			    year(trcd.PAY_DATE) y,month(trcd.PAY_DATE) m
+			from T_RENT_COLLECTIONDETAIL trcd 
+			left join T_RENT_COLLECTIONPLAN trcp on trcd.RECP_ID = trcp.RECP_ID  and trcp.STATUS = 0
+			left join t_rent_contract c on c.RECT_ID = trcp.RECT_ID and c.STATUS = 0
+			left join T_PRJT_CREDIT p on p.ID = c.PRCD_ID and p.STATUS = 0
+			left join T_PRJT_CREDITSCHEME tpce on tpce.CREDIT_ID = p.ID and tpce.STATUS = 0
+			where trcd.STATUS = 0 and p.FINANCECONTRACT_DATE < cast(#date# as date)
+			and tpce.tax_plan_code = 5
+			) t
+			where MONTH_PRICE > 0 or OWN_PRICE>0
+			group by t.y,t.m
+			order by t.y asc,t.m asc
+			]]>
+	</select>
+	
+	
+	
+	<select id="getCarContractMoneyTotal" resultClass="java.util.HashMap" parameterClass="map">
+	
+	<![CDATA[     
+		select 
+		  convert(money,sum(t.month_price)) as month_price,convert(money,sum(t.own_price)) as own_price
+		from
+		(
+		  select 
+		    case 
+		      when (trcd.pay_date > cast(#date# as date) and isnull(trcd.REDUCE_OWN_PRICE,0) = 0)
+		          then isnull(trcd.month_price,0)
+		      else 
+		          isnull(trcd.irr_month_price,0) - isnull(trcd.REDUCE_OWN_PRICE,0)
+		    end  as MONTH_PRICE,
+		    case 
+		      when ISNULL(trcd.REDUCE_OWN_PRICE,0)>=(ISNULL(trcd.REN_PRICE,0)+ISNULL(trcd.VALUE_ADDED_TAX,0)) 
+		          then ISNULL(trcd.IRR_MONTH_PRICE,0)-ISNULL(trcd.REN_PRICE,0)-(ISNULL(trcd.REDUCE_OWN_PRICE,0)-(ISNULL(trcd.REN_PRICE,0)+ISNULL(trcd.VALUE_ADDED_TAX,0)))
+		      else 
+		          ISNULL(trcd.IRR_MONTH_PRICE,0)-ISNULL(trcd.REN_PRICE,0)
+		    end as OWN_PRICE,
+		    year(trcd.PAY_DATE) y,month(trcd.PAY_DATE) m
+		from T_RENT_COLLECTIONDETAIL trcd 
+		left join T_RENT_COLLECTIONPLAN trcp on trcd.RECP_ID = trcp.RECP_ID  and trcp.STATUS = 0
+		left join t_rent_contract c on c.RECT_ID = trcp.RECT_ID and c.STATUS = 0
+		left join T_PRJT_CREDIT p on p.ID = c.PRCD_ID and p.STATUS = 0
+		left join T_PRJT_CREDITSCHEME tpce on tpce.CREDIT_ID = p.ID and tpce.STATUS = 0
+		where trcd.STATUS = 0 and p.FINANCECONTRACT_DATE < cast(#date# as date)
+		and tpce.tax_plan_code = 5
+		) t
+	]]>
+	
+	</select>
+	
+	<select id="getDecpIdByDecpName" resultClass="java.util.HashMap" parameterClass="map">
+		      select  decp_id from   T_DEPT_COMPANY  where DECP_NAME_CN=#decpName#
+	</select>
+	
+	<select id="insuranceReportForCar" resultClass="java.util.HashMap" parameterClass="map">
+		select  c.LEASE_CODE,cc.CUST_NAME,t.PERIOD_NUM,convert(nvarchar(20),t.PAY_DATE,111) as pay_date,t.REN_PRICE,DD1.DECP_NAME_CN
+		from T_RENT_COLLECTIONDETAIL  t   
+		left join T_RENT_COLLECTIONPLAN trc on trc.RECP_ID = t.RECP_ID and trc.STATUS =  0   
+		left join T_RENT_CONTRACT c on c.RECT_ID =  trc.RECT_ID and c.STATUS = 0 
+		left join t_prjt_credit p on p.ID = c.PRCD_ID and p.STATUS = 0  
+		left join T_CUST_CUSTOMER cc on cc.CUST_ID = c.CUST_ID
+		LEFT JOIN T_USER_USER u ON p.SENSOR_ID = u.ID        
+		LEFT JOIN T_DEPT_DEPARTMENT DD ON DD.ID=u.DEPT_ID AND DD.STATUS=0       
+		LEFT JOIN T_DEPT_COMPANY DD1 ON DD1.STATUS=0 AND DD1.DECP_ID=DD.DECP_ID  
+		WHERE t.STATUS = 0 
+		AND trc.TAX_PLAN_CODE = 5 
+		and year(t.PAY_DATE) = #year#
+		and month(t.PAY_DATE) = #month#
+		and p.id in ($ids$)
+		<isNotEmpty prepend="and" property="companyCode">
+			p.company_code = #companyCode#
+		</isNotEmpty>
+		<isNotEmpty property="content" prepend="and" >
+		   (c.LEASE_CODE like '%$content$%'
+		    or
+		    cc.CUST_NAME like '%$content$%'
+		    or
+		    DD1.DECP_NAME_CN like '%$content$%'			    
+		    ) 	    
+		</isNotEmpty>
+		<isNotEmpty property="order" >
+		    order by t.PAY_DATE asc
+		</isNotEmpty>
+	</select>
+	
+	<select id="insuranceTotalReportForCar" resultClass="java.lang.Double" parameterClass="map">
+		select sum(t.REN_PRICE) as renPrice
+		from T_RENT_COLLECTIONDETAIL  t   
+		left join T_RENT_COLLECTIONPLAN trc on trc.RECP_ID = t.RECP_ID and trc.STATUS =  0   
+		left join T_RENT_CONTRACT c on c.RECT_ID =  trc.RECT_ID and c.STATUS = 0 
+		left join t_prjt_credit p on p.ID = c.PRCD_ID and p.STATUS = 0  
+		left join T_CUST_CUSTOMER cc on cc.CUST_ID = c.CUST_ID
+		LEFT JOIN T_USER_USER u ON p.SENSOR_ID = u.ID        
+		LEFT JOIN T_DEPT_DEPARTMENT DD ON DD.ID=u.DEPT_ID AND DD.STATUS=0       
+		LEFT JOIN T_DEPT_COMPANY DD1 ON DD1.STATUS=0 AND DD1.DECP_ID=DD.DECP_ID  
+		WHERE t.STATUS = 0 
+		AND trc.TAX_PLAN_CODE = 5 
+		and year(t.PAY_DATE) = #year#
+		and month(t.PAY_DATE) = #month#
+		and p.id in ($ids$)
+		<isNotEmpty prepend="and" property="companyCode">
+			p.company_code = #companyCode#
+		</isNotEmpty>
+		<isNotEmpty property="content" prepend="and" >
+		   (c.LEASE_CODE like '%$content$%'
+		    or
+		    cc.CUST_NAME like '%$content$%'
+		    or
+		    DD1.DECP_NAME_CN like '%$content$%'			    
+		    ) 	    
+		</isNotEmpty>
+	</select>
+
+	
+	<insert id="insertReportForCustPerformance" parameterClass="map">
+		insert into T_REPORT_PERFORMANCE_CUST (
+		   CUST_NAME
+		  ,CUST_ID
+		  ,PRO_COUNT
+		  ,TOTAL_RENT_MONEY
+		  ,LAST_RENT_MONEY
+		  ,CAPITAL_MONEY
+		  ,TOTAL_CAPITAL_MONEY
+		  ,STATUS
+		  ,CREATE_DATE
+		) VALUES (
+		   #custName#
+		  ,#custId#
+		  ,#pro_count#
+		  ,#totalRentMoney#
+		  ,#remainingRentMoney#
+		  ,#remainingPrincipal#
+		  ,#totalPrincipal#
+		  ,0
+		  ,getdate()
+		)
+	</insert>
+	
+	<insert id="insertReportForGuarantorPerformance" parameterClass="map">
+		insert into T_REPORT_PERFORMANCE_GUARANTOR (
+		   GUARANTOR
+		  ,PRO_COUNT
+		  ,TOTAL_RENT_MONEY
+		  ,LAST_RENT_MONEY
+		  ,CAPITAL_MONEY
+		  ,TOTAL_CAPITAL_MONEY
+		  ,STATUS
+		  ,CREATE_DATE
+		) VALUES (
+		   #guarantor#
+		  ,#pro_count#
+		  ,#totalRentMoney#
+		  ,#remainingRentMoney#
+		  ,#remainingPrincipal#
+		  ,#totalPrincipal#
+		  ,0
+		  ,getdate()
+		)
+	</insert>
+	
+	<select id="getAllGuarantor" parameterClass="map" resultClass="com.brick.base.to.SelectionTo">
+		select distinct CUST_NAME as option_value
+		, CUST_NAME as display_name
+		from T_PRJT_CREDITVOUCHNATU
+		where STATUS = 0
+		and CUST_NAME is not null
+		and CUST_NAME != ''
+		union
+		select distinct CORP_NAME_CN, CORP_NAME_CN
+		from T_PRJT_VOUCHCUSTOMERCORP
+		where STATUS = 0
+		and CORP_NAME_CN is not null
+		and CORP_NAME_CN != ''
+	</select>
+	
+	<select id="exportEstimatesPayDateReport" resultClass="java.util.HashMap" parameterClass="map">
+		select pc.CREDIT_RUNCODE
+		, pc.LEASE_CODE
+		, cu.CUST_NAME
+		, dc.DECP_NAME_CN
+		, dd.FLAG as CONTRACT_TYPE
+		, (ps.LEASE_TOPRIC - ps.PLEDGE_ENTER_MCTOAG - ps.PLEDGE_ENTER_AG) as PAY_MONEY
+		, case when exists (
+		    select 0 from T_PRJT_CREDITAPPROPIATE ca
+		    where ca.STATUS = 0
+		  	and ca.[TYPE] = 0
+		    and ca.CREDIT_ID = pc.ID
+		  ) then 'Y' else 'N' end as IS_PAY_BEFORE
+		, ps.ESTIMATES_PAY_DATE_NUM AS REAL_ESTIMATES_PAY_DATE_NUM
+		, ps.ESTIMATES_PAY_DATE AS REAL_ESTIMATES_PAY_DATE
+		, ps.ESTIMATES_PAY_DATE_REASON AS REAL_ESTIMATES_PAY_DATE_REASON
+		, sl.ESTIMATES_PAY_DATE_NUM
+		, sl.ESTIMATES_PAY_DATE
+		, sl.ESTIMATES_PAY_DATE_REASON
+		, sl.CREATE_TIME
+		, su.[NAME]
+		, risk.FINISH_TIME
+		, pc.COMPANY_CODE
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_CREDITSC_LOG sl on sl.CREDIT_ID = pc.ID
+		and sl.STATUS = 0
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		left join T_CUST_CUSTOMER cu on pc.CUST_ID = cu.CUST_ID
+		left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY dc on dp.DECP_ID = dc.DECP_ID
+		left join T_DATA_DICTIONARY dd on dd.code = pc.CONTRACT_TYPE
+		and dd.[TYPE] = '融资租赁合同类型'
+		left join T_USER_USER su on sl.CREATE_BY = su.ID
+		left join (
+		  select rc.CREDIT_ID
+		  , max(rc.FINISH_TIME) as FINISH_TIME
+		  from T_PRJT_RISK_CONTROL rc
+		  where rc.STATUS = 0
+		  and rc.STATE = 1
+		  group by rc.CREDIT_ID
+		) risk on risk.CREDIT_ID = pc.ID
+		where pc.STATUS = 0
+		and pc.FINANCECONTRACT_DATE is null
+		and risk.FINISH_TIME is not null
+		<isNotEmpty property="dateFrom">
+			and convert(date, ps.ESTIMATES_PAY_DATE) >= convert(date, #dateFrom#)
+		</isNotEmpty>
+		<isNotEmpty property="dateTo">
+			<![CDATA[ and convert(date, ps.ESTIMATES_PAY_DATE) <= convert(date, #dateTo#) ]]>
+		</isNotEmpty>
+		order by ps.ESTIMATES_PAY_DATE
+	</select>
+	
+	
+	<select id="getServiceChargeReportForCar" resultClass="java.util.HashMap" parameterClass="map">
+		select c.lease_code,tcc.cust_name,isnull(t.INCOME_PAY,0) as INCOME_PAY,isnull(t.INCOME_PAY_TYPE,1) INCOME_PAY_TYPE,DD1.DECP_NAME_CN
+		from T_PRJT_CREDITSCHEME t
+		left join T_PRJT_CREDIT p on p.id=t.CREDIT_ID and p.STATUS = 0
+		left join T_RENT_CONTRACT c on c.PRCD_ID = p.ID and c.STATUS = 0
+		left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = p.CUST_ID and tcc.STATUS = 0
+		LEFT JOIN T_USER_USER u ON p.SENSOR_ID = u.ID        
+		LEFT JOIN T_DEPT_DEPARTMENT DD ON DD.ID=u.DEPT_ID AND DD.STATUS=0       
+		LEFT JOIN T_DEPT_COMPANY DD1 ON DD1.STATUS=0 AND DD1.DECP_ID=DD.DECP_ID 
+		where  t.TAX_PLAN_CODE = 5
+		and p.FINANCECONTRACT_DATE is not null
+		<isNotEmpty prepend="and" property="companyCode">
+		p.company_code = #companyCode#
+		</isNotEmpty>
+		<![CDATA[    
+		and cast(p.FINANCECONTRACT_DATE as date) >= #beginTime#
+		and cast(p.FINANCECONTRACT_DATE as date)<= #endTime#
+		]]>
+		
+		<isNotEmpty property="content" prepend="and" >
+		   (c.LEASE_CODE like '%$content$%'
+		    or
+		    tcc.CUST_NAME like '%$content$%'
+		    or
+		    DD1.DECP_NAME_CN like '%$content$%'			    
+		    ) 	    
+		</isNotEmpty>
+		order by p.FINANCECONTRACT_DATE asc
+	</select>
+	
+	<select id="getServiceChargeTotalReportForCar" resultClass="java.lang.Double" parameterClass="map">	    
+	    select sum(isnull(t.INCOME_PAY,0))
+		from T_PRJT_CREDITSCHEME t
+		left join T_PRJT_CREDIT p on p.id=t.CREDIT_ID and p.STATUS = 0
+		left join T_RENT_CONTRACT c on c.PRCD_ID = p.ID and c.STATUS = 0
+		left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = p.CUST_ID and tcc.STATUS = 0
+		LEFT JOIN T_USER_USER u ON p.SENSOR_ID = u.ID        
+		LEFT JOIN T_DEPT_DEPARTMENT DD ON DD.ID=u.DEPT_ID AND DD.STATUS=0       
+		LEFT JOIN T_DEPT_COMPANY DD1 ON DD1.STATUS=0 AND DD1.DECP_ID=DD.DECP_ID 
+		where  t.TAX_PLAN_CODE = 5
+		and p.FINANCECONTRACT_DATE is not null
+		<isNotEmpty prepend="and" property="companyCode">
+		p.company_code = #companyCode#
+		</isNotEmpty>
+		<![CDATA[    
+		and cast(p.FINANCECONTRACT_DATE as date) >= #beginTime#
+		and cast(p.FINANCECONTRACT_DATE as date)<= #endTime#
+		]]>
+		<isNotEmpty property="content" prepend="and" >
+		   (c.LEASE_CODE like '%$content$%'
+		    or
+		    tcc.CUST_NAME like '%$content$%'
+		    or
+		    DD1.DECP_NAME_CN like '%$content$%'			    
+		    ) 	    
+		</isNotEmpty>	    
+	</select>
+	
+	<select id="getCheckApply" resultClass="java.util.HashMap" parameterClass="map">
+		SELECT 
+	  		d.cust_name,d.NATU_IDCARD,d.DECOMPOSE_PRICE
+		FROM (
+		  select t.recp_id,sum(-t.DECOMPOSE_PRICE) DECOMPOSE_PRICE,tcc.CUST_NAME,tcc.NATU_IDCARD
+		  from T_RENT_DECOMPOSE t  
+		  left join T_RENT_COLLECTIONPLAN p on p.RECP_ID = t.RECP_ID and p.STATUS = 0
+		  left join T_RENT_CONTRACT c on c.RECT_ID = p.RECT_ID and c.STATUS = 0
+		  left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = c.CUST_ID and tcc.STATUS = 0
+		  left join t_prjt_creditscheme pcs on pcs.credit_id = c.prcd_id and pcs.status =0
+		  LEFT join t_prjt_credit tpc on tpc.id  = pcs.credit_id and tpc.status =0
+		  where t.status = 0 and t.DECOMPOSE_TYPE = 0 
+		  and t.DECOMPOSE_STATUS = 2 and t.IS_SETTLEMENT_DECOMPOSE = 0 and t.HAS_RED_DECOMPOSE =0
+		  and t.BIll_code = 'BANK_FEE_INCOME' and pcs.tax_plan_code = 5
+		 and INCOME_PAY_TYPE = 2
+		  <![CDATA[    
+		  	and cast(t.AUDIT_TIME as date) >=#beginTime#
+		   	and cast(t.AUDIT_TIME as date) <=#endTime#
+		  ]]>
+		  <!-- 判断资料是否回传 -->
+		  and c.prcd_id in (
+		    select  
+		      a.PRCD_ID
+		    FROM (
+		    	select 
+			        t.PRCD_ID,
+			        max( case when t.fileType = 'idcard' then 1 else 0 end) as idcardCount,
+			        max( case when t.fileType = 'contract' then 1 else 0 end) as contractCount,
+			        max( case when t.fileType = 'serviceBook' then 1 else 0 end) as serviceBook
+		   	 	from(
+			      select distinct r.PRCD_ID,
+			      case 
+			        when (f.[FILE_NAME] = '车主身份证复印件' or f.[FILE_NAME] = '营业执照、营业执照副本(含年审章)'  or f.[FILE_NAME] = '客户照片')
+			          then 'idcard'
+			        when f.[FILE_NAME] = '个人委托贷款借款合同'  
+			          then 'contract'
+			        when f.[FILE_NAME] ='财务规划服务协议书'
+			          then 'serviceBook'
+			        end as fileType
+			      from t_rent_fileup r 
+			      left join T_RENT_FILE f on f.REFI_ID = r.REFI_ID 
+			      left join T_PRJT_CREDIT p on r.PRCD_ID = p.ID and r.status =0
+			      left join t_prjt_creditscheme pcs on pcs.credit_id = p.id and pcs.status=0
+			      where (f.[FILE_NAME] = '车主身份证复印件' or f.[FILE_NAME] = '个人委托贷款借款合同'  
+			      or f.[FILE_NAME] = '客户照片' or f.[FILE_NAME] = '营业执照、营业执照副本(含年审章)'
+			      or f.[FILE_NAME] = '财务规划服务协议书'
+			      ) and pcs.tax_plan_code = 5 and r.status=0	
+			  	  <isNotEmpty prepend="and" property="companyCode">
+						p.company_code = #companyCode#
+				  </isNotEmpty>
+		    	) t
+		    	group by t.PRCD_ID
+		    ) a where a.idcardCount>0 and a.contractCount>0 and a.serviceBook >0
+		  )
+		  GROUP BY t.recp_id,tcc.CUST_NAME,tcc.NATU_IDCARD
+		) d
+	</select>
+	
+	<select id="doCustIDCardStatistics" parameterClass="map" resultClass="hashMap">
+		select t.uId , t.dcId
+		, max(t.dcName) as dcName
+		, max(t.uName) as uName
+		, count(0) as c
+		from (
+		select pc.ID
+		, max(u.ID) as uId
+		, max(u.[NAME]) as uName
+		, max(dc.DECP_ID) as dcId
+		, max(dc.DECP_NAME_CN) as dcName
+		from T_PRJT_CREDIT pc 
+		left join t_rent_filedetail rf on rf.PRCD_ID = pc.ID
+		left join T_RENT_CONTRACT rc on rc.PRCD_ID = pc.ID
+		left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+		left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY dc on dp.DECP_ID = dc.DECP_ID
+		where pc.STATUS = 0 and cp.CREATE_TIME is not null
+		and cp.STATUS = 0
+		<isEqual property="type" compareValue="1">
+			and rf.FILE_MEMO like '%乘用车身份证上传不正确%'
+			and rf.STATUS = 0
+		</isEqual>
+		<![CDATA[
+			and cp.CREATE_TIME >= #start_date#
+			and cp.CREATE_TIME <= #end_date#
+		]]>
+		group by pc.ID
+		) t
+		group by t.uId, t.dcId
+		order by t.dcId,t.uId
+	</select>
+	
+	
+	
+	
+	
+	
+	
+	
+	
+</sqlMap>

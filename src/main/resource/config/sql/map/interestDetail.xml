@@ -1,0 +1,760 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="interestDetail">
+	<select id="queryDetail" parameterClass="map" resultClass="hashmap">
+
+<!-- Modify by Michael 2012 1/13 修改利息计算逻辑 -->	
+	<![CDATA[
+		select RECP_ID,RECP_CODE,CUST_NAME,LEASE_CODE,DECP_NAME_CN,NAME,SUPL_NAME,sum(cai) cai,sum(shui) shui,CONVERT(VARCHAR,max(Y)) + '-' + CONVERT(VARCHAR,max(M)) TIME from (
+select RECP_ID,RECP_CODE,CUST_NAME,LEASE_CODE,DECP_NAME_CN,NAME,SUPL_NAME,Y,M,0 CAI,REN_PRICE SHUI
+from(
+select RECP_ID,RECP_CODE,CUST_NAME,LEASE_CODE,DECP_NAME_CN,NAME,SUPL_NAME,YEAR(QI_DATE) Y,MONTH(QI_DATE) M,
+	0 CAI,SUM(ttt.RENT_PRICE) REN_PRICE,MAX(QI_DATE) QI_DATE
+	from
+		(select trid.RECP_ID,trcp.RECP_CODE,tcc.CUST_NAME,trc.LEASE_CODE,
+		DECP.DECP_NAME_CN,tuser.NAME,T9.NAME SUPL_NAME,
+		0 CAI,trid.RENT_PRICE,
+		dateadd(month,-1,trid.create_time) QI_DATE
+  from T_RENT_INVOICEDETAIL  trid 
+		left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trid.RECP_ID AND trcp.STATUS = 0 
+		left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID AND trc.STATUS = 0
+		left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = trc.CUST_ID AND tcc.STATUS = 0		
+		LEFT JOIN T_USER_USER tuser on tuser.ID = trc.SENSOR_ID
+	    left join T_DEPT_DEPARTMENT dept on dept.ID = tuser.DEPT_ID and dept.STATUS = 0
+		LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID = dept.DECP_ID and DECP.STATUS = 0
+		LEFT JOIN (SELECT RECP_ID,MAX(EQMT_ID) EQMT_ID FROM T_RENT_CONTRACTDETAIL WHERE STATUS = 0 GROUP BY RECP_ID) T6 ON T6.RECP_ID = trcp.RECP_ID
+		LEFT JOIN T_EQMT_EQUIPMENT T7 ON T7.EQMT_ID = T6.EQMT_ID AND T7.STATUS = 0
+		LEFT JOIN T_SUPL_EQUIPMENT T8 ON T7.SUEQ_ID = T8.SUEQ_ID AND T8.STATUS = 0
+		LEFT JOIN T_SUPL_SUPPLIER T9 ON T9.ID = T8.SUPPLIER_ID AND T9.STATUS = 0
+		LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = trc.PRCD_ID AND T10.STATUS = 0
+		WHERE	
+			trid.state = '2' 
+			and YEAR(trid.create_time)=CASE WHEN #month#=12 THEN CONVERT(INT,#year#)+1 ELSE #year# END
+			and MONTH(trid.create_time)=CASE WHEN #month#=12 THEN 1 ELSE #month# END
+						) ttt	
+   group by ttt.RECP_ID,ttt.recp_code,ttt.CUST_NAME,ttt.LEASE_CODE,
+		ttt.DECP_NAME_CN,ttt.NAME,	
+		YEAR(ttt.QI_DATE),
+		MONTH(ttt.QI_DATE),ttt.SUPL_NAME
+) t2
+where REN_PRICE>0
+union all
+select t2.* 
+from 
+(	select   y.RECP_ID,y.RECP_CODE,y.CUST_NAME,y.LEASE_CODE,y.DECP_NAME_CN,y.NAME,y.SUPL_NAME,y.Y,y.M  ,
+	case 
+	when RECP_STATUS =3 and 
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = y.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+		= CONVERT(VARCHAR(7),convert(date,convert(varchar,y.Y)+'-'+convert(varchar,y.M)+'-01'),23) then 
+	
+		(SELECT convert(decimal(18,2),SUM(REAL_REN_PRICE)-sum(isnull(ADVANCE_INVOICE_PRICE,0))) REAL_REN_PRICE
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = y.RECP_ID
+		GROUP BY trst.RECP_ID
+		)+(
+select SUM(convert(decimal(18,2),REN_PRICE)) from t_rent_collectiondetail
+where STATUS=0 and CONVERT(VARCHAR(7),finance_date,23)<CONVERT(VARCHAR(7),convert(date,convert(varchar,y.Y)+'-'+convert(varchar,y.M)+'-01'),23)
+and RECP_ID=y.recp_id)-(select SUM(CAI) cai from (
+	select   YYY.RECP_ID,YYY.RECP_CODE,YYY.LEASE_CODE,YYY.Y,YYY.M  ,
+	convert(decimal(18,2),
+	SUM(YYY.SHUI)) CAI	
+	from (  
+select    RECP_ID,LEASE_CODE,PERIOD_NUM+1 PERIOD_NUM,     
+	REN_PRICE,RECP_CODE,        QI_DATE,FIRST_PAYDATE,   
+ year(QI_DATE)  Y,
+ MONTH(QI_DATE)  M,  
+	case when day(FIRST_PAYDATE)=1 then
+		0
+	else
+		convert(decimal(18,2),(convert(decimal(18,2),REN_PRICE) / 30 * (30-tian)))
+	end
+	SHUI,    
+	0 a, RECP_STATUS 
+	from (SELECT       *,      DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 tian,      
+	0 FAPIAO_PRICE     FROM      (
+	select  RECP_ID,LEASE_CODE,RECP_STATUS,
+  PERIOD_NUM,
+  (
+	 CASE 
+	WHEN RECP_STATUS = 3  AND 
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = t.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+			< CONVERT(VARCHAR(7),QI_DATE,23)
+	THEN 0	
+	when RECP_STATUS = 3  AND
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = t.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+			> CONVERT(VARCHAR(7),QI_DATE,23)			
+	then REN_PRICE
+	when RECP_STATUS = 3  AND
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = t.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+		= CONVERT(VARCHAR(7),QI_DATE,23)		
+	then (SELECT convert(decimal(18,2),SUM(REAL_REN_PRICE)-sum(isnull(ADVANCE_INVOICE_PRICE,0))) REAL_REN_PRICE
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = t.RECP_ID
+		GROUP BY trst.RECP_ID
+		)	
+	else
+	REN_PRICE
+	end 
+	 ) REN_PRICE,RECP_CODE,QI_DATE,FIRST_PAYDATE from (        
+	select TRCP.RECP_ID,trc.LEASE_CODE,trcd.PERIOD_NUM,
+	 REN_PRICE,
+	RECP_CODE,        
+    case when convert(date,convert(varchar,(year(trcd.finance_date)))+'-'+convert(varchar,(MONTH(trcd.finance_date)))+'-01')<=dateadd(m, -1,convert(date,convert(varchar,(year(FINANCECONTRACT_DATE)))+'-'+convert(varchar,(MONTH(FINANCECONTRACT_DATE)))+'-01') )
+  then 
+  FINANCECONTRACT_DATE 
+  else
+  dateadd(m,trcd.PERIOD_NUM ,trcp.first_paydate )
+  end QI_DATE,
+  trcp.first_paydate FIRST_PAYDATE ,trcp.RECP_STATUS  
+	from T_RENT_COLLECTIONDETAIL trcd        
+	left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0        
+	left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID AND trc.STATUS = 0        
+     LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = trc.PRCD_ID AND T10.STATUS = 0   
+	WHERE         trcd.STATUS = 0  and trcd.isopen=1     
+	) t    
+	) tt
+	)ttt  
+	union   
+  select    tt.RECP_ID,tt.LEASE_CODE,tt.PERIOD_NUM,     
+	tt.REN_PRICE,tt.RECP_CODE,        tt.QI_DATE,tt.FIRST_PAYDATE,    year(QI_DATE) Y,    MONTH(QI_DATE) M,    
+	case when day(tt.FIRST_PAYDATE)=1 then
+		REN_PRICE
+	else
+		case     when tian=31 then    convert(decimal(18,2),(convert(decimal(18,2),REN_PRICE) / 30 * 30))    else  convert(decimal(18,2),(convert(decimal(18,2),REN_PRICE) / 30 * tian))  end 
+	end 	
+	SHUI,    
+	1 a, RECP_STATUS   from (SELECT   *, DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 tian,      
+	0 FAPIAO_PRICE    
+	FROM      (        
+	select TRCP.RECP_ID,trc.LEASE_CODE,
+  trcd.PERIOD_NUM,
+      
+	 (
+	 CASE 
+	WHEN RECP_STATUS = 3  AND 
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = trcd.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+			< CONVERT(VARCHAR(7),finance_date,23)
+	THEN 0	
+	when RECP_STATUS = 3  AND
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = trcd.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+			> CONVERT(VARCHAR(7),finance_date,23)			
+	then REN_PRICE
+	when RECP_STATUS = 3  AND
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = trcd.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+		= CONVERT(VARCHAR(7),finance_date,23)		
+	then (SELECT convert(decimal(18,2),SUM(REAL_REN_PRICE)-sum(isnull(ADVANCE_INVOICE_PRICE,0))) REAL_REN_PRICE
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = trcd.RECP_ID
+		GROUP BY trst.RECP_ID
+		)	
+	else
+	REN_PRICE
+	end 
+	 ) REN_PRICE,
+	RECP_CODE,        
+  case when convert(date,convert(varchar,(year(trcd.finance_date)))+'-'+convert(varchar,(MONTH(trcd.finance_date)))+'-01')<convert(date,convert(varchar,(year(FINANCECONTRACT_DATE)))+'-'+convert(varchar,(MONTH(FINANCECONTRACT_DATE)))+'-01') 
+  then 
+  FINANCECONTRACT_DATE 
+  else
+  dateadd(m,trcd.PERIOD_NUM -1,trcp.first_paydate )
+  end QI_DATE,
+  trcp.first_paydate FIRST_PAYDATE,trcp.RECP_STATUS      
+	from T_RENT_COLLECTIONDETAIL trcd        
+  left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0         
+	left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID AND trc.STATUS = 0           
+	LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = trc.PRCD_ID AND T10.STATUS = 0       
+	WHERE         trcd.STATUS = 0  and trcd.isopen=1  
+	) t    
+	) tt   
+	) YYY    
+  where 
+  YYY.RECP_ID=y.RECP_ID
+  and CONVERT(VARCHAR(7),convert(date,convert(varchar,YYY.Y)+'-'+convert(varchar,YYY.M)+'-01'),23)< CONVERT(VARCHAR,#year#)+'-'+CONVERT(VARCHAR,#month#)
+  group by YYY.RECP_ID,YYY.RECP_CODE,YYY.LEASE_CODE,YYY.Y,YYY.M,YYY.RECP_STATUS    
+) t_cai
+group by RECP_ID)
+
+when (Y.Y =YEAR(convert(DATE,convert(varchar,dateadd(Month,Y.LEASE_PERIOD,Y.FIRST_PAYDATE), 23))) and Y.M =Month(convert(DATE,convert(varchar,dateadd(Month,Y.LEASE_PERIOD,Y.FIRST_PAYDATE), 23)))) then
+(select SUM(convert(decimal(18,2),REN_PRICE)) from t_rent_collectiondetail
+where STATUS=0
+and RECP_ID=y.recp_id)-(select SUM(CAI) cai from (
+	select   YYY.RECP_ID,YYY.RECP_CODE,YYY.LEASE_CODE,YYY.Y,YYY.M  ,
+	convert(decimal(18,2),
+	SUM(YYY.SHUI)) CAI	
+	from (  
+select    RECP_ID,LEASE_CODE,PERIOD_NUM+1 PERIOD_NUM,     
+	REN_PRICE,RECP_CODE,        QI_DATE,FIRST_PAYDATE,   
+ year(QI_DATE)  Y,
+ MONTH(QI_DATE)  M,  
+	case when day(FIRST_PAYDATE)=1 then
+		0
+	else
+		convert(decimal(18,2),(convert(decimal(18,2),REN_PRICE) / 30 * (30-tian)))
+	end
+	SHUI,    
+	0 a, RECP_STATUS 
+	from (SELECT       *,      DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 tian,      
+	0 FAPIAO_PRICE     FROM      (
+	select  RECP_ID,LEASE_CODE,RECP_STATUS,
+  PERIOD_NUM,
+  (
+	 CASE 
+	WHEN RECP_STATUS = 3  AND 
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = t.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+			< CONVERT(VARCHAR(7),QI_DATE,23)
+	THEN 0	
+	when RECP_STATUS = 3  AND
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = t.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+			> CONVERT(VARCHAR(7),QI_DATE,23)			
+	then REN_PRICE
+	when RECP_STATUS = 3  AND
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = t.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+		= CONVERT(VARCHAR(7),QI_DATE,23)		
+	then (SELECT convert(decimal(18,2),SUM(REAL_REN_PRICE)-sum(isnull(ADVANCE_INVOICE_PRICE,0))) REAL_REN_PRICE
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = t.RECP_ID
+		GROUP BY trst.RECP_ID
+		)	
+	else
+	REN_PRICE
+	end 
+	 ) REN_PRICE,RECP_CODE,QI_DATE,FIRST_PAYDATE from (        
+	select TRCP.RECP_ID,trc.LEASE_CODE,trcd.PERIOD_NUM,
+	 REN_PRICE,
+	RECP_CODE,        
+    case when convert(date,convert(varchar,(year(trcd.finance_date)))+'-'+convert(varchar,(MONTH(trcd.finance_date)))+'-01')<=dateadd(m, -1,convert(date,convert(varchar,(year(FINANCECONTRACT_DATE)))+'-'+convert(varchar,(MONTH(FINANCECONTRACT_DATE)))+'-01') )
+  then 
+  FINANCECONTRACT_DATE 
+  else
+  dateadd(m,trcd.PERIOD_NUM ,trcp.first_paydate )
+  end QI_DATE,
+  trcp.first_paydate FIRST_PAYDATE ,trcp.RECP_STATUS  
+	from T_RENT_COLLECTIONDETAIL trcd        
+	left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0        
+	left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID AND trc.STATUS = 0        
+     LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = trc.PRCD_ID AND T10.STATUS = 0   
+	WHERE         trcd.STATUS = 0  and trcd.isopen=1     
+	) t    
+	) tt
+	)ttt  
+	union   
+  select    tt.RECP_ID,tt.LEASE_CODE,tt.PERIOD_NUM,     
+	tt.REN_PRICE,tt.RECP_CODE,        tt.QI_DATE,tt.FIRST_PAYDATE,    year(QI_DATE) Y,    MONTH(QI_DATE) M,    
+	case when day(tt.FIRST_PAYDATE)=1 then
+		REN_PRICE
+	else
+		case     when tian=31 then    convert(decimal(18,2),(convert(decimal(18,2),REN_PRICE) / 30 * 30))    else  convert(decimal(18,2),(convert(decimal(18,2),REN_PRICE) / 30 * tian))  end 
+	end 	
+	SHUI,    
+	1 a, RECP_STATUS   from (SELECT   *, DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 tian,      
+	0 FAPIAO_PRICE    
+	FROM      (        
+	select TRCP.RECP_ID,trc.LEASE_CODE,
+  trcd.PERIOD_NUM,      
+	 (
+	 CASE 
+	WHEN RECP_STATUS = 3  AND 
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = trcd.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+			< CONVERT(VARCHAR(7),finance_date,23)
+	THEN 0	
+	when RECP_STATUS = 3  AND
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = trcd.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+			> CONVERT(VARCHAR(7),finance_date,23)			
+	then REN_PRICE
+	when RECP_STATUS = 3  AND
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = trcd.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+		= CONVERT(VARCHAR(7),finance_date,23)		
+	then (SELECT convert(decimal(18,2),SUM(REAL_REN_PRICE)-sum(isnull(ADVANCE_INVOICE_PRICE,0))) REAL_REN_PRICE
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = trcd.RECP_ID
+		GROUP BY trst.RECP_ID
+		)	
+	else
+	REN_PRICE
+	end 
+	 ) REN_PRICE,
+	RECP_CODE,        
+  case when convert(date,convert(varchar,(year(trcd.finance_date)))+'-'+convert(varchar,(MONTH(trcd.finance_date)))+'-01')<convert(date,convert(varchar,(year(FINANCECONTRACT_DATE)))+'-'+convert(varchar,(MONTH(FINANCECONTRACT_DATE)))+'-01') 
+  then 
+  FINANCECONTRACT_DATE 
+  else
+  dateadd(m,trcd.PERIOD_NUM -1,trcp.first_paydate )
+  end QI_DATE,
+  trcp.first_paydate FIRST_PAYDATE,trcp.RECP_STATUS      
+	from T_RENT_COLLECTIONDETAIL trcd        
+  left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0         
+	left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID AND trc.STATUS = 0           
+	LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = trc.PRCD_ID AND T10.STATUS = 0       
+	WHERE         trcd.STATUS = 0  and trcd.isopen=1  
+	) t    
+	) tt   
+	) YYY    
+  where 
+  YYY.RECP_ID=y.RECP_ID
+  and CONVERT(VARCHAR(7),convert(date,convert(varchar,YYY.Y)+'-'+convert(varchar,YYY.M)+'-01'),23)< CONVERT(VARCHAR,#year#)+'-'+CONVERT(VARCHAR,#month#)
+  group by YYY.RECP_ID,YYY.RECP_CODE,YYY.LEASE_CODE,YYY.Y,YYY.M,YYY.RECP_STATUS    
+) t_cai
+group by RECP_ID)
+	else	
+	convert(decimal(18,2),SUM(y.SHUI)) 
+	end CAI,
+	
+	0 SHUI 
+	from (  
+select    RECP_ID,CUST_NAME,LEASE_CODE,DECP_NAME_CN,NAME,PERIOD_NUM+1 PERIOD_NUM,LEASE_PERIOD,SUPL_NAME,        
+	REN_PRICE,RECP_CODE,        QI_DATE,FIRST_PAYDATE,   
+ year(QI_DATE)  Y,
+ MONTH(QI_DATE)  M,  
+	case when day(FIRST_PAYDATE)=1 then
+		0
+	else
+		convert(decimal(18,2),(convert(decimal(18,2),REN_PRICE) / 30 * (30-tian)))
+	end
+	SHUI,    
+	0 a, RECP_STATUS 
+	from (SELECT       *,      DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 tian,      
+	0 FAPIAO_PRICE     FROM      (
+	select  RECP_ID,CUST_NAME,LEASE_CODE,DECP_NAME_CN,NAME,RECP_STATUS,LEASE_PERIOD,
+  PERIOD_NUM,
+  SUPL_NAME, (
+	 CASE 
+	WHEN RECP_STATUS = 3  AND 
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = t.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+			< CONVERT(VARCHAR(7),QI_DATE,23)
+	THEN 0	
+	when RECP_STATUS = 3  AND
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = t.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+			> CONVERT(VARCHAR(7),QI_DATE,23)			
+	then REN_PRICE
+	when RECP_STATUS = 3  AND
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = t.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+		= CONVERT(VARCHAR(7),QI_DATE,23)		
+	then (SELECT convert(decimal(18,2),SUM(REAL_REN_PRICE)-sum(isnull(ADVANCE_INVOICE_PRICE,0))) REAL_REN_PRICE
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = t.RECP_ID
+		GROUP BY trst.RECP_ID
+		)	
+	else
+	REN_PRICE
+	end 
+	 ) REN_PRICE,RECP_CODE,QI_DATE,FIRST_PAYDATE from (        
+	select TRCP.RECP_ID,tcc.CUST_NAME,trc.LEASE_CODE,DECP.DECP_NAME_CN,tuser.NAME,trcd.PERIOD_NUM,T9.NAME SUPL_NAME,
+	 REN_PRICE,
+	RECP_CODE,        
+    case when convert(date,convert(varchar,(year(trcd.finance_date)))+'-'+convert(varchar,(MONTH(trcd.finance_date)))+'-01')<=dateadd(m, -1,convert(date,convert(varchar,(year(FINANCECONTRACT_DATE)))+'-'+convert(varchar,(MONTH(FINANCECONTRACT_DATE)))+'-01') )
+  then 
+  FINANCECONTRACT_DATE 
+  else
+  dateadd(m,trcd.PERIOD_NUM ,trcp.first_paydate )
+  end QI_DATE,
+  trcp.first_paydate FIRST_PAYDATE ,trcp.RECP_STATUS,trcp.LEASE_PERIOD  
+	from T_RENT_COLLECTIONDETAIL trcd        
+	left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0       
+	left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID AND trc.STATUS = 0        
+	left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = trc.CUST_ID AND tcc.STATUS = 0        
+	LEFT JOIN T_USER_USER tuser on tuser.ID = trc.SENSOR_ID
+    left join T_DEPT_DEPARTMENT dept on dept.ID = tuser.DEPT_ID and dept.STATUS = 0
+	LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID = dept.DECP_ID and DECP.STATUS = 0        
+	LEFT JOIN (SELECT RECP_ID,MAX(EQMT_ID) EQMT_ID FROM T_RENT_CONTRACTDETAIL WHERE STATUS = 0 GROUP BY RECP_ID) T6 ON T6.RECP_ID = trcp.RECP_ID        
+	LEFT JOIN T_EQMT_EQUIPMENT T7 ON T7.EQMT_ID = T6.EQMT_ID AND T7.STATUS = 0        
+	LEFT JOIN T_SUPL_EQUIPMENT T8 ON T7.SUEQ_ID = T8.SUEQ_ID AND T8.STATUS = 0        
+	LEFT JOIN T_SUPL_SUPPLIER T9 ON T9.ID = T8.SUPPLIER_ID AND T9.STATUS = 0        
+	LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = trc.PRCD_ID AND T10.STATUS = 0       
+	WHERE         trcd.STATUS = 0   and trcd.isopen=1      
+	) t    
+	) tt
+	)ttt  
+	union   
+  select    tt.RECP_ID,tt.CUST_NAME,tt.LEASE_CODE,tt.DECP_NAME_CN,tt.NAME,tt.PERIOD_NUM,tt.LEASE_PERIOD,tt.SUPL_NAME,        
+	tt.REN_PRICE,tt.RECP_CODE,        tt.QI_DATE,tt.FIRST_PAYDATE,    year(QI_DATE) Y,    MONTH(QI_DATE) M,    
+	case when day(tt.FIRST_PAYDATE)=1 then
+		REN_PRICE
+	else
+		case     when tian=31 then    convert(decimal(18,2),(convert(decimal(18,2),REN_PRICE) / 30 * 30))    else  convert(decimal(18,2),(convert(decimal(18,2),REN_PRICE) / 30 * tian))  end 
+	end 	
+	SHUI,    
+	1 a, RECP_STATUS   from (SELECT   *, DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 tian,      
+	0 FAPIAO_PRICE    
+	FROM      (        
+	select TRCP.RECP_ID,tcc.CUST_NAME,trc.LEASE_CODE,DECP.DECP_NAME_CN,tuser.NAME,
+  trcd.PERIOD_NUM,
+  T9.NAME SUPL_NAME,        
+	 (
+	 CASE 
+	WHEN RECP_STATUS = 3  AND 
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = trcd.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+			< CONVERT(VARCHAR(7),finance_date,23)
+	THEN 0	
+	when RECP_STATUS = 3  AND
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = trcd.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+			> CONVERT(VARCHAR(7),finance_date,23)			
+	then REN_PRICE
+	when RECP_STATUS = 3  AND
+		(SELECT CONVERT(VARCHAR(7),MAX(CREATE_DATE),23)
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = trcd.RECP_ID
+		GROUP BY trst.RECP_ID
+		) 
+		= CONVERT(VARCHAR(7),finance_date,23)		
+	then (SELECT convert(decimal(18,2),SUM(REAL_REN_PRICE)-sum(isnull(ADVANCE_INVOICE_PRICE,0))) REAL_REN_PRICE
+		FROM T_RENT_SETTLE trst
+		WHERE STATUS=0 
+			AND RECP_ID = trcd.RECP_ID
+		GROUP BY trst.RECP_ID
+		)	
+	else
+	REN_PRICE
+	end 
+	 ) REN_PRICE,
+	RECP_CODE,        
+  case when convert(date,convert(varchar,(year(trcd.finance_date)))+'-'+convert(varchar,(MONTH(trcd.finance_date)))+'-01')<convert(date,convert(varchar,(year(FINANCECONTRACT_DATE)))+'-'+convert(varchar,(MONTH(FINANCECONTRACT_DATE)))+'-01') 
+  then 
+  FINANCECONTRACT_DATE 
+  else
+  dateadd(m,trcd.PERIOD_NUM -1,trcp.first_paydate )
+  end QI_DATE,
+  trcp.first_paydate FIRST_PAYDATE,trcp.RECP_STATUS,trcp.LEASE_PERIOD      
+	from T_RENT_COLLECTIONDETAIL trcd        
+  left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0       
+	left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID AND trc.STATUS = 0        
+	left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = trc.CUST_ID AND tcc.STATUS = 0        
+	LEFT JOIN T_USER_USER tuser on tuser.ID = trc.SENSOR_ID  
+    left join T_DEPT_DEPARTMENT dept on dept.ID = tuser.DEPT_ID and dept.STATUS = 0
+	LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID = dept.DECP_ID and DECP.STATUS = 0      
+	LEFT JOIN (SELECT RECP_ID,MAX(EQMT_ID) EQMT_ID FROM T_RENT_CONTRACTDETAIL WHERE STATUS = 0 GROUP BY RECP_ID) T6 ON T6.RECP_ID = trcp.RECP_ID        
+	LEFT JOIN T_EQMT_EQUIPMENT T7 ON T7.EQMT_ID = T6.EQMT_ID AND T7.STATUS = 0        
+	LEFT JOIN T_SUPL_EQUIPMENT T8 ON T7.SUEQ_ID = T8.SUEQ_ID AND T8.STATUS = 0        
+	LEFT JOIN T_SUPL_SUPPLIER T9 ON T9.ID = T8.SUPPLIER_ID AND T9.STATUS = 0        
+	LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = trc.PRCD_ID AND T10.STATUS = 0       
+	WHERE         trcd.STATUS = 0  and trcd.isopen=1   
+	) t    
+	) tt   
+	) y    
+  where y=#year# and m=#month#
+  group by y.RECP_ID,y.RECP_CODE,y.CUST_NAME,y.LEASE_CODE,y.DECP_NAME_CN,y.NAME,y.SUPL_NAME,y.Y,y.M,y.RECP_STATUS,Y.LEASE_PERIOD,Y.FIRST_PAYDATE    
+)t2
+left join
+t_prjt_credit t1
+on	t1.lease_code=t2.LEASE_CODE 
+where t1.STATUS=0 and 
+(year(t1.FINANCECONTRACT_DATE) < #year#							
+OR
+( 	year(t1.FINANCECONTRACT_DATE) = #year#
+AND month(t1.FINANCECONTRACT_DATE) <= #month# ))
+)ttt  where (CAI>0 or SHUI>0)
+	]]>	
+	<isNotEmpty prepend="and" property="content">
+ 			<![CDATA[
+			( CUST_NAME like '%$content$%'
+			OR DECP_NAME_CN like '%$content$%'
+			OR LEASE_CODE like '%$content$%'
+			OR NAME like '%$content$%'   
+			OR SUPL_NAME like '%$content$%' )  
+			]]>
+	</isNotEmpty>  
+	<![CDATA[
+	group by RECP_ID,RECP_CODE,CUST_NAME,LEASE_CODE,DECP_NAME_CN,NAME,SUPL_NAME
+	]]>				
+</select>
+
+<!-- Modify by Michael 2012 1/13 修改利息计算逻辑 -->		
+	<select id="queryDetail_count" parameterClass="map" resultClass="java.lang.Integer">
+	<![CDATA[
+	select count(*) from(
+	select RECP_ID,RECP_CODE,CUST_NAME,LEASE_CODE,DECP_NAME_CN,NAME,SUPL_NAME,max(Y) Y,max(M) M,sum(CAI) CAI,sum(SHUI) SHUI,max(TIME)  TIME
+	from(
+	select tttt.* from(
+	select t2.* from t_prjt_credit t1
+	left join
+	(SELECT 
+	RECP_ID,RECP_CODE,CUST_NAME,LEASE_CODE,DECP_NAME_CN,NAME,SUPL_NAME,Y,M,CAI,SHUI,CONVERT(VARCHAR(4),Y) + '-' + CONVERT(VARCHAR(2),M) TIME
+	
+					FROM
+						(
+						select ii.RECP_ID,ii.RECP_CODE,ii.CUST_NAME,ii.LEASE_CODE,ii.DECP_NAME_CN,ii.NAME,ii.SUPL_NAME,ii.Y,ii.M
+	,SUM(II.CAI) CAI,SUM(ii.SHUI) SHUI from (
+	select 
+	y.RECP_ID,y.RECP_CODE,y.CUST_NAME,y.LEASE_CODE,y.DECP_NAME_CN,y.NAME,y.PERIOD_NUM,y.SUPL_NAME,y.Y,y.M
+	,SUM(y.SHUI) CAI,
+	0 SHUI from (
+	select
+			tt.RECP_ID,tt.CUST_NAME,tt.LEASE_CODE,tt.DECP_NAME_CN,tt.NAME,tt.PERIOD_NUM+1 PERIOD_NUM,tt.SUPL_NAME,
+							tt.REN_PRICE,tt.RECP_CODE,
+							tt.QI_DATE,tt.FIRST_PAYDATE,
+			case when MONTH(QI_DATE)+1=13 then  year(QI_DATE)+1 
+			else year(QI_DATE) end Y,
+			case when MONTH(QI_DATE)+1=13 then  1 
+			else MONTH(QI_DATE)+1 end M,
+			round((REN_PRICE / 30 * (30-tian)),2)  SHUI,
+			0 a
+		from (SELECT 
+					*,
+					DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 tian,
+					0 FAPIAO_PRICE
+				FROM
+					(
+						 select TRCP.RECP_ID,tcc.CUST_NAME,trc.LEASE_CODE,DECP.DECP_NAME_CN,tuser.NAME,trcd.PERIOD_NUM,T9.NAME SUPL_NAME,
+							trcd.REN_PRICE,RECP_CODE,
+							dateadd(m,trcd.PERIOD_NUM -1,FINANCECONTRACT_DATE ) QI_DATE,trcp.first_paydate FIRST_PAYDATE
+						from T_RENT_COLLECTIONDETAIL trcd
+							left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0
+							left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID AND trc.STATUS = 0
+							left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = trc.CUST_ID AND tcc.STATUS = 0
+							LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID = trc.DECP_ID AND DECP.STATUS = 0
+							LEFT JOIN T_USER_USER tuser on tuser.ID = trc.SENSOR_ID
+							LEFT JOIN (SELECT RECP_ID,MAX(EQMT_ID) EQMT_ID FROM T_RENT_CONTRACTDETAIL WHERE STATUS = 0 GROUP BY RECP_ID) T6 ON T6.RECP_ID = trcp.RECP_ID
+							LEFT JOIN T_EQMT_EQUIPMENT T7 ON T7.EQMT_ID = T6.EQMT_ID AND T7.STATUS = 0
+							LEFT JOIN T_SUPL_EQUIPMENT T8 ON T7.SUEQ_ID = T8.SUEQ_ID AND T8.STATUS = 0
+							LEFT JOIN T_SUPL_SUPPLIER T9 ON T9.ID = T8.SUPPLIER_ID AND T9.STATUS = 0
+							LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = trc.PRCD_ID AND T10.STATUS = 0
+						WHERE	
+							trcd.STATUS = 0
+								
+					) t
+			) tt
+	union 
+	select
+			tt.RECP_ID,tt.CUST_NAME,tt.LEASE_CODE,tt.DECP_NAME_CN,tt.NAME,tt.PERIOD_NUM,tt.SUPL_NAME,
+							tt.REN_PRICE,tt.RECP_CODE,
+							tt.QI_DATE,tt.FIRST_PAYDATE,
+			year(QI_DATE) Y,
+			MONTH(QI_DATE) M,
+			round((REN_PRICE / 30 * tian),2) SHUI,
+			1 a
+		from (SELECT 
+					*,
+					DATEDIFF(day,FIRST_PAYDATE,dateadd(dd,-day(dateadd(m,1,FIRST_PAYDATE)),dateadd(m,1,FIRST_PAYDATE))) + 1 tian,
+					0 FAPIAO_PRICE
+				FROM
+					(
+						 select TRCP.RECP_ID,tcc.CUST_NAME,trc.LEASE_CODE,DECP.DECP_NAME_CN,tuser.NAME,trcd.PERIOD_NUM,T9.NAME SUPL_NAME,
+							trcd.REN_PRICE,RECP_CODE,
+							dateadd(m,trcd.PERIOD_NUM -1,FINANCECONTRACT_DATE ) QI_DATE,trcp.first_paydate FIRST_PAYDATE
+						from T_RENT_COLLECTIONDETAIL trcd
+							left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0
+							left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID AND trc.STATUS = 0
+							left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = trc.CUST_ID AND tcc.STATUS = 0
+							LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID = trc.DECP_ID AND DECP.STATUS = 0
+							LEFT JOIN T_USER_USER tuser on tuser.ID = trc.SENSOR_ID
+							LEFT JOIN (SELECT RECP_ID,MAX(EQMT_ID) EQMT_ID FROM T_RENT_CONTRACTDETAIL WHERE STATUS = 0 GROUP BY RECP_ID) T6 ON T6.RECP_ID = trcp.RECP_ID
+							LEFT JOIN T_EQMT_EQUIPMENT T7 ON T7.EQMT_ID = T6.EQMT_ID AND T7.STATUS = 0
+							LEFT JOIN T_SUPL_EQUIPMENT T8 ON T7.SUEQ_ID = T8.SUEQ_ID AND T8.STATUS = 0
+							LEFT JOIN T_SUPL_SUPPLIER T9 ON T9.ID = T8.SUPPLIER_ID AND T9.STATUS = 0
+							LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = trc.PRCD_ID AND T10.STATUS = 0
+						WHERE	
+							trcd.STATUS = 0
+					) t
+			) tt		
+			) y
+			group by y.RECP_ID,y.RECP_CODE,y.CUST_NAME,y.LEASE_CODE,y.DECP_NAME_CN,y.NAME,y.PERIOD_NUM,y.SUPL_NAME,y.Y,y.M
+			union 		
+		select RECP_ID,RECP_CODE,CUST_NAME,LEASE_CODE,DECP_NAME_CN,NAME,PERIOD_NUM,SUPL_NAME,YEAR(QI_DATE) Y,MONTH(QI_DATE) M,
+		0 CAI,SUM(ttt.REN_PRICE) SHUI
+		from
+			(select trcd.RECP_ID,trcp.RECP_CODE,tcc.CUST_NAME,trc.LEASE_CODE,
+			DECP.DECP_NAME_CN,tuser.NAME,trcd.PERIOD_NUM,T9.NAME SUPL_NAME,
+			0 CAI,REN_PRICE,
+			trcd.finance_date QI_DATE		
+	  from T_RENT_COLLECTIONDETAIL trcd
+			left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0
+			left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID AND trc.STATUS = 0
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = trc.CUST_ID AND tcc.STATUS = 0
+			LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID = trc.DECP_ID AND DECP.STATUS = 0
+			LEFT JOIN T_USER_USER tuser on tuser.ID = trc.SENSOR_ID
+			LEFT JOIN (SELECT RECP_ID,MAX(EQMT_ID) EQMT_ID FROM T_RENT_CONTRACTDETAIL WHERE STATUS = 0 GROUP BY RECP_ID) T6 ON T6.RECP_ID = trcp.RECP_ID
+			LEFT JOIN T_EQMT_EQUIPMENT T7 ON T7.EQMT_ID = T6.EQMT_ID AND T7.STATUS = 0
+			LEFT JOIN T_SUPL_EQUIPMENT T8 ON T7.SUEQ_ID = T8.SUEQ_ID AND T8.STATUS = 0
+			LEFT JOIN T_SUPL_SUPPLIER T9 ON T9.ID = T8.SUPPLIER_ID AND T9.STATUS = 0
+			LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = trc.PRCD_ID AND T10.STATUS = 0
+						WHERE	
+							trcd.STATUS = 0 
+							) ttt
+			where 1=1 					
+	   group by ttt.RECP_ID,ttt.recp_code,ttt.CUST_NAME,ttt.LEASE_CODE,
+			ttt.DECP_NAME_CN,ttt.NAME,ttt.PERIOD_NUM,ttt.NAME,		
+			YEAR(ttt.QI_DATE),
+			MONTH(ttt.QI_DATE),ttt.SUPL_NAME	
+			) ii		
+			group by ii.RECP_ID,ii.RECP_CODE,ii.CUST_NAME,ii.LEASE_CODE,ii.DECP_NAME_CN,ii.NAME,ii.SUPL_NAME,ii.Y,ii.M	
+		
+					) TTTT 
+	where 
+	(Y < YEAR(dateadd(month,-1,#start_date#))
+						OR
+	( 	Y = YEAR(dateadd(month,-1,#start_date#))
+		AND M <= MONTH(dateadd(month,-1,#start_date#)) ))
+			)t2
+	on t1.LEASE_CODE=t2.LEASE_CODE
+	where t1.STATUS=0 and 
+	(year(t1.FINANCECONTRACT_DATE) < YEAR(dateadd(month,-1,#start_date#))						OR
+	( 	year(t1.FINANCECONTRACT_DATE) = year(dateadd(month,-1,#start_date#))
+		AND month(t1.FINANCECONTRACT_DATE) <= MONTH(dateadd(month,-1,#start_date#)) ))
+	) tttt
+	where tttt.Y=YEAR(dateadd(month,-1,#start_date#))	 and tttt.M= MONTH(dateadd(month,-1,#start_date#))		
+	union all
+	select RECP_ID,RECP_CODE,CUST_NAME,LEASE_CODE,DECP_NAME_CN,NAME,SUPL_NAME,max(YEAR(QI_DATE)) Y,max(MONTH(QI_DATE)) M,
+		0 CAI,SUM(ttt.REN_PRICE) SHUI,CONVERT(VARCHAR(4),max(YEAR(QI_DATE))) + '-' + CONVERT(VARCHAR(2),max(MONTH(QI_DATE))) TIME
+		from
+			(select trcd.RECP_ID,trcp.RECP_CODE,tcc.CUST_NAME,trc.LEASE_CODE,
+			DECP.DECP_NAME_CN,tuser.NAME,trcd.PERIOD_NUM,T9.NAME SUPL_NAME,
+			0 CAI,REN_PRICE,
+			trcd.finance_date QI_DATE,
+			T10.FINANCECONTRACT_DATE
+			from T_RENT_COLLECTIONDETAIL trcd
+			left join T_RENT_COLLECTIONPLAN trcp on trcp.RECP_ID = trcd.RECP_ID AND trcp.STATUS = 0
+			left join T_RENT_CONTRACT trc on trc.RECT_ID = trcp.RECT_ID AND trc.STATUS = 0
+			left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = trc.CUST_ID AND tcc.STATUS = 0
+			LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID = trc.DECP_ID AND DECP.STATUS = 0
+			LEFT JOIN T_USER_USER tuser on tuser.ID = trc.SENSOR_ID
+			LEFT JOIN (SELECT RECP_ID,MAX(EQMT_ID) EQMT_ID FROM T_RENT_CONTRACTDETAIL WHERE STATUS = 0 GROUP BY RECP_ID) T6 ON T6.RECP_ID = trcp.RECP_ID
+			LEFT JOIN T_EQMT_EQUIPMENT T7 ON T7.EQMT_ID = T6.EQMT_ID AND T7.STATUS = 0
+			LEFT JOIN T_SUPL_EQUIPMENT T8 ON T7.SUEQ_ID = T8.SUEQ_ID AND T8.STATUS = 0
+			LEFT JOIN T_SUPL_SUPPLIER T9 ON T9.ID = T8.SUPPLIER_ID AND T9.STATUS = 0
+			LEFT JOIN T_PRJT_CREDIT T10 ON T10.ID = trc.PRCD_ID AND T10.STATUS = 0
+			WHERE	
+			trcd.STATUS = 0 
+			) ttt
+		where 1=1 
+	and convert(date,convert(varchar,(year(QI_DATE)))+'-'+convert(varchar,(MONTH(QI_DATE)))+'-01')<convert(date,convert(varchar,(year(FINANCECONTRACT_DATE)))+'-'+convert(varchar,(MONTH(FINANCECONTRACT_DATE)))+'-01')
+	and year(ttt.FINANCECONTRACT_DATE)=YEAR(dateadd(month,-1,#start_date#)) and MONTH(ttt.FINANCECONTRACT_DATE)=MONTH(dateadd(month,-1,#start_date#)) 
+	     group by ttt.RECP_ID,ttt.recp_code,ttt.CUST_NAME,ttt.LEASE_CODE,
+			ttt.DECP_NAME_CN,ttt.NAME,	
+	ttt.SUPL_NAME,ttt.FINANCECONTRACT_DATE	
+	) ttttt	 where (CAI>0 or SHUI>0)
+		]]>	
+
+	<isNotEmpty prepend="and" property="content">
+ 			<![CDATA[
+			( CUST_NAME like '%$content$%'
+			OR DECP_NAME_CN like '%$content$%'
+			OR LEASE_CODE like '%$content$%'
+			OR NAME like '%$content$%'   
+			OR SUPL_NAME like '%$content$%' )  
+			]]>
+	</isNotEmpty>  
+	<![CDATA[
+	group by RECP_ID,RECP_CODE,CUST_NAME,LEASE_CODE,DECP_NAME_CN,NAME,SUPL_NAME) t3
+	]]>
+	</select>
+	
+	<select id="queryInterestDetail_count" parameterClass="map" resultClass="java.lang.Integer">
+  		select * from MONTH_INTEREST_DETAIL where YEAR(FINANCE_DATE)=YEAR(#start_date#)
+		and MONTH(FINANCE_DATE)=MONTH(#start_date#)
+	</select>
+	<select id="queryInterestDetail" parameterClass="map" resultClass="java.util.HashMap">
+  		select t.RECP_ID, t.RECP_CODE, t.CUST_NAME, t.LEASE_CODE, 
+  			   t.DECP_NAME_CN, t.[NAME], t.SUPL_NAME,  t.TIME,
+  			   CASE WHEN SUBSTRING(t.LEASE_CODE,1,4)='0508' OR SUBSTRING(t.LEASE_CODE,1,4)='0509' OR SUBSTRING(t.LEASE_CODE,1,4)='0507' 
+  			   	    THEN SHUI/1.17 ELSE SHUI END SHUI,
+  			   CASE WHEN SUBSTRING(t.LEASE_CODE,1,4)='0508' OR SUBSTRING(t.LEASE_CODE,1,4)='0509' OR SUBSTRING(t.LEASE_CODE,1,4)='0507' 
+  			   	    THEN CAI/1.17 ELSE t.CAI END CAI,   
+  			   t.CREATE_TIME, t.FINANCE_DATE 
+  			   from MONTH_INTEREST_DETAIL t
+  			   left join t_prjt_credit tpc on tpc.lease_code = t.LEASE_CODE and tpc.status = 0	   
+  			   where YEAR(t.FINANCE_DATE)=YEAR(#start_date#)
+		and MONTH(t.FINANCE_DATE)=MONTH(#start_date#)
+		
+		<isNotEmpty prepend="and" property="companyCode">
+			tpc.company_code = #companyCode#
+		</isNotEmpty>
+	</select>
+</sqlMap>

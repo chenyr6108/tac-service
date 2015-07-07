@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="payer">
+	<typeAlias alias="payer" type="com.brick.payer.to.PayerTo"/>
+	
+	<insert id="insertPayer" parameterClass="payer">	
+		insert into T_PAYER
+		(
+			linkman_name,
+			linkman_mobile,
+			credit_id,
+			status,
+			create_by,
+			create_date
+		)
+		values(
+			#linkmanName#,
+			#linkmanMobile#,
+			#creditId#,
+			0,
+			#createBy#,
+			getDate()
+		)
+		<selectKey resultClass="int" keyProperty="id" >
+				SELECT @@IDENTITY AS ID
+		</selectKey>
+
+	</insert>
+	
+	<update id="updatePayer" parameterClass="payer">
+		update T_PAYER 
+		set 
+			linkman_name=#linkmanName#,
+			linkman_mobile=#linkmanMobile#,
+			credit_id=#creditId#,
+			modify_by=#modifyBy#,
+			modify_date=getDate()
+		where id = #id#
+	</update>
+	
+	<update id="deletePayer" parameterClass="payer">
+		update  T_PAYER 
+		set status = 1 ,			
+			modify_by=#modifyBy#,
+			modify_date=getDate()
+		where id = #id#
+	</update>
+		
+	<select id="getPayerById" parameterClass="map" resultClass="payer">
+		select 
+			id as id,
+			linkman_name as linkmanName,
+			linkman_mobile as linkmanMobile,
+			credit_id as creditId,
+			status as status,
+			create_by as createBy,
+			create_date as createDate,
+			modify_by as modifyBy,
+			modify_date as modifyDate 
+		from T_PAYER
+		where id = #id#
+	</select>
+		
+	<select id="getPayers_count" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0) from T_PAYER where status = 0 
+		<isNotEmpty prepend="and" property="content">
+		(		
+		linkman_name like '%$content$%'
+		or		
+		linkman_mobile like '%$content$%'		
+		)		
+		</isNotEmpty>
+	</select>
+	
+	<select id="getPayers" parameterClass="map" resultClass="payer">
+		select 
+			id as id,
+			linkman_name as linkmanName,
+			linkman_mobile as linkmanMobile,
+			credit_id as creditId
+		from T_PAYER where status = 0 
+		<isNotEmpty prepend="and" property="content">
+		(		
+		linkman_name like '%$content$%'
+		or		
+		linkman_mobile like '%$content$%'		
+		)		
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="creditId">
+		    credit_id = #creditId#
+		</isNotEmpty>
+		order by id desc
+	</select>
+</sqlMap>

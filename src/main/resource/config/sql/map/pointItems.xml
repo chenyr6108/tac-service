@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+ 
+<sqlMap namespace="pointsItems">
+
+
+ <!-- 添加一条测评项目 -->	
+ <insert id="addPointsItems" parameterClass="map">
+ 	insert into T_SYS_POINTSITEMS
+		(
+		POINTS_NAME,
+		MEMO,
+		STANDARD_SCORE,
+		TYPE_CODE,
+		STATE,
+		STATUS
+		)
+		values
+		(
+		#POINTS_NAME#,
+		#MEMO#,
+		#STANDARD_SCORE#,
+		#TYPE_CODE#,
+		2,
+		0
+		)
+ </insert>
+ 
+ <select id="getPointsItems_count" parameterClass="map" resultClass="int">
+ 	select count(tspi.POINTS_ID) cnt  from T_SYS_POINTSITEMS tspi
+ 	left join T_DATA_DICTIONARY tdd on tspi.TYPE_CODE=tdd.CODE
+ 	where tspi.status=0 and tdd.type=#dataType#
+ 	<dynamic>
+ 		<isNotEmpty  prepend="and" property="content">
+ 			(POINTS_NAME like '%$content$%' or tdd.FLAG like  '%$content$%')
+ 		</isNotEmpty> 
+ 	</dynamic>
+ </select>
+ 
+ <select id="getPointsItems" parameterClass="map" resultClass="hashmap">
+ 	select tspi.*,tdd.FLAG from T_SYS_POINTSITEMS tspi
+ 	left join T_DATA_DICTIONARY tdd on tspi.TYPE_CODE=tdd.CODE
+ 	where tspi.status=0 and tdd.type=#dataType#
+ 	<dynamic>
+ 		<isNotEmpty  prepend="and" property="content">
+ 			(POINTS_NAME like '%$content$%' or tdd.FLAG like  '%$content$%')
+ 		</isNotEmpty>
+ 	</dynamic> 
+ 	order by tspi.POINTS_ID desc
+ </select>
+ 
+  <select id="getPointsItemsById" parameterClass="map" resultClass="hashmap">
+ 	select tspi.*  from T_SYS_POINTSITEMS tspi 
+ 	where  tspi.POINTS_ID=#POINTS_ID#
+ </select>
+ 
+ <update id="updatePointsItems" parameterClass="map">
+ 	update T_SYS_POINTSITEMS set 
+ 	<dynamic>
+ 		<isNotNull property="POINTS_NAME">
+ 			POINTS_NAME=#POINTS_NAME#,
+ 			MEMO=#MEMO#,
+ 			STANDARD_SCORE=#STANDARD_SCORE#,
+ 			TYPE_CODE=#TYPE_CODE#
+ 		</isNotNull>
+ 		<isNotNull  property="STATE">
+ 			STATE=#STATE#
+ 		</isNotNull>
+ 	</dynamic>
+ 	where POINTS_ID=#POINTS_ID#
+ </update>
+ 
+ <select id="getSubItemsByPointsId" parameterClass="map" resultClass="hashmap">
+ 	select t.* from t_sys_subpointitems t 
+ 	where t.points_id=#POINTS_ID# and status=0
+ 	order by SUBITEM_POINT
+ </select>
+
+ <insert id="insertSubItems" parameterClass="map">
+ 	insert into t_sys_subpointitems
+		(
+		 SUBITEM_CONTENT,
+		 SUBITEM_POINT,
+		 STATUS,
+		 POINTS_ID
+		)
+		values
+		(
+		 #SUBITEM_CONTENT#,
+		 #SUBITEM_POINT#,
+		 0,
+		 #POINTS_ID#
+		)
+ </insert>
+ 
+ <update id="updateSubItems" parameterClass="map">
+ 	update t_sys_subpointitems 
+ 	set 
+ 	<isNotEmpty property="SUBITEM_CONTENT"> 
+ 		SUBITEM_CONTENT=#SUBITEM_CONTENT#,SUBITEM_POINT=#SUBITEM_POINT#
+ 	</isNotEmpty>
+ 	<isNotEmpty property="STATUS">
+ 		STATUS=#STATUS#
+ 	</isNotEmpty>
+ 	where SUBITEM_ID=#SUBITEM_ID#
+ </update>
+</sqlMap>

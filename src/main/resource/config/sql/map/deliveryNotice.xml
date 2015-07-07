@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap namespace="deliveryNotice">
+	<!-- 创建发货单,插入数据到表 T_TDELV_DELIVERYLOG -->
+	<insert id="createDeliveryNotice" parameterClass="map">
+           
+		<![CDATA[
+			INSERT INTO T_DELV_DELIVERYLOG(
+			create_time,
+			modify_time,
+			status,
+			CREATE_USER_ID,
+			MODIFY_USER_ID,
+			DELIVERY_DATE,
+			RECEIVING_UNIT,
+			RECEIVING_ADDR,
+			BALLOT_UNIT,
+			DELIVERY_LINKMAN,
+			DELIVERY_LINKPHONE,
+			RECEIVING_LINKMAN,
+			RECEIVING_LINKPHONE,
+			FINANCELEASE_LINKMAN,
+			FINANCELEASE_LINKPHONE,
+			REMARK,
+			FINANCELEASE_SIGN,
+			DELIVERY_SIGN,
+			RECEIVING_SIGN,
+			FINANCELEASE_SIGNDATE,
+			DELIVERY_SIGNDATE,
+			RECEIVING_SIGNDATE,
+			SHOULD_PRICE,
+			REAL_PRICE,
+			PAY_REMARK,
+			DELV_CODE)
+			values
+			(   getdate(),
+			    getdate(),
+			    0,
+				#s_employeeId#,
+				#s_employeeId#,
+				convert(datetime,#DELIVERY_DATE#),
+				#RECEIVING_UNIT#,
+				#RECEIVING_ADDR#,
+				#BALLOT_UNIT#,
+				#DELIVERY_LINKMAN#,
+				#DELIVERY_LINKPHONE#,
+				#RECEIVING_LINKMAN#,
+				#RECEIVING_LINKPHONE#,
+				#FINANCELEASE_LINKMAN#,
+				#FINANCELEASE_LINKPHONE#,
+				#REMARK#,
+				#FINANCELEASE_SIGN#,
+				#DELIVERY_SIGN#,
+				#RECEIVING_SIGN#,
+				convert(datetime,#FINANCELEASE_SIGNDATE#),
+				convert(datetime,#DELIVERY_SIGNDATE#),
+				convert(datetime,#RECEIVING_SIGNDATE#),
+				#SHOULD_PRICE#,
+				#REAL_PRICE#,
+				#PAY_REMARK#,
+				#DELV_CODE#)
+		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="DELV_ID">
+			<![CDATA[	select @@IDENTITY as delv_id  ]]>
+		</selectKey> 
+	</insert>
+	<!-- 更新中间表 T_DELV_DELIVERYLOG2EQUIP 的值 -->
+	<insert id="creatLog2Equip" parameterClass="map"  >
+	
+		<![CDATA[      
+			INSERT INTO T_DELV_DELIVERYLOG2EQUIP(
+		        create_time,
+		        modify_time,
+		        status,
+				CREATE_USER_ID,
+				MODIFY_USER_ID,
+				EQMT_ID,
+				DELV_ID,
+				AMOUNT)
+				values
+				(  
+				getdate(),
+				getdate(),
+				0,  
+				#s_employeeId#, 
+				#s_employeeId#, 
+				#EQMT_ID#,            
+				#DELV_ID#,               
+				#AMOUNT#)
+		]]>
+	</insert>	
+	  
+	<select id="getEquipByRectId" parameterClass="map"	resultClass="java.util.HashMap">
+		<![CDATA[
+		    SELECT T2.EQMT_ID    	 EQMT_ID,
+			       T2.THING_KIND 	 THING_KIND,
+			       T2.THING_NAME 	 THING_NAME,
+			       T2.MODEL_SPEC	 MODEL_SPEC,
+			       T2.BRAND     	 BRAND,
+			       T2.UNIT_PRICE 	 UNIT_PRICE,
+			       T2.UNIT       	 UNIT,
+			       T2.AMOUNT    	 AMOUNT,
+			       T2.MEMO       	 MEMO,
+			       T1.PUCT_ID    	 PUCT_ID,
+			       T1.PUCT_CODE  	 PUCT_CODE
+			  FROM T_PUCS_CONTRACT	 T1
+			  LEFT JOIN T_PUCS_CONTRACTDETAIL T2 ON T2.PUCT_ID=T1.PUCT_ID
+			  LEFT JOIN T_EQMT_EQUIPMENT T3 ON T3.EQMT_ID = T2.EQMT_ID
+			  LEFT JOIN T_DELV_DELIVERYLOG2EQUIP T4 ON T4.EQMT_ID=T3.EQMT_ID
+			 WHERE T1.STATUS = 0
+			   AND T2.STATUS = 0
+			   AND T3.STATUS = 0
+			   AND T1.RECT_ID = #RECT_ID#
+			   AND (T4.DELE_ID IS NULL OR T4.STATUS!=0)
+			 ORDER BY T1.PUCT_ID
+		]]>    
+	</select>
+
+	
+	<!-- 根据租赁id查找租赁投合同中的信息 -->
+	<select id="getRentContractByRectId" parameterClass="map"	resultClass="java.util.HashMap">
+	   <![CDATA[
+			select 
+				t.rect_id		        rect_id,
+				t.cust_name				cust_name,
+				t.lease_code			lease_code
+			from t_rent_contract t where t.rect_id = #RECT_ID#
+		]]>
+	</select>
+	
+	<!-- 根据pucdid查找在合同 ，有购销合同 对应设备 还 -->	
+	<select id="getEquipByPucdId"  parameterClass="map" resultClass="java.util.HashMap">	
+		
+			select
+			    t1.eqmt_id			  eqmt_id,
+				t1.thing_kind		  thing_kind,
+				t1.thing_name  		  thing_name,
+				t1.model_spec		  model_spec,
+				t1.brand			  brand,
+				t1.unit_price		  unit_price,
+				t1.unit               unit, 
+				t1.amount			  amount,
+				t1.memo				  memo,
+				t3.puct_code 		  puct_code 	
+			from t_pucs_contractdetail t1 
+			  left join t_eqmt_equipment t2 on t2.eqmt_id = t1.eqmt_id
+			  left join t_pucs_contract t3 on t3.puct_id = t1.puct_id			  
+			 where t1.status=0 and t2.status=0 and t3.status=0	
+			 	and t1.pucd_id in
+		<iterate property="pucdIds" open="(" close=")" conjunction=",">
+			#pucdIds[]#
+		</iterate>		
+	</select>	
+	
+	<!-- 查询发货通知单 根据id DELV_ID  -->
+	    <select  id="queryNoticById" parameterClass="map" resultClass="java.util.HashMap">
+			<![CDATA[
+				select 
+				DELV_ID                     DELV_ID, 
+				CREATE_TIME	                CREATE_TIME,	
+				CREATE_USER_ID				CREATE_USER_ID,	
+				MODIFY_TIME					MODIFY_TIME,	
+				MODIFY_USER_ID				MODIFY_USER_ID,	
+				TYPE						TYPE,	
+				DELIVERY_DATE				DELIVERY_DATE,		
+				RECEIVING_UNIT				RECEIVING_UNIT,	
+				RECEIVING_ADDR				RECEIVING_ADDR,	
+				BALLOT_UNIT					BALLOT_UNIT,	
+				DELIVERY_LINKMAN			DELIVERY_LINKMAN,
+				DELIVERY_LINKPHONE			DELIVERY_LINKPHONE,		
+				RECEIVING_LINKMAN			RECEIVING_LINKMAN,		
+				RECEIVING_LINKPHONE			RECEIVING_LINKPHONE,
+				FINANCELEASE_LINKMAN		FINANCELEASE_LINKMAN,	
+				FINANCELEASE_LINKPHONE		FINANCELEASE_LINKPHONE,				
+				REMARK						REMARK,	
+				FINANCELEASE_SIGN			FINANCELEASE_SIGN,	
+				DELIVERY_SIGN				DELIVERY_SIGN,	
+				RECEIVING_SIGN				RECEIVING_SIGN,
+				FINANCELEASE_SIGNDATE		FINANCELEASE_SIGNDATE,		
+				DELIVERY_SIGNDATE			DELIVERY_SIGNDATE,
+				RECEIVING_SIGNDATE			RECEIVING_SIGNDATE,
+				SHOULD_PRICE				SHOULD_PRICE,	
+				REAL_PRICE					REAL_PRICE,	
+				PAY_REMARK					PAY_REMARK,	
+				DELV_CODE					DELV_CODE,	
+				DELV_STATUS					DELV_STATUS
+				FROM T_DELV_DELIVERYLOG
+				WHERE DELV_ID = #DELV_ID#		
+			]]>
+     	</select>
+
+	 <!-- 用 puct_id查找 PucsContract 表  -->
+	<select id="getPucsContractbyId" parameterClass="map"	resultClass="java.util.HashMap">
+		<![CDATA[
+			select 
+				t1.DELIVERY_DATE	 		DELIVERY_DATE,       
+				t1.DELIVERY_ADDRESS		    DELIVERY_ADDRESS,
+				t1.RECEIVING_UNIT  		    RECEIVING_UNIT,
+				t1.LINKMAN			        LINKMAN,
+				t1.LINKMAN_MOBILE		    LINKMAN_MOBILE,
+				t1.BUYER_HOME_ADDR			BUYER_HOME_ADDR,
+				t1.BUYER_UNIT_TAX	        BUYER_UNIT_TAX,
+				t1.CUST_UNIT_NAME	        CUST_UNIT_NAME,
+				t1.CUST_AGENT	            CUST_AGENT,
+				t1.CUST_LEGAL_REPR	        CUST_LEGAL_REPR,
+				t1.CUST_UNIT_ADDR	        CUST_UNIT_ADDR,
+				t1.BUYER_LEGAL_REPR			BUYER_LEGAL_REPR,	
+				t1.BUYER_UNIT_ADDR			BUYER_UNIT_ADDR,
+				t1.BUYER_UNIT_ADDR			BUYER_UNIT_ADDR,	
+				t1.BUYER_AGENT				BUYER_AGENT,	
+				t1.BUYER_FAX				BUYER_FAX,	
+				t1.BUYER_PHONE				BUYER_PHONE,
+				t1.LESSOR_NAME				LESSOR_NAME,
+				t1.CUST_NAME				CUST_NAME,	
+				t1.LESSEE_NAME				LESSEE_NAME,
+				t1.CUST_FAX					CUST_FAX,	
+				t1.CUST_PHONE				CUST_PHONE,
+				t1.DELIVERY_ADDRESS			DELIVERY_ADDRESS,
+				t1.MODIFY_USER_ID			MODIFY_USER_ID,	
+				t1.CREATE_USER_ID			CREATE_USER_ID,	
+				t1.SELLER_FAX				SELLER_FAX,
+				t1.SELLER_PHONE				SELLER_PHONE,
+				t1.SELLER_AGENT				SELLER_AGENT,
+				t1.SELLER_LEGAL_REPR		SELLER_LEGAL_REPR,
+				t1.EQUPMENT_ADDRESS			EQUPMENT_ADDRESS,	
+				t1.SELLER_UNIT_ADDR			SELLER_UNIT_ADDR,	
+				t1.SELLER_UNIT_NAME			SELLER_UNIT_NAME,
+				t1.LINKMAN_TEL				LINKMAN_TEL,
+				t1.PUCT_CODE                PUCT_CODE
+				from t_pucs_contract t1 
+				where t1.PUCT_ID = #PUCT_ID#
+				order by t1.PUCT_ID	
+			]]>    
+	</select>
+<!-- 用DELV_ID查  发货通知单包含的设备   -->
+<select id="getEqmtById" parameterClass="map"	resultClass="java.util.HashMap">
+	   <![CDATA[
+			select 
+				T1.EQMT_ID						EQMT_ID,
+				T1.AMOUNT           			AMOUNT,
+				T1.MODIFY_TIME					MODIFY_TIME,
+				T1.MODIFY_USER_ID				MODIFY_USER_ID,
+				T2.UNIT_PRICE					UNIT_PRICE,
+				T2.UNIT							UNIT,
+				T2.THING_KIND					THING_KIND,
+				T2.THING_NAME					THING_NAME,
+				T2.BRAND						BRAND,
+				T2.MODEL_SPEC					MODEL_SPEC,
+				T2.MEMO							MEMO,
+				T3.PUCT_ID						PUCT_ID,
+				T3.PUCT_CODE					PUCT_CODE
+				FROM T_DELV_DELIVERYLOG2EQUIP T1
+				LEFT JOIN T_PUCS_CONTRACTDETAIL T2  ON T1.EQMT_ID = T2.EQMT_ID
+				LEFT JOIN T_PUCS_CONTRACT T3 ON T2.PUCT_ID= T3.PUCT_ID 
+				WHERE T1.DELV_ID = #DELV_ID#	
+				AND T1.STATUS = 0
+		]]>
+	</select>
+	<!-- 根据货物id来查找      货物的信息 -->
+	<select id="getEquipInfoByEqmtId" parameterClass="map"	resultClass="java.util.HashMap">
+		<![CDATA[
+			select 
+				eqmt_id				eqmt_id,
+				thing_kind			thing_kind,
+				thing_name			thing_name,
+				model_spec			model_spec,
+				brand				brand,
+				unit_price			unit_price,
+				amount				amount,
+				unit				unit,
+				memo				memo
+			from t_pucs_contractdetail
+			where eqmt_id = #eqmt_id#
+		]]>
+	</select>
+	
+	<!-- update T_TDELV_DELIVERYLOG kk -->
+	<update id="updateDeliveryLog" parameterClass="map">
+		<![CDATA[
+		update  T_DELV_DELIVERYLOG 
+		   set  	    MODIFY_TIME = getdate(),
+						MODIFY_USER_ID = #s_employeeId#,
+						DELIVERY_DATE = convert(datetime,#DELIVERY_DATE#),
+						RECEIVING_UNIT = #RECEIVING_UNIT#,
+						RECEIVING_ADDR = #RECEIVING_ADDR#,
+						BALLOT_UNIT = #BALLOT_UNIT#,
+						DELIVERY_LINKMAN = #DELIVERY_LINKMAN#,
+						DELIVERY_LINKPHONE = #DELIVERY_LINKPHONE#,
+						RECEIVING_LINKMAN = #RECEIVING_LINKMAN#,
+						RECEIVING_LINKPHONE = #RECEIVING_LINKPHONE#,
+						FINANCELEASE_LINKMAN = #FINANCELEASE_LINKMAN#,
+						FINANCELEASE_LINKPHONE = #FINANCELEASE_LINKPHONE#,
+						REMARK = #REMARK#,
+						FINANCELEASE_SIGN = #FINANCELEASE_SIGN#,
+						DELIVERY_SIGN = #DELIVERY_SIGN#,
+						RECEIVING_SIGN = #RECEIVING_SIGN#,
+						FINANCELEASE_SIGNDATE = convert(datetime,#FINANCELEASE_SIGNDATE#),
+						DELIVERY_SIGNDATE = convert(datetime,#DELIVERY_SIGNDATE#),
+						RECEIVING_SIGNDATE = convert(datetime,#RECEIVING_SIGNDATE#),
+						SHOULD_PRICE = #SHOULD_PRICE#,
+						REAL_PRICE = #REAL_PRICE#,
+						PAY_REMARK = #PAY_REMARK#
+					where DELV_ID = #DELV_ID#									
+		]]>
+	</update>
+	 <!-- update T_DELV_DELIVERYLOG2EQUIP kk -->
+	<update id="updateLog2Equip" parameterClass="map">
+		<![CDATA[
+		update T_DELV_DELIVERYLOG2EQUIP 
+		   set 	MODIFY_TIME = getdate(),
+				MODIFY_USER_ID = #s_employeeId#,
+				AMOUNT = #AMOUNT#			
+		where DELV_ID = #DELV_ID#
+			]]>
+	</update>
+	
+	
+</sqlMap>

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="document">
+
+
+	<select id="query_count" parameterClass="map"	resultClass="int">
+
+		SELECT count(1) cnt
+        FROM t_acl_user         
+        <dynamic prepend="WHERE"> 
+            <isNotEmpty prepend="and" property="name">  
+               name like '%$name$%'  
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="name">  
+               EMail like '%$email$%' 
+            </isNotEmpty>            
+        </dynamic>             
+		
+	</select>
+
+	<select id="query" parameterClass="map"	resultClass="java.util.HashMap">
+
+		SELECT user_uuid uuid, user_ssn ssn, user_name name, user_email email
+        FROM t_acl_user         
+        <dynamic prepend="WHERE"> 
+            <isNotEmpty prepend="and" property="name">  
+               name like '%$name$%'  
+            </isNotEmpty>
+            <isNotEmpty prepend="and" property="name">  
+               EMail like '%$email$%' 
+            </isNotEmpty>            
+        </dynamic>  
+		
+	</select>
+	
+	<insert id="createFile" parameterClass="map">
+		INSERT INTO 
+		  `t_dm_file`
+		(
+		  `fldr_uid`,
+		  `file_uid`,
+		  `file_name`,
+		  `file_size`,
+		  `file_ownerUID`,
+		  `file_createDate`,
+		  `file_modifyDate`,
+		  `file_note`,
+		  `file_extName`,
+		  `file_icon`,
+		  `file_lock`,
+		  `file_lockStartDate`,
+		  `file_keyword`,
+		  `file_securityLevel`,
+		  `file_webPath`
+		) 
+		VALUE (
+		  #fldrUid#,
+		  uuid(),
+		  #fileInfo.name#,
+		  #fileInfo.size#,
+		  #s_ssn#,
+		  NOW(),
+		  NOW(),
+		  #note#,
+		  #fileInfo.extName#,
+		  '',
+		  0,
+		  null,
+		  #keyword#,
+		  0,
+		  #fileInfo.webPath#
+		)
+	</insert>
+	
+	<select id="loadFolderContent" parameterClass="map"	resultClass="java.util.HashMap">
+		SELECT 
+		   '1' isFolder,
+		   
+		  `fldr_uid` uid,
+		  `fldr_title` title,
+		  `fldr_note` note,
+		  `fldr_size` size,
+		  `fldr_ownerUID` ownerUID,
+		  `fldr_createDate` crateDate,
+		  `fldr_modifyDate` modifyDate,
+		  `fldr_keyword` keyword,
+		  `fldr_readonly` readOnly,	
+		  
+		  `fldr_fullPath` fullpath,		  
+		  `fldr_lock` `lock`,
+		  `fldr_lockStartDate` lockStartDate,
+		  
+		  '' extName,
+		  '' icon
+		  		  
+		FROM `t_dm_folder`
+		WHERE fldr_superioruid = #uid#   		
+		UNION ALL
+		SELECT 
+		  '0' isFolder,
+		  
+		  `file_uid`,
+		  `file_name`,
+		  `file_note`,
+		  `file_size`,		  
+		  `file_ownerUID`,		  
+		  `file_createDate`,
+		  `file_modifyDate`,
+		  `file_keyword`,
+		  `file_readonly`,	
+		  
+		  
+          `file_webPath`,
+		  `file_lock`,
+		  `file_lockStartDate`,
+		  
+		  `file_extName`,
+		  `file_icon`
+		FROM `t_dm_file`
+		WHERE fldr_uid = #uid# 
+		
+	</select>	
+
+	<select id="loadFolderPath" parameterClass="map"	resultClass="java.util.HashMap">
+		SELECT 
+		  b.`fldr_uid` uid,
+		  b.`fldr_title` title,
+		  `fdft_ancestorUID` suid,
+		  `fdft_tier` tier
+		FROM 
+		  `t_dm_folder_flat` a inner join  `t_dm_folder` b on a.`fdft_ancestorUID` = b.`fldr_uid`
+		  
+		WHERE a.fldr_uid = #uid#   	
+		ORDER BY fdft_tier DESC	
+	</select>	
+	
+	<statement id="createFolder" parameterClass="map"	resultClass="java.util.HashMap">
+		call prc_dm_document_createFolder(#s_uuid#, #uid#, #title#)
+	</statement>
+	 
+</sqlMap>

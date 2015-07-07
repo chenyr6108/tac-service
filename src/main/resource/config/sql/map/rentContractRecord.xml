@@ -1,0 +1,753 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="rentContractRecord">
+	 
+	<select id="getAllRentContractRecord" parameterClass="map" resultClass="java.util.HashMap">
+		select 
+			r.ID,
+		  	t.RECT_ID,
+		  	t.lease_code,
+		  	p.CREDIT_RUNCODE,
+		  	isnull(r.status,0) as status,
+		  	convert(nvarchar(50),p.FINANCECONTRACT_DATE,120) as PAY_DATE,
+		  	u.name,
+		  	convert(nvarchar(50),r.CREATE_DATE,120) as CREATE_DATE,
+		  	isnull(d.days,0) as days,
+      		tuu2.[NAME] as sensor_name,
+      		tuu.[NAME] as manager,
+      		DECP.DECP_NAME_CN,
+      		c.cust_name,
+      		a.area_name as area,
+      		m.room_name as room,
+      		ch.chest_name as chest,
+      		f.floor_name as floor,
+      		rcp.RECP_STATUS    		
+		from T_RENT_CONTRACT t
+		left join t_prjt_credit p on p.id = t.PRCD_ID
+		left join t_cust_customer c on c.cust_id = p.cust_id
+		left join T_RENT_CONTRACT_RECORD r on r.rect_id = t.RECT_ID
+		left join t_record_area a on a.id = r.area_id 
+		left join t_record_room m on m.id = r.room_id
+		left join t_record_chest ch on ch.id = r.chest_id
+		left join t_record_floor f on f.id = r.floor_id
+		left join T_USER_USER u on u.ID = r.create_by
+    	left join t_user_user tuu2 on tuu2.id = p.sensor_id
+		left join t_user_user tuu on tuu2.upper_user = tuu.id
+		left join T_DEPT_DEPARTMENT dept on tuu2.DEPT_ID = dept.ID and dept.STATUS = 0
+		LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID = dept.DECP_ID AND DECP.STATUS = 0
+		left join T_RENT_COLLECTIONPLAN rcp on rcp.rect_id = t.RECT_ID and rcp.status =0
+		left join (
+			select record_id,datediff(day,plan_return_date,getDate()) as days
+			from  T_RENT_CONTRACT_RECORD_DETAIL 
+			WHERE STATUS= 0 and return_date is null		
+		) d on d.record_id = r.id
+		where t.STATUS = 0 and p.FINANCECONTRACT_DATE is not null
+		<isNotEmpty property="status" prepend="and">
+			isnull(r.status,0) = #status#
+		</isNotEmpty>
+		<isNotEmpty property="content" prepend="and">
+			(t.lease_code like '%$content$%'  
+			or p.CREDIT_RUNCODE like '%$content$%'  
+			or u.name like '%$content$%' 
+			or c.cust_name like '%$content$%' 
+			or tuu2.[NAME] like '%$content$%' 
+			or tuu.[NAME] like '%$content$%' 
+			or r.comment like '%$content$%' 
+			or DECP.DECP_NAME_CN like '%$content$%' 
+			)
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="startDate">
+			cast(r.create_date as date) >= cast(#startDate# as date)
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="endDate">
+			<![CDATA[cast(r.create_date as date) <= cast(#endDate# as date)]]>
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="area">
+			r.area_id = #area#
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="room">
+			r.room_id = #room#
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="chest">
+			r.chest_id = #chest#
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="floor">
+			r.floor_id = #floor#
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="recp_status">
+			rcp.RECP_STATUS = #recp_status#
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="production_type">
+			p.production_type = #production_type#
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="isOverdue">
+			<isEqual property="isOverdue" compareValue="0">
+				<![CDATA[isnull(d.days,0) <=0]]>
+			</isEqual>
+			<isEqual property="isOverdue" compareValue="1">
+				<![CDATA[isnull(d.days,0) >0]]>
+			</isEqual>
+		</isNotEmpty>
+	</select>
+	
+	<select id="getRentContractRecordByRectId" parameterClass="map" resultClass="java.util.HashMap">	
+		select 
+		  t.id,
+		  t.rect_id,
+		  t.status,
+		  a.area_name as area,
+		  t.area_id,
+		  r.room_name as room,
+		  t.room_id,
+		  c.chest_name as chest,
+		  t.chest_id,
+		  f.floor_name as floor,
+		  t.floor_id,
+		  t.create_by,
+		  convert(nvarchar(50),t.create_date,120) create_date,
+		  t.comment,
+		  u.[NAME] create_user,
+		  rc.lease_code
+		from T_RENT_CONTRACT_RECORD t
+		left join T_rent_contract rc on rc.rect_id = t.rect_id and rc.status =0
+		left join t_record_area a on a.id = t.area_id
+		left join t_record_room r on r.id = t.room_id
+		left join t_record_chest c on c.id = t.chest_id
+		left join t_record_floor f on f.id = t.floor_id
+		left join t_user_user u on u.id =  t.create_by
+		where t.RECT_ID = #rect_id#
+	</select>
+	
+	<select id="getRentContractRecordByRecordId" parameterClass="map" resultClass="java.util.HashMap">
+		select 
+		  t.id,
+		  t.rect_id,
+		  t.status,
+		  a.area_name as area,
+		  t.area_id,
+		  r.room_name as room,
+		  t.room_id,
+		  c.chest_name as chest,
+		  t.chest_id,
+		  f.floor_name as floor,
+		  t.floor_id,
+		  t.create_by,
+		  convert(nvarchar(50),t.create_date,120) create_date,
+		  t.comment,
+		  u.[NAME] create_user,
+      	  rc.lease_code
+		from T_RENT_CONTRACT_RECORD t
+		left join T_rent_contract rc on rc.rect_id = t.rect_id and rc.status =0
+		left join t_record_area a on a.id = t.area_id
+		left join t_record_room r on r.id = t.room_id
+		left join t_record_chest c on c.id = t.chest_id
+		left join t_record_floor f on f.id = t.floor_id
+		left join t_user_user u on u.id =  t.create_by
+		where t.ID = #record_id#
+	</select>
+	
+	<insert id="insertRentContractRecord" parameterClass="map">
+		insert into T_RENT_CONTRACT_RECORD(rect_id,status,create_by,create_date,area_id,room_id,chest_id,floor_id,comment)
+		values(#rect_id#,1,#userId#,getDate(),#area#,#room#,#chest#,#floor#,#comment#)
+	</insert>
+	
+	<update id="updateRecord" parameterClass="map">
+		update T_RENT_CONTRACT_RECORD 
+		set status =#status# 
+		<isNotEmpty prepend="," property="area">
+			area_id = #area#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="room">
+			room_id = #room#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="chest">
+			chest_id = #chest#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="floor">
+			floor_id = #floor#
+		</isNotEmpty>
+		where id= #record_id#
+	</update>
+	
+	
+	<update id="updateRecordPosition" parameterClass="map">
+		update T_RENT_CONTRACT_RECORD 
+		set  area_id = #area#,
+			room_id = #room#,
+			chest_id = #chest#,
+			floor_id = #floor#
+		where id= #record_id#
+	</update>
+	<update id="updateRecordComment" parameterClass="map">
+		update T_RENT_CONTRACT_RECORD 
+		set comment =#comment# 
+		where id= #record_id#
+	</update>
+	
+	<insert id="insertRentContractRecordDetail" parameterClass="map">
+		insert into t_rent_contract_record_detail(record_id,status,create_by,create_date,borrower,borrow_date,plan_return_date,reason,from_area,from_room,from_chest,from_floor,from_position,comment)
+		values(#record_id#,0,#userId#,getDate(),#borrower#,getDate(),cast(#plan_return_date# as date),#reason#,#from_area#,#from_room#,#from_chest#,#from_floor#,#position#,#comment#)
+	</insert>
+	
+	<update id="updateRentContractRecordDetail" parameterClass="map" >
+		update t_rent_contract_record_detail
+		set modify_by= #userId#,
+			modify_date = getDate(),
+			return_date = getDate(),
+			to_position = #to_position#,
+			to_area = #to_area#,
+			to_room = #to_room#,
+			to_chest = #to_chest#,
+			to_floor = #to_floor#,
+			return_comment = #return_comment#
+		where id = #id#
+	</update>
+	
+	<select id="getRentContractRecordDetails" parameterClass="map" resultClass="java.util.HashMap">
+		select 
+		    p.CREDIT_RUNCODE,
+		    c.LEASE_CODE,
+		    convert(nvarchar(50),p.FINANCECONTRACT_DATE,120) as pay_date,
+		    u1.[NAME] as create_user,
+		    convert(nvarchar(50),r.create_date,120) create_date,
+		    u2.[NAME] as borrower,
+		    convert(nvarchar(50),d.borrow_date,120) borrow_date,
+		    convert(nvarchar(50),d.plan_return_date,120) plan_return_date,
+		    d.reason,
+		    d.comment,
+		    convert(nvarchar(50),d.return_date,120) return_date,
+		    d.return_comment		    
+		from  
+		T_RENT_CONTRACT_RECORD_DETAIL d
+		left join T_RENT_CONTRACT_RECORD  r on r.id = d.record_id
+		left join T_RENT_CONTRACT c on c.RECT_ID = r.rect_id
+		left join T_PRJT_CREDIT p on p.id = c.PRCD_ID
+		left join T_USER_USER u1 on u1.ID = r.create_by
+		left join T_USER_USER u2 on u2.ID = d.borrower
+	</select>
+	
+	<select id="getUnReturnRentContractRecordByRecordId" parameterClass="map" resultClass="java.util.HashMap">
+		select 
+		      t.id,
+		      t.record_id,
+		      t.borrower borrower_id,
+		      u.[NAME] as borrower,
+		      convert(nvarchar(50),t.borrow_date,120) borrow_date,
+		      t.plan_return_date,
+		      convert(nvarchar(50),t.return_date,120) return_date,
+		      t.reason,
+		      t.from_position,
+		      t.from_area,
+		      t.from_room,
+		      t.from_chest,
+		      t.from_floor,
+		      t.comment,
+		      t.return_comment,
+		      isnull(f.capacity,0)- isnull(q.qty,0) qty
+		 from T_RENT_CONTRACT_RECORD_DETAIL t
+		 left join T_USER_USER u on t.borrower = u.ID
+		 left join T_RECORD_FLOOR f on f.id = t.from_floor
+		 left join (
+		  select count(0) qty,floor_id from t_rent_contract_record
+		  where status = 1 or status = 3
+		  group by floor_id
+		) q on q.floor_id = t.from_floor
+		 where t.record_id = #record_id# and t.return_date is null
+	</select>
+	
+	<select id="getRentContractRecordDetail" parameterClass="map" resultClass="java.util.HashMap">
+			select 
+			      t.id,
+			      t.record_id,
+			      u.[NAME] as borrower,
+			      convert(nvarchar(50),t.borrow_date,120) borrow_date,
+			      convert(nvarchar(50),t.plan_return_date,120) plan_return_date,
+			      convert(nvarchar(50),t.return_date,120) return_date,
+			      t.reason,
+			      t.comment,
+			      t.from_position,
+			      t.to_position,
+			      t.from_area,
+			      t.from_room,
+			      t.from_chest,
+			      t.from_floor,
+			      t.return_comment,
+			      (case when t.return_date is null then datediff(day,t.plan_return_date,getDate()) 
+			      else datediff(day,t.plan_return_date,t.return_date) end) as days,
+			      u3.[NAME] as create_user,
+			      u4.[NAME] as modify_user
+			 from T_RENT_CONTRACT_RECORD_DETAIL t
+			 left join T_USER_USER u on t.borrower = u.ID
+			 left join T_USER_USER u3 on t.create_by = u3.ID
+			 left join T_USER_USER u4 on t.modify_by = u4.ID
+			 where t.record_id = #record_id# 
+			 order by t.id desc	
+	</select>
+	
+	<insert id="transferRentContractRecord" parameterClass="map">
+		insert into t_rent_contract_record_detail
+		(record_id,
+		status,
+		create_by,
+		create_date,
+		modify_by,
+		modify_date,
+		borrower,
+		borrow_date,
+		plan_return_date,
+		return_date,
+		reason,
+		from_position,
+		from_area,
+		from_room,
+		from_chest,
+		from_floor,
+		to_position,
+		to_area,
+		to_room,
+		to_chest,
+		to_floor,
+		comment)
+		values(#record_id#,
+		0,
+		#userId#,
+		getDate(),
+		#userId#,
+		getDate(),
+		#userId#,
+		getDate(),
+		getDate(),
+		getDate(),
+		'转移',
+		#from_position#,
+		#from_area#,
+		#from_room#,
+		#from_chest#,
+		#from_floor#,
+		#to_position#,
+		#to_area#,
+		#to_room#,
+		#to_chest#,
+		#to_floor#,
+		#comment#)
+	</insert>
+	
+	<select id="getRentContractRecordLog" parameterClass="map" resultClass="java.util.HashMap">
+		select 
+		      t.id,
+		      t.record_id,
+		      u.[NAME] as borrower,
+		      convert(nvarchar(50),t.borrow_date,120) borrow_date,
+		      convert(nvarchar(50),t.plan_return_date,120) plan_return_date,
+		      convert(nvarchar(50),t.return_date,120) return_date,
+		      t.reason,
+		      t.comment,
+		      t.from_position,
+		      t.to_position,
+		      t.return_comment,
+		      (case when t.return_date is null then datediff(day,t.plan_return_date,getDate()) 
+		      else datediff(day,t.plan_return_date,t.return_date) end) as days,
+		      u3.[NAME] as create_user,
+		      u4.[NAME] as modify_user,
+		      c.lease_code,
+		      cc.CUST_NAME
+		 from T_RENT_CONTRACT_RECORD_DETAIL t
+		 left join T_RENT_CONTRACT_RECORD r on r.id = t.record_id
+		 left join t_rent_contract c on c.rect_id = r.rect_id
+		 left join T_USER_USER u on t.borrower = u.ID
+		 left join T_USER_USER u3 on t.create_by = u3.ID
+		 left join T_USER_USER u4 on t.modify_by = u4.ID
+		 left join T_CUST_CUSTOMER cc on cc.CUST_ID = c.CUST_ID
+		 where 1=1
+		 <isNotEmpty prepend="and" property="createUser">
+		 	u4.[NAME] like '%$createUser$%'
+		 </isNotEmpty>
+		 <isNotEmpty prepend="and" property="borrower">
+		 	u.[NAME] like '%$borrower$%'
+		 </isNotEmpty>	
+		 <isNotEmpty prepend="and" property="comment">
+		 	(t.comment like '%$comment$%' or t.return_comment like '%$comment$%' or c.lease_code like '%$comment$%' or cc.CUST_NAME like '%$comment$%') 
+		 </isNotEmpty>
+		 <isNotEmpty prepend="and" property="reason">
+		 	t.reason = #reason#
+		 </isNotEmpty>	
+		 <isNotEmpty prepend="and" property="area">
+		 	t.to_area = #area#
+		 </isNotEmpty>
+		 <isNotEmpty prepend="and" property="room">
+		 	t.to_room = #room#
+		 </isNotEmpty>	
+	 	<isNotEmpty prepend="and" property="startDate">
+			cast(t.borrow_date as date) >= cast(#startDate# as date)
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="endDate">
+			<![CDATA[cast(t.borrow_date as date) <= cast(#endDate# as date)]]>
+		</isNotEmpty>
+		<isEqual prepend="and" property="status" compareValue="0">
+			t.return_date is null
+		</isEqual>
+		<isEqual prepend="and" property="status" compareValue="1">
+			t.return_date is not null
+		</isEqual>		
+	</select>
+	
+	<select id="queryFilesByRectId" parameterClass="map" resultClass="java.util.HashMap">	   
+        SELECT 
+            TRF.FILE_NAME,t.RECT_ID       
+			  FROM T_RENT_FILEDETAIL TRFD 
+			  LEFT JOIN T_PRJT_CREDIT TPC ON TRFD.PRCD_ID=TPC.ID AND TPC.STATUS=0
+			  LEFT JOIN (SELECT MIN(TYPE) TYPE,CREDIT_ID FROM T_PRJT_CREDITAPPROPIATE WHERE STATUS=0 GROUP BY CREDIT_ID) TPCA ON TPC.ID=TPCA.CREDIT_ID 
+			  LEFT JOIN T_RENT_FILE TRF ON TRFD.REFI_ID=TRF.REFI_ID AND TRF.FILE_STATUS=0
+        left join T_RENT_CONTRACT t on t.PRCD_ID = TPC.ID
+		WHERE TRFD.IS_ALREADY ='0' AND TRFD.FILE_TYPE='3'
+		AND TRFD.REFD_ID IS NOT NULL 
+	    AND TPC.STATUS=0 
+	    AND TPC.LEASE_CODE IS NOT NULL 
+	    AND TPC.FINANCECONTRACT_DATE IS NOT NULL
+	    AND t.RECT_ID = #rect_id#
+	</select>
+	
+	<update id="delayRecordDetail" parameterClass="map">
+		update T_RENT_CONTRACT_RECORD_DETAIL set plan_return_date = (cast(plan_return_date as datetime) + $delay_days$)
+		where id = #id#
+	</update>
+	
+	
+	<select id="getRecordAreas" resultClass="java.util.HashMap">
+		select * from t_record_area where status =0
+	</select>
+	
+	<select id="getRecordRooms" resultClass="java.util.HashMap" parameterClass="map">
+		select * from t_record_room where area_id = #area_id# and status =0
+	</select>
+	
+	<select id="getRecordChests" resultClass="java.util.HashMap" parameterClass="map">
+		select * from t_record_chest where room_id = #room_id# and status =0
+	</select>
+	
+	<select id="getRecordFloors" resultClass="java.util.HashMap" parameterClass="map">
+		select t.id,t.floor_name,t.comment,t.chest_id,t.capacity,t.type,isnull(q.qty,0) as qty
+		from t_record_floor t
+		left join (
+		  select count(0) qty,floor_id from t_rent_contract_record
+		  where status = 1 or status = 3
+		  group by floor_id
+		) q on q.floor_id = t.id
+		where t.chest_id = #chest_id#
+		<isNotEmpty prepend="and" property="type">
+			t.type = #type#
+		</isNotEmpty>
+	</select>
+	
+	<select id="getRecordPositions" resultClass="java.util.HashMap" parameterClass="map">
+		select 
+			f.id as floor_id,
+			f.floor_name,
+			c.id as chest_id,
+			c.chest_name,
+			r.id as room_id,
+			r.room_name,
+			a.id as area_id,
+			a.area_name,
+			f.comment,
+			f.status,
+			isnull(f.capacity,0) capacity,
+			f.type,
+			isnull(q.qty,0) qty
+		FROM T_RECORD_AREA a
+		left join t_record_room r on r.area_id = a.id 
+		left join t_record_chest c on  c.room_id = r.id 	
+		left join t_record_floor f on f.chest_id = c.id
+		left join (
+		  select count(0) qty,floor_id from t_rent_contract_record
+		  where status = 1 or status = 3
+		  group by floor_id
+		) q on q.floor_id = f.id
+		WHERE 1=1
+		<isNotEmpty prepend="and" property="area">
+			a.id = #area#
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="room">
+			r.id = #room#
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="type">
+			f.type = #type#
+		</isNotEmpty>
+		<isNotEmpty prepend="and"  property="content">
+			(f.floor_name like '%$content$%' 
+			or  c.chest_name like '%$content$%'  
+			or  r.room_name like '%$content$%' 
+			or  a.area_name like '%$content$%' 
+			or  f.comment like '%$content$%'
+			)
+		</isNotEmpty>
+	</select>
+	<!-- area -->
+	<select id="getRecordAreaNameById" resultClass="java.lang.String" parameterClass="map">
+		select area_name from t_record_area where id = #id#
+	</select>
+	
+	<select id="getRecordAreaById" resultClass="java.util.HashMap" parameterClass="map">
+		select id,area_name,comment from t_record_area where id = #id#
+	</select>
+	
+	<select id="getAreaCountByName" parameterClass="map" resultClass="int">
+		select count(0) from t_record_area where area_name = #area_name#
+	</select>
+	
+	<insert id="insertRecordArea" parameterClass="map" >
+		insert into t_record_area(area_name,status,create_by,create_date,comment)
+		values(#area_name#,0,#userId#,getDate(),#comment#)
+	</insert>
+	
+	
+	
+	<update id="updateRecordArea" parameterClass="map">
+		update t_record_area
+			set area_name = #area_name#,
+			modify_by = #userId#,
+			modify_date = getDate(),
+			comment = #comment#
+		where id = #id#
+	</update>
+	
+	<!-- room -->
+	<select id="getRecordRoomNameById" resultClass="java.lang.String" parameterClass="map">
+		select room_name from t_record_room where id = #id#
+	</select>
+	
+	<select id="getRecordRoomById" resultClass="java.util.HashMap" parameterClass="map">
+		select 
+			r.id,
+			r.room_name,
+			r.comment,
+			a.area_name,
+			r.area_id 
+		from t_record_room  r
+		left join t_record_area a on a.id = r.area_id
+		where r.id = #id#
+	</select>
+	
+	<select id="getRoomCountByName" parameterClass="map" resultClass="int">
+		select count(0) from t_record_room where room_name = #room_name# and area_id = #area_id#
+	</select>
+	
+		
+	<insert id="insertRecordRoom" parameterClass="map" >
+		insert into t_record_room(room_name,status,create_by,create_date,comment,area_id)
+		values(#room_name#,0,#userId#,getDate(),#comment#,#area_id#)
+	</insert>
+	
+	<update id="updateRecordRoom" parameterClass="map">
+		update t_record_room
+			set room_name = #room_name#,
+			modify_by = #userId#,
+			modify_date = getDate(),
+			comment = #comment#
+		where id = #id#
+	</update>
+	
+	<!-- chest -->
+	<select id="getRecordChestNameById" resultClass="java.lang.String" parameterClass="map">
+		select chest_name from t_record_chest where id = #id#
+	</select>
+	
+	<select id="getRecordChestById" resultClass="java.util.HashMap" parameterClass="map">
+		select 
+			c.id,
+			c.chest_name,
+			c.comment,
+			c.room_id,
+			r.room_name,
+			r.area_id,
+			a.area_name
+		from t_record_chest c
+		left join t_record_room r on r.id = c.room_id
+		left join t_record_area a on a.id = r.area_id
+		where c.id = #id#
+	</select>
+	
+	<select id="getChestCountByName" parameterClass="map" resultClass="int">
+		select count(0) from t_record_chest where chest_name = #chest_name# and room_id = #room_id#
+	</select>
+	
+	<insert id="insertRecordChest" parameterClass="map" >
+		insert into t_record_chest(chest_name,status,create_by,create_date,comment,room_id)
+		values(#chest_name#,0,#userId#,getDate(),#comment#,#room_id#)
+	</insert>
+	
+	
+	<update id="updateRecordChest" parameterClass="map">
+		update t_record_chest
+			set chest_name = #chest_name#,
+			modify_by = #userId#,
+			modify_date = getDate(),
+			comment = #comment#
+		where id = #id#
+	</update>
+	
+	<!-- floor -->
+	<select id="getRecordFloorNameById" resultClass="java.lang.String" parameterClass="map">
+		select floor_name from t_record_floor where id = #id#
+	</select>
+	
+	<select id="getRecordFloorById" resultClass="java.util.HashMap" parameterClass="map">
+		select 
+	        f.id,
+	        f.floor_name,
+	        f.comment,
+	        f.chest_id,
+	        c.chest_name,
+	        c.room_id,
+	        r.room_name,
+	        r.area_id,
+	        a.area_name,
+	        f.type,
+	        f.capacity,
+	        isnull(q.qty,0) qty
+    	from T_RECORD_FLOOR f
+		left join t_record_chest c on c.id = f.chest_id
+		left join t_record_room r on r.id = c.room_id
+		left join t_record_area a on a.id = r.area_id
+		left join (
+		  select count(0) qty,floor_id from t_rent_contract_record
+		  where status = 1 or status = 3
+		  group by floor_id
+		) q on q.floor_id = f.id
+		where  f.id =#id#
+	</select>
+
+	<select id="getFloorCountByName" parameterClass="map" resultClass="int">
+		select count(0) from t_record_floor where floor_name = #floor_name# and chest_id = #chest_id#
+	</select>
+	
+	<insert id="insertRecordFloor" parameterClass="map" >
+		insert into t_record_floor(floor_name,capacity,type,status,create_by,create_date,comment,chest_id)
+		values(#floor_name#,#capacity#,#type#,0,#userId#,getDate(),#comment#,#chest_id#)
+	</insert>
+	
+	<update id="updateRecordFloor" parameterClass="map">
+		update t_record_floor
+			set floor_name = #floor_name#,
+			capacity = #capacity#,
+			type = #type#,
+			modify_by = #userId#,
+			modify_date = getDate(),
+			comment = #comment#
+		where id = #id#
+	</update>
+	
+	<select id="getRecordFloorQtyById" parameterClass="map" resultClass="int">
+    	select 
+	      isnull(f.capacity,0) - isnull(q.qty,0)
+    	from T_RECORD_FLOOR f
+		left join (
+		  select count(0) qty,floor_id from t_rent_contract_record
+		  where status = 1 or status = 3
+		  group by floor_id
+		) q on q.floor_id = f.id
+		where  f.id = #id#
+	</select>
+	
+	<select id="getUnuserdFloor"  parameterClass="map" resultClass="java.util.HashMap">
+		select 
+	      top 1
+				f.id as floor_id,
+				c.id as chest_id,
+				r.id as room_id,
+				a.id as area_id,
+				isnull(f.capacity,0) - isnull(q.qty,0) qty
+			FROM T_RECORD_AREA a
+			left join t_record_room r on r.area_id = a.id 
+			left join t_record_chest c on  c.room_id = r.id 	
+			left join t_record_floor f on f.chest_id = c.id
+			left join (
+			  select count(0) qty,floor_id from t_rent_contract_record
+			  where status = 1 or status = 3
+			  group by floor_id
+			) q on q.floor_id = f.id
+			WHERE isnull(f.capacity,0) > isnull(q.qty,0) and f.[type] = #type#
+	    order by a.id,r.id,c.id,f.id
+	</select>
+	
+	<select id="queryRecordApply" parameterClass="map" resultClass="java.util.HashMap">
+ 		 select 
+		  	a.id,
+			t.RECT_ID,
+			t.lease_code,
+			p.CREDIT_RUNCODE,
+			isnull(r.status,0) as status,
+	      	tuu.[NAME] as manager,
+	      	DECP.DECP_NAME_CN,
+	      	c.cust_name,
+	        isnull(a.apply_status,0) apply_status,
+	        u.[NAME] as apply_name,
+	        DECP2.DECP_NAME_CN DECP_NAME,
+	        a.reason,
+	        a.apply_date,
+           	a.apply_user,
+	        u.upper_user
+		from T_RENT_CONTRACT t
+		left join t_prjt_credit p on p.id = t.PRCD_ID
+		left join t_cust_customer c on c.cust_id = p.cust_id
+		left join T_RENT_CONTRACT_RECORD r on r.rect_id = t.RECT_ID
+	    left join t_user_user tuu2 on tuu2.id = p.sensor_id
+		left join t_user_user tuu on tuu2.upper_user = tuu.id
+		left join T_DEPT_DEPARTMENT dept on tuu2.DEPT_ID = dept.ID and dept.STATUS = 0
+		LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID = dept.DECP_ID AND DECP.STATUS = 0
+	    LEFT JOIN T_RENT_CONTRACT_RECORD_APPLY  a on a.rect_id = t.RECT_ID and a.status = 0
+	    LEFT JOIN t_user_user u  on u.ID = a.apply_user 
+	    LEFT JOIN T_DEPT_DEPARTMENT dept2 on u.DEPT_ID = dept2.ID and dept2.STATUS = 0
+		LEFT JOIN T_DEPT_COMPANY DECP2 ON DECP2.DECP_ID = dept2.DECP_ID AND DECP2.STATUS = 0 
+		where t.STATUS = 0 and p.FINANCECONTRACT_DATE is not null 	   
+		<isNotEmpty prepend="and" property="lease_code">
+		    t.lease_code like '%$lease_code$%'  		    
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="apply_status">
+		    isnull(a.apply_status,0) = #apply_status# 		    
+		</isNotEmpty>
+		
+	</select>
+	
+	<insert id="insertRecordApply" parameterClass="map">
+	    insert into T_RENT_CONTRACT_RECORD_APPLY(apply_user,apply_date,reason,status,comment,apply_status,return_date,rect_id,deal_user)
+	    values(#apply_user#,getdate(),#reason#,0,#comment#,#apply_status#,cast(#plan_return_date# as date),#rect_id#,#deal_user#)	    
+	</insert>
+	
+	<update id="updateRecordApplyStatus" parameterClass="map">
+	    update  T_RENT_CONTRACT_RECORD_APPLY
+	    set apply_status = #apply_status#,
+	    deal_user = #deal_user#
+	    where id = #id#     
+	</update>
+	
+	<select id="getRecordApplyById" parameterClass="map" resultClass="java.util.HashMap">
+	     SELECT id,apply_user,reason,comment,convert(nvarchar(20),return_date,23) return_date FROM T_RENT_CONTRACT_RECORD_APPLY
+	    where id = #id#	    
+	</select>
+	
+	<select id="getOverdueRecord" parameterClass="map" resultClass="java.util.HashMap" >
+	select u.[NAME],u.EMAIL,c.LEASE_CODE 
+    from T_RENT_CONTRACT_RECORD_DETAIL  d
+    left join T_RENT_CONTRACT_RECORD r on r.id = d.record_id
+    left join t_rent_contract c on c.RECT_ID = r.rect_id and c.STATUS = 0
+    left join T_USER_USER u on u.ID = d.borrower
+    where d.return_date is null and  cast(getdate() as date) > d.plan_return_date and u.EMAIL is not null  and d.status=0 
+    order by u.[NAME]  
+	</select>
+	
+	<select id="getUnCompleteApplyByRectId" parameterClass="map" resultClass="java.lang.Integer">
+	    <![CDATA[
+	    select id from T_RENT_CONTRACT_RECORD_APPLY
+		where status = 0 and apply_status <20 and rect_id = #rect_id#
+	    ]]>    
+	</select>
+	
+	<update id="cancelRecordApply" parameterClass="map">
+	    update T_RENT_CONTRACT_RECORD_APPLY set status = 1
+	    where id = #id#	    
+	</update>
+	
+</sqlMap>

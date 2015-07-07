@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="exportQuoToPdf">
+	<select id="queryCreditInfo" parameterClass="map" resultClass="hashmap">
+		select tcc.cust_name cust_name,
+			tcc.CUST_TYPE CUST_TYPE,
+			tcc.CORP_WORK_ADDRESS,
+				tcc.CORP_REGISTE_ADDRESS,
+				tuu.name clerk_name,
+				t.DECP_NAME_CN   DECP_NAME_CN,
+				t.DECP_NAME_EN   DECP_NAME_EN,
+				t.TELEPHONE        TELEPHONE,
+				t.FAX               FAX,
+				tuu2.name     sensor_name,
+				t.REGISTERED_OFFICE_ADDRESS  REGISTERED_OFFICE_ADDRESS,  
+				tdd.flag as contract_type,
+				tt11.equpment_address  EQUPMENT_ADDRESS
+				
+		  from t_prjt_credit tpc
+		  left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		  left join t_user_user tuu on tuu.id = tpc.clerk_id
+		  left join T_DEPT_COMPANY t on t.DECP_ID = tpc.DECP_ID
+		  left join (select code,flag from t_data_dictionary td where td.type = #dateType# ) tdd on CONVERT(varchar,tpc.contract_type) =tdd.code
+		  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		  left join t_prjt_creditscheme tt11 on tpc.id=tt11.credit_id
+		  where tpc.id = #creditId# and tpc.status = 0 
+	</select>
+	<select id="queryCropInfo" parameterClass="map" resultClass="hashmap">
+		select  tpc.corp_name_cn  CUST_NAME,
+				tpc.common_office_address  CORP_WORK_ADDRESS,
+				tpc.registered_office_address  CORP_REGISTE_ADDRESS,
+				tt11.equpment_address  EQUPMENT_ADDRESS
+		  from t_prjt_creditcustomercorp tpc
+		  left join t_prjt_creditscheme tt11 on tpc.credit_id=tt11.credit_id
+		  where tpc.credit_id = #creditId# and tpc.status = 0 
+		  
+	</select>
+	
+	<select id="selectCreditEquipment" parameterClass="map" resultClass="hashmap">
+	<!-- 
+		select 
+	       tpce.thing_name thing_name,
+	       tpce.THING_KIND THING_KIND,
+	       tpce.brand brand,
+	       tpce.model_spec model_spec,
+	       sum(tpce.amount)  amount,
+	       tpce.STAYBUY_PRICE  STAYBUY_PRICE, 
+	       tpce.unit  UNIT,
+	       sum(tpce.unit_price * tpce.amount) total
+	  from t_prjt_creditequipment tpce
+	 where tpce.credit_id = #creditId#
+	   and tpce.EQMT_STATUS = 0		
+	   	 group by 
+	          tpce.thing_name,
+	          tpce.THING_KIND,
+	          tpce.brand,
+	          tpce.model_spec,
+	          tpce.unit_price,
+	          tpce.STAYBUY_PRICE,
+			  tpce.unit
+			-->
+			<!-- Modify by Michael 2012 5-2 增加牌号、车架号、发动机号 -->
+			select 
+	       t6.NAME thing_name,
+	       T7.NAME THING_KIND,
+	       tpce.brand brand,
+	       T5.NAME model_spec,
+	       sum(tpce.amount)  amount,
+	       tpce.STAYBUY_PRICE  STAYBUY_PRICE, 
+	       tpce.unit  UNIT,
+	       sum(tpce.unit_price * tpce.amount) total,
+	       T7.Manufacturer,
+	       T7.NAME TYPE_NAME,tpce.CAR_ID_NUMBER,tpce.CAR_ENGINE_NUMBER,tpce.CAR_RIGSTER_NUMBER,tpce.CAR_COLOR
+	  from t_prjt_creditequipment tpce
+	 	LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID = tpce.SUEQ_ID and T4.STATUS=0
+		LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T4.PRODUCT_ID and T5.STATUS=0
+		LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID
+		LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = T6.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+	 where tpce.credit_id = #creditId#
+	   and tpce.EQMT_STATUS = 0		
+	   	 group by 
+	           t6.NAME,
+	          T7.NAME,
+	          tpce.brand,
+	          T5.NAME,
+	          tpce.unit_price,
+	          tpce.STAYBUY_PRICE,
+			  tpce.unit,
+			  T7.Manufacturer,
+			   T7.NAME,tpce.CAR_ID_NUMBER,tpce.CAR_ENGINE_NUMBER,tpce.CAR_RIGSTER_NUMBER,tpce.CAR_COLOR
+	</select>
+	<select id="selectCreditScheme" parameterClass="map" resultClass="hashmap">
+		select tpcs.LEASE_TERM ,
+		        tpcs.LEASE_COURSE,
+		        tpcs.PLEDGE_PRICE,
+		        tpcs.EQUPMENT_ADDRESS,
+		        tpcs.START_DATE,
+		        tpcs.LEASE_TERM LEASE_PERIOD, 
+		        tpcs.PLEDGE_AVE_PRICE,*,
+		      (convert(float, tpcs.LEASE_COURSE )* tpcs.LEASE_TERM)/12    year
+			from t_prjt_creditscheme tpcs
+			where tpcs.credit_id=#creditId# and tpcs.status=0
+	</select>
+	<select id="selectCreditScheme_new" parameterClass="map" resultClass="hashmap">
+		select tpcs.LEASE_COURSE LEASE_TERM ,
+		        tpcs.LEASE_COURSE,
+		        tpcs.PLEDGE_PRICE,
+		        tpcs.EQUPMENT_ADDRESS,
+		        tpcs.START_DATE,
+		        tpcs.LEASE_TERM LEASE_PERIOD, 
+		        tpcs.PLEDGE_AVE_PRICE,*,
+		      (convert(float, tpcs.LEASE_COURSE )* tpcs.LEASE_TERM)/12    year
+			from t_prjt_creditscheme tpcs
+			where tpcs.credit_id=#creditId# and tpcs.status=0
+	</select>
+	
+	
+	<select id="selectCollectionEquipment" parameterClass="map" resultClass="hashmap">
+	<!-- 
+		select 
+	       t3.thing_name thing_name,
+	       t3.THING_KIND THING_KIND,
+	       t3.brand brand,
+	       t3.model_spec model_spec,
+	       sum(t3.amount)  amount,
+	       t3.STAYBUY_PRICE  STAYBUY_PRICE,
+	       t3.UNIT  UNIT
+	  from t_rent_collectionplan t1
+	  left join T_RENT_CONTRACT t2 on t2.RECT_ID = t1.RECT_ID
+	  left join T_RENT_CONTRACTDETAIL t3 on t3.RECT_ID = t2.RECT_ID
+	 where t1.RECP_ID = #RECP_ID#	and t3.status=0			
+	   	 group by 
+	          t3.thing_name,
+	          t3.THING_KIND,
+	          t3.brand,
+	          t3.model_spec,
+	          t3.STAYBUY_PRICE,
+			  t3.UNIT 
+			   -->
+			   
+			   select 
+	       t6.NAME thing_name,
+	       T8.NAME THING_KIND,
+	       t3.brand brand,
+	       T5.NAME model_spec,
+	       sum(t3.amount)  amount,
+	       t3.STAYBUY_PRICE  STAYBUY_PRICE,
+	       t3.UNIT  UNIT ,
+	       T8.Manufacturer,
+	        T8.NAME TYPE_NAME
+	  from t_rent_collectionplan t1
+	  left join T_RENT_CONTRACT t2 on t2.RECT_ID = t1.RECT_ID
+	  left join T_RENT_CONTRACTDETAIL t3 on t3.RECT_ID = t2.RECT_ID
+	   LEFT JOIN T_EQMT_EQUIPMENT T7 ON T7.EQMT_ID = T3.EQMT_ID and T7.STATUS=0
+			  LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID = T7.SUEQ_ID and T4.STATUS=0
+			  LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T4.PRODUCT_ID and T5.STATUS=0
+			  LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID
+			  LEFT JOIN T_PRDC_TYPE T8 ON T8.ID = T6.TYPE_ID AND T8.PRDC_TYPE_STATUS = 0
+	 where t1.RECP_ID = #RECP_ID#	and t3.status=0			
+	   	 group by 
+	          t6.NAME,
+	          t3.brand,
+	          T5.NAME,
+	          t3.STAYBUY_PRICE,
+			  t3.UNIT ,
+			  T8.Manufacturer,
+			  T8.NAME
+	</select>
+	<select id="queryCollectionInfo" parameterClass="map" resultClass="hashmap">
+		select 	t.DECP_NAME_CN   DECP_NAME_CN,
+				t.REGISTERED_OFFICE_ADDRESS  REGISTERED_OFFICE_ADDRESS,
+				t1.EQUPMENT_ADDRESS   EQUPMENT_ADDRESS,
+				t2.CUST_NAME,
+				t2.CUST_ADDRESS CORP_REGISTE_ADDRESS,
+				t2.CUST_TYPE,
+				tt.EQUPMENT_ADDRESS
+		  from t_rent_collectionplan t1
+		  left join T_RENT_CONTRACT t2 on t2.RECT_ID = t1.RECT_ID
+		  left join T_DEPT_COMPANY t on t.DECP_ID = t2.DECP_ID
+		  left join T_RENT_CONTRACTSCHEMA tt on t2.RECT_ID=tt.RECT_ID
+		  where t1.RECP_ID = #RECP_ID# and t1.status = 0 
+	</select>
+	<select id="queryCropInfo2" parameterClass="map" resultClass="hashmap">
+		select tpc.corp_name_cn  CUST_NAME,
+			tpc.common_office_address  CORP_WORK_ADDRESS,
+				tpc.registered_office_address  CORP_REGISTE_ADDRESS,
+				tt.EQUPMENT_ADDRESS
+		  from t_prjt_creditcustomercorp tpc
+		   left join T_RENT_CONTRACT  t on t.PRCD_ID =tpc.credit_id
+		  left join t_rent_collectionplan t2 on t2.rect_id =  t.rect_id
+		   left join T_RENT_CONTRACTSCHEMA tt on t2.RECT_ID=tt.RECT_ID
+		  where  t2.recp_id= #RECP_ID# and tpc.status = 0 
+		  
+	</select>
+	<select id="selectCollectionScheme" parameterClass="map" resultClass="hashmap">
+		select t1.LEASE_TERM,
+		       t1.LEASE_PERIOD,
+		       t1.PLEDGE_PRICE,
+			   t1.START_DATE,
+			   t1.PAY_WAY,
+		      (convert(float, t1.LEASE_PERIOD) * t1.LEASE_TERM)/12   year
+			from t_rent_collectionplan t1
+			where t1.RECP_ID = #RECP_ID# and t1.status = 0
+	</select>
+	<!-- Add by Michael 2012 4-1 增加重车保险费 -->
+	<select id="selectCreditSchemeINSUREFEE" parameterClass="map" resultClass="hashmap">
+		 select FEE from t_prjt_credit_feelist
+ 		where credit_id=#creditId#
+ 		and create_filed_name='INSURE_FEE'
+	</select>
+	
+		<select id="selectCreditCarEquipment" parameterClass="map" resultClass="hashmap">
+		select 
+	       t6.NAME thing_name,
+	       T7.NAME THING_KIND,
+	       tpce.brand brand,
+	       T5.NAME model_spec,
+	       tpce.amount  amount,
+	       tpce.STAYBUY_PRICE  STAYBUY_PRICE, 
+	       tpce.unit  UNIT,
+	       T7.Manufacturer,
+	       T7.NAME TYPE_NAME,tpce.CAR_ID_NUMBER,tpce.CAR_ENGINE_NUMBER,tpce.CAR_RIGSTER_NUMBER,tpce.CAR_COLOR,tpce.shui_price
+	  from t_prjt_creditequipment tpce
+	 	LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID = tpce.SUEQ_ID and T4.STATUS=0
+		LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T4.PRODUCT_ID and T5.STATUS=0
+		LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID
+		LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = T6.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+	 where tpce.credit_id = #creditId#
+	   and tpce.EQMT_STATUS = 0		
+	</select>
+</sqlMap>

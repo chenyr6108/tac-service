@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap namespace="SupplierImage">
+	<insert id="createSupplierImage" parameterClass="map">
+		 <![CDATA[
+		INSERT INTO T_SUPL_SUPPLIERUPLOAD
+		(
+			SUPPLIER_ID,
+			PATH,
+			TITLE,
+			IMAGE_NAME,
+			status,
+			create_id,
+			create_date
+		) VALUES(
+			#SUPPLIER_ID# ,
+			#path# ,
+			#title# ,
+			#image_name# ,
+			0 ,
+			#s_employeeId# ,
+			getdate()
+		) 
+		]]>
+	</insert>
+	<select id="querySupplierImageBySupplierId" parameterClass="map" resultClass="java.util.HashMap">
+		select 
+			distinct t.SSUP_ID ,
+			t.SUPPLIER_ID ,
+			replace(ISNULL(t.PATH,0),'\','\\') PATH,
+			t.TITLE ,
+			t.IMAGE_NAME ,
+			t.CREATE_DATE
+		from
+			T_SUPL_SUPPLIERUPLOAD t
+			left join T_SUPL_SUPPLIER t1 on t1.ID = t.SUPPLIER_ID  AND t1.status = 0
+		where
+			t.status = 0 
+			AND T1.ID = #supplier_id#
+	</select>
+	<update id="deleteSupplierImage" parameterClass="map">
+		UPDATE 
+			T_SUPL_SUPPLIERUPLOAD 
+		SET 
+			status = -2 ,
+			modify_id = #s_employeeId# ,
+			modify_date = getdate()
+		WHERE
+			SSUP_ID = #SSUP_ID#
+	</update>
+</sqlMap>

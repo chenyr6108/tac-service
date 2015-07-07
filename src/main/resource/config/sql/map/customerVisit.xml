@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+ "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="customerVisit">
+	<select id="getCustomerVisit" resultClass="com.brick.customerVisit.to.CustomerTO">
+			SELECT TCVT.ID id,TCVT.EMPLOYEE_ID employeeId,TCVT.NAME [name],TCVT.DATE [date],
+			       CONVERT(TIME,TCVT.EXPECT_FROM_TIME) expectFromTime,CONVERT(TIME,TCVT.EXPECT_TO_TIME) expectToTime,
+			       CONVERT(TIME,TCVT.ACTUAL_FROM_TIME) actualFromTime,CONVERT(TIME,TCVT.ACTUAL_TO_TIME) actualToTime,
+			       TCVT.OBJECT object,TCVT.EMPOLDER_WAY empolderWay,T1.FLAG empolderWayDescr,
+	           	   TCVT.PROVINCE_ID provinceId,TCVT.CITY_ID cityId,TCVT.AREA_ID areaId,
+	               TCVT.INTENT intent,T2.FLAG intentDescr,TCVT.WITH_SUPERVISOR withSupervisor,TCVT.HOLIDAY holiday,
+			       CONVERT(TIME,TCVT.HOLIDAY_FROM_TIME) holidayFromTime,CONVERT(TIME,TCVT.HOLIDAY_TO_TIME) holidayToTime,
+			       TP.NAME provinceName,TC.NAME cityName,TA.NAME areaName,TCVT.IMPORTANT_RECORD importantRecord,T3.FLAG importantRecordDescr,TCVT.REMARK remark,
+			       TCVT.NEED_COLLEAGUE needColleague,TT.NAME employee      
+			  FROM T_CUSTOMER_VISIT TCVT 
+	     LEFT JOIN T_DATA_DICTIONARY T1 ON T1.CODE=TCVT.EMPOLDER_WAY AND T1.STATUS=0 AND T1.[TYPE]=#TYPE1#<!-- '开拓方式' -->
+	 	 LEFT JOIN T_DATA_DICTIONARY T2 ON T2.CODE=TCVT.INTENT AND T2.STATUS=0 AND T2.[TYPE]=#TYPE2#<!-- '拜访目的' -->
+	 	 LEFT JOIN T_DATA_DICTIONARY T3 ON T3.CODE=TCVT.IMPORTANT_RECORD AND T3.STATUS=0 AND T3.[TYPE]=#TYPE3#<!-- '重点记录' -->
+	 	 LEFT JOIN T_AREA TP ON TCVT.PROVINCE_ID=TP.ID
+	 	 LEFT JOIN T_AREA TC ON TCVT.CITY_ID=TC.ID
+	 	 LEFT JOIN T_AREA TA ON TCVT.AREA_ID=TA.ID
+	 	 LEFT JOIN T_USER_USER TUU2 ON TUU2.ID=TCVT.EMPLOYEE_ID AND TUU2.STATUS=0
+	 	 LEFT JOIN T_DEPT_DEPARTMENT DEPT ON TUU2.DEPT_ID=DEPT.ID AND DEPT.STATUS=0
+         LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID=DEPT.DECP_ID AND DECP.STATUS=0
+         LEFT JOIN T_USER_USER TT ON TT.STATUS=0 AND TT.ID=TCVT.EMPLOYEE
+			 WHERE TCVT.STATUS=0   
+			   AND TCVT.DATE>=CONVERT(DATE,#beginDate#) 
+			   AND TCVT.DATE&lt;=CONVERT(DATE,#endDate#)
+			<isEqual property="node" compareValue="1">
+			   AND TCVT.EMPLOYEE_ID=#id#  <!-- 看自己 -->
+			</isEqual>
+			<isEqual property="node" compareValue="2">
+			   AND TCVT.EMPLOYEE_ID IN (  <!-- 看自己办事处-->
+			       SELECT DISTINCT TUU.ID 
+			         FROM T_USER_USER TUU 
+			        WHERE TUU.DEPT_ID IN (
+			       SELECT TUUY.DEPT_ID FROM T_USER_USER2COMPANY TUUY        
+			        WHERE TUUY.USER_ID=#id# AND TUUY.STATUS=0)
+			          AND TUU.STATUS=0
+			    )
+			</isEqual>
+			<isNotEmpty property="deptId">
+			   AND DECP.DECP_ID=#deptId#
+            </isNotEmpty>
+            <isNotEmpty property="isHoliday">
+               AND TCVT.HOLIDAY=#isHoliday#
+            </isNotEmpty>
+            <isNotEmpty property="isWithSupervisor">
+               AND TCVT.WITH_SUPERVISOR=#isWithSupervisor#
+            </isNotEmpty>
+            <isNotEmpty property="userId">
+               AND TCVT.EMPLOYEE_ID=#userId#
+            </isNotEmpty>
+            <isNotEmpty property="content">
+               AND (TCVT.OBJECT LIKE '%$content$%' OR
+               		TCVT.REMARK LIKE '%$content$%')
+            </isNotEmpty>
+		  ORDER BY TCVT.DATE ASC,TCVT.EXPECT_FROM_TIME ASC
+	</select>
+	
+	<select id="getMaxRowNum" resultClass="java.lang.Integer">
+			SELECT ISNULL(O.rowMaxNum,0) FROM
+				(
+					SELECT TOP 1 COUNT(TCVT.DATE) rowMaxNum       
+					  FROM T_CUSTOMER_VISIT TCVT 
+			     LEFT JOIN T_DATA_DICTIONARY T1 ON T1.CODE=TCVT.EMPOLDER_WAY AND T1.STATUS=0 AND T1.[TYPE]=#TYPE1#<!-- '开拓方式' -->
+			 	 LEFT JOIN T_DATA_DICTIONARY T2 ON T2.CODE=TCVT.INTENT AND T2.STATUS=0 AND T2.[TYPE]=#TYPE2#<!-- '拜访目的' -->  
+			 	 LEFT JOIN T_AREA TP ON TCVT.PROVINCE_ID=TP.ID
+	 			 LEFT JOIN T_AREA TC ON TCVT.CITY_ID=TC.ID
+	 	 		 LEFT JOIN T_AREA TA ON TCVT.AREA_ID=TA.ID
+					 WHERE TCVT.STATUS=0   
+					   AND TCVT.DATE BETWEEN CONVERT(DATE,#beginDate#) AND CONVERT(DATE,#endDate#)
+					<isEqual property="node" compareValue="1">
+					   AND TCVT.EMPLOYEE_ID=#id#  <!-- 看自己 -->
+					</isEqual>
+					<isEqual property="node" compareValue="2">
+					   AND TCVT.EMPLOYEE_ID IN (  <!-- 看自己办事处-->
+					       SELECT DISTINCT TUU.ID 
+					         FROM T_USER_USER TUU 
+					        WHERE TUU.DEPT_ID IN (
+					       SELECT TUUY.DEPT_ID FROM T_USER_USER2COMPANY TUUY        
+					        WHERE TUUY.USER_ID=#id# AND TUUY.STATUS=0)
+					          AND TUU.STATUS=0
+					    )
+					</isEqual>
+				  GROUP BY TCVT.DATE
+				  ORDER BY COUNT(TCVT.DATE) DESC
+				 ) O
+	</select>
+	
+	<select id="getWeekList" resultClass="com.brick.customerVisit.to.CustomerTO">
+		  SELECT DISTINCT
+		  		 CASE WHEN GETDATE() BETWEEN CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)) AND CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),5))
+              		  THEN 'Y'
+              		  ELSE 'N'
+               		   END currentWeekFlag, 
+		  		 CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)) sunday,
+		  		 CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+1) monday,
+		         CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+2) tuesday,
+		         CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+3) wednesday,
+		         CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+4) thursday,
+		         CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)+5) friday,
+         		 CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),5)) saturday,
+         		 CONVERT(VARCHAR,CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1)))+'~'+CONVERT(VARCHAR,CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),5))) value
+		    FROM T_DAY_TYPE
+		   WHERE YEAR(DATE)=YEAR(GETDATE())
+		ORDER BY CONVERT(DATE,DATEADD(WK,DATEDIFF(WK,0,DATE),-1))
+	</select>
+	
+	<insert id="addCustomerVisit">
+		INSERT INTO T_CUSTOMER_VISIT
+		(EMPLOYEE_ID,NAME,DATE,EXPECT_FROM_TIME,EXPECT_TO_TIME,ACTUAL_FROM_TIME,ACTUAL_TO_TIME,OBJECT,EMPOLDER_WAY,
+		 PROVINCE_ID,CITY_ID,AREA_ID,INTENT,WITH_SUPERVISOR,HOLIDAY,HOLIDAY_FROM_TIME,HOLIDAY_TO_TIME,STATUS,CREATE_BY,
+		 CREATE_ON,LAST_UPDATED_BY,LAST_UPDATED_ON,IMPORTANT_RECORD,REMARK,NEED_COLLEAGUE,EMPLOYEE)
+		VALUES
+		(#employeeId#,#name#,CONVERT(DATE,#date#),CONVERT(DATETIME,#expectFromTime#),CONVERT(DATETIME,#expectToTime#),
+		 CONVERT(DATETIME,#actualFromTime#),CONVERT(DATETIME,#actualToTime#),#object#,#empolderWay#,#provinceId#,#cityId#,
+		 #areaId#,#intent#,#withSupervisor#,#holiday#,CONVERT(DATETIME,#holidayFromTime#),CONVERT(DATETIME,#holidayToTime#),
+		 0,#employeeId#,GETDATE(),#lastUpdatedBy#,#lastUpdatedOn#,#importantRecord#,#remark#,#needColleague#,#employee#)
+	</insert>
+	
+	<update id="deleteCustomerVisit">
+		UPDATE T_CUSTOMER_VISIT SET STATUS=-1 WHERE ID=#ID#
+	</update>
+	
+	<update id="updateCustomerVisit">
+		UPDATE T_CUSTOMER_VISIT 
+		   SET <!-- OBJECT=#object#,EMPOLDER_WAY=#empolderWay#,INTENT=#intent#,WITH_SUPERVISOR=#withSupervisor#, 暂时不更新这些栏位-->
+			   ACTUAL_FROM_TIME=CONVERT(DATETIME,#actualFromTime#),ACTUAL_TO_TIME=CONVERT(DATETIME,#actualToTime#),LAST_UPDATED_BY=#employeeId#,
+			   LAST_UPDATED_ON=GETDATE()
+		 WHERE ID=#id#
+		   AND STATUS=0
+	</update>
+	
+	<select id="getDeptList" resultClass="java.util.HashMap">
+		     SELECT TDY.DECP_ID DEPT_ID,
+			    	TDY.DECP_NAME_CN DEPT_NAME
+			FROM T_DEPT_COMPANY TDY
+		   WHERE TDY.STATUS=0
+		     AND TDY.[ORDER] IS NOT NULL
+		<isEqual property="node" compareValue="2">
+       	     AND TDY.DECP_ID IN        
+        	(
+		        SELECT DECP_ID 
+		          FROM T_DEPT_DEPARTMENT 
+		         WHERE ID IN (
+		        SELECT TUUY.DEPT_ID FROM T_USER_USER2COMPANY TUUY        
+					        WHERE TUUY.USER_ID=#id# AND TUUY.STATUS=0
+              )
+        	)
+        </isEqual>
+        ORDER BY [ORDER]
+	</select>
+	
+	<select id="getStaffList" resultClass="com.brick.customerVisit.to.CustomerTO">
+			<isEqual property="node" compareValue="2">
+				   SELECT DISTINCT TUU.ID id,TUU.NAME name 
+			         FROM T_USER_USER TUU 
+			        WHERE TUU.DEPT_ID IN (
+			       SELECT TUUY.DEPT_ID FROM T_USER_USER2COMPANY TUUY        
+			        WHERE TUUY.USER_ID=#id# AND TUUY.STATUS=0)
+			          AND TUU.STATUS=0
+			          AND TUU.JOB='1'
+			</isEqual>
+			<isEqual property="node" compareValue="0">
+				   SELECT DISTINCT TUU.ID id,TUU.NAME name 
+			         FROM T_USER_USER TUU 
+			        WHERE TUU.STATUS=0 AND TUU.JOB='1'
+			</isEqual>
+	</select>
+	
+	<select id="getRemark" resultClass="java.lang.String">
+		   SELECT REMARK FROM T_CUSTOMER_VISIT WHERE ID=#id# AND STATUS=0
+	</select>
+	
+	<select id="getEmployeeList" resultClass="com.brick.customerVisit.to.CustomerTO">
+           <!-- SELECT ID employeeId,NAME name 
+        	 FROM T_USER_USER 
+	        WHERE JOB='1' 
+	          AND STATUS=0 
+	          AND UPPER_USER IN (SELECT UPPER_USER FROM T_USER_USER WHERE ID=#id# AND STATUS=0) -->
+	          SELECT ID employeeId,NAME name 
+        	 	FROM T_USER_USER 
+	           WHERE JOB IN ('1','2','8','司机')
+	             AND CODE NOT LIKE 'u%' 
+	             AND STATUS=0 
+	</select>
+	
+	<select id="queryDataDictionary" resultClass="java.util.HashMap">
+		   SELECT T.DATA_ID,T.CODE,T.FLAG,T.DEFAULT_VALUE,T.SHORTNAME 
+		     FROM T_DATA_DICTIONARY T 
+      		WHERE T.TYPE=#dataType#
+      		  AND T.SHORTNAME=#shortName# 
+      		  AND T.STATUS=0 
+         ORDER BY T.LEVEL_NUM,T.CODE
+	</select>
+</sqlMap>

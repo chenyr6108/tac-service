@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap  namespace="sysBusinessLog">
+	
+    <!-- 插入一条系统业务日志 -->
+    <insert id="add" parameterClass="map">
+    	insert into T_SYS_BUSINESSLOG
+			(
+			CREDIT_ID,
+			CONTRACT_ID,
+			LOG_TYPE,
+			LOG_TITLE,
+			LOG_CODE,
+			MEMO,
+			STATE,
+			USER_ID,
+			CREATE_DATE,
+			STATUS,
+			OTHER_ID,
+			IP_ADDRESS
+			)
+			values
+			(
+			#creditId#,
+			#contractId#,
+			#logType#,
+			#logTitle#,
+			#logCode#,
+			#memo#,
+			#state#,
+			#userId#,
+			getdate(),
+			0,
+			#otherId#,
+			#ip#
+			)
+    </insert>
+    
+    <!-- 日志管理 -->
+    <select id="manage_count" parameterClass="map" resultClass="int">
+    	select count(cust_id) cnt 
+		  from (select tcc.cust_id,
+		               tcc.type,
+		               tcc.cust_code,
+		               tcc.cust_name,
+		               tpc.id credit_id,
+		               tpc.lease_code,
+		               tsb.log_id,
+		               tsb.log_type,
+		               tsb.log_title,
+		               tsb.log_code,
+		               tsb.memo,
+		               tsb.user_id,
+		               tuu.name user_name,
+		               tsb.create_date,
+		               tsb.state,
+		               tsb.status,
+		               tsb.IP_ADDRESS
+		          from t_sys_businesslog tsb
+		         inner join t_prjt_credit tpc on tsb.credit_id = tpc.id and tsb.CONTRACT_ID = 0
+		          left join t_cust_customer tcc on tcc.cust_id = tpc.cust_id
+		          left join t_user_user tuu on tuu.id = tsb.user_id
+		        union
+		        select tcc.cust_id,
+		               tcc.type,
+		               tcc.cust_code,
+		               tcc.cust_name,
+		               trc.rect_id contract_id,
+		               trc.lease_code,
+		               tsb.log_id,
+		               tsb.log_type,
+		               tsb.log_title,
+		               tsb.log_code,
+		               tsb.memo,
+		               tsb.user_id,
+		               tuu.name user_name,
+		               tsb.create_date,
+		               tsb.state,
+		               tsb.status,
+		               tsb.IP_ADDRESS
+		          from t_sys_businesslog tsb
+		         inner join t_rent_contract trc on tsb.contract_id = trc.rect_id
+		          left join t_cust_customer tcc on tcc.cust_id = trc.cust_id
+		          left join t_user_user tuu on tuu.id = tsb.user_id) tt
+		 where tt. state = 1
+		   and status = 0
+		   <dynamic>
+		   		<isNotEmpty prepend="and" property="content">
+		   			(cust_name like '%$content$%' or
+		   			lease_code like '%$content$%' or log_type like '%$content$%'
+		   			or user_name like '%$content$%')
+		   		</isNotEmpty>
+		   		<isNotEmpty prepend="and" property="start_date">
+			  		create_date&gt;=CONVERT(datetime,#start_date#)
+			  	</isNotEmpty>
+			  	<isNotEmpty prepend="and" property="end_date">
+			  		create_date&lt;=CONVERT(datetime,#end_date#)+1
+			  	</isNotEmpty>
+		   </dynamic>
+		 
+    </select>
+    <select id="manage" parameterClass="map" resultClass="hashmap">
+    	select tcc.cust_id,
+		               tcc.type,
+		               tcc.cust_code,
+		               tcc.cust_name,
+		               tpc.id credit_id,
+		               tpc.lease_code,
+		               tsb.log_id,
+		               tsb.log_type,
+		               tsb.log_title,
+		               tsb.log_code,
+                  	   ISNULL(tsb.memo,'')
+             		   memo,
+		               tsb.user_id,
+		               tuu.name user_name,
+		               tsb.create_date,
+		               tsb.state,
+		               tsb.status,
+		               tsb.IP_ADDRESS
+		          from t_sys_businesslog tsb
+		          left join t_prjt_credit tpc on tsb.credit_id = tpc.id
+		          left join t_cust_customer tcc on tcc.cust_id = tpc.cust_id
+		          left join t_user_user tuu on tuu.id = tsb.user_id
+		 	where tsb. state = 1
+		   	and tsb.status = 0
+		   <dynamic>
+		   		<isNotEmpty prepend="and" property="content">
+		   			(tcc.cust_name like '%$content$%' 
+		   			or tpc.lease_code like '%$content$%' 
+		   			or tsb.log_type like '%$content$%'
+		   			or tuu.[name] like '%$content$%')
+		   		</isNotEmpty>
+		   		<isNotEmpty prepend="and" property="start_date">
+			  		tsb.create_date&gt;=CONVERT(datetime,#start_date#)
+			  	</isNotEmpty>
+			  	<isNotEmpty prepend="and" property="end_date">
+			  		tsb.create_date&lt;=CONVERT(datetime,#end_date#)+1
+			  	</isNotEmpty>
+		   </dynamic>
+    </select>
+	
+	<!--合同查看页面日志弹出层 -->
+	<select id="showLog" parameterClass="map" resultClass="java.util.HashMap">
+		   select  * from (select top 10 * from(
+		select top (#end#) * from(
+					select  tsb.log_id,
+					   tsb.credit_id,
+					   tsb.contract_id,
+					   tsb.log_type,
+					   tsb.log_title,
+					   ISNULL(tsb.log_code,' ') log_code,  				   
+                  		ISNULL(tsb.memo,'')  memo,			   
+					   tsb.user_id,
+					   CONVERT(varchar,tsb.create_date,120) create_date,
+					   tsb.state,
+					   tuu.name user_name
+					from t_sys_businesslog tsb
+					left join t_user_user tuu on tuu.id = tsb.user_id
+				where tsb.credit_id=#PRJT_ID# and  tsb.status = 0 
+				union
+				select tsb.log_id,
+					   tsb.credit_id,
+					   tsb.contract_id,
+					   tsb.log_type,
+					   tsb.log_title,
+					   ISNULL(tsb.log_code,' ') log_code,
+                  		ISNULL(tsb.memo,'') memo,
+					   tsb.user_id,
+					   CONVERT(varchar,tsb.create_date,120) create_date,
+					   tsb.state,
+					   tuu.name user_name
+					from t_sys_businesslog tsb
+					left join t_user_user tuu on tuu.id = tsb.user_id
+				where tsb.status = 0 and tsb.contract_id =
+				(
+				select rect_id from t_rent_contract trc where trc.prcd_id=#PRJT_ID# AND trc.STATUS=0
+				)
+		) t   order by t.create_date asc) n order by n.create_date desc )n1 order by n1.create_date asc
+	</select>
+	<select id="selectCredit" parameterClass="map" resultClass="java.util.HashMap" >
+		select distinct isnull(t.credit_id,1),t.contract_id from t_sys_businesslog t where  contract_id=#PRCD_ID# and credit_id is not null 
+	</select>	
+	
+	<select id="selectContract" parameterClass="map" resultClass="java.util.HashMap">
+		select rect_id from t_rent_contract where prcd_id=#PRJT_ID#
+	</select >
+	
+	<select id="showLog_count" parameterClass="map" resultClass="java.lang.Integer">
+		select count(1) tld from(
+		select * from t_sys_businesslog
+		where credit_id=#PRJT_ID# and  status = 0 
+		union
+		select * from t_sys_businesslog
+		where status = 0 and contract_id =
+		(
+		select rect_id from t_rent_contract where prcd_id=#PRJT_ID# AND STATUS=0
+		)) t
+		  
+	</select>
+</sqlMap>

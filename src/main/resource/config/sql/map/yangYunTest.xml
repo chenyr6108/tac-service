@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="yangYunTest">
+	
+	<select id="getTestData" resultClass="java.util.HashMap">
+		select * from T_PERFORMANCE_LOG
+		where ID = 913681
+	</select>
+	
+	<insert id="saveTestData" parameterClass="map">
+		insert into T_PERFORMANCE_LOG(
+		   ACTION_INFO
+		  ,START_TIME
+		  ,END_TIME
+		  ,TIME_CONSUMING
+		  ,login_name
+		  ,login_ip
+		) VALUES (
+		   #ACTION_INFO#
+		  ,#START_TIME#
+		  ,#END_TIME#
+		  ,#TIME_CONSUMING#
+		  ,#LOGIN_NAME#
+		  ,#LOGIN_IP#
+		)
+	</insert>
+	
+	<update id="testQuartz">
+		update T_REPORT_EMPBONUS SET
+		  MONTH_1 = MONTH_1 + 1
+		WHERE ID = 1
+	</update>
+	
+	<select id="getAllIncomeForYangYun" parameterClass="map"	resultClass="java.util.HashMap">
+		select FIIN_ID, OPPOSING_DATE
+		from T_FINA_INCOME
+		where (LEFT_ID = 0 or LEFT_ID is null)
+		and Income_Finance_Code is null
+		order by OPPOSING_DATE
+	</select>
+	
+	<update id="updateSerialNum" parameterClass="map">
+		update T_FINA_INCOME set Income_Finance_Code = #fullSerialNum#
+		where FIIN_ID = #fiin_id#
+	</update>
+	
+	<select id="getAllTwo" parameterClass="map"	resultClass="java.util.HashMap">
+		select f1.FIIN_ID, f1.OPPOSING_DATE, f1.LEFT_ID, 
+		f1.Income_Finance_Code, f2.Income_Finance_Code as LEFT_CODE
+		from T_FINA_INCOME f1
+		left join T_FINA_INCOME f2 on f1.LEFT_ID = f2.FIIN_ID
+		where f1.Income_Finance_Code is null
+		and f1.LEFT_ID is not null
+	</select>
+	
+	<update id="updateSerialNumForTwo" parameterClass="map">
+		update T_FINA_INCOME set Income_Finance_Code = #LEFT_CODE#
+		where FIIN_ID = #FIIN_ID#
+	</update>
+	
+	<select id="doPrjtMerge" parameterClass="map"	resultClass="java.util.HashMap">
+		select pc.ID, pc.CUST_ID, pc.COMMIT_WIND_DATE, pm.GROUP_CODE 
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_MERGE pm on pc.ID = pm.CREDIT_ID and pm.STATUS = 0
+		where pc.STATE = 1 and pc.STATUS = 0
+		and pm.GROUP_CODE is null
+	</select>
+	
+	<select id="testExecSql" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0) from ($sqlStr$)count_temp
+	</select>
+	
+	<select id="getAllCustLink" parameterClass="map" resultClass="java.util.HashMap">
+		select (
+		  select top 1 l.LINK_MOBILE from T_CUST_LINKMAN l
+		  where l.STATUS = 0 and l.LINK_TYPE = 0
+		  and l.CUST_ID = t.CUST_ID
+		) as LINK_MOBILE, t.CUST_NAME from (
+		  select cust.CUST_ID, cust.CUST_NAME from T_RENT_COLLECTIONPLAN recp
+		  left join T_RENT_CONTRACT rect on recp.RECT_ID = rect.RECT_ID
+		  left join T_CUST_CUSTOMER cust on rect.CUST_ID = cust.CUST_ID
+		  where recp.STATUS = 0 and rect.STATUS = 0 and cust.STATUS = 0
+		  and (recp.RECP_STATUS = 0 or recp.FUND_STATUS = 0)
+		  group by cust.CUST_ID, cust.CUST_NAME
+		)t
+	</select>
+	
+	<select id="getAllRc" resultClass="hashmap">
+		select PRC_ID, CREDIT_ID from T_PRJT_RISK_CONTROL
+		where STATUS = 0 
+	</select>
+	
+	<update id="updateRiskLevel" parameterClass="map">
+		update T_PRJT_RISK_CONTROL set RISK_LEVEL = #riskLevel#
+		where PRC_ID = #PRC_ID#
+	</update>
+	
+	<select id="testPaging" parameterClass="map" resultClass="com.brick.user.to.UserTo">
+		select ID as userId, NAME as userName
+		from T_USER_USER
+		where 1 = 1
+		<isNotEmpty property="search_name">
+			and NAME like '%$search_name$%'
+		</isNotEmpty>
+	</select>
+	
+	<select id="getRecdIdForThing" parameterClass="map" resultClass="java.lang.Integer">
+		select top 1 cd.RECD_ID
+		from T_RENT_CONTRACTDETAIL cd
+		left join T_RENT_CONTRACT ct on cd.RECT_ID = ct.RECT_ID
+		left join T_CUST_CUSTOMER cu on ct.CUST_ID = cu.CUST_ID
+		where cu.CUST_NAME like '%$cust_name$%'
+		and cd.THING_NAME like '%$thing_name$%'
+		and cd.THING_NUMBER is null
+	</select>
+	
+	<select id="getRecdIdForThingWithoutNumber" parameterClass="map" resultClass="java.lang.Integer">
+		select top 1 cd.RECD_ID
+		from T_RENT_CONTRACTDETAIL cd
+		left join T_RENT_CONTRACT ct on cd.RECT_ID = ct.RECT_ID
+		left join T_CUST_CUSTOMER cu on ct.CUST_ID = cu.CUST_ID
+		where cu.CUST_NAME like '%$cust_name$%'
+		and cd.THING_NAME like '%$thing_name$%'
+	</select>
+	
+	<update id="updateThingNumber" parameterClass="map">
+		update T_RENT_CONTRACTDETAIL set THING_NUMBER = #thing_number#
+		where RECD_ID = #recd_id#
+	</update>
+	
+	<select id="getAllRiskTimeInfo" resultClass="com.brick.risk_audit.to.RiskAuditTo">
+		select prc.PRC_ID as prcId, 
+			case when prm.CREATE_TIME is null then
+		  (
+		    select max(create_time) from T_PRJT_CREDITMEMO
+		    where CREDIT_ID = prc.CREDIT_ID
+		  ) else prm.CREATE_TIME end as commitTime, 
+		t.finish_time as finishTime
+		from T_PRJT_RISK_CONTROL prc
+		left join T_PRJT_CREDITMEMO prm on prm.tprc_id = prc.PRC_ID
+		left join (select pcm.PRC_ID, 
+		  max(pcm.CREATE_TIME) as finish_time
+		  from T_PRJT_RISK_CONTROLMEMO pcm
+		  left join T_PRJT_RISK_CONTROL rc on pcm.PRC_ID = rc.PRC_ID
+		  where pcm.STATUS = 0 and rc.STATE in (1,3,4)
+		  group by pcm.PRC_ID) t on t.PRC_ID = prc.PRC_ID
+		where prc.STATUS = 0 
+	</select>
+	
+	<update id="updateRiskTimeInfo" parameterClass="com.brick.risk_audit.to.RiskAuditTo">
+		update T_PRJT_RISK_CONTROL
+		set COMMIT_TIME = #commitTime#,
+		FINISH_TIME = #finishTime#
+		where PRC_ID = #prcId#
+	</update>
+	
+	<select id="getRectIdForInsu" resultClass="java.util.HashMap">
+		<!-- select insu.INCU_ID, max(rect.RECT_ID) as RECT_ID 
+		from T_INSU_INSURANCELIST insu
+		left join T_RENT_CONTRACT rect on insu.RECT_CODE = rect.LEASE_CODE
+		group by insu.INCU_ID -->
+		select 
+		insu.INCU_ID, max(rect.RECT_ID) as RECT_ID
+		from T_INSU_INSURANCELIST insu
+		left join T_INSU_EMPT2INSULIST ei on ei.INSU_ID = insu.INCU_ID
+		left join T_RENT_CONTRACTDETAIL cd1 on ei.EQMT_ID = cd1.EQMT_ID
+		left join T_RENT_CONTRACT rect on cd1.RECT_ID = rect.RECT_ID
+		where insu.RECT_ID is null
+		and rect.RECT_ID is not null
+		group by insu.INCU_ID
+	</select>
+	
+	<update id="updateRectIdForInsu" parameterClass="map">
+		update T_INSU_INSURANCELIST
+		set RECT_ID = #RECT_ID#
+		, INSU_STATUS = 20
+		where INCU_ID = #INCU_ID#
+	</update>
+	
+	<select id="getInsuStatus" resultClass="java.util.HashMap">
+		select INCU_ID,
+		case when STATUS = 0 then 20
+		when STATUS = -1 then 50
+		when STATUS = 2 then 30
+		else 0 end as INSU_STATUS
+		from T_INSU_INSURANCELIST
+	</select>
+	
+	<update id="updateInsuStatus" parameterClass="map">
+		update T_INSU_INSURANCELIST
+		set INSU_STATUS = #INSU_STATUS#
+		where INCU_ID = #INCU_ID#
+	</update>
+	
+	<update id="updateTestTrans">
+		update T_USER_USER
+		set REMARK1 = REMARK1 + 1
+		where ID = 145
+	</update>
+	
+	<select id="getSupplier" resultClass="com.brick.base.to.SelectionTo">
+		select [NAME] as display_name,
+		ID as option_value
+		from T_USER_USER
+	</select>
+	
+	<select id="getDirectLockLinkerEmail" parameterClass="map" resultClass="java.util.HashMap">
+		select LINK_NAME,LINK_MOBILE,LINK_EMAIL ,
+		(
+		  select top 1 u.EMAIL 
+		  from T_RENT_CONTRACT rc
+		  left join T_USER_USER u on rc.SENSOR_ID = u.ID
+		  where rc.RECT_ID = max(t.RECT_ID)
+		) as sensor_mail
+		from DAILY_LOCKMANAGE_SENDINFO t
+		where LINKER_SEND =0 and LOCK_CODE=1
+		and year(CREATE_TIME)= 2013
+		and MONTH(CREATE_TIME)= 5
+		and DAY(CREATE_TIME)= 29
+		group by LINK_NAME,LINK_MOBILE,LINK_EMAIL
+	</select>	
+	
+	<select id="getDirectLockLinkerEmailByMobile" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select * from DAILY_LOCKMANAGE_SENDINFO
+			where LINKER_SEND =0 and LOCK_CODE=1
+			and year(CREATE_TIME)= 2013
+			and MONTH(CREATE_TIME)= 5
+			and DAY(CREATE_TIME)= 29
+			and LINK_MOBILE=#LINK_MOBILE#
+		]]>
+	</select>
+	
+	
+	<select id="getDirectLockCodeCustEmail" parameterClass="map" resultClass="java.util.HashMap">
+		select RENTER_NAME,RENTER_PHONE,RENTER_EMAIL 
+		,(
+		  select top 1 u.EMAIL 
+		  from T_RENT_CONTRACT rc
+		  left join T_USER_USER u on rc.SENSOR_ID = u.ID
+		  where rc.RECT_ID = max(t.RECT_ID)
+		) as sensor_mail
+		from DAILY_LOCKMANAGE_SENDINFO t
+		where IS_SEND=0 and LOCK_CODE=3 
+		and year(CREATE_TIME)= 2013
+		and MONTH(CREATE_TIME)= 1
+		and DAY(CREATE_TIME)= 8
+		and (PASSWORDS is not null or FILE_NAME is not null)
+		group by RENTER_NAME,RENTER_PHONE,RENTER_EMAIL
+	</select>
+	<!-- 获取直接锁码的联系人信息 -->	
+	<select id="getDirectLockCodeCustEmailByMobile" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select * 
+			,(
+			  select top 1 u.EMAIL 
+			  from T_RENT_CONTRACT rc
+			  left join T_USER_USER u on rc.SENSOR_ID = u.ID
+			  where rc.RECT_ID = t.RECT_ID
+			) as sensor_mail
+			from DAILY_LOCKMANAGE_SENDINFO t
+			where IS_SEND =0 and LOCK_CODE=3 
+			and year(CREATE_TIME)= 2013
+			and MONTH(CREATE_TIME)= 1
+			and DAY(CREATE_TIME)= 8
+			and RENTER_EMAIL=#RENTER_EMAIL#
+			and (PASSWORDS is not null or FILE_NAME is not null)
+		]]>
+	</select>
+	
+	<select id="getAllDisableUserMail" resultClass="java.lang.String">
+		select EMAIL from t_user_user u
+		where STATUS != 0
+		and EMAIL is not null
+		and EMAIL != ''
+		and not exists (
+		  select 0 from T_USER_USER uu
+		  where uu.[NAME] = u.[NAME]
+		  and uu.STATUS = 0
+		)
+	</select>
+	
+	<select id="getAllMail" resultClass="java.util.HashMap">
+		select EMAIL_TO, EMAIL_CC, ID
+		from T_SET_EMAIL
+	</select>
+	
+	<select id="getInsuData" resultClass="java.util.HashMap">
+		select rc.LEASE_CODE, ic.SHORT_NAME, insu.INSU_START_DATE
+		from T_RENT_CONTRACT rc
+		left join T_INSU_INSURANCELIST insu on insu.RECT_ID = rc.RECT_ID
+		and insu.STATUS = 0 and insu.INSU_STATUS >= 20
+		left join T_INSU_COMPANY ic on insu.INCP_ID = ic.INCP_ID
+		where rc.STATUS = 0
+		order by rc.LEASE_CODE
+	</select>
+	
+	<select id="getInsus" parameterClass="map" resultClass="java.lang.String">
+		select insu.INCU_ID from T_INSU_INSURANCELIST insu
+		where exists (
+		  select 0 from T_RENT_CONTRACT rc
+		  where rc.LEASE_CODE in ($leases$)
+		  and insu.RECT_ID = rc.RECT_ID
+		) and insu.STATUS = 0 and insu.INCU_CODE is null
+	</select>
+	
+	<update id="updateSetEmail" parameterClass="map">
+		update T_SET_EMAIL
+		set EMAIL_TO = #EMAIL_TO#
+		, EMAIL_CC = #EMAIL_CC#
+		where ID = #ID#
+	</update>
+	
+	<select id="getDunInfo" resultClass="java.util.HashMap" parameterClass="map">
+		select RECT_ID, DUN_DAY from T_DUN_DAILY d
+		where convert(date, d.CREATE_DATE) = convert(date, #search_date#)
+		and DUN_DAY in (31,61,91,181)
+	</select>
+	
+	<select id="getFieldForDun" resultClass="java.util.HashMap" parameterClass="map">
+		select top 1 RECT_ID
+		,FIRST_DUN_31 ,FIRST_DUN_61
+		,FIRST_DUN_91 ,FIRST_DUN_181
+		from T_RENT_CONTRACT
+		where RECT_ID = #rect_id#
+	</select>
+	
+	<update id="updateFirstDun" parameterClass="map">
+		update T_RENT_CONTRACT
+		set MODIFY_USER_ID = MODIFY_USER_ID
+		<isNotEmpty property="FIRST_DUN_31">
+			,FIRST_DUN_31 = #FIRST_DUN_31#
+		</isNotEmpty>
+		<isNotEmpty property="FIRST_DUN_61">
+			,FIRST_DUN_61 = #FIRST_DUN_61#
+		</isNotEmpty>
+		<isNotEmpty property="FIRST_DUN_91">
+			,FIRST_DUN_91 = #FIRST_DUN_91#
+		</isNotEmpty>
+		<isNotEmpty property="FIRST_DUN_181">
+			,FIRST_DUN_181 = #FIRST_DUN_181#
+		</isNotEmpty>
+		where RECT_ID = #RECT_ID#
+	</update>
+	
+	
+	
+	
+	
+	
+	
+</sqlMap>

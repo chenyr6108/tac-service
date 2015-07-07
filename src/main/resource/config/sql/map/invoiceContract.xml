@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="invoiceContract">
+	<!-- 查询支付表   用于支付表选择 -->
+	<select id="checkInvoice" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[			  
+			select t.recp_id RECP_ID,
+			       t.start_date START_DATE,
+			       t.create_time CREATE_TIME,
+			       t.version_code VERSION_CODE,
+			       t.recp_code    RECP_CODE
+			  from t_rent_collectionplan t
+			  where t.rect_id=#RECT_ID#  and t.reip_id is null and t.status=0
+        		and t.version_code =
+		           (select max(t1.version_code)
+		              from t_rent_collectionplan t1
+		             where t.recp_code = t1.recp_code)
+         		order by t.recp_code   			  
+		]]>
+	</select>	
+	<!-- 查询基本信息   用于支付表选择   乙方-->
+	<select id="infor" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t.rect_id,
+			       t1.cust_name,	
+			       t.lease_code,
+	             t.cust_phone,
+	             t.cust_address,
+	             t.open_bank,
+	             t.bank_accounts,
+	             t.corp_oragnization_code,
+	             t1.corp_head_signature CORP_HEAD_SIGNATURE ,
+	             t1.corp_setup_date		CORP_SETUP_DATE
+			  from t_rent_contract t
+			  left join T_CUST_CUSTOMER t1 on t.cust_id=t1.cust_id
+			  where t.rect_id=#RECT_ID# and t.status=0
+		]]>
+	</select>
+
+	<!-- 根据支付表ID查询设备-->
+	<select id="selectMac" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+				select t.thing_name THING_NAME,
+				       t.brand BRAND,
+				       t.model_spec MODEL_SPEC,
+				       t.thing_kind THING_KIND,
+				       t.amount AMOUNT,
+				       t.unit_price UNIT_PRICE,
+				       t.unit UNIT,
+				       t.recp_id RECP_ID,
+               		   t2.puct_code PUCT_CODE,
+               		   t3.recp_code  RECP_CODE
+				  from t_rent_contractdetail t
+		          left join t_pucs_contractdetail t1 on t.eqmt_id=t1.eqmt_id
+		          left join t_pucs_contract       t2 on t1.puct_id=t2.puct_id
+		          left join t_rent_collectionplan t3 on t3.recp_id=t.recp_id
+				  where t.status=0 and t.recp_id in
+		]]>
+		<iterate property="idss" open="(" close=")" conjunction=",">
+			#idss[]#
+		</iterate>		
+	</select>	
+	<!-- insert to invoice -->
+	<insert id="add" parameterClass="map">	
+ 		
+					insert into t_rent_invoiceprotocol
+					  (
+					   create_time,
+					   create_user_id,
+					   status,
+					   reip_code,
+					   party_a,
+					   party_b,
+					   party_c,
+					   invoice_date,
+					   whole_status,
+					   whole_type,
+					   w_person_name,
+					   w_person_card,
+					   w_company_name,
+					   w_company_number,
+					   w_company_code,
+					   other_status,
+					   other_type,
+					   o_person_name,
+					   o_person_card,
+					   o_company_name,
+					   o_company_number,
+					   o_company_code,
+					   party_a_name,
+					   party_a_addr,
+					   party_a_attorney,
+					   party_a_signtime,
+					   party_b_name,
+					   party_b_phone,
+					   party_b_addr,
+					   party_b_bank,
+					   party_b_account,
+					   party_b_duty,
+					   party_b_attorney,
+					   party_b_signtime,
+					   party_c_name,
+					   party_c_phone,
+					   party_c_addr,
+					   party_c_bank,
+					   party_c_account,
+					   party_c_duty,
+					   party_c_code,
+					   party_c_attorney,
+					   party_c_signtime,
+					   party_b_code)
+					values
+					  (
+					   getdate(),
+					   #s_employeeId#,
+					   0,
+					   #REIP_CODE#,
+					   #PARTY_A_NAME#,
+					   #PARTY_B_NAME#,
+					   #PARTY_C_NAME#,
+					   CONVERT(datetime,#INVOICE_DATE#),
+					   #WHOLE_STATUS#,
+					   #WHOLE_TYPE#,
+					   #W_PERSON_NAME#,
+					   #W_PERSON_CARD#,
+					   #W_COMPANY_NAME#,
+					   #W_COMPANY_NUMBER#,
+					   #W_COMPANY_CODE#,
+					   #OTHER_STATUS#,
+					   #OTHER_TYPE#,
+					   #O_PERSON_NAME#,
+					   #O_PERSON_CARD#,
+					   #O_COMPANY_NAME#,
+					   #O_COMPANY_NUMBER#,
+					   #O_COMPANY_CODE#,
+					   #PARTY_A_NAME#,
+					   #PARTY_A_ADDR#,
+					   #PARTY_A_ATTORNEY#,
+					   CONVERT(datetime,#PARTY_A_SIGNTIME#),
+					   #PARTY_B_NAME#,
+					   #PARTY_B_PHONE#,
+					   #PARTY_B_ADDR#,
+					   #PARTY_B_BANK#,
+					   #PARTY_B_ACCOUNT#,
+					   #PARTY_B_DUTY#,
+					   #PARTY_B_ATTORNEY#,
+					   CONVERT(datetime,#PARTY_B_SIGNTIME#),
+					   #PARTY_C_NAME#,
+					   #PARTY_C_PHONE#,
+					   #PARTY_C_ADDR#,
+					   #PARTY_C_BANK#,
+					   #PARTY_C_ACCOUNT#,
+					   #PARTY_C_DUTY#,
+					   #PARTY_C_CODE#,
+					   #PARTY_C_ATTORNEY#,
+					   CONVERT(datetime,#PARTY_C_SIGNTIME#),
+					   #PARTY_B_CODE#)
+		<selectKey resultClass="java.lang.Long" keyProperty="reip_id">
+			<![CDATA[	select @@IDENTITY as reip_id ]]>
+		</selectKey>
+	</insert>
+	
+	<!-- use reipid update collectionplan   -->
+	<update id="updatePlan" parameterClass="map">
+		<![CDATA[
+			update t_rent_collectionplan
+			   set reip_id = #reip_id#
+			 where recp_id = #chuan#		
+		]]>
+	</update>	
+	<!-- use reipid  find recpid-->
+	<select id="selectPlanId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		select t.recp_id   from t_rent_collectionplan t
+		where t.reip_id=#reip_id# and t.status=0
+		]]>
+	</select>	
+	<!-- find invoice By Id-->
+	<select id="selectInvoiceById" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+				select reip_id,
+				       reip_code,
+				       party_a,
+				       party_b,
+				       party_c,
+				       invoice_date,
+				       whole_status,
+				       whole_type,
+				       w_person_name,
+				       w_person_card,
+				       w_company_name,
+				       w_company_number,
+				       w_company_code,
+				       other_status,
+				       other_type,
+				       o_person_name,
+				       o_person_card,
+				       o_company_name,
+				       o_company_number,
+				       o_company_code,
+				       party_a_name,
+				       party_a_addr,
+				       party_a_attorney,
+				       party_a_signtime,
+				       party_b_name,
+				       party_b_phone,
+				       party_b_addr,
+				       party_b_bank,
+				       party_b_account,
+				       party_b_duty,
+				       party_b_idcard,
+				       party_b_attorney,
+				       party_b_signtime,
+				       party_c_name,
+				       party_c_phone,
+				       party_c_addr,
+				       party_c_bank,
+				       party_c_account,
+				       party_c_duty,
+				       party_c_code,
+				       party_c_attorney,
+				       party_c_signtime,
+				       party_b_code
+				  from t_rent_invoiceprotocol
+				  where reip_id=#reip_id#  and status=0
+		]]>
+	</select>	
+
+	<!-- update invoice -->
+	<update id="updateInvoice" parameterClass="map">
+		<![CDATA[
+update t_rent_invoiceprotocol
+		   set modify_time = getdate(),
+		       modify_user_id = #s_employeeId#,
+		       party_a = #PARTY_A_NAME#,
+		       party_b = #PARTY_B_NAME#,
+		       party_c = #PARTY_C_NAME#,
+		       invoice_date = CONVERT(datetime,#INVOICE_DATE#),
+		       whole_status = #WHOLE_STATUS#,
+		       whole_type = #WHOLE_TYPE#,
+		       w_person_name = #W_PERSON_NAME#,
+		       w_person_card = #W_PERSON_CARD#,
+		       w_company_name = #W_COMPANY_NAME#,
+		       w_company_number = #W_COMPANY_NUMBER#,
+		       w_company_code = #W_COMPANY_CODE#,
+		       other_status = #OTHER_STATUS#,
+		       other_type = #OTHER_TYPE#,
+		       o_person_name = #O_PERSON_NAME#,
+		       o_person_card = #O_PERSON_CARD#,
+		       o_company_name = #O_COMPANY_NAME#,
+		       o_company_number = #O_COMPANY_NUMBER#,
+		       o_company_code = #O_COMPANY_CODE#,
+		       party_a_name = #PARTY_A_NAME#,
+		       party_a_addr = #PARTY_A_ADDR#,
+		       party_a_attorney = #PARTY_A_ATTORNEY#,
+		       party_a_signtime = CONVERT(datetime,#PARTY_A_SIGNTIME#),
+		       party_b_name = #PARTY_B_NAME#,
+		       party_b_phone = #PARTY_B_PHONE#,
+		       party_b_addr = #PARTY_B_ADDR#,
+		       party_b_bank = #PARTY_B_BANK#,
+		       party_b_account = #PARTY_B_ACCOUNT#,
+		       party_b_duty = #PARTY_B_DUTY#,
+		       party_b_attorney = #PARTY_B_ATTORNEY#,
+		       party_b_signtime = CONVERT(datetime,#PARTY_B_SIGNTIME#),
+		       party_c_name = #PARTY_C_NAME#,
+		       party_c_phone = #PARTY_C_PHONE#,
+		       party_c_addr = #PARTY_C_ADDR#,
+		       party_c_bank = #PARTY_C_BANK#,
+		       party_c_account = #PARTY_C_ACCOUNT#,
+		       party_c_duty = #PARTY_C_DUTY#,
+		       party_c_code = #PARTY_C_CODE#,
+		       party_c_attorney = #PARTY_C_ATTORNEY#,
+		       party_c_signtime = CONVERT(datetime,#PARTY_C_SIGNTIME#),
+		       party_b_code = #PARTY_B_CODE#
+		 where reip_id = #REIP_ID#	
+		]]>
+	</update>
+</sqlMap>

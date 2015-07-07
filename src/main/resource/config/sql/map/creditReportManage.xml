@@ -1,0 +1,4070 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="creditReportManage">
+
+<select id="getCreditReportsHuiJain" parameterClass="map" resultClass="hashmap">
+<![CDATA[ SELECT 
+					 T1.ID ,
+					 T1.STATUS PRCD_STATUS,
+					 T2.RECT_ID,
+					 T1.LEASE_CODE,
+					 T2.RECT_STATUS,
+					 T2.STATUS,
+					 T3.CUST_NAME,
+					 T4.NAME province,
+					 T5.NAME clerk_name,
+					 T6.NAME SENSOR_NAME,
+					 T2.LESSOR_TIME,
+					 MAX(T7.BRAND) BRAND,
+					 isnull(T8.PAYLISTFLAG,0) PAYLISTFLAG,
+					 t1.wind_result_date,
+					 CONVERT(varchar,t1.create_date,23)  create_date,
+					  T1.type,
+					 T3.CUST_CODE,
+					 T1.CONTRACT_TYPE,
+					  T1.state,
+					 T1.clerk_id  clerk_id,
+					 T1.cust_id cust_id,
+					   T1.sensor_id sensor_id,
+					   T1.wind_state,
+					   T1.credit_runcode CREDIT_RUNCODE
+				  FROM T_PRJT_CREDIT T1
+				  LEFT JOIN T_RENT_CONTRACT T2 ON T1.ID = T2.PRCD_ID
+				  LEFT JOIN T_CUST_CUSTOMER T3 ON T1.CUST_ID = T3.CUST_ID
+				  LEFT JOIN T_AREA T4 ON T1.PROVINCE_ID = T4.ID
+				  
+				  LEFT JOIN T_USER_USER T6 ON T1.SENSOR_ID = T6.ID
+				  LEFT JOIN T_USER_USER T5 ON T6.upper_user = T5.ID
+				  LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON T1.ID = T7.CREDIT_ID
+				  LEFT JOIN ( SELECT COUNT(1) PAYLISTFLAG,T8.RECT_ID FROM T_RENT_CONTRACTDETAIL T8 WHERE T8.STATUS=0  AND T8.RECP_ID IS NULL GROUP BY T8.RECT_ID) T8 ON T8.RECT_ID=T2.RECT_ID
+		  WHERE T1.STATUS=0 AND (T1.WIND_STATE=1 OR T1.WIND_STATE=2)
+  			AND (T2.STATUS!=-2 OR T2.STATUS IS NULL)
+  			]]>
+  			 <dynamic>
+		  	<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+		  	 	<![CDATA[ T1.sensor_id = #s_employeeId# ]]> -->
+		  	 	<![CDATA[ 
+		  	 	(T1.SENSOR_ID = #s_employeeId#
+		  	 	or T1.CLERK_ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+		  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = T1.SENSOR_ID)
+				]]>
+			</isEqual>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		  	<isNotEmpty prepend="and" property="content">
+		  		(T1.lease_code like '%$content$%' or T1.type like '%$content$%' or T3.cust_name like '%$content$%' or t5.name like '%$content$%'
+		  		or t6.name like '%$content$%' or t4.name like '%$content$%' or T3.cust_code like '%$content$%'
+		  		or T1.credit_runcode like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		T1.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		T1.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+            <isNotEmpty prepend="" property="QSELECT_STATUS">
+				<isNotEqual prepend="" property="QSELECT_STATUS" compareValue="-2">
+					<isEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS is null ]]>
+					</isEqual>
+					<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS = #QSELECT_STATUS# ]]>
+					</isNotEqual>
+				</isNotEqual>
+			 </isNotEmpty>
+			 <isNotEmpty property="RENTSTAUTS">
+		  	<isNotEqual prepend="and" property="RENTSTAUTS" compareValue="-3">
+		  		 t2.status=#RENTSTAUTS#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic> 
+		<![CDATA[ GROUP BY T1.ID,
+			          T1.STATUS,
+			          T2.RECT_ID,
+			          T1.LEASE_CODE,
+			          T2.RECT_STATUS,
+			          T2.STATUS,
+			          T3.CUST_NAME,
+			          T4.NAME,
+			          T5.NAME,
+			          T6.NAME,
+			          T2.LESSOR_TIME,
+			          T8.PAYLISTFLAG  , 
+			          t1.wind_result_date,
+			          t1.create_date,
+					   T1.type,
+					  T3.CUST_CODE,
+					  T1.CONTRACT_TYPE,
+					  T1.state,
+					  T1.clerk_id,
+					  T1.cust_id,
+					  T1.sensor_id ,
+					  T1.wind_state,
+					  T1.credit_runcode
+					   ORDER BY  T1.ID DESC,T2.RECT_STATUS
+		]]>
+<!--  	select * from (select tpc.id id,
+	       tpc.type type,
+	       tpc.state state,
+	       tpc.cust_id cust_id,
+	       tcc.cust_name cust_name,
+	       tcc.cust_type cust_type,
+	       ta.name province,
+	       tpc.clerk_id clerk_id,
+	       tuu.name clerk_name,
+	       tpc.sensor_id sensor_id,
+	       tuu2.name sensor_name,
+	       tpc.wind_state wind_state,
+	       CONVERT(varchar,tpc.create_date,23)  create_date,
+	       tcc.cust_code   cust_code,
+	       t1.credit_id,
+	       tpc.CONTRACT_TYPE
+		  from t_prjt_credit tpc
+		  join (select COUNT(*) counts, ID 
+							 from (
+								select t4.CONTRACT_TYPE,t4.ID, t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE,count(t1.TRFU_ID) upFileCount
+								from  T_PRJT_CREDIT  t4
+								left join T_RENT_FILEUP t1 on t4.ID=t1.PRCD_ID	
+								left join T_RENT_FILE t on t.REFI_ID=t1.REFI_ID and t1.status=0
+								where t.FILE_STATUS=0 and t4.CONTRACT_TYPE=0 
+								group by  t4.ID,t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t4.CONTRACT_TYPE,t.STATE
+									 ) t 
+								 group by ID
+							 having COUNT(*) &lt; (
+							     select COUNT(*) 
+							     from T_RENT_FILE t where  t.FILE_STATUS=0 and t.FILE_CONTRACT_TYPE=1 )
+				 ) t4 on t4.ID=tpc.ID 
+		  left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		  left join t_area ta on ta.id = tpc.province_id
+		  left join t_user_user tuu on tuu.id = tpc.clerk_id
+		  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		  left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = tpc.id
+		  where tpc.status=0
+		  <dynamic>
+		  	<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 		(tpc.sensor_id = #s_employeeId# or tpc.id in (select t1.credit_id from t_prjt_power t1
+		              where t1.user_id = #s_employeeId# and t1.status=0) )
+		  	 	]]>
+		  	</isEqual>
+		  	<isNotEmpty prepend="and" property="content">
+		  		(tpc.lease_code like '%$content$%' or tpc.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 tpc.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic> 
+	union  
+	   select tpc.id id,
+	       tpc.type type,
+	       tpc.state state,
+	       tpc.cust_id cust_id,
+	       tcc.cust_name cust_name,
+	       tcc.cust_type cust_type,
+	       ta.name province,
+	       tpc.clerk_id clerk_id,
+	       tuu.name clerk_name,
+	       tpc.sensor_id sensor_id,
+	       tuu2.name sensor_name,
+	       tpc.wind_state wind_state,
+	       CONVERT(varchar,tpc.create_date,23)  create_date,
+	       tcc.cust_code   cust_code,
+	       t1.credit_id,
+	       tpc.CONTRACT_TYPE
+		  from t_prjt_credit tpc
+		  join (select isnull(COUNT(*),0) counts, ID 
+							 from (
+								select t4.CONTRACT_TYPE,t4.ID, t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE,count(t1.TRFU_ID) upFileCount
+								from  T_PRJT_CREDIT  t4
+								left join T_RENT_FILEUP t1 on t4.ID=t1.PRCD_ID	
+								left join T_RENT_FILE t on t.REFI_ID=t1.REFI_ID and t1.status=0
+								where t.FILE_STATUS=0 and t4.CONTRACT_TYPE=1 
+								group by  t4.ID,t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t4.CONTRACT_TYPE,t.STATE
+									 ) t 
+								 group by ID
+							 having COUNT(*) &lt; (
+							     select COUNT(*) 
+							     from T_RENT_FILE t where  t.FILE_STATUS=0 and t.FILE_CONTRACT_TYPE=2 )
+				 ) t4 on t4.ID=tpc.ID 
+		  left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		  left join t_area ta on ta.id = tpc.province_id
+		  left join t_user_user tuu on tuu.id = tpc.clerk_id
+		  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		  left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = tpc.id
+		
+		  where tpc.status=0
+	  <dynamic>
+		  	<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 		(tpc.sensor_id = #s_employeeId# or tpc.id in (select t1.credit_id from t_prjt_power t1
+		              where t1.user_id = #s_employeeId# and t1.status=0) )
+		  	 	]]>
+		  	</isEqual>
+		  	<isNotEmpty prepend="and" property="content">
+		  		(tpc.lease_code like '%$content$%' or tpc.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 tpc.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic> 
+		 union  
+		  select tpc.id id,      
+		   tpc.type type,   
+		      tpc.state state,   
+		      tpc.cust_id cust_id,  
+		       tcc.cust_name cust_name,   
+		      tcc.cust_type cust_type,   
+		      ta.name province,       
+		  tpc.clerk_id clerk_id,  
+		       tuu.name clerk_name,  
+		       tpc.sensor_id sensor_id,  
+		       tuu2.name sensor_name,    
+		     tpc.wind_state wind_state,  
+		       CONVERT(varchar,tpc.create_date,23)  create_date ,
+		       tcc.cust_code   cust_code,
+		       t1.credit_id,
+		       tpc.CONTRACT_TYPE
+		    from t_prjt_credit tpc  
+		  	join (select isnull(COUNT(*),0) counts, ID 
+							 from (
+								select t4.CONTRACT_TYPE,t4.ID, t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE,count(t1.TRFU_ID) upFileCount
+								from  T_PRJT_CREDIT  t4
+								left join T_RENT_FILEUP t1 on t4.ID=t1.PRCD_ID	
+								left join T_RENT_FILE t on t.REFI_ID=t1.REFI_ID and t1.status=0
+								where t.FILE_STATUS=0 and t4.CONTRACT_TYPE=0 
+								group by  t4.ID,t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t4.CONTRACT_TYPE,t.STATE
+									 ) t 
+								 group by ID
+							 having COUNT(*) &lt; (
+							     select COUNT(*) 
+							     from T_RENT_FILE t where  t.FILE_STATUS=0 and t.FILE_CONTRACT_TYPE=1 )
+				 ) t4 on t4.ID=tpc.ID 
+		    left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = tpc.id
+		    left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id 
+		    left join t_area ta on ta.id = tpc.province_id    
+		    left join t_user_user tuu on tuu.id = tpc.clerk_id   
+		    left join t_user_user tuu2 on tuu2.id = tpc.sensor_id  
+		    left join (select id from t_user_user tuu where tuu.upper_user=1) upperuser
+		   
+		on tpc.sensor_id=upperuser.id  
+		 where tpc.status = 0     
+		       and   upperuser.id is not null  
+		  <dynamic>
+			<isNotEmpty prepend="and" property="content">
+		  		(tpc.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 tpc.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic>
+		union  
+		  select tpc.id id,      
+		   tpc.type type,   
+		      tpc.state state,   
+		      tpc.cust_id cust_id,  
+		       tcc.cust_name cust_name,   
+		      tcc.cust_type cust_type,   
+		      ta.name province,       
+		  tpc.clerk_id clerk_id,  
+		       tuu.name clerk_name,  
+		       tpc.sensor_id sensor_id,  
+		       tuu2.name sensor_name,    
+		     tpc.wind_state wind_state,  
+		       CONVERT(varchar,tpc.create_date,23)  create_date ,
+		       tcc.cust_code   cust_code,
+		       t1.credit_id,
+		       tpc.CONTRACT_TYPE
+		    from t_prjt_credit tpc  
+		     join (select isnull(COUNT(*),0) counts, ID 
+							 from (
+								select t4.CONTRACT_TYPE,t4.ID, t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t.STATE,count(t1.TRFU_ID) upFileCount
+								from  T_PRJT_CREDIT  t4
+								left join T_RENT_FILEUP t1 on t4.ID=t1.PRCD_ID	
+								left join T_RENT_FILE t on t.REFI_ID=t1.REFI_ID and t1.status=0
+								where t.FILE_STATUS=0 and t4.CONTRACT_TYPE=1 
+								group by  t4.ID,t.REFI_ID,t.FILE_NAME,t.WANT_COUNT,t4.CONTRACT_TYPE,t.STATE
+									 ) t 
+								 group by ID
+							having COUNT(*) &lt; (
+							     select COUNT(*) 
+							     from T_RENT_FILE t where  t.FILE_STATUS=0 and t.FILE_CONTRACT_TYPE=2 )
+				 ) t3 on t3.ID=tpc.ID 
+		    left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = tpc.id
+		    left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id 
+		    left join t_area ta on ta.id = tpc.province_id    
+		    left join t_user_user tuu on tuu.id = tpc.clerk_id   
+		    left join t_user_user tuu2 on tuu2.id = tpc.sensor_id  
+		    left join (select id from t_user_user tuu where tuu.upper_user=1) upperuser
+		   
+		on tpc.sensor_id=upperuser.id  
+		 where tpc.status = 0     
+		       and   upperuser.id is not null  
+		   <dynamic>
+			<isNotEmpty prepend="and" property="content">
+		  		(tpc.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 tpc.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic> 	 
+		 ) t     where state = 1  
+		  order by t.id desc   
+		 --> 
+	</select>
+	<select id="getCreditReportsHuiJain_count" parameterClass="map" resultClass="int">
+	<![CDATA[select COUNT(*) from (
+	          SELECT 
+					 T1.ID ,
+					 T1.STATUS PRCD_STATUS,
+					 T2.RECT_ID,
+					 T1.LEASE_CODE,
+					 T2.RECT_STATUS,
+					 T2.STATUS,
+					 T4.NAME province,
+					 T5.NAME clerk_name,
+					 T6.NAME SENSOR_NAME,
+					 T2.LESSOR_TIME,
+					 MAX(T7.BRAND) BRAND,
+					 isnull(T8.PAYLISTFLAG,0) PAYLISTFLAG,
+					 t1.wind_result_date,
+					 CONVERT(varchar,t1.create_date,23)  create_date,
+					 T1.type,
+					 T3.CUST_CODE,
+					 T3.CUST_NAME,
+					 T1.CONTRACT_TYPE,
+					  T1.state,
+					 T1.clerk_id  clerk_id,
+					 T1.cust_id cust_id,
+					   T1.sensor_id sensor_id,
+					   T1.wind_state,
+					   T1.credit_runcode
+				  FROM T_PRJT_CREDIT T1
+				  LEFT JOIN T_RENT_CONTRACT T2 ON T1.ID = T2.PRCD_ID
+				  LEFT JOIN T_CUST_CUSTOMER T3 ON T1.CUST_ID = T3.CUST_ID
+				  LEFT JOIN T_AREA T4 ON T1.PROVINCE_ID = T4.ID
+				  LEFT JOIN T_USER_USER T5 ON T1.CLERK_ID = T5.ID
+				  LEFT JOIN T_USER_USER T6 ON T1.SENSOR_ID = T6.ID
+				  LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON T1.ID = T7.CREDIT_ID
+				  LEFT JOIN ( SELECT COUNT(1) PAYLISTFLAG,T8.RECT_ID FROM T_RENT_CONTRACTDETAIL T8 WHERE T8.STATUS=0  AND T8.RECP_ID IS NULL GROUP BY T8.RECT_ID) T8 ON T8.RECT_ID=T2.RECT_ID
+		  WHERE T1.STATUS=0 AND (T1.WIND_STATE=1 OR T1.WIND_STATE=2)
+  			AND (T2.STATUS!=-2 OR T2.STATUS IS NULL)
+  			]]>
+  			 <dynamic>
+		  	<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+		  	 	<![CDATA[ T1.sensor_id = #s_employeeId# ]]> -->
+		  	 	<![CDATA[ 
+		  	 	(T1.SENSOR_ID = #s_employeeId#
+		  	 	or T1.CLERK_ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+		  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = T1.SENSOR_ID)
+				]]>
+			</isEqual>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		  	<isNotEmpty prepend="and" property="content">
+		  		(T1.lease_code like '%$content$%' or T1.type like '%$content$%' or T3.cust_name like '%$content$%' or t5.name like '%$content$%'
+		  		or t6.name like '%$content$%' or t4.name like '%$content$%' or T3.cust_code like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		T1.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		T1.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+            <isNotEmpty prepend="" property="QSELECT_STATUS">
+				<isNotEqual prepend="" property="QSELECT_STATUS" compareValue="-2">
+					<isEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS is null ]]>
+					</isEqual>
+					<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t2.RECT_STATUS = #QSELECT_STATUS# ]]>
+					</isNotEqual>
+				</isNotEqual>
+			 </isNotEmpty>
+			 <isNotEmpty property="RENTSTAUTS">
+		  	<isNotEqual prepend="and" property="RENTSTAUTS" compareValue="-3">
+		  		 t2.status=#RENTSTAUTS#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic> 
+		<![CDATA[ GROUP BY T1.ID,
+			          T1.STATUS,
+			          T2.RECT_ID,
+			          T1.LEASE_CODE,
+			          T2.RECT_STATUS,
+			          T2.STATUS,
+			          T3.CUST_NAME,
+			          T4.NAME,
+			          T5.NAME,
+			          T6.NAME,
+			          T2.LESSOR_TIME,
+			          T8.PAYLISTFLAG  , 
+			          t1.wind_result_date,
+			          t1.create_date,
+					  T1.type,
+					  T3.CUST_CODE,
+					  T1.CONTRACT_TYPE,
+					  T1.state,
+					  T1.clerk_id,
+					  T1.cust_id,
+					  T1.sensor_id ,
+					  T1.wind_state,
+					  T1.credit_runcode
+		) t  ]]> 
+	</select>
+	<select id="getCreditReports_count" parameterClass="map" resultClass="int">
+		select count(id) cnt from 
+		(select tpc.id id,
+	       tpc.type type,
+	       tpc.state state,
+	       tpc.cust_id cust_id,
+	       tcc.cust_name cust_name,
+	       tcc.cust_type cust_type,
+	       ta.name province,
+	       tuu.id clerk_id,
+	       tuu.name clerk_name,
+	       tpc.sensor_id sensor_id,
+	       tuu2.name sensor_name,
+	       tpc.wind_state wind_state,
+	       CONVERT(varchar,tpc.create_date,23)  create_date,
+	       tcc.cust_code   cust_code,
+	       t1.credit_id,
+	       tpc.CONTRACT_TYPE,
+	       DECP.DECP_NAME_CN
+		  from t_prjt_credit tpc
+		  left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		  left join t_area ta on ta.id = tpc.province_id
+		  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		  left join t_user_user tuu on tuu2.upper_user = tuu.id
+		  left join T_DEPT_DEPARTMENT dept on tuu2.DEPT_ID = dept.ID and dept.STATUS = 0
+		  left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = tpc.id
+		   LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID = dept.DECP_ID AND DECP.STATUS = 0
+		   left join t_prjt_visit vi on vi.credit_id = tpc.id and vi.status = 0 and vi.VISIT_STATUS >= 3
+		  where tpc.status=0
+		  	AND tcc.STATUS=0
+		    AND tpc.ID NOT IN
+		    (
+		    SELECT ID FROM T_PRJT_CREDIT WHERE STATUS=0 AND WIND_STATE=4 AND ID NOT IN (SELECT CREDIT_ID FROM T_PRJT_RISK_CONTROL)
+		    )
+		  <dynamic>
+		  	<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+		  	 	<![CDATA[ 
+		  	 		(tpc.sensor_id = #s_employeeId# or tpc.id in (select t1.credit_id from t_prjt_power t1
+		              where t1.user_id = #s_employeeId# and t1.status=0) )
+		  	 	]]> -->
+		  	 	<![CDATA[ 
+		  	 	(tuu2.ID = #s_employeeId#
+		  	 	or tuu.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+		  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		  	<isNotEmpty prepend="and" property="content">
+		  		(tpc.lease_code like '%$content$%' or tpc.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%' or DECP.DECP_NAME_CN like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 tpc.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	<isEqual property="vip_flag" compareValue="1">
+		  		and tpc.vip_flag = 1
+		  	</isEqual>
+		  	<isNotEqual property="vip_flag" compareValue="1">
+		  		and (tpc.vip_flag = 0 or tpc.vip_flag is null)
+		  	</isNotEqual>
+		  	<isNotEmpty property="HAS_VISIT">
+		  		<isEqual property="HAS_VISIT" compareValue="0"><!-- 0是未访厂 -->
+		  			AND vi.VISIT_STATUS IS NULL
+		  		</isEqual>
+		  		<isEqual property="HAS_VISIT" compareValue="1"><!-- 1是已访厂 -->
+		  			AND vi.VISIT_STATUS>=3
+		  		</isEqual>
+		  	</isNotEmpty>
+		  </dynamic> 
+		) t 
+	</select>
+	
+	<!-- 此SQL是暂时过度  当业务员副总是刘副总  不能看到 林副总的案件 -->
+	<select id="getCreditReportsTemp" parameterClass="map" resultClass="hashmap">
+		select * from (select tpc.id id,
+	       tpc.type type,
+	       tpc.state state,
+	       tpc.cust_id cust_id,
+	       tcc.cust_name cust_name,
+	       tcc.cust_type cust_type,
+	       ta.name province,
+	       tuu.id clerk_id,
+	       tuu.name clerk_name,
+	       tpc.sensor_id sensor_id,
+	       pu.name as PROCESSER,
+	       tuu2.name sensor_name,
+	       tpc.wind_state wind_state,
+	       CONVERT(varchar,tpc.create_date,23)  create_date,
+	       tcc.cust_code   cust_code,
+	       t1.credit_id,
+	       tpc.CONTRACT_TYPE,
+	       DECP.DECP_NAME_CN,
+	       vi.real_visit_date as VISIT_DATE,
+	       vi.NONE_VISIT_MEMO,
+	       vi.NONE_VISIT_REASON,
+	       tpc.CREDIT_RUNCODE,
+	       MAX(T7.BRAND) SUPPLIER,
+	       MAX(TSSR.SUPP_LEVEL) SUPP_LEVEL,
+	       'N' FLAG
+		  from t_prjt_credit tpc
+		  left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		  left join t_area ta on ta.id = tpc.province_id
+		  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		  left join t_user_user tuu on tuu2.upper_user = tuu.id
+		  left join t_user_user pu on pu.id = tpc.PROCESSER_ID
+		  left join T_DEPT_DEPARTMENT dept on tuu2.DEPT_ID = dept.ID and dept.STATUS = 0
+		  left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = tpc.id
+		   LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID = dept.DECP_ID AND DECP.STATUS = 0
+		   <![CDATA[ left join t_prjt_visit vi on vi.credit_id = tpc.id and vi.status = 0 and vi.VISIT_STATUS >= 3 ]]>
+		  LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON tpc.ID=T7.CREDIT_ID 
+          LEFT JOIN T_SUPL_SUPPLIER TSSR ON TSSR.[NAME]=T7.BRAND AND TSSR.STATUS=0
+		  where tpc.status=0
+		  <!-- 客户已经被撤销的报告不再显示,后台数据库更新成不通过的也不显示 add by ShenQi -->
+		    AND tcc.STATUS=0
+		    AND tpc.ID NOT IN
+		    (
+		    SELECT ID FROM T_PRJT_CREDIT WHERE STATUS=0 AND WIND_STATE=4 AND ID NOT IN (SELECT CREDIT_ID FROM T_PRJT_RISK_CONTROL)
+		    )
+		  <isEqual property="s_employeeId" compareValue="46">
+		  	AND TPC.PRODUCTION_TYPE!='3'
+		  </isEqual><!-- 此SQL是暂时过度  当业务员副总是刘副总  不能看到 林副总的案件 -->
+		  <dynamic>
+		  	<isEqual property="isSalesDesk" compareValue="Y"><!-- 如果业务桌面调用此SQL  去除异常案件, 下面单独union异常案件放到最上面 -->
+		  		<isNotEmpty property="CREDIT_IDS">
+		  		AND tpc.ID NOT IN ($CREDIT_IDS$)
+		  		</isNotEmpty>
+		  	</isEqual>
+		  	<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+		  	 	<![CDATA[ 
+		  	 		(tpc.sensor_id = #s_employeeId# or tpc.id in (select t1.credit_id from t_prjt_power t1
+		              where t1.user_id = #s_employeeId# and t1.status=0) )
+		  	 	]]> -->
+		  	 	<![CDATA[ 
+		  	 	(tuu2.ID = #s_employeeId#
+		  	 	or tuu.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+		  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+					(exists 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+					<isNotEmpty property="sqlConditioinMap"><!-- 部门映射Map -->
+					OR (tuu2.DEPT_ID IN ($sqlConditioinMap$))
+					</isNotEmpty>
+					)
+			</isEqual>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		  	<isNotEmpty prepend="and" property="content">
+		  		(tpc.CREDIT_RUNCODE like '%$content$%' or tpc.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or pu.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%' 
+		  		or DECP.DECP_NAME_CN like '%$content$%'
+		  		or TSSR.NAME LIKE '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 tpc.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	<isEqual property="vip_flag" compareValue="1">
+		  		and tpc.vip_flag = 1
+		  	</isEqual>
+		  	<isNotEqual property="vip_flag" compareValue="1">
+		  		and (tpc.vip_flag = 0 or tpc.vip_flag is null)
+		  	</isNotEqual>
+		  	<isNotEmpty property="HAS_VISIT">
+		  		<isEqual property="HAS_VISIT" compareValue="0"><!-- 0是未访厂 -->
+		  			AND vi.VISIT_STATUS IS NULL
+		  		</isEqual>
+		  		<isEqual property="HAS_VISIT" compareValue="1"><!-- 1是已访厂 -->
+		  			AND vi.VISIT_STATUS>=3
+		  		</isEqual>
+		  	</isNotEmpty>
+		  </dynamic> 
+		  GROUP BY 
+           tpc.id,
+	       tpc.type,
+	       tpc.state,
+	       tpc.cust_id,
+	       tcc.cust_name,
+	       tcc.cust_type,
+	       ta.name,
+	       tuu.id,
+	       tuu.name,
+	       tpc.sensor_id,
+	       pu.name,
+	       tuu2.name,
+	       tpc.wind_state,
+	       CONVERT(varchar,tpc.create_date,23),
+	       tcc.cust_code,
+	       t1.credit_id,
+	       tpc.CONTRACT_TYPE,
+	       DECP.DECP_NAME_CN,
+	       vi.real_visit_date,
+	       vi.NONE_VISIT_MEMO,
+	       vi.NONE_VISIT_REASON,
+	       tpc.CREDIT_RUNCODE
+	       ) t  
+	</select>
+	<select id="getCreditReports" parameterClass="map" resultClass="hashmap">
+		select * from (select tpc.id id,
+	       tpc.type type,
+	       tpc.state state,
+	       tpc.cust_id cust_id,
+	       tcc.cust_name cust_name,
+	       tcc.cust_type cust_type,
+	       ta.name province,
+	       tuu.id clerk_id,
+	       tuu.name clerk_name,
+	       tpc.sensor_id sensor_id,
+	       pu.name as PROCESSER,
+	       tuu2.name sensor_name,
+	       tpc.wind_state wind_state,
+	       CONVERT(varchar,tpc.create_date,23)  create_date,
+	       tcc.cust_code   cust_code,
+	       t1.credit_id,
+	       tpc.CONTRACT_TYPE,
+	       DECP.DECP_NAME_CN,
+	       vi.real_visit_date as VISIT_DATE,
+	       vi.NONE_VISIT_MEMO,
+	       vi.NONE_VISIT_REASON,
+	       tpc.CREDIT_RUNCODE,
+	       MAX(T7.BRAND) SUPPLIER,
+	       MAX(TSSR.SUPP_LEVEL) SUPP_LEVEL,
+	       tpc.vip_flag,
+	       'N' FLAG
+	       , ps.ESTIMATES_PAY_DATE, ps.ESTIMATES_PAY_DATE_NUM, max(estimates_pay_date_reason) as estimates_pay_date_reason
+		  from t_prjt_credit tpc
+		  left join T_PRJT_CREDITSCHEME ps on ps.credit_id = tpc.id
+		  left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		  left join t_area ta on ta.id = tpc.province_id
+		  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		  left join t_user_user tuu on tuu2.upper_user = tuu.id
+		  left join t_user_user pu on pu.id = tpc.PROCESSER_ID
+		  left join T_DEPT_DEPARTMENT dept on tuu2.DEPT_ID = dept.ID and dept.STATUS = 0
+		  left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = tpc.id
+		   LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID = dept.DECP_ID AND DECP.STATUS = 0
+		   <![CDATA[ left join t_prjt_visit vi on vi.credit_id = tpc.id and vi.status = 0 and vi.VISIT_STATUS >= 3 ]]>
+		  LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON tpc.ID=T7.CREDIT_ID 
+          LEFT JOIN T_SUPL_SUPPLIER TSSR ON TSSR.[NAME]=T7.BRAND AND TSSR.STATUS=0
+		  where tpc.status=0
+		  <!-- 客户已经被撤销的报告不再显示,后台数据库更新成不通过的也不显示 add by ShenQi -->
+		    AND tcc.STATUS=0
+		    AND tpc.ID NOT IN
+		    (
+		    SELECT ID FROM T_PRJT_CREDIT WHERE STATUS=0 AND WIND_STATE=4 AND ID NOT IN (SELECT CREDIT_ID FROM T_PRJT_RISK_CONTROL)
+		    )
+		  <dynamic>
+		  	<isEqual property="isSalesDesk" compareValue="Y"><!-- 如果业务桌面调用此SQL  去除异常案件, 下面单独union异常案件放到最上面 -->
+		  		<isNotEmpty property="CREDIT_IDS">
+		  		AND tpc.ID NOT IN ($CREDIT_IDS$)
+		  		</isNotEmpty>
+		  	</isEqual>
+		  	<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+		  	 	<![CDATA[ 
+		  	 		(tpc.sensor_id = #s_employeeId# or tpc.id in (select t1.credit_id from t_prjt_power t1
+		              where t1.user_id = #s_employeeId# and t1.status=0) )
+		  	 	]]> -->
+		  	 	<![CDATA[ 
+		  	 	(tuu2.ID = #s_employeeId#
+		  	 	or tuu.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+		  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+					(exists 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+					<isNotEmpty property="sqlConditioinMap"><!-- 部门映射Map -->
+					OR (tuu2.DEPT_ID IN ($sqlConditioinMap$))
+					</isNotEmpty>
+					)
+			</isEqual>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		  	<isNotEmpty prepend="and" property="content">
+		  		(tpc.CREDIT_RUNCODE like '%$content$%' or tpc.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or pu.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%' 
+		  		or DECP.DECP_NAME_CN like '%$content$%'
+		  		or TSSR.NAME LIKE '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		<isNotEqual property="credit_type" compareValue="0">
+		  			tpc.state=#credit_type#
+		  		</isNotEqual>
+		  		<isEqual property="credit_type" compareValue="0">
+		  			(tpc.state = 0 or tpc.state = 2)
+		  		</isEqual>
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	<isEqual property="vip_flag" compareValue="1">
+		  		and tpc.vip_flag = 1
+		  	</isEqual>
+		  	<isEqual property="vip_flag" compareValue="0">
+		  		and (tpc.vip_flag = 0 or tpc.vip_flag is null)
+		  	</isEqual>
+		  	<isNotEmpty property="HAS_VISIT">
+		  		<isEqual property="HAS_VISIT" compareValue="0"><!-- 0是未访厂 -->
+		  			AND vi.VISIT_STATUS IS NULL
+		  		</isEqual>
+		  		<isEqual property="HAS_VISIT" compareValue="1"><!-- 1是已访厂 -->
+		  			AND vi.VISIT_STATUS>=3
+		  		</isEqual>
+		  	</isNotEmpty>
+		  </dynamic> 
+		  GROUP BY 
+           tpc.id,
+	       tpc.type,
+	       tpc.state,
+	       tpc.cust_id,
+	       tcc.cust_name,
+	       tcc.cust_type,
+	       ta.name,
+	       tuu.id,
+	       tuu.name,
+	       tpc.sensor_id,
+	       pu.name,
+	       tuu2.name,
+	       tpc.wind_state,
+	       CONVERT(varchar,tpc.create_date,23),
+	       tcc.cust_code,
+	       t1.credit_id,
+	       tpc.CONTRACT_TYPE,
+	       DECP.DECP_NAME_CN,
+	       vi.real_visit_date,
+	       vi.NONE_VISIT_MEMO,
+	       vi.NONE_VISIT_REASON,
+	       tpc.CREDIT_RUNCODE, tpc.vip_flag
+	       ,ps.ESTIMATES_PAY_DATE, ps.ESTIMATES_PAY_DATE_NUM
+	       <isEqual property="isSalesDesk" compareValue="Y"> 
+	       
+	       UNION 
+	       select prcd.ID as id,
+    			  prcd.type,
+    				prcd.state state,
+	       prcd.cust_id cust_id,
+	       cust.cust_name cust_name,
+	       cust.cust_type cust_type,
+         ta.[NAME] province,
+         uu.ID clerk_id,
+         uu.[NAME] clerk_name,
+         u.ID sensor_id,
+         pu.name as PROCESSER,
+         u.[NAME] sensor_name,
+          prcd.wind_state wind_state,
+          CONVERT(varchar,prcd.create_date,23)  create_date,
+          cust.cust_code   cust_code,
+          t1.credit_id,
+          prcd.CONTRACT_TYPE,
+          decp.DECP_NAME_CN, 
+          vi.real_visit_date as VISIT_DATE,
+	       vi.NONE_VISIT_MEMO,
+	       vi.NONE_VISIT_REASON,          
+    		prcd.CREDIT_RUNCODE,
+        MAX(T7.BRAND) SUPPLIER,
+	       MAX(TSSR.SUPP_LEVEL) SUPP_LEVEL,
+	       prcd.vip_flag,
+	       'Y' FLAG
+	       ,prsm.ESTIMATES_PAY_DATE, prsm.ESTIMATES_PAY_DATE_NUM, max(estimates_pay_date_reason) as estimates_pay_date_reason
+		from (
+		select CREDIT_ID, min(create_time) as min_commit_date
+		from T_PRJT_CREDITMEMO t
+		where t.STATUS = 0
+		group by CREDIT_ID 
+		having datediff(day,min(create_time),getdate()) > 3
+		and CREDIT_ID not in(
+		select credit_id from T_PRJT_RISK_CONTROL
+		where (STATE = 1 or STATE = 4)
+		)
+		) tt left join T_PRJT_CREDIT prcd on tt.CREDIT_ID = prcd.ID
+		left join T_PRJT_CREDITSCHEME prsm on prsm.CREDIT_ID = prcd.ID
+		left join T_CUST_CUSTOMER cust on prcd.CUST_ID = cust.CUST_ID
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_USER_USER uu on u.upper_user = uu.id
+		left join T_DEPT_DEPARTMENT dept on dept.id = u.DEPT_ID
+		left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID
+    left join t_area ta on ta.id = prcd.province_id
+    left join t_user_user pu on pu.id = prcd.PROCESSER_ID
+    left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = prcd.id
+    left join t_prjt_visit vi on vi.credit_id = prcd.id and vi.status = 0 and vi.VISIT_STATUS >= 3
+    LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON prcd.ID=T7.CREDIT_ID 
+          LEFT JOIN T_SUPL_SUPPLIER TSSR ON TSSR.[NAME]=T7.BRAND AND TSSR.STATUS=0
+		where prcd.STATUS = 0
+		and prcd.state != -1
+    and prcd.STATE !=1
+    and u.ID=#s_employeeId#
+		and (prcd.WIND_STATE != 4 or prcd.WIND_STATE is null)
+		and (prcd.state != 2 or (prcd.state = 2 and exists(
+		  select PRC_ID from T_PRJT_RISK_CONTROL
+		  where CREDIT_ID = prcd.ID
+		)))
+    GROUP BY prcd.ID,
+    prcd.type,
+     prcd.state,
+	       prcd.cust_id,
+	       cust.cust_name,
+	       cust.cust_type,
+         ta.[NAME],
+         uu.ID,
+         uu.[NAME],
+         u.ID,
+         pu.name,
+         u.[NAME],
+          prcd.wind_state,
+          CONVERT(varchar,prcd.create_date,23),
+          cust.cust_code,
+          t1.credit_id,
+          prcd.CONTRACT_TYPE,
+          decp.DECP_NAME_CN, 
+          vi.real_visit_date,
+	       vi.NONE_VISIT_MEMO,
+	       vi.NONE_VISIT_REASON,   
+    		prcd.CREDIT_RUNCODE, prcd.vip_flag
+    		,prsm.ESTIMATES_PAY_DATE, prsm.ESTIMATES_PAY_DATE_NUM
+    		UNION
+    		 
+    		select prcd.ID id,
+        prcd.type type,
+	       prcd.state state,
+	       prcd.cust_id cust_id,
+	       cust.cust_name cust_name,
+	       cust.cust_type cust_type,
+        ta.[NAME] province,
+         uu.ID clerk_id,
+         uu.[NAME] clerk_name,
+         u.ID sensor_id,
+         pu.name as PROCESSER,
+         u.[NAME] sensor_name,
+          prcd.wind_state wind_state,
+          CONVERT(varchar,prcd.create_date,23)  create_date,
+          cust.cust_code   cust_code,
+          t1.credit_id,
+          prcd.CONTRACT_TYPE,
+          decp.DECP_NAME_CN, 
+          vi.real_visit_date as VISIT_DATE,
+	       vi.NONE_VISIT_MEMO,
+	       vi.NONE_VISIT_REASON,          
+    		prcd.CREDIT_RUNCODE,
+        MAX(T7.BRAND) SUPPLIER,
+	       MAX(TSSR.SUPP_LEVEL) SUPP_LEVEL,
+	        prcd.vip_flag,
+	       'Y' FLAG    		
+	       ,prsm.ESTIMATES_PAY_DATE, prsm.ESTIMATES_PAY_DATE_NUM, max(estimates_pay_date_reason) as estimates_pay_date_reason
+		from T_PRJT_CREDIT prcd
+		left join T_PRJT_CREDITSCHEME prsm on prsm.CREDIT_ID = prcd.ID
+		left join T_PRJT_VISIT vi on vi.CREDIT_ID = prcd.ID 
+		and vi.STATUS = 0 and vi.VISIT_STATUS >= 3
+		left join T_CUST_CUSTOMER cust on prcd.CUST_ID = cust.CUST_ID
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_USER_USER uu on u.upper_user = uu.id
+		left join T_DEPT_DEPARTMENT dept on dept.id = u.DEPT_ID
+		left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID
+		left join T_PRJT_VISIT_REPORT vr on vr.VISIT_ID = vi.ID
+    left join t_area ta on ta.id = prcd.province_id
+    left join t_user_user pu on pu.id = prcd.PROCESSER_ID
+    left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = prcd.id    
+    LEFT JOIN T_PRJT_CREDITEQUIPMENT T7 ON prcd.ID=T7.CREDIT_ID 
+          LEFT JOIN T_SUPL_SUPPLIER TSSR ON TSSR.[NAME]=T7.BRAND AND TSSR.STATUS=0
+		and vr.STATUS = 1
+		where datediff(day,vi.REAL_VISIT_DATE,getdate()) > 5
+		and prcd.STATE != 1 and prcd.STATE != -1
+		and u.ID=#s_employeeId#
+		and not exists (
+		select PRC_ID from T_PRJT_RISK_CONTROL
+		where credit_id = prcd.ID
+		)
+    GROUP BY
+    prcd.ID,
+    prcd.type,
+     prcd.state,
+	       prcd.cust_id,
+	       cust.cust_name,
+	       cust.cust_type,
+         ta.[NAME],
+         uu.ID,
+         uu.[NAME],
+         u.ID,
+         pu.name,
+         u.[NAME],
+          prcd.wind_state,
+          CONVERT(varchar,prcd.create_date,23),
+          cust.cust_code,
+          t1.credit_id,
+          prcd.CONTRACT_TYPE,
+          decp.DECP_NAME_CN, 
+          vi.real_visit_date,
+	       vi.NONE_VISIT_MEMO,
+	       vi.NONE_VISIT_REASON,  
+    		prcd.CREDIT_RUNCODE, prcd.vip_flag
+    		,prsm.ESTIMATES_PAY_DATE, prsm.ESTIMATES_PAY_DATE_NUM
+	       </isEqual>
+		  ) t  
+	</select>
+	
+	
+	
+	
+		<select id="getCreditReports2_count" parameterClass="map" resultClass="int">
+		select count(id) cnt from 
+		(
+			select tpc.id id,
+			tpc.status,
+	       tpc.type type,
+	       tpc.state state,
+	       tpc.cust_id cust_id,
+	       tcc.cust_name cust_name,
+	       tcc.cust_type cust_type,
+	       ta.name province,
+	       tpc.clerk_id clerk_id,
+	       tuu.name clerk_name,
+	       tpc.sensor_id sensor_id,
+	       tuu2.name sensor_name,
+	       tpc.wind_state wind_state,
+	       CONVERT(varchar,tpc.create_date,23)  create_date,
+	       tcc.cust_code  cust_code,
+	       t1.credit_id
+		  from t_prjt_credit tpc
+		  left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		  left join t_area ta on ta.id = tpc.province_id
+		  left join t_user_user tuu on tuu.id = tpc.clerk_id
+		  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		  left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = tpc.id
+		  where tpc.status!=-2 and (tpc.state!=0 and tpc.state is not null)
+		  <dynamic>
+		  	<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+		  	 	<![CDATA[ 
+		  	 		(tpc.sensor_id = #s_employeeId# or tpc.id in (select t1.credit_id from t_prjt_power t1
+		              where t1.user_id = #s_employeeId# and t1.status=0) )
+		  	 	]]> -->
+		  	 	<![CDATA[ 
+		  	 	(tpc.SENSOR_ID = #s_employeeId#
+		  	 	or tpc.CLERK_ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+		  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = tpc.SENSOR_ID)
+				]]>
+			</isEqual>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		  	<isNotEmpty prepend="and" property="content">
+		  		(tpc.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 tpc.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	<isNotEmpty property="creditStauts">
+		  	<isNotEqual prepend="and" property="creditStauts" compareValue="-3">
+		  		 tpc.status=#creditStauts#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	<isEqual property="vip_flag" compareValue="1">
+		  		and tpc.vip_flag = 1
+		  	</isEqual>
+		  	<isNotEqual property="vip_flag" compareValue="1">
+		  		and (tpc.vip_flag = 0 or tpc.vip_flag is null)
+		  	</isNotEqual>
+		  </dynamic> 
+		  union  
+		  select tpc.id id,  
+		  tpc.status,    
+		   tpc.type type,   
+		      tpc.state state,   
+		      tpc.cust_id cust_id,  
+		       tcc.cust_name cust_name,   
+		      tcc.cust_type cust_type,   
+		      ta.name province,       
+		  tpc.clerk_id clerk_id,  
+		       tuu.name clerk_name,  
+		       tpc.sensor_id sensor_id,  
+		       tuu2.name sensor_name,    
+		     tpc.wind_state wind_state,  
+		       CONVERT(varchar,tpc.create_date,23)  create_date ,
+		       tcc.cust_code  cust_code,
+		       t1.credit_id
+		    from t_prjt_credit tpc 
+		    left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = tpc.id 
+		left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id 
+		    left join t_area ta on ta.id = tpc.province_id    
+		 left join t_user_user tuu on tuu.id = tpc.clerk_id   
+		  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id  
+		  left join (select id from t_user_user tuu where tuu.upper_user=#s_employeeId#) upperuser
+		on tpc.sensor_id=upperuser.id  
+		 where tpc.status!=-2 and (tpc.state!=0 and tpc.state is not   null)    
+		       and   upperuser.id is not null  
+		 <dynamic>
+			<isNotEmpty prepend="and" property="content">
+		  		(tpc.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 tpc.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	<isNotEmpty property="creditStauts">
+		  	<isNotEqual prepend="and" property="creditStauts" compareValue="-3">
+		  		 tpc.status=#creditStauts#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	<isEqual property="vip_flag" compareValue="1">
+		  		and tpc.vip_flag = 1
+		  	</isEqual>
+		  	<isNotEqual property="vip_flag" compareValue="1">
+		  		and (tpc.vip_flag = 0 or tpc.vip_flag is null)
+		  	</isNotEqual>
+		  </dynamic>  
+		) t
+	</select>
+	
+	<select id="getCreditReports2_vip" parameterClass="map" resultClass="hashmap">
+		select tpc.id id,
+		   tpc.status,
+	       tpc.type type,
+	       tpc.state state,
+	       tpc.cust_id cust_id,
+	       tcc.cust_name cust_name,
+	       tcc.cust_type cust_type,
+	       ta.name province,
+	       tpc.clerk_id clerk_id,
+	       tuu.name clerk_name,
+	       tpc.sensor_id sensor_id,
+	       tuu2.name sensor_name,
+	       tpc.wind_state wind_state,
+	       CONVERT(varchar,tpc.create_date,23)  create_date,
+	       tcc.cust_code  cust_code,
+	       t1.credit_id,
+	       vi.real_visit_date as VISIT_DATE,
+	       vi.NONE_VISIT_MEMO,
+	       vi.NONE_VISIT_REASON,
+	       tpc.CREDIT_RUNCODE
+		  from t_prjt_credit tpc
+		  left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		  left join t_area ta on ta.id = tpc.province_id
+		  left join t_user_user tuu on tuu.id = tpc.PROCESSER_ID
+		  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		  left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = tpc.id
+		  <![CDATA[ left join t_prjt_visit vi on vi.credit_id = tpc.id and vi.status = 0 and vi.VISIT_STATUS >= 3 ]]>
+		  where tpc.status!=-2 and (tpc.state!=0 and tpc.state is not null)
+		  <dynamic>
+		  	<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+		  	 	<![CDATA[ 
+		  	 		(tpc.sensor_id = #s_employeeId# or tpc.id in (select t1.credit_id from t_prjt_power t1
+		              where t1.user_id = #s_employeeId# and t1.status=0) )
+		  	 	]]> -->
+		  	 	<![CDATA[ 
+		  	 	(tpc.SENSOR_ID = #s_employeeId#
+		  	 	or tpc.CLERK_ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+		  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = tpc.SENSOR_ID)
+				]]>
+			</isEqual>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		  	<isNotEmpty prepend="and" property="content">
+		  		(tpc.CREDIT_RUNCODE like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 tpc.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	<isNotEmpty property="creditStauts">
+		  	<isNotEqual prepend="and" property="creditStauts" compareValue="-3">
+		  		 tpc.status=#creditStauts#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	<isEqual property="vip_flag" compareValue="1">
+		  		and tpc.vip_flag = 1
+		  	</isEqual>
+		  	<isNotEqual property="vip_flag" compareValue="1">
+		  		and (tpc.vip_flag = 0 or tpc.vip_flag is null)
+		  	</isNotEqual>
+		  </dynamic> 
+	</select>
+	
+	<select id="getCreditReports2" parameterClass="map" resultClass="hashmap">
+		<!-- select * from ( -->
+		select tpc.id id,
+		   tpc.status,
+	       tpc.type type,
+	       tpc.state state,
+	       tpc.cust_id cust_id,
+	       tcc.cust_name cust_name,
+	       tcc.cust_type cust_type,
+	       ta.name province,
+	       tpc.clerk_id clerk_id,
+	       tuu.name clerk_name,
+	       tpc.sensor_id sensor_id,
+	       tuu2.name sensor_name,
+	       tpc.wind_state wind_state,
+	       CONVERT(varchar,tpc.create_date,23)  create_date,
+	       tcc.cust_code  cust_code,
+	       t1.credit_id,
+	       vi.real_visit_date as VISIT_DATE,
+	       vi.NONE_VISIT_MEMO,
+	       vi.NONE_VISIT_REASON,
+	       tpc.CREDIT_RUNCODE
+		  from t_prjt_credit tpc
+		  left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		  left join t_area ta on ta.id = tpc.province_id
+		  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		  left join t_user_user tuu on tuu.id = tuu2.UPPER_USER
+		  left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = tpc.id
+		  <![CDATA[ left join t_prjt_visit vi on vi.credit_id = tpc.id and vi.status = 0 and vi.VISIT_STATUS >= 3 ]]>
+		  where tpc.status!=-2 and (tpc.state!=0 and tpc.state is not null)
+		  <dynamic>
+		  	<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<!-- 2011/12/27 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+		  	 	<![CDATA[ 
+		  	 		(tpc.sensor_id = #s_employeeId# or tpc.id in (select t1.credit_id from t_prjt_power t1
+		              where t1.user_id = #s_employeeId# and t1.status=0) )
+		  	 	]]> -->
+		  	 	<![CDATA[ 
+		  	 	(tpc.SENSOR_ID = #s_employeeId#
+		  	 	or tpc.CLERK_ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+		  	<!-- 2012/01/11 Yang Yun 增加区域筛选功能.Start -->
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = tpc.SENSOR_ID)
+				]]>
+			</isEqual>
+			<!-- 2012/01/11 Yang Yun 增加区域筛选功能.End -->
+		  	<isNotEmpty prepend="and" property="content">
+		  		(tpc.CREDIT_RUNCODE like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 tpc.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	<isNotEmpty property="creditStauts">
+		  	<isNotEqual prepend="and" property="creditStauts" compareValue="-3">
+		  		 tpc.status=#creditStauts#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	<isEqual property="vip_flag" compareValue="1">
+		  		and tpc.vip_flag = 1
+		  	</isEqual>
+		  	<isNotEqual property="vip_flag" compareValue="1">
+		  		and (tpc.vip_flag = 0 or tpc.vip_flag is null)
+		  	</isNotEqual>
+		  </dynamic> 
+		  <!-- union  
+		  select tpc.id id, 
+		  tpc.status  ,   
+		   tpc.type type,   
+		      tpc.state state,   
+		      tpc.cust_id cust_id,  
+		       tcc.cust_name cust_name,   
+		      tcc.cust_type cust_type,   
+		      ta.name province,       
+		  tpc.clerk_id clerk_id,  
+		       tuu.name clerk_name,  
+		       tpc.sensor_id sensor_id,  
+		       tuu2.name sensor_name,    
+		     tpc.wind_state wind_state,  
+		       CONVERT(varchar,tpc.create_date,23)  create_date ,
+		       tcc.cust_code  cust_code,
+		       t1.credit_id
+		    from t_prjt_credit tpc  
+		    left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = tpc.id
+		left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id 
+		    left join t_area ta on ta.id = tpc.province_id    
+		 left join t_user_user tuu on tuu.id = tpc.clerk_id   
+		  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id  
+		  left join (select id from t_user_user tuu where tuu.upper_user=#s_employeeId#) upperuser
+		on tpc.sensor_id=upperuser.id  
+		 where tpc.status!=-2 and (tpc.state!=0 and tpc.state is not null)
+		       and   upperuser.id is not null  
+		 <dynamic>
+			<isNotEmpty prepend="and" property="content">
+		  		(tpc.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 tpc.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	<isNotEmpty property="creditStauts">
+		  	<isNotEqual prepend="and" property="creditStauts" compareValue="-3">
+		  		 tpc.status=#creditStauts#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	<isEqual property="vip_flag" compareValue="1">
+		  		and tpc.vip_flag = 1
+		  	</isEqual>
+		  	<isNotEqual property="vip_flag" compareValue="1">
+		  		and (tpc.vip_flag = 0 or tpc.vip_flag is null)
+		  	</isNotEqual>
+		  </dynamic>    -->
+		 <!--  ) t    
+		  order by t.create_date -->
+	</select>
+	<!--  Modify by Mcihael 2012 01/16 去除管理费  -->  
+	<!--  Modify by Mcihael 2012 02/06 增加利差  -->
+	<!--  Modify by Mcihael 2013 02/01 增加延迟拨款期数  -->
+	<insert id="createCreditScheme" parameterClass="map">
+		insert into t_prjt_creditscheme
+		  (
+		   LEASE_TERM,
+		   LEASE_COURSE,
+		   PLEDGE_PRICE, 
+		   HEAD_HIRE,
+		   HEAD_HIRE_PERCENT,
+		   BUSINESS_TRIP_PRICE,
+		   FLOAT_RATE,
+		   <!--  MANAGEMENT_FEE, -->
+		   YEAR_INTEREST_TYPE,
+		   YEAR_INTEREST,
+		   LEASE_TOPRIC,
+		   PAY_WAY,
+		   START_DATE,
+		   FINE_TYPE,
+		   FINE_RATE,
+		   LEASE_RZE,
+		   DEAL_WAY,
+		   EQUPMENT_PROVINCE,
+		   EQUPMENT_CITY,
+		   EQUPMENT_AREA,
+		   EQUPMENT_ADDRESS,
+		   EQUPMENT_X,
+		   EQUPMENT_Y,
+		   INSURANCE_COMPANY_ID,
+		   BUY_INSURANCE_WAY,
+		   BUY_INSURANCE_TIME,
+		   INSURE_REBATE_RATE,
+		   STATUS,
+		   CREDIT_ID,
+		   PLEDGE_PRICE_RATE,
+		  <!--   MANAGEMENT_FEE_RATE, -->
+		   CREATE_USER_ID,
+		   MODIFY_USER_ID,
+		   CREATE_DATE,
+		   MODIFY_DATE,
+		   PLEDGE_WAY,
+		   PLEDGE_PERIOD,
+		   INSURE_BASE_RATE,
+		   SALES_TAX_RATE,
+		   STAMP_TAX_TOPRIC,
+		   STAMP_TAX_MONTHPRIC,
+		   STAMP_TAX_INSUREPRIC,
+		   TR_RATE,
+		   TR_IRR_RATE,
+		   OTHER_TAX,
+		   PLEDGE_REALPRIC,
+		   SPONSOR,
+		   INVOICE_PERSON,
+		   PLEDGE_AVE_PRICE,
+		   PLEDGE_BACK_PRICE,
+		   PLEDGE_LAST_PRICE,
+		   PLEDGE_LAST_PERIOD,
+		  <!--   PLEDGE_ENTER_WAY,-->
+		   PLEDGE_ENTER_CMPRICE,
+		   PLEDGE_ENTER_CMRATE,
+		   PLEDGE_ENTER_AG,
+		   PLEDGE_ENTER_MCTOAG,
+		   PLEDGE_ENTER_AGRATE,
+		   LOAN_RATE,
+		  MANAGE_RATE,
+		   SUPL_TRUE,
+		   PLEDGE_ENTER_MCTOAGRATE,
+		   RATE_DIFF,TAX_PLAN_CODE,TOTAL_VALUEADDED_TAX,DEFER_PERIOD,
+		   SALES_PAY,INCOME_PAY,INCOME_PAY_TYPE,OUT_PAY,APPROPRIATION_WAY,ENDORSER_1,ENDORSER_2,IS_IMPORT_EQIP 
+		   <isNotEmpty property="estimates_pay_date">
+			   ,ESTIMATES_PAY_DATE
+			   ,ESTIMATES_PAY_DATE_NUM
+			   ,ESTIMATES_PAY_DATE_REASON
+		   </isNotEmpty>
+		   )
+		   values
+		   (
+		   #LEASE_TERM#,
+		   #LEASE_COURSE#,
+		   #PLEDGE_PRICE#, 
+		   #HEAD_HIRE#,
+		   #HEAD_HIRE_PERCENT#,
+		   #BUSINESS_TRIP_PRICE#,
+		   #FLOAT_RATE#,
+		   <!-- #MANAGEMENT_FEE#,-->
+		   #YEAR_INTEREST_TYPE#,
+		   #YEAR_INTEREST#,
+		   #LEASE_TOPRIC#,
+		   #PAY_WAY#,
+		   CONVERT(datetime,#START_DATE#),
+		   #FINE_TYPE#,
+		   #FINE_RATE#,
+		   #LEASE_RZE#,
+		   #DEAL_WAY#,
+		   #province_id_eq#,
+		   #city_id_eq#,
+		   #area_id_eq#,
+		   #EQUPMENT_ADDRESS#,
+		   #EQUPMENT_X#,
+		   #EQUPMENT_Y#,
+		   #INSURANCE_COMPANY_ID#,
+		   #BUY_INSURANCE_WAY#,
+		   #BUY_INSURANCE_TIME#,
+		   #INSURE_REBATE_RATE#,
+		   0,
+		   #credit_id#,
+		   #PLEDGE_PRICE_RATE#,
+		  <!-- #MANAGEMENT_FEE_RATE#, --> 
+		   #s_employeeId#, 
+		   #s_employeeId#, 
+		   getdate(),
+		   getdate(),
+		   #PLEDGE_WAY#,
+		   #PLEDGE_PERIOD#,
+		   #INSURE_BASE_RATE#,
+		   #SALES_TAX_RATE#,
+		   #STAMP_TAX_TOPRIC#,
+		   #STAMP_TAX_MONTHPRIC#,
+		   #STAMP_TAX_INSUREPRIC#,
+		   #TR_RATE#,
+		   #TR_IRR_RATE#,
+		   0,
+		   #PLEDGE_REALPRIC#,
+		   #SPONSOR#,
+		   #INVOICE_PERSON#,
+		   #PLEDGE_AVE_PRICE#,
+		   #PLEDGE_BACK_PRICE#,
+		   #PLEDGE_LAST_PRICE#,
+		   #PLEDGE_LAST_PERIOD#,
+		  <!-- #PLEDGE_ENTER_WAY#, --> 
+		   #PLEDGE_ENTER_CMPRICE#,
+		   #PLEDGE_ENTER_CMRATE#,
+		   #PLEDGE_ENTER_AG#,
+		   #PLEDGE_ENTER_MCTOAG#,
+		   #PLEDGE_ENTER_AGRATE#,
+		   #LOAN_RATE#,
+			#MANAGE_RATE# ,
+		   #SUPL_TRUE#,
+		   #PLEDGE_ENTER_MCTOAGRATE#,
+		   #RATE_DIFF#,#TAX_PLAN_CODE#,#PAY_TOTAL_VALUEADDED_TAX#,#DEFER_PERIOD#,
+		   #pay__money#,#incomePay#,#incomePayType#,#outPay#,#appropriation_way#,#endorser_1#,#endorser_2#,#isImportEqip#
+		   <isNotEmpty property="estimates_pay_date">
+			   ,#estimates_pay_date#
+			   ,#ESTIMATES_PAY_DATE_NUM#
+			   ,#ESTIMATES_PAY_DATE_REASON#
+		   </isNotEmpty>
+		   )
+	</insert>
+	
+	<select id="getSueqId" parameterClass="map" resultClass="java.lang.Integer">
+		select top 1 SUEQ_ID from T_SUPL_EQUIPMENT
+		where PRODUCT_ID = #PRODUCT_ID# and SUPPLIER_ID = #SUPPLIER_ID#
+		order by SUEQ_ID desc
+	</select>
+	
+	<insert id="createCreditEquipment" parameterClass="map">
+		insert into t_prjt_creditequipment 
+			(
+			CREATE_TIME,
+			CREATE_USER_ID,
+			MODIFY_TIME,
+			MODIFY_USER_ID,
+			EQMT_STATUS,
+			SUEQ_ID,
+			THING_NAME,
+			BRAND,
+			MODEL_SPEC,
+			UNIT_PRICE,
+			STAYBUY_PRICE,
+			AMOUNT,
+			UNIT,
+			THING_KIND,
+			CREDIT_ID,
+			LOCK_CODE,
+			SHUI_PRICE,MOUNTINGS
+			)
+			values
+			(			
+			getdate(),
+			#s_employeeId#,
+			getdate(),
+			#s_employeeId#,
+			0,
+			#SUEQ_ID#,
+			#THING_NAME#,
+			#BRAND#,
+			#MODEL_SPEC#,
+			#UNIT_PRICE#,
+			#STAYBUY_PRICE#,
+			1,
+			#UNIT#,
+			#THING_KIND#,
+			#CREDIT_ID#,
+			#LOCK_CODE#,
+			#SHUI_PRICE#,
+			#MOUNTINGS#
+			) 
+	</insert>
+	
+	<insert id="createCreditInsure" parameterClass="map">
+		insert into t_prjt_creditinsure
+			(
+			INSURE_ITEM,
+			START_DATE,
+			END_DATE,
+			INSURE_RATE,
+			INSURE_PRICE,
+			MEMO,
+			STATUS,
+			CREATE_DATE,
+			MODIFY_DATE,
+			CREDIT_ID
+			)
+			values
+			(
+			#INSURE_ITEM#,
+			#START_DATE#,
+			#END_DATE#,
+			#INSURE_RATE#,
+			#INSURE_PRICE#,
+			#MEMO#,
+			0,
+			getdate(),
+			getdate(),
+			#CREDIT_ID#
+			)
+	</insert>
+	
+	<insert id="createCreditOtherPrice" parameterClass="map">
+		insert into t_prjt_creditotherprice
+			(
+			CREDIT_ID,
+			OTHER_NAME,
+			OTHER_PRICE,
+			OTHER_DATE,
+			MEMO,
+			STATUS,
+			CREATE_DATE,
+			MODIFY_DATE
+			)
+			values
+			(
+			#CREDIT_ID#,
+			#OTHER_NAME#,
+			#OTHER_PRICE#,
+			CONVERT(datetime,#OTHER_DATE#),
+			#MEMO#,
+			0,
+			getdate(),
+			getdate()
+			)
+	</insert>
+	<select id="selectCreditBaseInfo" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+		select tpc.id id,
+			   tpc.cust_id cust_id,
+		       tdc.decp_name_cn company,
+		       tpc.decp_id DECP_ID,
+		       tcc.cust_type  CUST_TYPE,
+		       tcc.cust_name cust_name,
+		       tpc.type type,
+		       tuu.name clerk_name,
+		       tuu2.name sensor_name,
+		       tuu2.mobile sensor_mobile,
+		       tuu2.telephone sensor_telephone,
+           	   tdd.flag as customer_come,
+           	   tcc.cust_code  cust_code,
+           	   tpc.contract_type  CONTRACT_TYPE,
+           	   tpc.province_id PROVINCE_ID,
+           	   tpc.city_id CITY_ID,
+           	   tpc.area_id AREA_ID,
+           	   tpc.IS_NEW_PRODUCTION,
+           	   tpc.CREDIT_SPECIAL_CODE,
+           	   tpc.SUPPLIER_CONTACT,
+           	   TSL.LINK_NAME,
+           	   TSL.LINK_MOBILE,
+           	   tpc.VIP_FLAG,
+           	   tpc.GROUP_INSIDE
+		  from t_prjt_credit tpc
+		  left join t_user_user tuu on tpc.clerk_id = tuu.id
+		  left join t_user_user tuu2 on tpc.sensor_id = tuu2.id
+		  left join t_cust_customer tcc on tcc.cust_id = tpc.cust_id
+		  left join t_dept_company tdc on tdc.decp_id = tpc.decp_id
+		  left join t_data_dictionary tdd on CONVERT(varchar,tpc.customer_come) =tdd.code
+		  left join T_SUPPL_LINKMAN TSL on TSL.CULM_ID=tpc.SUPPLIER_CONTACT
+		 where tpc.id = #credit_id# and tdd.type=#data_type#	
+		 ]]>
+	</select>
+		<select id="selectCreditBaseInfoByH" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+		select tpc.id id,
+			   tpc.cust_id cust_id,
+		       tdc.decp_name_cn company,
+		       tcc.cust_type  CUST_TYPE,
+		       tcc.cust_name cust_name,
+		       tpc.type type,
+		       tuu.name clerk_name,
+		       tuu2.name sensor_name,
+           	   tdd.flag as customer_come,
+           	   tcc.cust_code  cust_code,
+           	   tpc.contract_type  CONTRACT_TYPE,
+           	   tpc.province_id PROVINCE_ID,
+           	   tpc.city_id CITY_ID,
+           	   tpc.lease_code LEASE_CODE,
+           	   tpc.area_id AREA_ID
+		  from t_prjt_credit tpc
+		  left join t_user_user tuu on tpc.clerk_id = tuu.id
+		  left join t_user_user tuu2 on tpc.sensor_id = tuu2.id
+		  left join t_cust_customer tcc on tcc.cust_id = tpc.cust_id
+		  left join t_dept_company tdc on tdc.decp_id = tpc.decp_id
+		  left join t_data_dictionary tdd on CONVERT(varchar,tpc.customer_come) =tdd.code
+		 where tpc.id = #credit_id# and tdd.type=#data_type#	
+		 ]]>
+	</select>
+	<select id="selectCreditEquipment" parameterClass="map" resultClass="hashmap">
+	<!-- 
+		select tpce.sueq_id sueq_id,
+	       tpce.thing_name thing_name,
+	       tpce.brand brand,
+	       tpce.model_spec model_spec,
+	       tpce.unit_price unit_price,
+	       tpce.memo memo,
+	       tpce.staybuy_price staybuy_price,
+	       sum(tpce.amount) amount,
+	       sum(tpce.unit_price * tpce.amount) total,
+	       tpce.unit unit,
+	       tpce.thing_kind thing_kind,
+	       tpce.lock_code lock_code,
+	       tpce.shui_price  shui_price
+	  from t_prjt_creditequipment tpce
+	 where tpce.credit_id = #credit_id#
+	   and tpce.EQMT_STATUS = 0
+	 group by tpce.sueq_id,
+	          tpce.thing_name,
+	          tpce.brand,
+	          tpce.model_spec,
+	          tpce.unit_price,
+	          tpce.memo,
+	          tpce.staybuy_price,
+	          tpce.unit,
+	          tpce.thing_kind,
+	          tpce.lock_code,
+	          tpce.shui_price	
+	           -->	
+	           select tpce.sueq_id sueq_id,
+	       t6.name thing_name,
+	       tpce.brand brand,
+	       t5.name model_spec,
+	       tpce.unit_price unit_price,
+	       tpce.memo memo,
+	       tpce.staybuy_price staybuy_price,
+	       sum(tpce.amount) amount,
+	       sum(tpce.unit_price * tpce.amount) total,
+	       tpce.unit unit,
+	       tpce.thing_kind thing_kind,
+	        T7.Manufacturer ,
+	        T7.NAME TYPE_NAME,
+	       tpce.lock_code lock_code,
+	       tpce.shui_price  shui_price,
+	       tss.SUPP_LEVEL,
+	       tss.BUY_BACK,
+	       sum(tpce.amount)*tpce.shui_price DENOMINATOR,
+	       T4.supplier_id SUPPLIER_ID,
+	       tpce.MOUNTINGS
+	  from t_prjt_creditequipment tpce
+	  LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID = tpce.SUEQ_ID and T4.STATUS=0
+		LEFT JOIN T_PRDC_PRODUCT T5 ON T5.ID = T4.PRODUCT_ID and T5.STATUS=0
+		LEFT JOIN T_PRDC_KIND T6 ON T6.ID = T5.KIND_ID
+		LEFT JOIN T_PRDC_TYPE T7 ON T7.ID = T6.TYPE_ID AND T7.PRDC_TYPE_STATUS = 0
+		LEFT JOIN t_supl_supplier tss on tss.id=T4.supplier_id
+	 where tpce.credit_id = #credit_id#
+	   and tpce.EQMT_STATUS = 0
+	 group by tpce.sueq_id,
+	          t6.name,
+	          tpce.brand,
+	          t5.name,
+	          tpce.unit_price,
+	          tpce.memo,
+	          tpce.staybuy_price,
+	          tpce.unit,
+	          tpce.thing_kind,
+	          tpce.lock_code,
+	          tpce.shui_price,
+	           T7.Manufacturer,
+	            T7.NAME,
+	            tss.SUPP_LEVEL,
+	            tss.BUY_BACK,
+	            T4.supplier_id,tpce.MOUNTINGS
+	</select>
+	<select id="selectCreditScheme" parameterClass="map" resultClass="hashmap">
+		select  ISNULL(ROUND(tpcs.PLEDGE_AVE_PRICE / LEASE_TERM ,2),0) PLEDGE_AVG_PRICE ,* from t_prjt_creditscheme tpcs
+			where tpcs.credit_id=#credit_id# and tpcs.status=0
+	</select>
+	<select id="selectCreditInsure" parameterClass="map" resultClass="hashmap">
+		select * from t_prjt_creditinsure tpci
+		where tpci.credit_id=#credit_id# and tpci.status=0
+	</select>
+	<select id="selectCreditOtherPrice" parameterClass="map" resultClass="hashmap">
+		select * from t_prjt_creditotherprice tpcop
+			where tpcop.credit_id=#credit_id# and tpcop.status=0
+	</select>
+	
+	<delete id="deleteCreditScheme" parameterClass="map">
+		delete from t_prjt_creditscheme where credit_id=#credit_id# and status=0
+	 </delete>
+	<delete id="deleteCreditInsure" parameterClass="map">
+		 delete from t_prjt_creditinsure where credit_id=#credit_id# and status=0
+	 </delete>
+	<delete id="deleteCreditEquipment" parameterClass="map">
+	 	delete from t_prjt_creditequipment where credit_id = #credit_id# and EQMT_STATUS = 0
+	</delete>
+	<delete id="deleteCreditOtherPrice" parameterClass="map">
+		delete from t_prjt_creditotherprice
+			where credit_id=#credit_id# and status=0
+	</delete>
+	
+	<update id="commitCreditToWind" parameterClass="map">
+		update t_prjt_credit 
+		   set state =3 ,
+		   MODIFY_PERSION_ID = #s_employeeId#,
+		   MODIFY_DATE = GETDATE()
+		 where id = #credit_id#
+	</update>
+	
+	<select id="selectSensor_IdById" parameterClass="map" resultClass="hashmap">
+		select SENSOR_ID,CUST_ID  from T_PRJT_CREDIT where ID=#credit_id#
+	</select>
+	
+		<update id="examineCredit" parameterClass="map">
+		update t_prjt_credit 
+		   set examine_date = getdate(),
+		       examine_user = #s_employeeId#,
+		       commit_wind_date = getdate(),
+		       commit_wind_user = #s_employeeId#,
+		       ORG_PROCESSER_ID = PROCESSER_ID,
+		       state            =1,
+		       gr_state			=1,
+		       wind_state=null
+		 where id = #credit_id#
+	</update>
+		<update id="examineCredit2" parameterClass="map">
+		update t_prjt_credit 
+		   set examine_date = getdate(),
+		       examine_user = #s_employeeId#,
+		       state            =2
+		 where id = #credit_id#
+	</update>
+	
+	<select id="selectUser" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select t1.id id,t1.name name from t_user_user t1 
+				where t1.job is not null and t1.id<>#s_employeeId# 
+				and t1.id <>(select t.sensor_id from t_prjt_credit t where t.id=#creditId#)
+				and t1.id 
+				not in(select t2.user_id from t_prjt_power t2 where t2.credit_id=#creditId# and t2.status=0)
+		 ]]> 
+	</select>	
+	<select id="selectFalg" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select t1.id id,t1.name name,t2.prow_id prow_id from t_user_user t1 
+				left join t_prjt_power t2 on t2.user_id=t1.id
+				where t2.credit_id=#creditId# and t2.status=0
+		 ]]> 
+	</select>	
+	
+	<insert id="insertPower"   parameterClass="map">
+	 <![CDATA[
+		insert into t_prjt_power
+		  (
+		   user_id,
+		   create_time,
+		   modify_time,
+		   create_user_id,
+		   credit_id,
+		   status)
+		values
+		  (
+		   #user_id#,
+		   getdate(),
+		   getdate(),
+		   #s_employeeId#,
+		   #creditId#,
+		   0)
+	 ]]> 
+	</insert>
+	
+	<update id="deletePower" parameterClass="map">
+		update t_prjt_power 
+		   set status = -2
+		<dynamic prepend="where">
+			<isNotEmpty prepend="and" property="creditId">
+				<![CDATA[
+					credit_id=#creditId#
+				]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="user_id">
+				<![CDATA[
+					user_id=#user_id#
+				]]>
+			</isNotEmpty>
+		</dynamic>
+	</update>
+	
+	<select id="getMaxCredit_id" parameterClass="map" resultClass="int">
+		select max(id) credit_id
+		  from t_prjt_credit 
+		 where cust_id = #cust_id# and id!=#credit_id# and status=0
+	</select>
+	
+	<statement id="invCredit" parameterClass="map">
+		exec prc_inv_credit #credit_id#
+	</statement>
+	<statement id="enaCredit" parameterClass="map">
+		exec prc_ena_credit #credit_id#
+	</statement>
+	<select id="queryRisks" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		select t.prc_id,t.state,t.prc_hao,t.prc_level_id from t_prjt_risk_control t where t.credit_id = #credit_id# and t.status= 0
+		 ]]> 
+	</select>	
+	<select id="queryRiskMemos" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		select t.prcm_id,t.prcm_context,t.prcm_level,t.create_time,t1.name,t.prcm_user_level 
+		from t_prjt_risk_controlmemo t
+		left join t_user_user t1 on t1.id = t.create_user_id
+		 where t.prc_id = #prcId# and t.status = 0 order by t.prcm_user_level		 ]]> 
+	</select>	
+	<!-- Modify by Michael 2012 1/5增加利差RATE_DIFF -->
+	<update id="updateSchema" parameterClass="map">
+		update t_prjt_creditscheme
+			set 
+		   LEASE_TERM=#PAY_LEASE_PERIOD#,
+		   LEASE_COURSE=#PAY_LEASE_TERM_VALUE#,
+		   PLEDGE_PRICE=#PAY_PLEDGE_PRICE#, 
+		   HEAD_HIRE=#PAY_HEAD_HIRE#,
+		   HEAD_HIRE_PERCENT=#PAY_HEAD_HIRE_PERCENT#,
+		   FLOAT_RATE=#PAY_FLOAT_RATE#,
+		   <!--  MANAGEMENT_FEE=#PAY_MANAGEMENT_FEE#, -->
+		   YEAR_INTEREST=#PAY_YEAR_INTEREST#,
+		   LEASE_TOPRIC=#PAY_LEASE_TOPRIC#,
+		   PAY_WAY=#PAY_PAY_WAY_VALUE#,
+		   START_DATE=#PAY_START_DATE#,
+		   LEASE_RZE=#PAY_LEASE_RZE#,
+		   PLEDGE_PRICE_RATE=#PAY_PLEDGE_PRICE_RATE#,
+		  <!-- MANAGEMENT_FEE_RATE=#PAY_MANAGEMENT_FEE_RATE#, --> 
+		   MODIFY_USER_ID=#s_employeeId#, 
+		   MODIFY_DATE=getdate(),
+		   
+           TR_IRR_RATE=#TR_IRR_RATE#,
+           TR_RATE=#cust_tr#,
+           PLEDGE_REALPRIC=#PAY_PLEDGE_REALPRIC#,
+           
+           PLEDGE_PERIOD=#PAY_PLEDGE_PERIOD#,
+           PLEDGE_AVE_PRICE=#PAY_PLEDGE_AVE_PRICE#,
+		   PLEDGE_BACK_PRICE=#PAY_PLEDGE_BACK_PRICE#,
+		   PLEDGE_LAST_PRICE=#PAY_PLEDGE_LAST_PRICE#,
+		   PLEDGE_LAST_PERIOD=#PAY_PLEDGE_LAST_PERIOD#,
+		   <!--PLEDGE_ENTER_WAY=#PAY_PLEDGE_ENTER_WAY#,-->
+		   PLEDGE_ENTER_CMPRICE=#PAY_PLEDGE_ENTER_CMPRICE#,
+		   PLEDGE_ENTER_CMRATE=#PAY_PLEDGE_ENTER_CMRATE#,
+		   PLEDGE_ENTER_AG=#PAY_PLEDGE_ENTER_AG#,
+		   PLEDGE_ENTER_MCTOAG=#PLEDGE_ENTER_MCTOAG#,
+		   PLEDGE_ENTER_MCTOAGRATE=#PLEDGE_ENTER_MCTOAGRATE#,
+		   PLEDGE_ENTER_AGRATE=#PLEDGE_ENTER_AGRATE#,
+		   
+		   INSURE_BASE_RATE=#INSURE_BASE_RATE#,
+		   FINE_RATE=#FINE_RATE#,
+		   FINE_TYPE=#FINE_TYPE#,
+		   SALES_TAX_RATE=#SALES_TAX_RATE#,
+           STAMP_TAX_INSUREPRIC=#STAMP_TAX_INSUREPRIC#,
+           STAMP_TAX_TOPRIC=#STAMP_TAX_TOPRIC#,
+           STAMP_TAX_MONTHPRIC=#STAMP_TAX_MONTHPRIC#,
+		   LOAN_RATE=#LOAN_RATE#,
+		   MANAGE_RATE=#MANAGE_RATE#,
+		   FIRST_OWN_PRICE=#FIRST_OWN_PRICE#,
+		   RATE_DIFF=#RATE_DIFF#,
+		   <!--  SUPL_TRUE=#SUPL_TRUE#-->
+		   TAX_PLAN_CODE=#TAX_PLAN_CODE#,
+		   TOTAL_VALUEADDED_TAX=<isEmpty property="TOTAL_VALUEADDED_TAX">0,</isEmpty><isNotEmpty property="TOTAL_VALUEADDED_TAX">#TOTAL_VALUEADDED_TAX#,</isNotEmpty>
+		   DEFER_PERIOD=#DEFER_PERIOD#,
+		   SALES_PAY=<isEmpty property="pay__money">0</isEmpty><isNotEmpty property="pay__money">#pay__money#</isNotEmpty>,
+		   INCOME_PAY=<isEmpty property="incomePay">0</isEmpty><isNotEmpty property="incomePay">#incomePay#</isNotEmpty>,
+		   <isNotEmpty property="incomePayType">INCOME_PAY_TYPE=#incomePayType#,</isNotEmpty>
+		   OUT_PAY=<isEmpty property="outPay">0</isEmpty><isNotEmpty property="outPay">#outPay#</isNotEmpty>
+			where CREDIT_ID=#CREDIT_ID#
+	</update>
+	
+	<insert id="insertSchemaFromCompare" parameterClass="map">
+			insert into t_prjt_creditscheme
+		   (LEASE_TERM,
+		   LEASE_COURSE,
+		   PLEDGE_PRICE, 
+		   HEAD_HIRE,
+		   HEAD_HIRE_PERCENT, 
+		   FLOAT_RATE,
+		   MANAGEMENT_FEE, 
+		   YEAR_INTEREST,
+		   LEASE_TOPRIC,
+		   PAY_WAY,
+		   START_DATE, 
+		   LEASE_RZE, 
+		   PLEDGE_PRICE_RATE,
+		   MANAGEMENT_FEE_RATE,
+		   CREATE_USER_ID, 
+		   CREATE_DATE, 
+		   PLEDGE_WAY, 
+		   INSURE_BASE_RATE,
+		   SALES_TAX_RATE, 
+           TR_RATE,
+           CREDIT_ID,
+           STATUS,
+           TR_IRR_RATE,
+           STAMP_TAX_INSUREPRIC,
+           YEAR_INTEREST_TYPE,
+           FINE_TYPE,
+           BUY_INSURANCE_TIME,
+            STAMP_TAX_TOPRIC,
+           STAMP_TAX_MONTHPRIC,
+           PLEDGE_PERIOD,
+           OTHER_TAX,
+           PLEDGE_REALPRIC,
+           PLEDGE_ENTER_CMPRICE,
+           PLEDGE_ENTER_CMRATE,
+           PLEDGE_ENTER_AG,
+           PLEDGE_ENTER_MCTOAG,
+           PLEDGE_ENTER_MCTOAGRATE,
+           FIRST_OWN_PRICE,
+           PLEDGE_ENTER_AGRATE,TAX_PLAN_CODE,DEFER_PERIOD
+           <isNotEmpty property="incomePayType">,INCOME_PAY_TYPE</isNotEmpty>
+           )
+           VALUES(
+			#PAY_LEASE_PERIOD#,
+			#PAY_LEASE_TERM_VALUE#,
+			#PAY_PLEDGE_PRICE#,
+			#PAY_HEAD_HIRE#,
+			#PAY_HEAD_HIRE_PERCENT#,
+			#PAY_FLOAT_RATE#,
+			<isEmpty property="PAY_MANAGEMENT_FEE">
+				0,
+			</isEmpty>
+			<isNotEmpty property="PAY_MANAGEMENT_FEE">
+				#PAY_MANAGEMENT_FEE#,
+			</isNotEmpty>
+			#PAY_YEAR_INTEREST#,
+			#PAY_LEASE_TOPRIC#,
+			#PAY_PAY_WAY_VALUE#,
+			#PAY_START_DATE#,
+			#PAY_LEASE_RZE#,
+			#PAY_PLEDGE_PRICE_RATE#,
+			<isEmpty property="PAY_MANAGEMENT_FEE_RATE">
+				0,
+			</isEmpty>
+			<isNotEmpty property="PAY_MANAGEMENT_FEE_RATE">
+				#PAY_MANAGEMENT_FEE_RATE#,
+			</isNotEmpty>
+			#s_employeeId#,
+			getdate(),
+			<isEmpty property="PAY_PLEDGE_WAY_VALUE">
+				0,
+			</isEmpty>
+			<isNotEmpty property="PAY_PLEDGE_WAY_VALUE">
+				#PAY_PLEDGE_WAY_VALUE#,
+			</isNotEmpty>
+			<isEmpty property="PAY_INSURE_BASE_RATE">
+				0,
+			</isEmpty>
+			<isNotEmpty property="PAY_INSURE_BASE_RATE">
+				#PAY_INSURE_BASE_RATE#,
+			</isNotEmpty>
+			<isEmpty property="PAY_SALES_TAX_RATE">
+				0,
+			</isEmpty>
+			<isNotEmpty property="PAY_SALES_TAX_RATE">
+				#PAY_SALES_TAX_RATE#,
+			</isNotEmpty>
+			#cust_tr#,
+			#CREDIT_ID#,
+			0,
+			#TR_IRR_RATE#,
+			#STAMP_TAX_INSUREPRIC#,
+			1,
+			1,
+			1,
+			<isEmpty property="PAY_STAMP_TAX_TOPRIC">
+				0,
+			</isEmpty>
+			<isNotEmpty property="PAY_STAMP_TAX_TOPRIC">
+				#PAY_STAMP_TAX_TOPRIC#,
+			</isNotEmpty>
+			<isEmpty property="PAY_STAMP_TAX_MONTHPRIC">
+				0,
+			</isEmpty>
+			<isNotEmpty property="PAY_STAMP_TAX_MONTHPRIC">
+				#PAY_STAMP_TAX_MONTHPRIC#,
+			</isNotEmpty>
+			<isEmpty property="PLEDGE_PERIOD">
+				0,
+			</isEmpty>
+			<isNotEmpty property="PLEDGE_PERIOD">
+				#PLEDGE_PERIOD#,
+			</isNotEmpty>
+			0,
+			#PAY_PLEDGE_REALPRIC#,
+			#PAY_PLEDGE_ENTER_CMPRICE#,
+           	#PAY_PLEDGE_ENTER_CMRATE#,
+           	#PAY_PLEDGE_ENTER_AG#,
+           	#PLEDGE_ENTER_MCTOAG#,
+           	#PLEDGE_ENTER_MCTOAGRATE#,
+           	#FIRST_OWN_PRICE#,
+           	#PLEDGE_ENTER_AGRATE#,#TAX_PLAN_CODE#,#DEFER_PERIOD#
+           	<isNotEmpty property="incomePayType">,#incomePayType#</isNotEmpty>
+           )
+		
+	</insert>
+		<insert id="insertMemo"   parameterClass="map">
+			insert into t_prjt_creditmemo
+			  (
+			   create_user_id,
+			   modify_user_id,
+			   create_time,
+			   modify_time,
+			   credit_id,
+			   memo,
+			   state,
+			   status,
+			   AUDIT_STATE)
+			values
+			  (
+			   #s_employeeId#,
+			   #s_employeeId#,
+			   getdate(),
+			   getdate(),
+			   #credit_id#,
+			   #memo#,
+			   #statee#,
+			   0,
+			   #AUDIT_STATE#)
+	</insert>
+	<select id="selectNewMemo" parameterClass="map" resultClass="hashmap">
+		select top 1 * from (
+		select t1.prcm_id,
+		       t1.create_time,
+			   t1.credit_id,
+			   t1.memo,
+           	   t2.name      NAME
+		  from t_prjt_creditmemo t1
+      	  left join t_user_user t2 ON id=t1.create_user_id
+		  ) c
+		  where  c.credit_id=#credit_id# 
+		   order by  c.create_time desc
+	</select>
+	
+	<select id="selectNewMemoFor2" parameterClass="map" resultClass="hashmap">
+		select top 2 * from (
+		select t1.prcm_id,
+		       t1.create_time,
+			   t1.credit_id,
+			   t1.memo,
+			   t1.audit_state,
+			   t1.state,
+			   t1.status,
+           	   t2.name      NAME
+		  from t_prjt_creditmemo t1
+      	  left join t_user_user t2 ON id=t1.create_user_id
+		  ) c
+		  where  c.credit_id=#credit_id# 
+		  	and c.status = 0
+		   order by  c.create_time desc
+	</select>
+	
+	<select id="selectMemo" parameterClass="map" resultClass="hashmap">
+		select * from (
+		select t1.prcm_id,
+		       t1.create_time,
+			   t1.credit_id,
+			   t1.memo,
+           	   t2.name      NAME
+		  from t_prjt_creditmemo t1
+      	  left join t_user_user t2 ON id=t1.create_user_id
+		  ) c
+		  where  c.credit_id=#credit_id# 
+		  order by  c.create_time desc
+	</select>
+
+	<select id="selectMemoByPrcId" parameterClass="map" resultClass="hashmap">	
+		select t1.prcm_id,
+		       t1.create_time CREATE_TIME,
+			   t1.credit_id,
+			   t1.memo MEMO,
+           	   t2.name      NAME,
+           	   t1.tprc_id TPRC_ID
+		  from t_prjt_creditmemo t1
+      	  left join t_user_user t2 ON id=t1.create_user_id
+		  where  t1.credit_id=#credit_id# and t1.tprc_id=#prc_id#
+		  order by  t1.create_time desc
+	</select>	
+	<select id="selectCreditCode" parameterClass="map" resultClass="java.lang.Object">
+		select * from 
+		   t_prjt_credit
+		  where  id=#credit_id# 
+		  order by create_date desc
+	</select>
+	<!-- 
+	租赁方案修改基本信息
+	 -->	
+	<update id="updateconType" parameterClass="map">			
+		update t_prjt_credit 
+			set contract_type=#contract_typew#
+			,MODIFY_DATE = GETDATE()
+			,CREDIT_SPECIAL_CODE=#creditSpecialCode#
+			,customer_come=#customerComeList#
+			,PRODUCTION_TYPE=CASE WHEN #contract_typew#=2 OR #contract_typew#=5 OR #contract_typew#=7 OR #contract_typew#=9 THEN 1 
+				WHEN #contract_typew#=6 OR #contract_typew#=8 OR #contract_typew#=10 OR #contract_typew#=12 OR #contract_typew#=13 OR #contract_typew#=14 THEN 3
+			ELSE 2 END
+			,type =#creditTypesName#
+			,PROVINCE_ID=#province_id#
+			,CITY_ID =#city_id#
+			,area_id =#area_id#
+			,IS_NEW_PRODUCTION=#IS_NEW_PRODUCTION#
+			,SUPPLIER_CONTACT =#supplierContact#
+			,GROUP_INSIDE =#groupInside#
+		where id=#credit_id#
+	</update>	
+	
+	<update id="updateconType_vip" parameterClass="map">			
+		update t_prjt_credit set contract_type=#contract_typew#,MODIFY_DATE = GETDATE(),
+		customer_come=#customerComeList#,PRODUCTION_TYPE=CASE WHEN #contract_typew#=2 OR #contract_typew#=5 OR #contract_typew#=7 OR #contract_typew#=9 THEN 1 
+		WHEN #contract_typew#=6 OR #contract_typew#=8 OR #contract_typew#=10 OR #contract_typew#=12 OR #contract_typew#=13 OR #contract_typew#=14 THEN 3
+		ELSE 2 END,
+		type =#creditTypesName#,PROVINCE_ID=#province_id#,CITY_ID =#city_id#,area_id =#area_id#  where id=#credit_id#
+	</update>	
+	
+	<statement id="readCreditSchemaId" parameterClass="map" resultClass="java.lang.Long">
+	<![CDATA[
+			SELECT MAX(PRCS_ID) FROM T_PRJT_CREDITSCHEME WHERE CREDIT_ID=#CREDIT_ID#
+	]]>
+	</statement>
+	
+	
+	<statement id="deleteCreditSchemaIrr" parameterClass="map">
+	<![CDATA[	 
+		delete from  t_prjt_creditschemeirr  where prcs_id in (select prcs_id from t_prjt_creditscheme where credit_id=#credit_id#)
+	]]>
+	</statement>						
+	<statement id="create-credit-schema-irr" parameterClass="map">
+	<![CDATA[
+		INSERT INTO T_PRJT_CREDITSCHEMEIRR
+           (CREATE_ID
+           ,CREATE_DATE
+           ,MODIFY_ID
+           ,MODIFY_DATE
+           ,STATUS
+           ,TYPE
+           ,PRCI_STATUS
+           ,IRR_MONTH_PRICE
+           ,IRR_MONTH_PRICE_START
+           ,IRR_MONTH_PRICE_END
+           ,PRCS_ID)
+     SELECT  #S_EMPLOYEEID#
+           ,GETDATE()
+           ,#S_EMPLOYEEID#
+           ,GETDATE()
+           ,0
+           ,0
+           ,0
+           ,#IRR_MONTH_PRICE#
+           ,#IRR_MONTH_PRICE_START#
+           ,#IRR_MONTH_PRICE_END#
+           ,MAX(T.PRCS_ID)
+        FROM T_PRJT_CREDITSCHEME T WHERE T.CREDIT_ID=#CREDIT_ID#
+           ]]>
+	</statement>	
+	<statement id="readCreditSchemaIrr" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT IRR_MONTH_PRICE,IRR_MONTH_PRICE_START,IRR_MONTH_PRICE_END
+			  FROM T_PRJT_CREDITSCHEMEIRR T1
+			LEFT JOIN T_PRJT_CREDITSCHEME T2 ON T1.PRCS_ID=T2.PRCS_ID
+			WHERE T1.STATUS=0 AND T2.CREDIT_ID=#CREDIT_ID#
+			ORDER BY IRR_MONTH_PRICE_START
+           ]]>
+	</statement>
+	<statement id="readCreditSchemaIrr_Rent" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT IRR_MONTH_PRICE,IRR_MONTH_PRICE_START,IRR_MONTH_PRICE_END
+			  FROM T_PRJT_CREDITSCHEMEIRR T1
+			LEFT JOIN T_PRJT_CREDITSCHEME T2 ON T1.PRCS_ID=T2.PRCS_ID
+			WHERE T1.STATUS=0 AND T2.CREDIT_ID=#PRCD_ID#
+			ORDER BY IRR_MONTH_PRICE_START
+           ]]>
+	</statement>	
+	<update id="update-credit-schema-irr" parameterClass="map">
+	<![CDATA[
+		UPDATE T_PRJT_CREDITSCHEMEIRR SET STATUS=-2 
+		WHERE PRCS_ID IN (SELECT PRCS_ID FROM T_PRJT_CREDITSCHEME WHERE CREDIT_ID=#CREDIT_ID#)
+	 ]]>
+	</update>
+	
+	<select id="selectSupperGrantInfo" parameterClass="map" resultClass="hashmap">
+		SELECT DISTINCT TOP 1	CREDITSUP.ID ID,
+				CREDITSUP.NAME SUPNAME,
+				ALLGRANTSUP.GRANT_PRICE GRANT_PRICE,
+				ALLGRANTSUP.LAST_PRICE LAST_PRICE,
+				ALLGRANTSUP.UNION_GRANT_PRICE UNION_GRANT_PRICE 
+				FROM (select t1.ID ID,t1.NAME from T_SUPL_SUPPLIER  t1
+						left join T_SUPL_EQUIPMENT t2 on t2.SUPPLIER_ID=t1.ID
+						left join T_PRJT_CREDITEQUIPMENT t3 on t3.SUEQ_ID=t2.SUEQ_ID
+						where t3.CREDIT_ID=#credit_id#) CREDITSUP LEFT JOIN
+							(SELECT  TPP.PDGP_ID,
+			 					TPP.CREATE_DATE,
+			 					TPP.CREATE_ID,
+			 					TPP.MODITY_DATE,
+			 					TPP.MODIFY_ID,
+								TPP.CUGP_STATUS,
+								TPP.CUGP_CODE,
+								TPP.GRANT_PRICE,
+								TPP.LAST_PRICE,
+								TPP.START_DATE,
+								TPP.END_DATE,
+								TPP.REMARK,
+								TPP.REPEAT_CREDIT,
+								TSS.ID,
+								TSS.NAME,
+								TSS.CODE,
+								TSS.COMPANY_CORPORATION,
+								TSS.LINKMAN_NAME,
+								TSS.LINKMAN_MOBILE,
+								t1.UNION_GRANT_PRICE
+		 						FROM T_SUPL_SUPPLIER  TSS
+		 						LEFT JOIN T_PRODUCT_GRANTPLAN TPP ON TPP.PRODUCT_ID = TSS.ID
+		 						left join (select trur.PRODUCT_ID,sum(trur.UNION_GRANT_PRICE) UNION_GRANT_PRICE
+		 						from T_PRODUCT_UNIONGRANTPLAN trur
+		 						where trur.STATUS = 0
+		 						group by trur.PRODUCT_ID) t1 on t1.PRODUCT_ID = tss.id 
+		 						WHERE TSS.STATUS = 0 AND (TPP.STATUS IS NULL OR TPP.STATUS=0)
+		 						) ALLGRANTSUP ON ALLGRANTSUP.ID=CREDITSUP.ID
+	</select>
+	
+	<select id="selectSupperGrantInfoBySupperId" parameterClass="map" resultClass="hashmap">
+		SELECT DISTINCT TOP 1	CREDITSUP.ID ID,
+				CREDITSUP.NAME SUPNAME,
+				ALLGRANTSUP.GRANT_PRICE GRANT_PRICE,
+				ALLGRANTSUP.LAST_PRICE LAST_PRICE,
+				ALLGRANTSUP.UNION_GRANT_PRICE UNION_GRANT_PRICE 
+				FROM (select t1.ID ID,t1.NAME from T_SUPL_SUPPLIER  t1
+						left join T_SUPL_EQUIPMENT t2 on t2.SUPPLIER_ID=t1.ID
+						where t2.SUEQ_ID=#supperid#) CREDITSUP 
+				LEFT JOIN
+							(SELECT  TPP.PDGP_ID,
+			 					TPP.CREATE_DATE,
+			 					TPP.CREATE_ID,
+			 					TPP.MODITY_DATE,
+			 					TPP.MODIFY_ID,
+								TPP.CUGP_STATUS,
+								TPP.CUGP_CODE,
+								TPP.GRANT_PRICE,
+								TPP.LAST_PRICE,
+								TPP.START_DATE,
+								TPP.END_DATE,
+								TPP.REMARK,
+								TPP.REPEAT_CREDIT,
+								TSS.ID,
+								TSS.NAME,
+								TSS.CODE,
+								TSS.COMPANY_CORPORATION,
+								TSS.LINKMAN_NAME,
+								TSS.LINKMAN_MOBILE,
+								t1.UNION_GRANT_PRICE
+		 						FROM T_SUPL_SUPPLIER  TSS
+		 						LEFT JOIN T_PRODUCT_GRANTPLAN TPP ON TPP.PRODUCT_ID = TSS.ID
+		 						left join (select trur.PRODUCT_ID,sum(trur.UNION_GRANT_PRICE) UNION_GRANT_PRICE
+		 						from T_PRODUCT_UNIONGRANTPLAN trur
+		 						where trur.STATUS = 0
+		 						group by trur.PRODUCT_ID) t1 on t1.PRODUCT_ID = tss.id 
+		 						WHERE TSS.STATUS = 0 AND (TPP.STATUS IS NULL OR TPP.STATUS=0)
+		 						) ALLGRANTSUP ON ALLGRANTSUP.ID=CREDITSUP.ID
+	</select>
+	<select id="grantcustInfo" parameterClass="map" resultClass="hashmap">
+		select top 1 t1.GRANT_PRICE GRANT_PRICE,
+	   			t1.LAST_PRICE LAST_PRICE,
+	   			t2.CUST_NAME CUST_NAME,
+	   			t1.START_DATE START_DATE,
+	   			t1.END_DATE END_DATE,
+	  		 	t2.CUST_ID CUST_ID
+		from T_CUST_GRANTPLAN t1  
+		left join T_CUST_CUSTOMER t2 on t2.CUST_ID=t1.CUST_ID
+		left join T_PRJT_CREDIT t3 on t3.CUST_ID=t2.CUST_ID
+		where t3.ID=#credit_id# and t1.START_DATE&lt;getdate() and t1.END_DATE&gt;getdate()  and t2.STATUS=0
+	 </select>	
+	 
+	 
+	 <!-- 查询所有介绍人个数 -->
+	<select id="getAllSponsor_count" parameterClass="map" resultClass="int">
+		<![CDATA[
+		select COUNT(*) from(
+			select max(t.PRCS_ID) PRCS_ID,count(t.CREDIT_ID) COUNT,t.sponsor from T_PRJT_CREDITSCHEME  t 
+			where t.sponsor is not null and t.sponsor!='' 
+		]]>
+		<dynamic prepend="and">
+			<isNotEmpty prepend="and" property="content">
+		  		(t.sponsor like '%$content$%')
+		  	</isNotEmpty>
+		</dynamic>
+		<![CDATA[
+		group by t.sponsor) c
+		 ]]>
+	 </select>
+	 
+	<!-- 查询所有介绍人 -->
+	<select id="getAllSponsor" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+		select max(t.PRCS_ID) PRCS_ID,count(t.CREDIT_ID) COUNT,t.sponsor from T_PRJT_CREDITSCHEME   t 
+			where t.sponsor is not null and t.sponsor!='' and t.STATUS = 0
+			 ]]>
+		<dynamic prepend="and">
+			<isNotEmpty prepend="and" property="content">
+		  		(t.sponsor like '%$content$%')
+		  	</isNotEmpty>
+		</dynamic>
+		<![CDATA[
+		group by t.sponsor
+		 ]]>
+	 </select>
+	 
+	 <!-- 查询介绍人所介绍的公司 -->
+	<select id="getSponsorByName" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select tpc.ID id,
+		   tpc.TYPE type,
+		   tcc.CUST_CODE cust_code,
+		   tcc.CUST_NAME cust_name,
+		   ta.NAME province,
+		   tuu.NAME clerk_name,
+		   tuu2.NAME sensor_name,
+		   tpc.WIND_STATE wind_state,
+		   t1.CREDIT_ID CREDIT_ID,
+		   t1.CREATE_DATE CREATE_DATE
+		 from t_prjt_credit tpc
+			left join T_PRJT_CREDITSCHEME t1 on tpc.ID=t1.CREDIT_ID	
+			left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+			  left join t_area ta on ta.id = tpc.province_id
+			  left join t_user_user tuu on tuu.id = tpc.clerk_id
+			  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id					
+											where t1.sponsor=#SPONSORNAME# and tpc.STATUS=0
+		
+			 ]]>
+	 </select>
+	 
+	 <!-- 查询介绍人所介绍的公司 -->
+	<select id="getSponsorByName_count" parameterClass="map" resultClass="int">
+		<![CDATA[
+		select COUNT(*) from (		
+	select tpc.ID id,
+		   tpc.TYPE type,
+		   tcc.CUST_CODE cust_code,
+		   tcc.CUST_NAME cust_name,
+		   ta.NAME province,
+		   tuu.NAME clerk_name,
+		   tuu2.NAME sensor_name,
+		   tpc.WIND_STATE wind_state,
+		   t1.CREDIT_ID CREDIT_ID,
+		   t1.CREATE_DATE CREATE_DATE
+		 from t_prjt_credit tpc
+			left join T_PRJT_CREDITSCHEME t1 on tpc.ID=t1.CREDIT_ID	
+			left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+			  left join t_area ta on ta.id = tpc.province_id
+			  left join t_user_user tuu on tuu.id = tpc.clerk_id
+			  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id					
+											where t1.sponsor=#SPONSORNAME# and tpc.STATUS=0) a
+										
+			 ]]>
+	 </select>
+	
+						
+	 
+	 <statement id="createAppropiateMon" parameterClass="map">
+	<![CDATA[
+		INSERT INTO T_PRJT_CREDITAPPROPIATE
+           (CREDIT_ID
+           ,CREATE_DATE
+           ,MODIFY_DATE
+           ,STATUS
+           ,TYPE
+           ,CREATE_USER_ID
+           ,MODIFY_USER_ID
+           ,PAYPERCENT
+           ,APPRORIATEMON
+           ,APPRORIATENAME
+           )
+    		VALUES(
+    		#CREDIT_ID#,
+    		getdate(),
+    		getdate(),
+    		0,
+    		#TYPE#,
+    		#CREATE_USER_ID#,
+    		#MODIFY_USER_ID#,
+    		#PAYPERCENT#,
+    		#APPROPIATEMON#,
+    		#APPRORIATENAME#
+    		)
+           ]]>
+	</statement>
+	
+	 <statement id="deleteAppropiateMon" parameterClass="map">
+	<![CDATA[
+		delete from  T_PRJT_CREDITAPPROPIATE where CREDIT_ID=#CREDIT_ID#
+           ]]>
+	</statement>
+	
+	<select id="getAppropiateByCreditId" parameterClass="map" resultClass="hashmap">
+		select * from  T_PRJT_CREDITAPPROPIATE where CREDIT_ID=#credit_id# and STATUS=0
+	</select>
+	
+	 <!-- 查询所有报告数量 客户经理转移 -->
+	<select id="getAllSenson_count" parameterClass="map" resultClass="int">
+		<![CDATA[
+		select COUNT(*) from (select tpc.id id,
+	       tpc.type type,
+	       tpc.state state,
+	       tpc.cust_id cust_id,
+	       tcc.cust_name cust_name,
+	       tcc.cust_type cust_type,
+	       ta.name province,
+	       tpc.clerk_id clerk_id,
+	       tuu.name clerk_name,
+	       tpc.sensor_id sensor_id,
+	       tuu2.name sensor_name,
+	       tpc.wind_state wind_state,
+	       CONVERT(varchar,tpc.create_date,23)  create_date,
+	       tcc.cust_code   cust_code,
+	       t1.credit_id 
+		  from t_prjt_credit tpc
+		  left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		  left join t_area ta on ta.id = tpc.province_id
+		  left join t_user_user tuu on tuu.id = tpc.clerk_id
+		  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		  left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = tpc.id
+		  where tpc.status=0
+		  ]]>
+		   <dynamic>
+		  	<isNotEmpty prepend="and" property="content">
+		  		(tpc.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 tpc.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic> 
+		 <![CDATA[
+		  		) t 
+										
+			 ]]>
+	 </select>
+	 
+	  <!-- 查询所有报告 客户经理转移 -->
+	<select id="getAllSenson" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+		select * from (select tpc.id id,
+	       tpc.type type,
+	       tpc.state state,
+	       tpc.cust_id cust_id,
+	       tcc.cust_name cust_name,
+	       tcc.cust_type cust_type,
+	       ta.name province,
+	       tpc.clerk_id clerk_id,
+	       tuu.name clerk_name,
+	       tpc.sensor_id sensor_id,
+	       tuu2.name sensor_name,
+	       tpc.wind_state wind_state,
+	       CONVERT(varchar,tpc.create_date,23)  create_date,
+	       tcc.cust_code   cust_code,
+	       t1.credit_id ,
+	       tpc.CREDIT_RUNCODE,
+	       tpc.LEASE_CODE
+		  from t_prjt_credit tpc
+		  left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		  left join t_area ta on ta.id = tpc.province_id
+		  left join t_user_user tuu on tuu.id = tpc.clerk_id
+		  left join t_user_user tuu2 on tuu2.id = tpc.sensor_id
+		  left join (select distinct credit_id from t_prjt_risk_control where status=0) t1 on t1.credit_id = tpc.id
+		  where tpc.status=0 
+		  ]]>
+		   <dynamic>
+		  	<isNotEmpty prepend="and" property="content">
+		  		(tpc.type like '%$content$%' or tcc.cust_name like '%$content$%' or tuu.name like '%$content$%'
+		  		or tuu2.name like '%$content$%' or ta.name like '%$content$%' or tcc.cust_code like '%$content$%'
+		  		or tpc.CREDIT_RUNCODE like '%$content$%')
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="start_date">
+		  		tpc.create_date&gt;=CONVERT(datetime,#start_date#)
+		  	</isNotEmpty>
+		  	<isNotEmpty prepend="and" property="end_date">
+		  		tpc.create_date&lt;=CONVERT(datetime,#end_date#)+1
+		  	</isNotEmpty>
+		  	<isNotEmpty property="credit_type">
+		  	<isNotEqual prepend="and" property="credit_type" compareValue="-2">
+		  		 tpc.state=#credit_type#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  </dynamic> 
+		 <![CDATA[ ) t
+		  order by t.id desc  
+										
+			 ]]>
+	 </select>
+	 
+	    <!-- 查找出所有客户经理 -->
+	<select id="getSenson" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select t.ID,t.NAME from T_USER_USER t
+										
+			 ]]>
+		<!-- 2011/12/30 Yang Yun ,只查询业务员.  -->
+		<![CDATA[
+			where exists (select dd.CODE from t_data_dictionary dd
+			where dd.type=#dic_type# and dd.status=0 and (dd.FLAG=#dic_flag1# or dd.FLAG= #dic_flag2#)
+			and dd.CODE = t.job)
+			order by t.NAME
+		]]>
+		<!-- 2011/12/30 Yang Yun ,只查询业务员. -->
+	 </select>
+	 
+	   <!-- 查找出所有客户经理，单个的除了他自己本身 -->
+	<select id="getSensonWithOutself" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select t.ID,t.NAME from T_USER_USER t where t.ID != #sensorid#
+										
+			 ]]>
+			 <!-- 2011/12/30 Yang Yun ,只查询业务员.  -->
+		<![CDATA[
+			and exists (select dd.CODE from t_data_dictionary dd
+			where dd.type=#dic_type# and dd.status=0 and (dd.FLAG=#dic_flag1# or dd.FLAG= #dic_flag2#)
+			and dd.CODE = t.job)
+			order by t.NAME
+		]]>
+		<!-- 2011/12/30 Yang Yun ,只查询业务员. -->
+	 </select>
+	 
+	 <!-- 更改客户经理 报告表 -->
+	 <update id="updateSensorCredit" parameterClass="map">
+		<![CDATA[
+			update t_prjt_credit
+					set SENSOR_ID = #sensor#,MODIFY_DATE = GETDATE()
+					where ID = #credit_id10#
+		 ]]>
+	</update>
+	
+	<!-- 更改客户经理 合同表 -->
+	 <update id="updateSensorContract" parameterClass="map">
+		<![CDATA[
+			update T_RENT_CONTRACT
+					set SENSOR_ID = #sensor#
+					where PRCD_ID = #credit_id10#
+		 ]]>
+	</update>
+	
+	   <!-- 查找出报告中所有已经存在的客户经理 -->
+	<select id="getSensonOn" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select t.ID,t.NAME from T_USER_USER t where ID in( 
+				   select t.SENSOR_ID from T_PRJT_CREDIT t)
+										
+		]]>
+		<![CDATA[
+			and exists (select dd.CODE from t_data_dictionary dd
+			where dd.type=#dic_type# and dd.status=0 and (dd.FLAG=#dic_flag1# or dd.FLAG= #dic_flag2#)
+			and dd.CODE = t.job)
+			order by t.NAME
+		]]>
+	 </select>
+	 
+	  <!-- 批量更改客户经理 报告表 -->
+	 <update id="updateSensorCreditByLot" parameterClass="map">
+		<![CDATA[
+			update t_prjt_credit
+					set SENSOR_ID = #sensor2#,MODIFY_DATE = GETDATE()
+					where SENSOR_ID = #sensor1#
+		 ]]>
+	</update>
+	
+	<!-- 批量更改客户经理 合同表 -->
+	 <update id="updateSensorContractByLot" parameterClass="map">
+		<![CDATA[
+			update T_RENT_CONTRACT
+					set SENSOR_ID = #sensor2#
+					where SENSOR_ID = #sensor1#
+		 ]]>
+	</update>
+	
+	   <!-- 查还款计划和实际还款的数据 -->
+	<select id="getBackMoneyOverOrNot" parameterClass="map" resultClass="hashmap">
+
+			select cast(t1.MONTH_PRICE as decimal(10,2)) MONTH_PRICE,t1.PERIOD_NUM,t2.RECD_PERIOD,cast(t2.REAL_PRICE as decimal(10,2)) REAL_PRICE from T_RENT_COLLECTIONPLAN t
+				left join T_RENT_COLLECTIONDETAIL t1 on t.RECP_ID=t1.RECP_ID
+				left join T_FINA_COLLECTIONBILL t2 on t.RECP_ID=t2.RECP_ID and t2.FICB_ITEM=#rent# and t1.PERIOD_NUM=t2.RECD_PERIOD
+				where t.STATUS=0 and t.RECP_ID in (select t4.RECP_ID from T_RENT_COLLECTIONPLAN t4 where t4.RECT_ID in (
+													select t3.RECT_ID from t_rent_contract t3 where t3.STATUS=0 and t3.SENSOR_ID= #sensorIdForisOver#))
+														
+
+	 </select>
+	 
+	    <!-- 根据userid查找客户经理的名字 -->
+	<select id="getSensonNameById" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select t.NAME from t_user_user  t where ID=#userid#
+										
+			 ]]>
+	 </select>
+	 
+	  <!-- 客户案况表 -->
+	<select id="queryCreditByCust" parameterClass="map" resultClass="hashmap">
+		<!-- 
+			select t1.ID,t1.DECP_ID,t3.DECP_NAME_CN,t2.CUST_ID,t2.CUST_CODE,t2.CUST_NAME,t4.sponsor,
+		 MAX(T5.BRAND) BRAND,t1.CONTRACT_TYPE,t6.FLAG zulinType,t7.credit_value,(t4.LEASE_TOPRIC-t4.PLEDGE_PRICE) PLEDGE_PRICE,
+		 t1.SENSOR_ID,t8.NAME sensorName,t4.LEASE_TOPRIC,t9.VISITFACTORYDATE,t1.CREATE_DATE,t10.hezhunTime,t1.COMMIT_WIND_DATE,
+		 t4.START_DATE,t4.LEASE_TOPRIC start_topric,t11.CASESTATE,t11.ACTLOG_ID,
+		 ROUND(ISNULL(T4.LEASE_TOPRIC,0),0,1) - ROUND(ISNULL(T4.PLEDGE_ENTER_MCTOAG,0),0,1) - ROUND(ISNULL(T4.PLEDGE_ENTER_AG,0),0,1) SQBKJE
+from T_PRJT_CREDIT t1
+left join T_CUST_CUSTOMER t2 on t1.CUST_ID=t2.CUST_ID and t2.STATUS=0
+left join T_DEPT_COMPANY t3 on t1.DECP_ID=t3.DECP_ID and t3.STATUS=0
+left join T_PRJT_CREDITSCHEME t4 on t4.CREDIT_ID=t1.ID and t4.STATUS=0
+LEFT JOIN T_PRJT_CREDITEQUIPMENT T5 ON T1.ID = T5.CREDIT_ID
+left join T_DATA_DICTIONARY t6 on t6.TYPE=#type1# and t6.CODE=t1.CONTRACT_TYPE and t6.STATUS=0
+left join queryCREDIT t7 on t7.credit_id=t1.id
+left join T_USER_USER t8 on t8.id=t1.sensor_id
+left join T_LOG_ACTIVITIESLOG t9 on t9.credit_id=t1.id and t9.status=0
+left join (
+select Max(t.CREATE_TIME) hezhunTime,t2.ID from T_PRJT_RISK_CONTROLMEMO t
+left join T_PRJT_RISK_CONTROL t1 on t.PRC_ID=t1.PRC_ID
+left join t_prjt_credit t2 on t2.ID=t1.CREDIT_ID
+where t.STATUS=0 and t1.STATUS=0 and t2.STATUS=0 and t2.STATE=1 and t2.WIND_STATE=1  and t.PRCM_LEVEL is null
+group by t2.ID
+) t10 on t10.ID=t1.Id
+left join 
+(
+		select t.CASESTATE,t1.ACTLOG_ID,t.CREDIT_ID ID from T_LOG_ACTIVITIESLOG t 
+left join T_REPORT_ACTLOG t1 on t.CASESTATE=t1.ACTLOG_NAME and t1.STATUS=0 where t.STATUS=0
+) t11 on t11.ID=t1.ID
+where t1.status=0 and t3.status=0
+-->
+<!-- select t9.ID,t9.DECP_ID,
+CASE WHEN
+CONVERT(DATE,pay.PAY_DATE,23)=CONVERT(DATE,'1900-1-1',23)
+THEN NULL 
+ELSE CONVERT(DATE,pay.PAY_DATE,23)
+END PAY_DATE,
+		(select top 1 c.DECP_NAME_CN from T_USER_USER2COMPANY uc
+left join T_DEPT_DEPARTMENT dp on dp.ID = uc.DEPT_ID and dp.STATUS = 0
+left join T_DEPT_COMPANY c on dp.DECP_ID = c.DECP_ID and c.STATUS = 0
+where uc.STATUS = 0 and uc.USER_ID = max(t8.ID))as DECP_NAME_CN,
+t2.CUST_ID,t2.CUST_CODE,t2.CUST_NAME,t4.sponsor,
+		 MAX(T5.BRAND) BRAND,t9.CONTRACT_TYPE,t6.FLAG zulinType,t7.credit_value,(t4.LEASE_TOPRIC-t4.PLEDGE_PRICE) PLEDGE_PRICE,
+		 t9.SENSOR_ID,t8.NAME sensorName,t4.LEASE_TOPRIC,t1.VISITFACTORYDATE,t9.CREATE_DATE,t10.hezhunTime,t9.COMMIT_WIND_DATE,
+		 t4.START_DATE,t4.LEASE_TOPRIC start_topric,t11.CASESTATE,t11.ACTLOG_ID,
+		 ROUND(ISNULL(T4.LEASE_TOPRIC,0),0,1) - ROUND(ISNULL(T4.PLEDGE_ENTER_MCTOAG,0),0,1) - ROUND(ISNULL(T4.PLEDGE_ENTER_AG,0),0,1) SQBKJE
+		 ,(	SELECT MAX(TSPD.EXPECTEDDATE) EXPECTEDDATE
+			FROM T_SUPL_PLAYDETIL TSPD
+			WHERE TSPD.STATUS = 0 AND TSPD.CREDIT_ID = T9.ID ) EXPECTEDDATE
+from T_LOG_ACTIVITIESLOG t1
+left join T_PRJT_CREDIT t9 on t9.ID = t1.credit_id and t9.STATUS = 0
+left join T_SUPL_PLAYDETIL pay on t9.ID=pay.CREDIT_ID AND pay.STATUS = 0 AND backstate=0 add by ShenQi只需要取出设备款 设备款的CODE=0
+left join T_CUST_CUSTOMER t2 on t1.CUST_ID=t2.CUST_ID and t2.STATUS=0
+left join T_DEPT_COMPANY t3 on t9.DECP_ID=t3.DECP_ID and t3.STATUS=0
+left join T_PRJT_CREDITSCHEME t4 on t4.CREDIT_ID=t9.ID and t4.STATUS=0
+LEFT JOIN T_PRJT_CREDITEQUIPMENT T5 ON T9.ID = T5.CREDIT_ID
+left join T_DATA_DICTIONARY t6 on t6.TYPE = #type1# and t6.CODE=t9.CONTRACT_TYPE and t6.STATUS=0
+left join queryCREDIT t7 on t7.credit_id=t9.id
+left join T_USER_USER t8 on t8.id=t9.sensor_id 
+left join (
+	select Max(t.CREATE_TIME) hezhunTime,t2.ID from T_PRJT_RISK_CONTROLMEMO t
+	left join T_PRJT_RISK_CONTROL t1 on t.PRC_ID=t1.PRC_ID
+	left join t_prjt_credit t2 on t2.ID=t1.CREDIT_ID
+	where t.STATUS=0 and t1.STATUS=0 and t2.STATUS=0 and t2.STATE=1 and t2.WIND_STATE=1  and t.PRCM_LEVEL is null
+	group by t2.ID
+	) t10 on t10.ID=t9.Id
+left join 
+		(
+		select t.CASESTATE,t1.ACTLOG_ID,t.ACTILOG_ID ACTILOG_ID from T_LOG_ACTIVITIESLOG t 
+		left join T_REPORT_ACTLOG t1 on t.CASESTATE=t1.ACTLOG_NAME and t1.STATUS=0 where t.STATUS=0
+		) t11 on t11.ACTILOG_ID=t1.ACTILOG_ID
+where t1.status=0 AND T3.DECP_NAME_CN IS NOT NULL
+默认进入取出预估起租日大于等于30天前  add by ShenQi
+<isEmpty property="DATE_TYPE">
+	AND t4.START_DATE >=DATEADD(DD,-30,GETDATE())
+	AND (MONTH(CONVERT(DATE,pay.PAY_DATE,23))=MONTH(GETDATE()) 
+			OR CONVERT(DATE,pay.PAY_DATE,23)=CONVERT(DATE,'1900-1-1',23)
+			OR CONVERT(DATE,pay.PAY_DATE,23) IS NULL)
+</isEmpty>
+<isNotEmpty property="DATE_TYPE">
+	<isEqual property="DATE_TYPE" compareValue="1">1 代表选择预估拨款日
+		<isNotEmpty property="BEGIN_DATE">
+			AND CONVERT(DATE,EXPECTEDDATE,23)>=CONVERT(DATE,#BEGIN_DATE#,23)
+		</isNotEmpty>
+		<isNotEmpty property="END_DATE">
+			AND CONVERT(DATE,EXPECTEDDATE,23)&lt;=CONVERT(DATE,#END_DATE#,23)
+		</isNotEmpty>
+	</isEqual>
+	<isEqual property="DATE_TYPE" compareValue="2">2 代表选择实际拨款日
+		<isNotEmpty property="BEGIN_DATE">
+			AND CONVERT(DATE,pay.PAY_DATE,23)>=CONVERT(DATE,#BEGIN_DATE#,23)
+		</isNotEmpty>
+		<isNotEmpty property="END_DATE">
+			AND CONVERT(DATE,pay.PAY_DATE,23)&lt;=CONVERT(DATE,#END_DATE#,23)
+		</isNotEmpty>
+	</isEqual>
+	<isEqual property="DATE_TYPE" compareValue="3">3 代表选择预计起租日
+		<isNotEmpty property="BEGIN_DATE">
+			AND CONVERT(DATE,t4.START_DATE,23)>=CONVERT(DATE,#BEGIN_DATE#,23)
+		</isNotEmpty>
+		<isNotEmpty property="END_DATE">
+			AND CONVERT(DATE,t4.START_DATE,23)&lt;=CONVERT(DATE,#END_DATE#,23)
+		</isNotEmpty>
+	</isEqual>
+</isNotEmpty>
+   	<isNotEmpty prepend="and" property="sensorId">
+		  		 t8.NAME like '%$sensorId$%'
+		  	</isNotEmpty> 
+		  	<isNotEmpty prepend="and" property="creditcontext">
+		  	(
+		  		 t2.CUST_CODE like '%$creditcontext$%'
+		  		 or t2.CUST_NAME like '%$creditcontext$%'
+		  		 )
+		  	</isNotEmpty> 
+		  	<isNotEmpty prepend="and" property="decp_name">
+		  		 exists (select c.DECP_ID from T_USER_USER2COMPANY uc
+					left join T_DEPT_DEPARTMENT dp on dp.ID = uc.DEPT_ID and dp.STATUS = 0
+					left join T_DEPT_COMPANY c on dp.DECP_ID = c.DECP_ID and c.STATUS = 0
+					where uc.STATUS = 0 and uc.USER_ID = t8.ID
+					and c.DECP_ID = #decp_name#)
+		  	</isNotEmpty> 
+		  	<isNotEmpty prepend="and" property="state">
+		  		 t11.ACTLOG_ID=#state#
+		  	</isNotEmpty>
+		  	2011/12/28 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+		  	<isEqual property="p_usernode" compareValue="1">
+		  		and (t8.ID = #s_employeeId# or t8.upper_user = #s_employeeId#)
+		  	</isEqual>
+		  	2011/12/28 Yang Yun Mantis[0000253] (區域主管無法看到該區域之逾期案件)
+		  	2012/01/11 Yang Yun 增加区域筛选功能.Start
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[	
+					exists(select ID from T_USER_USER
+					where DEPT_ID in 
+					(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId#)
+					and ID = t8.ID)
+				]]>
+			</isEqual>
+			2012/01/11 Yang Yun 增加区域筛选功能.End
+		
+group by  t1.DECP_ID,t1.ID,t3.DECP_NAME_CN,t2.CUST_ID,t2.CUST_CODE,t2.CUST_NAME,t4.sponsor,t1.CONTRACT_TYPE,t6.FLAG,t4.LEASE_TOPRIC,t4.PLEDGE_PRICE,
+		 t1.SENSOR_ID,t7.credit_value,t8.Name,t9.VISITFACTORYDATE ,t1.CREATE_DATE,t10.hezhunTime,t1.COMMIT_WIND_DATE,t4.START_DATE,t11.CASESTATE,t11.ACTLOG_ID
+		 ,T4.PLEDGE_ENTER_MCTOAG,T4.PLEDGE_ENTER_AG
+		 order by t1.DECP_ID,t1.ID
+				
+		<![CDATA[
+		group by  t9.DECP_ID,t9.ID,t3.DECP_NAME_CN,t2.CUST_ID,t2.CUST_CODE,t2.CUST_NAME,t4.sponsor,t9.CONTRACT_TYPE,t6.FLAG,t4.LEASE_TOPRIC,t4.PLEDGE_PRICE,
+		 t9.SENSOR_ID,t7.credit_value,t8.Name,t1.VISITFACTORYDATE ,t9.CREATE_DATE,t10.hezhunTime,t9.COMMIT_WIND_DATE,t4.START_DATE,t11.CASESTATE,t11.ACTLOG_ID
+		 ,T4.PLEDGE_ENTER_MCTOAG,T4.PLEDGE_ENTER_AG,CONVERT(DATE,pay.PAY_DATE,23)
+		 order by CONVERT(DATE,pay.PAY_DATE,23) DESC						
+			 ]]> -->
+			  SELECT  
+		             TPCT.ID CREDIT_ID,TPCT.CREDIT_CODE,DECP.DECP_ID,
+		             DECP.DECP_NAME_CN DECP_NAME_CN,TCCR.CUST_ID,
+		             TCCR.CUST_CODE,
+		             TCCR.CUST_NAME,
+		             TPCE.SPONSOR,
+		             TDDY.FLAG zulinType,
+		             T.CREDIT_VALUE,
+		             PAY.PAY_MONEY SQBKJE,
+		             TT.CASESTATE,
+		             TPCT.SENSOR_ID,
+		             TUUR.NAME sensorName,
+		             TPCT.VISIT_DATE VISITFACTORYDATE,
+		             TPCT.COMMIT_WIND_DATE,
+		             T10.hezhunTime,             
+		             PAY.EXPECTEDDATE,
+		           CASE WHEN CONVERT(DATE,PAY.PAY_DATE,23)=CONVERT(DATE,'1900-1-1',23)
+		                THEN NULL 
+		                ELSE PAY.PAY_DATE
+		                 END PAY_DATE,
+		             TPCE.START_DATE
+		        FROM T_PRJT_CREDIT TPCT
+		   LEFT JOIN T_USER_USER TUUR ON TPCT.SENSOR_ID=TUUR.ID
+		   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON TUUR.DEPT_ID=DEPT.ID AND DEPT.STATUS=0
+		   LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID=DEPT.DECP_ID AND DECP.STATUS=0
+		   LEFT JOIN T_CUST_CUSTOMER TCCR ON TPCT.CUST_ID=TCCR.CUST_ID AND TCCR.STATUS=0
+		   
+		   LEFT JOIN T_PRJT_CREDITSCHEME TPCE ON TPCE.CREDIT_ID=TPCT.ID AND TPCE.STATUS=0   
+		   LEFT JOIN T_DATA_DICTIONARY TDDY ON TDDY.TYPE=#type1# AND TDDY.CODE=TPCT.CONTRACT_TYPE AND TDDY.STATUS=0
+		   LEFT JOIN QUERYCREDIT T ON T.CREDIT_ID=TPCT.ID
+		   
+		   LEFT JOIN T_SUPL_PLAYDETIL PAY ON PAY.CREDIT_ID=TPCT.ID AND PAY.STATUS=0 AND BACKSTATE=0
+		   
+		   LEFT JOIN T_LOG_ACTIVITIESLOG TLAG ON TPCT.ID=TLAG.CREDIT_ID AND TLAG.STATUS=0
+		   LEFT JOIN (   SELECT T.CASESTATE,T1.ACTLOG_ID,T.ACTILOG_ID ACTILOG_ID 
+		                   FROM T_LOG_ACTIVITIESLOG T 
+				          LEFT JOIN T_REPORT_ACTLOG T1 ON T.CASESTATE=T1.ACTLOG_NAME AND T1.STATUS=0 WHERE T.STATUS=0
+		             ) TT ON TT.ACTILOG_ID=TLAG.ACTILOG_ID
+		             
+		   LEFT JOIN (    SELECT MAX(T.CREATE_TIME) hezhunTime,T2.ID 
+		                    FROM T_PRJT_RISK_CONTROLMEMO T
+		            	 LEFT JOIN T_PRJT_RISK_CONTROL T1 ON T.PRC_ID=T1.PRC_ID
+		            	 LEFT JOIN T_PRJT_CREDIT t2 ON T2.ID=T1.CREDIT_ID
+		                	 WHERE T.STATUS=0 AND T1.STATUS=0 AND T2.STATUS=0 AND T2.STATE=1 AND T2.WIND_STATE=1 AND T.PRCM_LEVEL IS NULL
+		            	  GROUP BY T2.ID
+		            	) T10 on T10.ID=TPCT.Id
+		       WHERE DECP.DECP_ID IS NOT NULL
+		         AND TCCR.CUST_ID IS NOT NULL
+		         AND PAY.DEPARTMENTSTATUS!=2 AND PAY.EXAMSTATUS!=2 AND PAY.FINANCIALSTATUS!=2
+	    <isNotEmpty property="sensorId">
+			  	 AND TUUR.NAME LIKE '%$sensorId$%'
+	  	</isNotEmpty>
+	    <isNotEmpty property="state">
+			  	 AND TT.ACTLOG_ID=#state#
+		  </isNotEmpty>
+			<isEqual property="p_usernode" compareValue="1">
+			  	 AND (TUUR.ID=#s_employeeId# OR TUUR.UPPER_USER=#s_employeeId#)
+			</isEqual>
+			<isEqual property="p_usernode" compareValue="2">
+				 AND EXISTS(
+                    SELECT TU.ID FROM T_USER_USER TU
+          					 WHERE TU.DEPT_ID IN 
+                  				 (SELECT UC.DEPT_ID FROM T_USER_USER2COMPANY UC
+                  					 WHERE UC.USER_ID=#s_employeeId#)
+          					   AND TU.ID=TUUR.ID
+                   )
+			</isEqual>
+		    <isNotEmpty property="creditcontext">
+			  	 AND (
+	    		  		 TCCR.CUST_CODE LIKE '%$creditcontext$%'
+	    		  		 OR TCCR.CUST_NAME LIKE '%$creditcontext$%'
+			  		    )
+		  	</isNotEmpty>
+		    <isNotEmpty property="decp_name">
+		         AND DECP.DECP_ID=#decp_name#
+		    </isNotEmpty>     
+		    <!-- 默认进入取出预估起租日大于等于30天前 -->
+		    <isEmpty property="DATE_TYPE">
+		    	 AND TPCE.START_DATE>=DATEADD(DD,-30,GETDATE())
+		    	 AND (MONTH(CONVERT(DATE,PAY.PAY_DATE,23))=MONTH(GETDATE()) 
+		    			 OR CONVERT(DATE,PAY.PAY_DATE,23)=CONVERT(DATE,'1900-1-1',23)
+		    			 OR CONVERT(DATE,PAY.PAY_DATE,23) IS NULL)
+		    </isEmpty>
+		    <isNotEmpty property="DATE_TYPE">
+		    	<isEqual property="DATE_TYPE" compareValue="1"><!-- 1 代表选择预估拨款日 -->
+		    		<isNotEmpty property="BEGIN_DATE">
+		    			AND CONVERT(DATE,PAY.EXPECTEDDATE,23)>=CONVERT(DATE,#BEGIN_DATE#,23)
+		    		</isNotEmpty>
+		    		<isNotEmpty property="END_DATE">
+		    			AND CONVERT(DATE,PAY.EXPECTEDDATE,23)&lt;=CONVERT(DATE,#END_DATE#,23)
+		    		</isNotEmpty>
+		    	</isEqual>
+		    	<isEqual property="DATE_TYPE" compareValue="2"><!-- 2 代表选择实际拨款日 -->
+		    		<isNotEmpty property="BEGIN_DATE">
+		    			AND CONVERT(DATE,PAY.PAY_DATE,23)>=CONVERT(DATE,#BEGIN_DATE#,23)
+		    		</isNotEmpty>
+		    		<isNotEmpty property="END_DATE">
+		    			AND CONVERT(DATE,PAY.PAY_DATE,23)&lt;=CONVERT(DATE,#END_DATE#,23)
+		    		</isNotEmpty>
+		    	</isEqual>
+		    	<isEqual property="DATE_TYPE" compareValue="3"><!-- 3 代表选择预计起租日 -->
+		    		<isNotEmpty property="BEGIN_DATE">
+		    			AND CONVERT(DATE,TPCE.START_DATE,23)>=CONVERT(DATE,#BEGIN_DATE#,23)
+		    		</isNotEmpty>
+		    		<isNotEmpty property="END_DATE">
+		    			AND CONVERT(DATE,TPCE.START_DATE,23)&lt;=CONVERT(DATE,#END_DATE#,23)
+		    		</isNotEmpty>
+		    	</isEqual>
+		    </isNotEmpty> 
+		    ORDER BY PAY.PAY_DATE DESC
+	 </select>
+	 
+	 <select id="getBrand" resultClass="hashmap"><!-- 获得供应商 add by ShenQi -->
+	 		SELECT DISTINCT CREDIT_ID,BRAND FROM T_PRJT_CREDITEQUIPMENT WHERE EQMT_STATUS=0
+	 </select>
+	 
+	<select id="queryActLog" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+		select ACTLOG_NAME,ACTLOG_ID from T_REPORT_ACTLOG where STATUS=0
+		
+		 ]]>
+	 </select>
+	 
+	 
+	  <!-- 根据公司名称查询报告条数 -->
+	<select id="getCountByComp" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select  t1.DECP_ID,count(t3.DECP_NAME_CN) DEPT_COUNT,t3.DECP_NAME_CN from 
+(
+select t1.ID,t1.DECP_ID,t3.DECP_NAME_CN,t2.CUST_CODE,t2.CUST_NAME,
+		 MAX(T5.BRAND) BRAND,t1.CONTRACT_TYPE,
+		 t1.SENSOR_ID,t8.NAME sensorName,t11.CASESTATE,t11.ACTLOG_ID
+from T_PRJT_CREDIT t1
+left join T_CUST_CUSTOMER t2 on t1.CUST_ID=t2.CUST_ID and t2.STATUS=0
+left join T_DEPT_COMPANY t3 on t1.DECP_ID=t3.DECP_ID and t3.STATUS=0
+left join T_PRJT_CREDITSCHEME t4 on t4.CREDIT_ID=t1.ID and t4.STATUS=0
+LEFT JOIN T_PRJT_CREDITEQUIPMENT T5 ON T1.ID = T5.CREDIT_ID
+left join T_DATA_DICTIONARY t6 on t6.TYPE=#type1# and t6.CODE=t1.CONTRACT_TYPE and t6.STATUS=0
+left join queryCREDIT t7 on t7.credit_id=t1.id
+left join T_USER_USER t8 on t8.id=t1.sensor_id
+left join T_LOG_ACTIVITIESLOG t9 on t9.credit_id=t1.id and t9.status=0
+left join (
+select Max(t.CREATE_TIME) hezhunTime,t2.ID from T_PRJT_RISK_CONTROLMEMO t
+left join T_PRJT_RISK_CONTROL t1 on t.PRC_ID=t1.PRC_ID
+left join t_prjt_credit t2 on t2.ID=t1.CREDIT_ID
+where t.STATUS=0 and t1.STATUS=0 and t2.STATUS=0 and t2.STATE=1 and t2.WIND_STATE=1  and t.PRCM_LEVEL is null
+group by t2.ID
+) t10 on t10.ID=t1.Id
+left join 
+(
+		select t.CASESTATE,t1.ACTLOG_ID,t.CREDIT_ID ID from T_LOG_ACTIVITIESLOG t 
+left join T_REPORT_ACTLOG t1 on t.CASESTATE=t1.ACTLOG_NAME and t1.STATUS=0 where t.STATUS=0
+) t11 on t11.ID=t1.ID
+where t1.status=0 AND T3.DECP_NAME_CN IS NOT NULL
+]]>
+   	<isNotEmpty prepend="and" property="sensorId">
+		  		 t8.NAME like '%$sensorId$%'
+		  	</isNotEmpty> 
+		  	<isNotEmpty prepend="and" property="creditcontext">
+		  		 t2.CUST_CODE like '%$creditcontext$%'
+		  		 or t2.CUST_NAME like '%$creditcontext$%'
+		  	</isNotEmpty> 
+		  	<isNotEmpty prepend="and" property="decp_name">
+		  		 t1.DECP_ID=#decp_name#
+		  	</isNotEmpty> 
+		  		<isNotEmpty prepend="and" property="state">
+		  		 t11.ACTLOG_ID=#state#
+		  	</isNotEmpty> 
+	  	
+ <![CDATA[
+group by  t1.DECP_ID,t1.ID,t3.DECP_NAME_CN,t2.CUST_ID,t2.CUST_CODE,t2.CUST_NAME,t4.sponsor,t1.CONTRACT_TYPE,t6.FLAG,t4.LEASE_TOPRIC,t4.PLEDGE_PRICE,
+		 t1.SENSOR_ID,t7.credit_value,t8.Name,t9.VISITFACTORYDATE ,t1.CREATE_DATE,t10.hezhunTime,t4.START_DATE,t11.CASESTATE,t11.ACTLOG_ID
+		
+) t1
+left join T_DEPT_COMPANY t3 on t1.DECP_ID=t3.DECP_ID and t3.STATUS=0
+where t3.STATUS=0
+group by t1.DECP_ID,t3.DECP_NAME_CN
+order by t1.DECP_ID
+		 
+		
+										
+			 ]]>
+	 </select>
+	 
+	 
+	 <select id="getCountByComp1" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+	 		 select t1.DECP_ID,count(t3.DECP_NAME_CN) DEPT_COUNT,t3.DECP_NAME_CN from T_PRJT_CREDIT t1
+left join T_DEPT_COMPANY t3 on t1.DECP_ID=t3.DECP_ID and t3.STATUS=0
+where t1.STATUS=0 and t3.STATUS=0 AND  T3.DECP_NAME_CN IS NOT NULL
+group by t1.DECP_ID,t3.DECP_NAME_CN
+order by t1.DECP_ID
+	 								
+			 ]]>
+	 </select>
+	 <select id="getMobleByCreditId" parameterClass="map" resultClass="hashmap">
+	 <!-- 
+		<![CDATA[
+	 		 select 
+		 		CASE
+				WHEN tuu.JOB = 1 
+			    THEN (SELECT NAME,MOBILE FROM t_user_user WHERE STATUS = 0 AND ID = tuu.upper_user)
+			    ELSE T.NAME
+				END NAME,
+	 		 		tuu.MOBILE,tpc.LEASE_CODE,tcc.CUST_NAME 
+	 		 from T_PRJT_CREDIT tpc 
+					 left join T_USER_USER tuu on tuu.ID = tpc.CLERK_ID
+					 left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = tpc.CUST_ID
+			 where tpc.ID = #credit_id#
+				 								
+			 ]]>
+			 -->
+			 <!-- <![CDATA[
+			 select 
+		 		CASE 
+				WHEN tuu.JOB = 1 
+			    THEN (SELECT t.MOBILE FROM t_user_user t WHERE t.STATUS = 0 AND t.ID = tuu.upper_user)
+			    ELSE tuu.MOBILE 
+				END MOBILE ,
+	 		 		tpc.LEASE_CODE,tcc.CUST_NAME 
+	 		 from T_PRJT_CREDIT tpc 
+				 left join T_USER_USER tuu on tuu.ID = tpc.SENSOR_ID
+				 left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = tpc.CUST_ID
+			where tpc.ID = #credit_id#
+			 ]]> -->
+			 <![CDATA[
+			 select tuu.MOBILE, (SELECT t.MOBILE FROM t_user_user t WHERE t.STATUS = 0 AND t.ID = tuu.upper_user) as UPPER_MOBILE,
+			 		tuu.EMAIL , (SELECT TT.EMAIL FROM t_user_user TT WHERE TT.STATUS = 0 AND TT.ID = tuu.upper_user) as UPPER_EMAIL,
+	 		 		tpc.LEASE_CODE,tcc.CUST_NAME ,DECP.DECP_ID
+	 		 from T_PRJT_CREDIT tpc 
+				 left join T_USER_USER tuu on tuu.ID = tpc.SENSOR_ID
+				 left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = tpc.CUST_ID
+				 LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = tuu.DEPT_ID
+  				 LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID = DEPT.DECP_ID
+			where tpc.ID = #credit_id#
+			 ]]>
+	 </select>
+ 	<select id="getMobleByCreditIdForVIP" parameterClass="map" resultClass="hashmap">
+		 <![CDATA[
+			 select tuu.MOBILE, (SELECT t.MOBILE FROM t_user_user t WHERE t.STATUS = 0 AND t.ID = tuu.upper_user) as UPPER_MOBILE,
+			 		tuu.EMAIL , (SELECT TT.EMAIL FROM t_user_user TT WHERE TT.STATUS = 0 AND TT.ID = tuu.upper_user) as UPPER_EMAIL,
+	 		 		tpc.LEASE_CODE,tcc.CUST_NAME ,DECP.DECP_ID
+	 		 from T_PRJT_CREDIT tpc 
+				 left join T_USER_USER tuu on tuu.ID = tpc.PROCESSER_ID
+				 left join T_CUST_CUSTOMER tcc on tcc.CUST_ID = tpc.CUST_ID
+				 LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = tuu.DEPT_ID
+  				 LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID = DEPT.DECP_ID
+			where tpc.ID = #credit_id#
+		 ]]>
+	 </select>	 
+	<update id="updateCreditDecpId" parameterClass="map">
+		<![CDATA[ 
+		 update T_PRJT_CREDIT  set DECP_ID=#decp_id#,MODIFY_DATE = GETDATE() where  ID=#credit_id# and STATUS=0
+		]]>
+	</update>
+	
+	
+	<select id="getLastGrantPrice" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+	 		select t1.SUPL_TRUE,t1.LEASE_TOPRIC,t1.LEASE_RZE,t1.FIRST_OWN_PRICE,t3.CUST_ID,t4.CUGP_ID,t4.GRANT_PRICE,t4.REPEAT_CREDIT CUST_REPEAT_CREDIT, t3.CUST_CODE,t4.LAST_PRICE CUST_LASTPRICE,t7.ID SUPPER_ID,t7.NAME SUPPERNAME,t8.PDGP_ID,t8.GRANT_PRICE APPLYGRANT_PRICE,t8.LAST_PRICE REAL_LAST_PRICE,t8.REPEAT_CREDIT SUPPER_REPEAT_CREDIT,t5.UNIT_PRICE*t5.SUMMOUNT APPLYLEASE_TOPRIC from T_PRJT_CREDIT t
+			left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID
+			left join T_CUST_CUSTOMER t3 on t3.CUST_ID=t.CUST_ID
+			left join T_CUST_GRANTPLAN t4 on t4.CUST_ID=t3.CUST_ID
+			left join (select CREDIT_ID,UNIT_PRICE,SUEQ_ID,sum(AMOUNT) SUMMOUNT from T_PRJT_CREDITEQUIPMENT  where EQMT_STATUS=0 group by CREDIT_ID,UNIT_PRICE,SUEQ_ID) t5 on t5.CREDIT_ID=t.ID
+			left join T_SUPL_EQUIPMENT t6 on t6.SUEQ_ID=t5.SUEQ_ID
+			left join T_SUPL_SUPPLIER t7 on t7.ID=t6.SUPPLIER_ID
+			left join T_PRODUCT_GRANTPLAN t8 on t8.PRODUCT_ID=t7.ID
+			where t.ID=#credit_id#
+			group by  t1.SUPL_TRUE,t1.LEASE_TOPRIC,t1.LEASE_RZE,t1.FIRST_OWN_PRICE,t3.CUST_ID,t3.CUST_CODE,t7.ID,t7.NAME,t4.CUGP_ID,t4.GRANT_PRICE,t4.LAST_PRICE,t4.REPEAT_CREDIT,t8.PDGP_ID,t8.GRANT_PRICE,t8.REPEAT_CREDIT,t8.LAST_PRICE,t5.SUMMOUNT,t5.UNIT_PRICE
+							
+			 ]]>
+	 </select>
+	 	<select id="getLastUnionGrantPrice" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+	 		select t1.SUPL_TRUE,t1.LEASE_TOPRIC,t1.LEASE_RZE,t3.CUST_ID,t4.CUGP_ID,t4.REPEAT_CREDIT CUST_REPEAT_CREDIT, t3.CUST_CODE,t4.LAST_PRICE CUST_LASTPRICE,t7.ID SUPPER_ID,t7.NAME SUPPERNAME,t9.PURP_ID, t9.UNION_GRANT_PRICE SUPPER_LASTPRICE from T_PRJT_CREDIT t
+			left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID
+			left join T_CUST_CUSTOMER t3 on t3.CUST_ID=t.CUST_ID
+			left join T_CUST_GRANTPLAN t4 on t4.CUST_ID=t3.CUST_ID
+			left join T_PRJT_CREDITEQUIPMENT t5 on t5.CREDIT_ID=t.ID
+			left join T_SUPL_EQUIPMENT t6 on t6.SUEQ_ID=t5.SUEQ_ID
+			left join T_SUPL_SUPPLIER t7 on t7.ID=t6.SUPPLIER_ID
+			left join T_PRODUCT_GRANTPLAN t8 on t8.PRODUCT_ID=t7.ID
+			left join T_PRODUCT_UNIONGRANTPLAN t9 on (t9.PRODUCT_ID=t7.ID or t9.UNION_SUPPLIER_ID=t7.ID) and t9.STATUS=0
+			where t.ID=#credit_id#
+			group by  t1.SUPL_TRUE,t1.LEASE_TOPRIC,t1.LEASE_RZE,t3.CUST_ID,t3.CUST_CODE,t7.ID,t7.NAME,t4.CUGP_ID,t4.LAST_PRICE,t4.REPEAT_CREDIT,t9.PURP_ID,t9.UNION_GRANT_PRICE,t8.LAST_PRICE,t8.PDGP_ID
+			
+			 ]]>
+	 </select>
+	 <update id="decreaseCustGrantLastprice" parameterClass="map">
+		<![CDATA[ 
+		 update T_CUST_GRANTPLAN  set LAST_PRICE=#LAST_PRICE# where CUGP_ID=#CUGP_ID#
+		]]>
+	</update>
+	
+	 <update id="decreaseSupperGrantLastprice" parameterClass="map">
+		<![CDATA[ 
+		 update T_PRODUCT_GRANTPLAN  set LAST_PRICE=#LAST_PRICE# where PDGP_ID=#PDGP_ID#
+		]]>
+	</update>
+	 <update id="decreaseSupperUnoinGrantprice" parameterClass="map">
+		<![CDATA[ 
+		 update T_PRODUCT_UNIONGRANTPLAN  set UNION_GRANT_PRICE=#UNION_GRANT_PRICE# where (PRODUCT_ID=#PRODUCT_ID# or UNION_SUPPLIER_ID=#PRODUCT_ID#) and STATUS=0
+		]]>
+	</update>
+	<update id="decreaseSupperOnlyUnoinGrantprice" parameterClass="map">
+		<![CDATA[ 
+		 update T_PRODUCT_UNIONGRANTPLAN  set UNION_GRANT_PRICE=#UNION_GRANT_PRICE# where PURP_ID=#PURP_ID# and STATUS=0
+		]]>
+	</update>
+		
+	 <update id="decreaseVouchNatuGrantLastprice" parameterClass="map">
+		<![CDATA[ 
+		 update T_PRODUCT_VOUCHPLAN  set LAST_PRICE=#LAST_PRICE# where PRODUCT_ID=#PRODUCT_ID# and VOUCH_NAME=#VOUCH_NAME# and VOUCH_CODE=#VOUCH_CODE# and VOUCH_TYPE=0
+		]]>
+	</update>	
+	
+	 <update id="decreaseVouchCropGrantLastprice" parameterClass="map">
+		<![CDATA[ 
+		 update T_PRODUCT_VOUCHPLAN  set LAST_PRICE=#LAST_PRICE# where PRODUCT_ID=#PRODUCT_ID# and VOUCH_NAME=#VOUCH_NAME# and VOUCH_CODE=#VOUCH_CODE# and VOUCH_TYPE=1 
+		]]>
+	</update>
+	
+	<select id="getAllVouchers" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+	 		SELECT 1 TYPE,T1.SUPL_TRUE, T1.LEASE_TOPRIC,t1.LEASE_RZE,T1.FIRST_OWN_PRICE,T2.CORP_NAME_CN VOUCHNAME,T2.ORGANIZATION_CODE_CERTIFICATE VOUCHCODE,T3.PRODUCT_ID PRODUCT_ID,T3.PDVP_ID,T3.GRANT_PRICE,T3.LAST_PRICE VOUCH_LASTPRICE,T3.VOUCH_CODE,T3.VOUCH_NAME FROM T_PRJT_CREDIT T
+			LEFT JOIN T_PRJT_CREDITSCHEME T1 ON T1.CREDIT_ID=T.ID
+			LEFT JOIN T_PRJT_VOUCHCUSTOMERCORP T2 ON T.ID=T2.PRCD_ID
+			LEFT JOIN T_PRODUCT_VOUCHPLAN T3 ON T3.VOUCH_NAME=T2.CORP_NAME_CN AND T3.VOUCH_CODE=T2.ORGANIZATION_CODE_CERTIFICATE
+			WHERE T.ID=#credit_id# AND T.STATUS=0 AND T2.STATUS=0 AND T3.STATUS=0
+			UNION
+			SELECT 0 TYPE,T1.SUPL_TRUE, T1.LEASE_TOPRIC,t1.LEASE_RZE,T1.FIRST_OWN_PRICE,T2.CUST_NAME VOUCHNAME,T2.NATU_IDCARD VOUCHCODE,T3.PRODUCT_ID PRODUCT_ID,T3.PDVP_ID,T3.GRANT_PRICE,T3.LAST_PRICE VOUCH_LASTPRICE,T3.VOUCH_CODE,T3.VOUCH_NAME FROM T_PRJT_CREDIT T
+			LEFT JOIN T_PRJT_CREDITSCHEME T1 ON T1.CREDIT_ID=T.ID
+			LEFT JOIN T_PRJT_CREDITVOUCHNATU T2 ON T.ID=T2.PRCD_ID
+			LEFT JOIN T_PRODUCT_VOUCHPLAN T3 ON T3.VOUCH_NAME=T2.CUST_NAME AND T3.VOUCH_CODE=T2.NATU_IDCARD
+			WHERE T.ID=#credit_id# AND T.STATUS=0 AND T2.STATUS=0 AND T3.STATUS=0	
+			 ]]>
+	 </select>	
+	<insert id="insertSupperGrantLastpriceLog" parameterClass="map">
+	  <![CDATA[
+	  	INSERT INTO T_PRODUCT_GRANTLOG
+           (CREATE_ID
+           ,CREATE_DATE
+           ,MODIFY_ID
+           ,MODIFY_DATE
+           ,STATUS
+           ,TYPE
+           ,CUGL_STATUS
+           ,MEMO
+           ,PDGP_ID
+           ,GRANT_PRICE
+           ,LAST_PRICE
+           ,START_DATE
+           ,END_DATE)
+           VALUES(
+       		#s_employeeId#
+       		,GETDATE()
+       		,#s_employeeId#
+       		,GETDATE()
+       		,0
+       		,0
+       		,0
+       		,#MEMO#
+		    ,#PDGP_ID#
+		    ,#GRANT_PRICE#
+		    ,#LAST_PRICE#
+		    ,GETDATE()
+		    ,GETDATE()
+		 )
+	  ]]>
+	</insert>
+	<insert id="insertCustGrantLastpriceLog" parameterClass="map">
+	  <![CDATA[
+	  	INSERT INTO T_CUST_GRANTLOG
+           (CREATE_ID
+           ,CREATE_DATE
+           ,MODIFY_ID
+           ,MODIFY_DATE
+           ,STATUS
+           ,TYPE
+           ,CUGL_STATUS
+           ,MEMO
+           ,CUGP_ID
+           ,GRANT_PRICE
+           ,LAST_PRICE
+           ,START_DATE
+           ,END_DATE)
+           VALUES(
+       		#s_employeeId#
+       		,GETDATE()
+       		,#s_employeeId#
+       		,GETDATE()
+       		,0
+       		,0
+       		,0
+       		,#MEMO#
+		    ,#CUGP_ID#
+		    ,#GRANT_PRICE#
+		    ,#LAST_PRICE#
+		    ,GETDATE()
+		    ,GETDATE()
+		 )
+	  ]]>
+	</insert>
+	<insert id="insertVouchGrantLastpriceLog" parameterClass="map">
+	  <![CDATA[
+	  	INSERT INTO T_PRODUCT_VOUCHLOG
+           (CREATE_ID
+           ,CREATE_DATE
+           ,MODITY_ID
+           ,MODITY_DATE
+           ,STATUS
+           ,TYPE
+           ,CUGL_STATUS
+           ,MEMO
+           ,PDVP_ID
+           ,GRANT_PRICE
+           ,LAST_PRICE
+           ,START_DATE
+           ,END_DATE)
+           VALUES(
+       		#s_employeeId#
+       		,GETDATE()
+       		,#s_employeeId#
+       		,GETDATE()
+       		,0
+       		,0
+       		,0
+       		,#MEMO#
+		    ,#PDVP_ID#
+		    ,#GRANT_PRICE#
+		    ,#LAST_PRICE#
+		    ,GETDATE()
+		    ,GETDATE()
+		 )
+	  ]]>
+	</insert>			
+	<select id="getCustIsGrant" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT 
+			CASE
+			WHEN CUGP_ID IS NULL
+			THEN 0
+			ELSE T.CUST_ID
+			END CUST_ID
+		FROM
+			T_PRJT_CREDIT T
+			LEFT JOIN T_CUST_GRANTPLAN T1 ON T1.CUST_ID = T.CUST_ID AND T1.STATUS = 0
+		WHERE
+			T.ID = #credit_id#
+	</select>
+	<select id="getEqmtIsGrant" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT 
+			CASE
+			WHEN PDGP_ID IS NULL
+			THEN 0
+			ELSE T4.ID
+			END ID,
+			PRCE_ID
+		FROM
+			T_PRJT_CREDIT T
+			LEFT JOIN t_prjt_creditequipment T1 ON T1.CREDIT_ID = T.ID 
+			LEFT JOIN T_SUPL_EQUIPMENT T2 ON T2.SUEQ_ID = T1.SUEQ_ID AND T2.STATUS = 0
+			LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.ID = T2.SUPPLIER_ID AND T4.STATUS = 0
+			LEFT JOIN T_PRODUCT_GRANTPLAN T3 ON T3.PRODUCT_ID = T4.ID AND T3.STATUS = 0
+		WHERE
+			T.ID = #credit_id#
+	</select>
+	<select id="getFRIsGrant" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT 
+			CASE
+			WHEN PDVP_ID IS NULL
+			THEN 0
+			ELSE 1
+			END C ,
+			T5.CORP_NAME_CN NAME,
+			ORGANIZATION_CODE_CERTIFICATE CODE
+		FROM
+			T_PRJT_CREDIT T
+			LEFT JOIN T_PRJT_VOUCHCUSTOMERCORP T5 ON T5.PRCD_ID = T.ID AND T5.STATUS = 0
+			LEFT JOIN T_PRODUCT_VOUCHPLAN T6 ON T6.VOUCH_NAME=T5.CORP_NAME_CN AND T6.VOUCH_CODE=T5.ORGANIZATION_CODE_CERTIFICATE and T6.STATUS=0
+		WHERE
+			T.ID = #credit_id#
+	</select>
+	<select id="getZRRIsGrant" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT 
+			CASE
+			WHEN PDVP_ID IS NULL
+			THEN 0
+			ELSE 1
+			END C ,
+			T5.CUST_NAME NAME,
+			T5.NATU_IDCARD CODE
+		FROM
+			T_PRJT_CREDIT T
+			LEFT JOIN T_PRJT_CREDITVOUCHNATU T5 ON T5.PRCD_ID = T.ID AND T5.STATUS = 0
+			LEFT JOIN T_PRODUCT_VOUCHPLAN T6 ON T6.VOUCH_NAME=T5.CUST_NAME AND T6.VOUCH_CODE=T5.NATU_IDCARD and T6.STATUS=0
+		WHERE
+			T.ID = #credit_id#
+	</select>
+	<select id="getCreditSQBKJE" parameterClass="map" resultClass="java.lang.Double">
+		SELECT
+			CASE
+			WHEN T.WIND_STATE = 1
+			THEN 0
+			ELSE 
+				ROUND(ISNULL(T1.LEASE_TOPRIC,0),0,1) - ROUND(ISNULL(T1.PLEDGE_ENTER_MCTOAG,0),0,1) - ROUND(ISNULL(T1.PLEDGE_ENTER_AG,0),0,1)
+			END PRICE
+		FROM
+			T_PRJT_CREDIT T
+			LEFT JOIN t_prjt_creditscheme T1 ON T1.CREDIT_ID = T.ID AND T1.STATUS = 0
+		WHERE
+			T.ID = #credit_id#
+	</select>
+	<select id="getCreditEqmtSQBKJE" parameterClass="map" resultClass="java.util.HashMap">
+	<!-- 
+		SELECT 
+			T1.UNIT_PRICE/T2.LEASE_TOPRIC * (LEASE_TOPRIC - PLEDGE_ENTER_MCTOAG -PLEDGE_ENTER_AG) price
+		FROM
+			T_PRJT_CREDIT T
+			LEFT JOIN t_prjt_creditequipment T1 ON T1.CREDIT_ID = T.ID 
+			LEFT JOIN T_PRJT_CREDITSCHEME T2 ON T2.CREDIT_ID = T.ID
+		WHERE
+			T.ID = #credit_id#
+			AND t1.PRCE_ID = #PRCE_ID# 
+			-->
+			select MAX(tssp.ID),MAX(tssp.NAME),
+			SUM(
+			CASE
+			WHEN T.WIND_STATE = 1
+			THEN 0
+			ELSE 
+				(t1.LEASE_TOPRIC-t1.PLEDGE_ENTER_AG-t1.PLEDGE_ENTER_MCTOAG)*((trcq.UNIT_PRICE*trcq.SUMAMOUNT)/t1.LEASE_TOPRIC)
+			END ) SHENGYUBENJINYUEBENAN 
+			from T_PRJT_CREDIT t
+			left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID and t1.STATUS=0
+			left join 
+			(select tessupper.ID, tessupper.SUMAMOUNT,tessupper.UNIT_PRICE,tessupper.CREDIT_ID from (
+				select tssp.ID,tssp.NAME,trcq.CREDIT_ID, SUM(trcq.AMOUNT) SUMAMOUNT,trcq.UNIT_PRICE 
+				from T_PRJT_CREDITEQUIPMENT trcq
+				LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+				LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+				group by tssp.ID,tssp.NAME,trcq.UNIT_PRICE,trcq.CREDIT_ID)  tessupper
+			  ) trcq on trcq.CREDIT_ID=t.ID
+			LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=trcq.ID
+			where t.ID=#credit_id# and tssp.ID=#ID# and t.STATUS=0
+	</select>
+	
+	<!--Add By Michael 2011 12/1  -->
+	<!--提交报告时如果供应商保证选择‘无’时就不要检查授信额度，此处检查所提交的报告供应商保证选择 -->
+	<select id="getCreditSuplTrue" parameterClass="map" resultClass="java.lang.Integer">
+		select SUPL_TRUE from T_PRJT_CREDITSCHEME where CREDIT_ID=#credit_id#
+	</select>
+	
+	<!--Add By Michael 2012 1/14  -->
+	<!--查询报告费用明细  影响概算成本为1 不影响为0 -->
+	<select id="getCreditFeeListRZE" parameterClass="map" resultClass="java.util.HashMap">
+		select * from t_prjt_credit_feelist where is_leaserze_cost='1' and CREDIT_ID=#credit_id#
+	</select>
+	<select id="getCreditFeeList" parameterClass="map" resultClass="java.util.HashMap">
+		select * from t_prjt_credit_feelist where is_leaserze_cost='0' and  CREDIT_ID=#credit_id#
+	</select>
+
+	<!--查询费用设定明细  影响概算成本为1 不影响为0 -->
+	<select id="getFeeSetListRZE" parameterClass="map" resultClass="java.util.HashMap">
+		select * from t_rent_paylist_feeset where is_leaserze_cost='1' and  status=0
+			and id not in (select fee_set_id from t_prjt_credit_feelist where is_leaserze_cost='1' and CREDIT_ID=#credit_id#)
+	</select>	
+	<select id="getFeeSetList" parameterClass="map" resultClass="java.util.HashMap">
+		select * from t_rent_paylist_feeset where is_leaserze_cost='0' and  status=0
+			and id not in (select fee_set_id from t_prjt_credit_feelist where is_leaserze_cost='0' and CREDIT_ID=#credit_id#)
+	</select>	
+
+	<select id="getFeeSetListAll" parameterClass="map" resultClass="java.util.HashMap">
+		select * from t_rent_paylist_feeset where status='0' 
+	</select>		
+	<insert id="insertPayListFeeList"   parameterClass="map">
+	 <![CDATA[
+		insert into t_prjt_credit_feelist
+		  (
+		   credit_id,
+		   FEE_SET_ID,
+		   CREATE_SHOW_NAME,
+		   FEE,
+		   create_time,
+		   create_id,
+		   IS_LEASERZE_COST,
+		   CREATE_FILED_NAME,SOURCE_CODE
+		   )
+		values
+		  (
+		   #CREDIT_ID#,
+		   #FEE_SET_ID#,
+		   #CREATE_SHOW_NAME#,
+		   #FEE#,
+		   getdate(),
+		   #CREATE_ID#,
+		   #IS_LEASERZE_COST#,
+		   #CREATE_FILED_NAME#,#SOURCE_CODE#
+		   )
+	 ]]> 
+	</insert>
+	<delete id="deletePayListFeeList" parameterClass="map">
+	 	delete from t_prjt_credit_feelist where credit_id = #credit_id#
+	</delete>
+	
+	<!--  add by Michael 把管理费收入总和传过来，计算营业税收入，会影响TR计算  -->
+	 <select id="getTotalFeeByRectID" parameterClass="map" resultClass="java.util.HashMap">
+	 	<![CDATA[
+	 		select isnull(fee,0) fee from t_prjt_credit_feelist where is_leaserze_cost='1' and CREDIT_ID=#credit_id#
+	 	]]>
+	 </select>
+	 
+ 	 <select id="sumTotalFeeByRectID" parameterClass="map" resultClass="java.lang.Double">
+	 	<![CDATA[
+	 		select isnull(SUM(fee),0) fee from t_prjt_credit_feelist where is_leaserze_cost='1' and CREDIT_ID=#credit_id#
+	 	]]>
+	 </select>
+	 
+	 <select id="getFeeSetListAllRZE" parameterClass="map" resultClass="java.util.HashMap">
+		select * from t_rent_paylist_feeset where status='0' and  is_leaserze_cost='1'
+	</select>
+	
+	<!--  Add by Michael 2012 2/2 填充补齐 净本金余额 等栏位信息  -->
+	 <select id="getAllPaylistRecpID" parameterClass="map" resultClass="java.util.HashMap">
+		select t1.RECP_ID,t3.id CREDIT_ID from 
+		T_RENT_COLLECTIONPLAN t1
+		left join
+		t_rent_contract t2
+		on t1.RECT_ID=t2.RECT_ID and t2.STATUS=0
+		left join
+		t_prjt_credit t3
+		on t2.PRCD_ID=t3.ID and t3.STATUS=0
+		where t1.status=0 
+	</select>
+	
+	<!-- 2012/03/16 Yang Yun 共案 -->
+	<select id="getProInfoForMerge" parameterClass="map" resultClass="java.util.HashMap">
+		select prcd.ID, prcd.COMMIT_WIND_DATE, prcd.CUST_ID, ISNULL(decp.DECP_NAME_CN,'') DECP_NAME_CN, 
+			ISNULL(prcs.EQUPMENT_ADDRESS,'') EQUPMENT_ADDRESS, ISNULL(t.THING_NAME,'') THING_NAME
+		from T_PRJT_CREDIT prcd
+		left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY decp on dept.DECP_ID = decp.DECP_ID and decp.STATUS = 0
+		left join T_PRJT_CREDITSCHEME prcs on prcs.CREDIT_ID = prcd.ID and prcs.STATUS = 0
+		left join (
+		  select CREDIT_ID, max(THING_NAME) as THING_NAME
+		  from T_PRJT_CREDITEQUIPMENT
+		  where EQMT_STATUS = 0
+		  group by CREDIT_ID
+		) t on t.CREDIT_ID = prcd.ID 
+		where prcd.ID = #CREDIT_ID#
+	</select>
+	<!-- 2012/03/16 Yang Yun 把已跑过共案业务的记录作废 -->
+	<update id="deleteBeforeMerge" parameterClass="map">
+		update T_PRJT_MERGE set STATUS = -1
+		where CREDIT_ID = #CREDIT_ID#
+		and STATUS = 0
+	</update>
+	
+	<select id="getResultByCust" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select top 1 GROUP_CODE, CUST_ID from T_PRJT_MERGE
+			where CUST_ID = #CUST_ID#
+			and datediff(day,COMMIT_DATE, getdate()) <= 60
+			and datediff(day,COMMIT_DATE, getdate()) >= 0
+			and STATUS = 0
+			order by COMMIT_DATE desc
+		]]>
+	</select>
+	
+	<select id="getResultByGroup" parameterClass="map" resultClass="java.util.HashMap">
+		select top 1 GROUP_CODE, CREDIT_ID,
+		datediff(day,COMMIT_DATE, getdate()) as day_diff
+		from T_PRJT_MERGE
+		where STATUS = 0
+		and GROUP_CODE = #GROUP_CODE#
+		order by COMMIT_DATE
+	</select>
+	
+	<insert id="insertMergeProject" parameterClass="map">
+		insert into T_PRJT_MERGE (
+		   GROUP_CODE
+		  ,CREDIT_ID
+		  ,CUST_ID
+		  ,COMMIT_DATE
+		  ,STATUS
+		) VALUES (
+		   #GROUP_CODE#
+		  ,#CREDIT_ID#
+		  ,#CUST_ID#
+		  ,#COMMIT_DATE#
+		  ,0
+		)
+	</insert>
+	
+	<!-- 报告管理中撤销和启用报告add by ShenQi -->
+	<update id="cancelCreditByCreditId">
+			UPDATE T_PRJT_CREDIT SET STATE=#CODE# WHERE ID=#CREDIT_ID# AND STATUS=0
+	</update>
+	<update id="cancelCaseByCreditId">
+			UPDATE T_LOG_ACTIVITIESLOG SET CASESTATE=#CASESTATE# WHERE CREDIT_ID=#CREDIT_ID# 
+	</update>
+	
+	<!-- 监控报告是否是有效的 add by ShenQi -->
+	<update id="monitorCredit">
+			UPDATE T_PRJT_CREDIT SET MODIFY_DATE=GETDATE() WHERE ID=#CREDIT_ID# AND STATUS=0
+	</update>
+	
+	<!-- 获得一个月以来没有更新过的报告ID -->
+	<select id="getInvalidReportId" resultClass="java.lang.Integer">
+			SELECT DISTINCT ID CREDIT_ID
+	          FROM T_PRJT_CREDIT 
+	         WHERE STATUS=0
+	           AND STATE=0
+	           <!-- 
+	           AND CONVERT(DATE,MODIFY_DATE)=CONVERT(DATE,CREATE_DATE)
+	            -->
+	           AND MONTH(MODIFY_DATE)+1&lt;MONTH(GETDATE())
+	</select>
+	
+	<update id="updateVisitDate" parameterClass="map">
+		update T_PRJT_CREDIT set VISIT_DATE = convert(date, #visit_date#)
+		where ID = #visit_credit_id#
+	</update>
+	
+	<select id="getSensorList" resultClass="java.util.HashMap">
+		SELECT ID,NAME FROM T_USER_USER WHERE JOB='1' AND STATUS=0 AND UPPER_USER=#SUPERVISOR_ID#
+	</select>
+	
+	<select id="getCreditCode" resultClass="java.lang.String">
+		SELECT CREDIT_CODE FROM T_PRJT_CREDIT WHERE STATUS=0 AND ID=#CREDIT_ID#
+	</select>
+	
+	<update id="updateSensorId">
+		UPDATE T_PRJT_CREDIT SET 
+			<isNotEmpty property="SENSOR_ID">
+				SENSOR_ID=#SENSOR_ID#,
+			</isNotEmpty>
+			<isNotEmpty property="PROCESSER_ID">
+				PROCESSER_ID=#PROCESSER_ID#,
+			</isNotEmpty>
+			MODIFY_DATE=GETDATE()
+		 WHERE ID=#CREDIT_ID# AND STATUS=0
+	</update>
+	
+		<!-- add by Michael 2012 5-23 提交到主管时，重新计算TR、利差 -->
+	<insert id="upateReCreditScheme" parameterClass="map">
+		update t_prjt_creditscheme
+		set TR_RATE = #TR_RATE#,
+		    TR_IRR_RATE = #TR_IRR_RATE#,
+		    RATE_DIFF = #RATE_DIFF#,
+		    TOTAL_VALUEADDED_TAX=#TOTAL_VALUEADDED_TAX#,
+		    PLEDGE_LAST_PRICE_TAX=#PLEDGE_LAST_PRICE_TAX#
+		where 
+		   CREDIT_ID=#credit_id#
+	</insert>
+	
+	<select id="getCreditList" resultClass="com.brick.businessSupport.to.CreditTo">
+			    SELECT TPC.ID creditId,		   
+			  	       TPC.TYPE type,
+			  	       TPC.STATE state,
+			  	       TCC.CUST_CODE custCode,
+			  	       TCC.CUST_NAME custName,
+			  	       TCC.CUST_TYPE custType,
+			  	       TA.NAME province,
+			  	       TPC.CLERK_ID supervisorId,
+			  	       TUU.NAME supervisorName,
+			  	       TPC.SENSOR_ID userId,
+			  	       TUU2.NAME userName,
+			  	       TPC.WIND_STATE windState,
+			  	       CONVERT(VARCHAR,TPC.CREATE_DATE,23) createDate,
+			  	       TPC.CREATE_DATE,
+			  	       TPC.STATUS status     
+				  FROM T_PRJT_CREDIT TPC
+		     LEFT JOIN T_CUST_CUSTOMER TCC ON TPC.CUST_ID=TCC.CUST_ID
+		     LEFT JOIN T_AREA TA ON TA.ID=TPC.PROVINCE_ID
+		     LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.CLERK_ID
+		     LEFT JOIN T_USER_USER TUU2 ON TUU2.ID=TPC.SENSOR_ID
+                 WHERE TPC.STATUS!=-2 AND TPC.STATE!=1 AND TPC.STATE!=0 AND TPC.STATE!=2
+                 <isNotEmpty property="CUST_NAME">
+                   AND TCC.CUST_NAME LIKE '%$CUST_NAME$%'
+                 </isNotEmpty>
+              ORDER BY TPC.CREATE_DATE
+	</select>
+	
+	<select id="getCreditCount" resultClass="java.lang.Integer">
+				SELECT COUNT(1)	       
+				  FROM T_PRJT_CREDIT TPC
+		     LEFT JOIN T_CUST_CUSTOMER TCC ON TPC.CUST_ID=TCC.CUST_ID
+		     LEFT JOIN T_AREA TA ON TA.ID=TPC.PROVINCE_ID
+		     LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.CLERK_ID
+		     LEFT JOIN T_USER_USER TUU2 ON TUU2.ID=TPC.SENSOR_ID
+                 WHERE TPC.STATUS!=-2 AND TPC.STATE!=1 AND TPC.STATE!=0 AND TPC.STATE!=2
+                 <isNotEmpty property="CUST_NAME">
+                   AND TCC.CUST_NAME LIKE '%$CUST_NAME$%'
+                 </isNotEmpty>
+	</select>
+	
+	<select id="getCreditStatusInfo" parameterClass="map" resultClass="com.brick.credit.to.CreditTo">
+		select prcd.CREATE_DATE as create_date,prcd.ID creditId, 
+		ar.[NAME] as areaName,
+		prcd.CREDIT_RUNCODE as creditRuncode, 
+		t.SUP_NAME as suplName,
+		cust.CUST_NAME as custName,
+		t.EQ_NAME as thingName,
+		prsm.LEASE_RZE as leaseRze,
+		pu.[name] as processer,
+		su.[NAME] as sensorUser,
+		prcd.BUSINESS_STATUS as businessStatus,
+		(select top 1 MEMO_CONTENT from T_PRJT_CREDIT_MEMO
+		where CREDIT_ID = prcd.ID order by CREATE_DATE desc) as memo
+		from t_prjt_credit prcd
+		LEFT JOIN T_AREA ar ON prcd.PROVINCE_ID = ar.ID
+		left join T_CUST_CUSTOMER cust on cust.CUST_ID = prcd.CUST_ID
+		left join T_PRJT_CREDITSCHEME prsm on prsm.CREDIT_ID = prcd.ID
+		and prsm.STATUS = 0
+		left join T_USER_USER su on prcd.SENSOR_ID = su.ID
+		left join T_USER_USER pu on prcd.PROCESSER_ID = pu.ID
+		left join (
+		  select max(preq.THING_NAME) as eq_name, 
+		  max(sup.[NAME]) as sup_name,
+		  preq.CREDIT_ID
+		  from T_PRJT_CREDITEQUIPMENT preq
+		  left join T_SUPL_EQUIPMENT sueq on preq.SUEQ_ID = sueq.SUEQ_ID
+		  left join T_SUPL_SUPPLIER sup on sueq.SUPPLIER_ID = sup.ID
+		  where preq.EQMT_STATUS = 0
+		  group by preq.CREDIT_ID
+		) t on t.CREDIT_ID = prcd.ID
+		where VIP_FLAG = 1
+		<isNotEmpty property="start_date">
+			and convert(date, prcd.CREATE_DATE) >= convert(date, '$start_date$')
+		</isNotEmpty>
+		<isNotEmpty property="end_date">
+			<![CDATA[ and convert(date, prcd.CREATE_DATE) <= convert(date, '$end_date$') ]]>
+		</isNotEmpty>
+		<isNotEmpty property="credit_status">
+			and prcd.BUSINESS_STATUS = #credit_status#
+		</isNotEmpty>
+		<isNotEmpty property="content">
+			and (
+				prcd.CREDIT_RUNCODE like '%$content$%'
+				or t.SUP_NAME like '%$content$%'
+				or cust.CUST_NAME like '%$content$%'
+				or t.EQ_NAME like '%$content$%'
+				or su.[NAME] like '%$content$%'
+				or pu.[name] like '%$content$%'
+			)
+		</isNotEmpty>
+	</select>
+	
+	<insert id="insertCreditMemo" parameterClass="map">
+		insert into T_PRJT_CREDIT_MEMO (
+		   CREDIT_ID
+		  ,CREATE_BY
+		  ,CREATE_DATE
+		  ,MEMO_CONTENT
+		) VALUES (
+		   #credit_id#
+		  ,#s_employeeId#
+		  ,getdate()
+		  ,#memo#
+		)
+	</insert>
+	
+	<select id="getCreditMemo" parameterClass="map" resultClass="com.brick.base.to.BaseTo">
+		select top 10 u.name as create_by, 
+			cm.CREATE_DATE as create_date, 
+			cm.MEMO_CONTENT as content
+		from T_PRJT_CREDIT_MEMO cm
+		left join T_USER_USER u on cm.create_by = u.id
+		where CREDIT_ID = #credit_id#
+		order by CREATE_DATE desc
+	</select>
+	
+	<select id="getCreditMemoAll" parameterClass="map" resultClass="com.brick.base.to.BaseTo">
+		select u.name as create_by, 
+			cm.CREATE_DATE as create_date, 
+			cm.MEMO_CONTENT as content
+		from T_PRJT_CREDIT_MEMO cm
+		left join T_USER_USER u on cm.create_by = u.id
+		where CREDIT_ID = #credit_id#
+		order by CREATE_DATE desc
+	</select>
+	
+	<update id="updateCreditState">
+			UPDATE T_PRJT_CREDIT SET STATE=#STATE# WHERE STATUS=0 AND ID=#credit_id#
+	</update>
+	
+	<select id="getStateByCreditId" resultClass="java.util.HashMap">
+			SELECT STATE STATE,CREDIT_RUNCODE CREDIT_RUNCODE,PRODUCTION_TYPE FROM T_PRJT_CREDIT WHERE STATUS=0 AND ID=#credit_id#
+	</select>
+	
+	<select id="queryMainProduction" resultClass="java.util.HashMap">
+			SELECT PRODUCTION_NAME,INNER_INVERSE,EXTERNAL_INVERSE,GAIN_INVERSE
+			  FROM T_PRODUCTION_CREDIT
+			 WHERE CREDIT_ID=#credit_id#
+	</select>
+	
+	<delete id="deleteMainProduction">
+		    DELETE FROM T_PRODUCTION_CREDIT WHERE CREDIT_ID=#credit_id#
+	</delete>
+	
+	<insert id="insertMainProduction">
+			INSERT INTO T_PRODUCTION_CREDIT
+			(CREDIT_ID,PRODUCTION_NAME,INNER_INVERSE,EXTERNAL_INVERSE,GAIN_INVERSE,CREATE_BY)
+			VALUES
+			(#credit_id#,#PRODUCTION_NAME#,#INNER_INVERSE#,#EXTERNAL_INVERSE#,#GAIN_INVERSE#,#s_employeeId#)
+	</insert>
+	
+	<select id="getMainProduction" resultClass="java.util.HashMap">
+			SELECT * FROM T_PRODUCTION_CREDIT WHERE CREDIT_ID=#credit_id#
+	</select>
+	
+	<select id="queryIndustryEnvironment" resultClass="java.util.HashMap">
+			SELECT MARKET_STATUS,POLICY_EFFECT,INDUSTRY_CHARACTER,VALUE_CHAIN,BALK_BULLY,RISK_ANALYSE
+			  FROM T_INDUSTRY_CREDIT
+			 WHERE CREDIT_ID=#credit_id#
+	</select>
+	
+	<delete id="deleteIndustryEnvironment">
+			DELETE FROM T_INDUSTRY_CREDIT WHERE CREDIT_ID=#credit_id#
+	</delete>
+	
+	<insert id="insertIndustryEnvironment">
+			INSERT INTO T_INDUSTRY_CREDIT
+			(CREDIT_ID,MARKET_STATUS,POLICY_EFFECT,INDUSTRY_CHARACTER,VALUE_CHAIN,BALK_BULLY,RISK_ANALYSE,CREDIT_BY)
+			VALUES
+			(#credit_id#,#MARKET_STATUS#,#POLICY_EFFECT#,#INDUSTRY_CHARACTER#,#VALUE_CHAIN#,#BALK_BULLY#,#RISK_ANALYSE#,#s_employeeId#)
+	</insert>
+	
+	<select id="getCreditStatusInfoForSalesDesk" resultClass="com.brick.credit.to.CreditTo">
+		     select prcd.CREATE_DATE as create_date,prcd.id creditId, 
+					ar.[NAME] as areaName,
+					prcd.CREDIT_RUNCODE as creditRuncode, 
+					t.SUP_NAME as suplName,
+					cust.CUST_NAME as custName,
+					t.EQ_NAME as thingName,
+					prsm.LEASE_RZE as leaseRze,
+					pu.[name] as processer,
+					su.[NAME] as sensorUser,
+					prcd.BUSINESS_STATUS as businessStatus,
+					(select top 1 MEMO_CONTENT from T_PRJT_CREDIT_MEMO
+					where CREDIT_ID = prcd.ID order by CREATE_DATE desc) as memo
+					from t_prjt_credit prcd
+					LEFT JOIN T_AREA ar ON prcd.PROVINCE_ID = ar.ID
+					left join T_CUST_CUSTOMER cust on cust.CUST_ID = prcd.CUST_ID
+					left join T_PRJT_CREDITSCHEME prsm on prsm.CREDIT_ID = prcd.ID
+					and prsm.STATUS = 0
+					left join T_USER_USER su on prcd.SENSOR_ID = su.ID
+					left join T_USER_USER pu on prcd.PROCESSER_ID = pu.ID
+					left join (
+					  select max(preq.THING_NAME) as eq_name, 
+					  max(sup.[NAME]) as sup_name,
+					  preq.CREDIT_ID
+					  from T_PRJT_CREDITEQUIPMENT preq
+					  left join T_SUPL_EQUIPMENT sueq on preq.SUEQ_ID = sueq.SUEQ_ID
+					  left join T_SUPL_SUPPLIER sup on sueq.SUPPLIER_ID = sup.ID
+					  where preq.EQMT_STATUS = 0
+					  group by preq.CREDIT_ID
+					) t on t.CREDIT_ID = prcd.ID
+					where su.ID = #s_employeeId#
+					<isNotEmpty property="start_date">
+						and convert(date, prcd.CREATE_DATE) >= convert(date, '$start_date$')
+					</isNotEmpty>
+					<isNotEmpty property="end_date">
+						and convert(date, prcd.CREATE_DATE) &lt;= convert(date, '$end_date$')
+					</isNotEmpty>
+					<isNotEmpty property="credit_status">
+						and prcd.BUSINESS_STATUS = #credit_status#
+					</isNotEmpty>
+					<isNotEmpty property="content">
+						and (
+							prcd.CREDIT_RUNCODE like '%$content$%'
+							or t.SUP_NAME like '%$content$%'
+							or cust.CUST_NAME like '%$content$%'
+							or t.EQ_NAME like '%$content$%'
+							or su.[NAME] like '%$content$%'
+							or pu.[name] like '%$content$%'
+						)
+					</isNotEmpty>
+	</select>
+	
+	<select id="getExtremelyCredit" resultClass="java.lang.String">
+			select DISTINCT prcd.ID as creditId
+		from (
+		select CREDIT_ID, min(create_time) as min_commit_date
+		from T_PRJT_CREDITMEMO t
+		where t.STATUS = 0
+		group by CREDIT_ID 
+		having datediff(day,min(create_time),getdate()) > 3
+		and CREDIT_ID not in(
+		select credit_id from T_PRJT_RISK_CONTROL
+		where (STATE = 1 or STATE = 4)
+		)
+		) tt left join T_PRJT_CREDIT prcd on tt.CREDIT_ID = prcd.ID
+		where prcd.STATUS = 0
+		and prcd.state != -1
+		and prcd.SENSOR_ID=#s_employeeId#
+    and prcd.state !=1
+		and (prcd.WIND_STATE != 4 or prcd.WIND_STATE is null)
+		and (prcd.state != 2 or (prcd.state = 2 and exists(
+		  select PRC_ID from T_PRJT_RISK_CONTROL
+		  where CREDIT_ID = prcd.ID
+      )))
+      UNION
+      select DISTINCT prcd.ID creditId
+		from T_PRJT_CREDIT prcd		
+		left join T_PRJT_VISIT vi on vi.CREDIT_ID = prcd.ID 
+		and vi.STATUS = 0 and vi.VISIT_STATUS >= 3		
+		where datediff(day,vi.REAL_VISIT_DATE,getdate()) > 7
+		and prcd.STATE != 1 and prcd.STATE != -1
+		and not exists (
+		select PRC_ID from T_PRJT_RISK_CONTROL
+		where credit_id = prcd.ID
+		)
+    	and prcd.SENSOR_ID=#s_employeeId#
+	</select>
+	
+	<select id="getVisitStatus" resultClass="java.util.HashMap">
+		SELECT TPV.ID VISIT_ID,TPV.CREDIT_ID,TPV.VISIT_STATUS FROM T_PRJT_CREDIT TPC
+								 LEFT JOIN T_PRJT_VISIT TPV ON TPV.CREDIT_ID=TPC.ID AND TPV.STATUS=0 AND TPV.VISIT_STATUS>=0
+								WHERE TPC.SENSOR_ID=#s_employeeId#
+								  AND TPC.STATUS=0
+								  AND TPV.CREDIT_ID IS NOT NULL
+		
+	</select>
+	
+	<select id="getIsCanApplyMoney" resultClass="java.util.HashMap">
+		     SELECT T1.CREDIT_RUNCODE, T1.ID CREDIT_ID,
+			        CASE WHEN ISNULL(O1.MONEY,0)-ISNULL(O2.MONEY,0)&lt;=0
+			             THEN 'N'
+			             ELSE 'Y'
+			              END FLAG 
+               FROM T_PRJT_CREDIT T1
+	  	  LEFT JOIN T_RENT_CONTRACT T2 ON T1.ID=T2.PRCD_ID
+		  LEFT JOIN T_RENT_COLLECTIONPLAN T10 ON T10.RECT_ID=T2.RECT_ID AND T10.STATUS=0
+		  LEFT JOIN ( SELECT CREDIT_ID,
+		                    (ISNULL(LEASE_TOPRIC,0)-ISNULL(PLEDGE_ENTER_AG,0)-ISNULL(PLEDGE_ENTER_MCTOAG,0)) [MONEY]
+		                FROM T_PRJT_CREDITSCHEME 
+		            GROUP BY LEASE_TOPRIC,CREDIT_ID,PLEDGE_ENTER_MCTOAG,PLEDGE_ENTER_AG) O1 ON T1.ID=O1.CREDIT_ID
+			       LEFT JOIN (
+			                    SELECT T.CREDIT_ID,		           
+			            		           (ISNULL(SUM(CASE WHEN T.STATE=3 THEN ISNULL(T.PAY_MONEY,0) END),0)+ISNULL(SUM(CASE WHEN T.STATE=0 OR T.STATE=1 THEN ISNULL(T.PAY_MONEY,0) END),0)) [MONEY]            		               
+			            		      FROM T_SUPL_PLAYDETIL T            		 
+			            		     WHERE T.BACKSTATE='0' 
+			            		       AND T.STATUS=0		       
+			            		  GROUP BY T.CREDIT_ID
+			                  ) O2 ON T1.ID=O2.CREDIT_ID
+             WHERE T1.SENSOR_ID=#s_employeeId#
+	</select>
+	
+	<select id="getIsValidDay" resultClass="java.util.HashMap">
+           		   SELECT CASE WHEN MIN(T1.CREATE_TIME) IS NULL THEN 'N'
+                       		   ELSE CASE WHEN DATEDIFF(DAY,MIN(T1.CREATE_TIME),GETDATE())>MAX(PC.VALID_DAY) 
+		                                 THEN 'N'
+		                                 ELSE 'Y'
+		                                  END
+                        		END FLAG,T.CREDIT_ID
+    				 FROM T_PRJT_RISK_CONTROL T
+				LEFT JOIN T_PRJT_RISK_CONTROLMEMO T1 ON T.PRC_ID=T1.PRC_ID AND T1.STATUS=0 AND T1.PRCM_LEVEL IS NULL
+				LEFT JOIN T_PRJT_CREDIT PC ON T.CREDIT_ID=PC.ID AND PC.STATUS=0
+				    WHERE T.STATUS=0 
+				      AND T.STATE IN (1,2)
+				      AND PC.SENSOR_ID=#s_employeeId#
+         		 GROUP BY T.CREDIT_ID
+	</select>
+	
+	<select id="checkIsGroupCredit" resultClass="java.lang.String">
+			SELECT DISTINCT 'Y' FROM T_SUPL_SUPPLIER_GROUP_MAP WHERE STATUS=0 AND SUPL_ID=#ID#
+	</select>
+	
+	<select id="getCreditType" resultClass="com.brick.supplier.to.SupplierGroupTO">
+			SELECT SUPL_GROUP_CODE suplGroupCode,SIGN_NUM signNum,[UNION] [union],UNION_LOOP_FLAG unionLoopFlag,
+				   BUY_BACK buyBack,BUY_BACK_LOOP_FLAG buyBackLoopFlag,PAY_BEFORE payBefore,PAY_BEFORE_LOOP_FLAG payBeforeLoopFlag,
+				   FROM_DATE fromDate,TO_DATE toDate
+			  FROM T_SUPL_GROUP_CREDIT_AMOUNT
+			 WHERE STATUS=0
+			   AND SUPL_GROUP_CODE=(SELECT DISTINCT SUPL_GROUP_CODE FROM T_SUPL_SUPPLIER_GROUP_MAP WHERE STATUS=0 AND SUPL_ID=#ID#)
+	</select>
+	
+	<select id="getSuplId" resultClass="java.lang.Integer">
+			  SELECT DISTINCT T4.ID 
+		        FROM T_PRJT_CREDIT TPC
+		        LEFT JOIN T_PRJT_CREDITEQUIPMENT T1 ON T1.CREDIT_ID = TPC.ID 
+					  LEFT JOIN T_SUPL_EQUIPMENT T2 ON T2.SUEQ_ID = T1.SUEQ_ID AND T2.STATUS = 0
+					  LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.ID = T2.SUPPLIER_ID AND T4.STATUS = 0
+		       WHERE TPC.ID=#credit_id#
+	</select>
+	
+	<update id="updateProductionType">
+		UPDATE T_PRJT_CREDIT SET PRODUCTION_TYPE=#productionType# WHERE STATUS=0 AND ID=#creditId#
+	</update>
+	
+	<select id="getCreditSpecialCasePropertyByCreditId" resultClass="com.brick.special.to.CreditSpecialTO">
+          SELECT T1.PROPERTY_CODE propertyCode,
+          	     T2.CREDIT_SPECIAL_NAME creditName,
+          	     T2.CREDIT_SPECIAL_CODE creditCode,
+                 T1.VALUE_1 value1,
+                 T1.VALUE_2 value2,
+                 T1.CHECKED_VALUE checkValue,
+                 T2.START_DATE startDateDescr,
+                 T2.END_DATE endDateDescr
+            FROM T_PRJT_CREDIT_SPECIAL_GROUP_MAP T1
+       LEFT JOIN T_PRJT_CREDIT_SPECIAL_GROUP T2 ON T1.CREDIT_SPECIAL_CODE=T2.CREDIT_SPECIAL_CODE AND T2.STATUS=0
+           WHERE T1.CREDIT_SPECIAL_CODE=
+           (
+          SELECT DISTINCT CREDIT_SPECIAL_CODE 
+            FROM T_PRJT_CREDIT 
+           WHERE STATUS=0 
+             AND CREDIT_SPECIAL_CODE IS NOT NULL 
+             AND CREDIT_SPECIAL_CODE!=''
+             AND ID=#credit_id#
+            )
+             <isNotEmpty property="propertyCode">
+             AND T1.PROPERTY_CODE=#propertyCode#
+             </isNotEmpty>
+             AND T1.STATUS=0
+	</select>
+	
+	<select id="getProductionList" resultClass="java.lang.String">
+		SELECT DISTINCT PRODUCT_NAME 
+		  FROM T_PRODUCT_TYPE
+		 WHERE STATUS=0
+		   AND TYPE_2=#type#
+	</select>
+	
+	<insert id="insertCreditSpecialLog">
+		INSERT INTO T_PRJT_CREDIT_SPECIAL_LOG
+		(CREDIT_ID,CREDIT_SPECIAL_NAME,LOG_CONTENT,CREATE_BY,CREATE_DATE)
+		VALUES
+		(#creditId#,#creditName#,'$content$',#s_employeeId#,GETDATE())
+	</insert>
+	
+	<select id="getCreditSpecialLeaseRZETotal" resultClass="java.lang.Integer">
+		SELECT ISNULL(SUM(LEASE_RZE),0) 
+          FROM T_PRJT_CREDITSCHEME
+         WHERE CREDIT_ID IN
+              (SELECT DISTINCT ID 
+                 FROM T_PRJT_CREDIT 
+                WHERE STATUS=0 
+                  AND CREDIT_SPECIAL_CODE=#creditCode#)              
+           AND STATUS=0
+	</select>
+	
+	<select id="getLockCodeBySupp" parameterClass="map" resultClass="java.lang.Integer">
+		select isnull(LOCK_CODE, 0) from T_PRJT_CREDITEQUIPMENT
+		where BRAND = #SUPPIER_NAME#
+		and CREDIT_ID != #credit_id#
+	</select>
+	
+	
+	<select id="getCreditCustInfoCount" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0) as c
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_CREDITCUSTOMERCORP cc on cc.CREDIT_ID = pc.ID
+		left join T_PRJT_NATUNAL nn on nn.CREDIT_ID = pc.ID
+		where pc.ID = #credit_id#
+		and (
+		  cc.PJCCC_ID is not null
+		  or nn.NATU_ID is not null
+		)
+	</select>
+	
+	<select id="getValueBySpecialCode" parameterClass="map" resultClass="java.lang.String">
+		select top 1 VALUE_1 
+		from T_PRJT_CREDIT_SPECIAL_GROUP_MAP
+		where CREDIT_SPECIAL_CODE = #special_code#
+		and PROPERTY_CODE = #property_code#
+		and STATUS = 0
+	</select>
+	<select id="getCarCreditProjectAfterPayMoney" parameterClass="map" resultClass="java.util.HashMap">
+	    select  t.ID,t.CREDIT_RUNCODE from t_prjt_credit t 
+    	where t.STATUS = 0 and datediff(day,t.FINANCECONTRACT_DATE,getDate())=15 and t.CONTRACT_TYPE = 8
+	</select>
+	
+	<select id="getRiskAduitUsers" parameterClass="map" resultClass="java.util.HashMap">
+		select distinct m.CREATE_USER_ID 
+		from T_PRJT_RISK_CONTROL t
+		left join T_PRJT_RISK_CONTROLMEMO m on m.PRC_ID = t.PRC_ID and m.STATUS=0 and m.PRCM_USER_LEVEL = 0
+		where t.STATUS = 0 and m.CREATE_USER_ID is not null and t.CREDIT_ID = #credit_id# 
+	</select>
+	
+	<select id="getBussinessAssistant" parameterClass="map" resultClass="java.util.HashMap">
+		select u.[NAME],u.ID,d.DEPT_NAME,c.DECP_NAME_CN,c.DECP_ID,u.EMAIL
+		from T_USER_USER  u
+		LEFT JOIN T_USER_USER2COMPANY t on t.[USER_ID] = u.ID
+		left join T_DEPT_DEPARTMENT d on t.DEPT_ID = d.ID
+		left join T_DEPT_COMPANY c on d.DECP_ID = c.DECP_ID
+		where job = '8' and c.DECP_ID = #decp_id#	
+	</select>
+	
+	<select id="isUserInTheDept" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0) from T_USER_USER2COMPANY uc
+		where uc.[USER_ID] = #s_employeeId#
+		and uc.DEPT_ID in (
+		  select ID from T_DEPT_DEPARTMENT
+		  where DEPT_NAME = #dept_name#
+		)
+	</select>
+	
+	<update id="updateEstimatesPayDate" parameterClass="map">
+		update T_PRJT_CREDITSCHEME
+		set estimates_pay_date = convert(date, #estimates_pay_date#)
+		, ESTIMATES_PAY_DATE_NUM = isnull(ESTIMATES_PAY_DATE_NUM,0) + 1
+		, ESTIMATES_PAY_DATE_REASON = #estimates_pay_date_reason#
+		where CREDIT_ID = #credit_id#
+	</update>
+	
+	<select id="getEstimatesPayDate" parameterClass="map" resultClass="java.util.HashMap">
+		select ps.CREDIT_ID
+		, ps.ESTIMATES_PAY_DATE
+		, ps.ESTIMATES_PAY_DATE_NUM
+		, ps.ESTIMATES_PAY_DATE_REASON
+		,ps.START_DATE
+		from T_PRJT_CREDITSCHEME ps
+		where ps.STATUS = 0
+		and CREDIT_ID = #credit_id#
+	</select>
+	
+	<select id="getEstimatesPayDateLog" parameterClass="map" resultClass="java.util.HashMap">
+		select ps.CREDIT_ID
+		, ps.ESTIMATES_PAY_DATE
+		, isnull(ps.ESTIMATES_PAY_DATE_NUM, 0) as ESTIMATES_PAY_DATE_NUM
+		, ps.ESTIMATES_PAY_DATE_REASON
+		, ps.CREATE_TIME
+		, u.[NAME] as CREATE_BY
+		from T_PRJT_CREDITSC_LOG ps
+		left join T_USER_USER u on ps.CREATE_BY = u.ID
+		where ps.STATUS = 0
+		and ps.CREDIT_ID = #credit_id#
+	</select>
+	
+	<insert id="insertEstimatesPayDateLog">
+		insert into T_PRJT_CREDITSC_LOG(
+		  ESTIMATES_PAY_DATE
+		  ,ESTIMATES_PAY_DATE_NUM
+		  ,ESTIMATES_PAY_DATE_REASON
+		  ,STATUS
+		  ,CREATE_TIME
+		  ,CREATE_BY
+		  ,CREDIT_ID
+		) values(
+			#estimates_pay_date#
+			,#ESTIMATES_PAY_DATE_NUM#
+			,#estimates_pay_date_reason#
+			,0
+			,getdate()
+			,#s_employeeId#
+			,#credit_id#
+		)
+	</insert>
+	
+</sqlMap>

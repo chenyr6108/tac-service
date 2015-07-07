@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="payment">
+	<!-- 根据租赁合同id查找设备-->
+	<select id="getEquipByRectId" parameterClass="map"	resultClass="java.util.HashMap">
+		<![CDATA[
+				SELECT T2.EQMT_ID EQMT_ID,
+				       T2.THING_KIND THING_KIND,
+				       T2.THING_NAME THING_NAME,
+				       T2.MODEL_SPEC MODEL_SPEC,
+				       T2.BRAND BRAND,
+				       T2.UNIT_PRICE UNIT_PRICE,
+				       T2.UNIT UNIT,
+				       T2.AMOUNT AMOUNT,
+				       T2.MEMO MEMO,
+				       T1.PUCT_CODE,
+				       T1.PUCT_ID,
+				       T3.FIRST_PRICE_RATE,
+				       T3.LAST_PRICE_RATE,
+				       T2.PUCD_ID,
+				       T6.SUPPLIER_ID
+				  FROM T_PUCS_CONTRACT T1
+				  LEFT JOIN T_PUCS_CONTRACTDETAIL T2 ON T2.PUCT_ID = T1.PUCT_ID
+				  LEFT JOIN T_PUCS_PAYMENTPLAN T3 ON T3.PUCT_ID = T1.PUCT_ID
+				  LEFT JOIN T_PUCS_DETAIL2PAYMENTLOG T4 ON T4.PUCD_ID = T2.PUCD_ID
+				  LEFT JOIN T_EQMT_EQUIPMENT T5 ON T5.EQMT_ID = T2.EQMT_ID
+				  LEFT JOIN T_SUPL_EQUIPMENT T6 ON T6.SUEQ_ID = T5.SUEQ_ID
+				 WHERE T2.STATUS = 0
+				   AND T3.STATUS = 0
+				   AND T5.STATUS = 0
+				   AND T6.STATUS = 0
+				   AND (T4.STATUS = 0 OR T4.STATUS IS NULL)
+				   AND T1.RECT_ID = #RECT_ID#
+				   AND T2.PUCD_ID not in (select t1.PUCD_ID from T_PUCS_DETAIL2PAYMENTLOG t1
+		 							 left join T_PUCS_PAYMENTLOG t2 on t2.PUPL_ID=t1.PUPL_ID
+		  						 	 left join T_PUCS_PAYMENTPLAN t3 on t3.PUPP_ID=t2.PUPP_ID
+		 							 left join T_PUCS_CONTRACT tt on tt.PUCT_ID=t3.PUCT_ID
+		  							 where tt.RECT_ID=#RECT_ID# and t1.STATUS=0)
+				 GROUP BY T2.EQMT_ID,
+				          T2.THING_KIND,
+				          T2.THING_NAME,
+				          T2.MODEL_SPEC,
+				          T2.BRAND,
+				          T2.UNIT_PRICE,
+				          T2.UNIT,
+				          T2.AMOUNT,
+				          T2.MEMO,
+				          T1.PUCT_CODE,
+				          T1.PUCT_ID,
+				          T3.FIRST_PRICE_RATE,
+				          T3.LAST_PRICE_RATE,
+				          T2.PUCD_ID,
+				          T6.SUPPLIER_ID
+				HAVING SUM(ISNULL(T4.VERIFY_PAYPRICE_EQUIP, 0)) < T2.UNIT_PRICE
+		]]>
+	</select>
+	<!-- 根据租赁id查找租赁投合同中的信息 -->
+	<select id="getRentContractByRectId" parameterClass="map"	resultClass="java.util.HashMap">
+		<![CDATA[
+			select 
+				t.rect_id		        rect_id,
+				t.cust_name				cust_name,
+				t.lease_code			lease_code
+			from t_rent_contract t where t.rect_id = #RECT_ID#
+		]]>
+	</select>
+	
+	<!-- 根据pucdid查找购销合同对应设备-->	
+	<select id="getEquipByPucdId"  parameterClass="map" resultClass="java.util.HashMap">	
+			select
+				t3.rect_id            rect_id,
+				t1.pucd_id            pucd_id,
+			    t1.eqmt_id			  eqmt_id,
+				t1.thing_kind		  thing_kind,
+				t1.thing_name  		  thing_name,
+				t1.model_spec		  model_spec,
+				t1.brand			  brand,
+				t1.unit_price		  unit_price,
+				t1.unit               unit, 
+				t1.amount			  amount,
+				t1.memo				  memo,
+				t3.puct_code 		  puct_code,
+				t4.pupp_id            pupp_id				
+			from t_pucs_contractdetail t1 
+			  left join t_eqmt_equipment t2 on t2.eqmt_id = t1.eqmt_id
+			  left join t_pucs_contract t3 on t3.puct_id = t1.puct_id
+			  left join t_pucs_paymentplan t4 on t4.puct_id = t3.puct_id			  
+			 where t1.status=0 and t2.status=0 and t3.status=0	
+			 	and t1.pucd_id in
+		<iterate property="pucdIds" open="(" close=")" conjunction=",">
+			#pucdIds[]#
+		</iterate>		
+	</select>	
+		<!-- 根据pucdid查找supplier 
+		** bug
+		-->	
+	<select id="getSupplierByPucdId"  parameterClass="map" resultClass="java.util.HashMap">	
+		<![CDATA[
+			select   t4.name                        name,
+			         t4.open_account_bank           open_account_bank,
+			         t4.bank_account                bank_account
+			from t_pucs_contractdetail t1 
+			  left join t_eqmt_equipment t2 on t2.eqmt_id = t1.eqmt_id
+			  left join t_supl_equipment t3 on t3.sueq_id = t2.sueq_id		
+			  left join t_supl_supplier t4 on t4.id = t3.supplier_id	     			         
+			 where 	t1.status=0 and t2.status=0 and t3.status=0 and t4.status=0
+			 	and t1.pucd_id = #pucd_id#
+		]]>
+	</select>
+	<!-- 根据pucdid找出rate比例 -->
+	<select id="getRateByPucdId"  parameterClass="map" resultClass="java.util.HashMap">	
+		<![CDATA[
+			select   t3.first_price_rate            first_price_rate,
+				     t3.last_price_rate             last_price_rate,
+				     t2.rect_id                     rect_id
+			from t_pucs_contractdetail t1 
+			  left join t_pucs_contract t2 on t2.puct_id = t1.puct_id
+			  left join t_pucs_paymentplan t3 on t3.puct_id = t2.puct_id	     			         
+			 where t1.status=0 and t1.pucd_id = #pucd_id#
+		]]>
+	</select>
+	
+	
+	<!-- 向付款记录表中插入一条数据 -->
+	<insert id="insertPaymentLog" parameterClass="map">
+
+		<![CDATA[
+			insert into t_pucs_paymentlog(
+				CREATE_USER_ID,
+				MODIFY_USER_ID,
+				PUPP_ID,
+				PAY_MODE,
+				PAYEE,
+				PAYEE_FULLNAME,
+				BANK_NAME,
+				BANK_ACCOUNT,
+				APPLICATION_PAYPRICE,
+				VERIFY_PAYPRICE,
+				PAY_REMARK,
+				PAY_DATE,
+				APPLICATION_SIGN,
+				APPLICATION_DATE,
+				REVIEWERS_SIGN,
+				REVIEWERS_DATE,
+				APPROVE_SIGN,
+				APPROVE_DATE,
+				PUPL_CODE,
+				APP_PAY_RATE,
+				VER_PAY_RATE			
+			)
+			values(
+				#s_employeeId#,
+				#s_employeeId#,
+				#PUPP_ID#,		
+				#PAY_MODE#,
+				#PAYEE#,
+				#PAYEE_FULLNAME#,
+				#BANK#,
+				#ACCOUNT#,
+				#APPLICATION_PAYPRICE#,
+				#VERIFY_PAYPRICE#,
+				#PAY_REMARK#,
+				CONVERT(datetime,#PAY_DATE#),
+				#APPLICATION_SIGN#,
+				CONVERT(datetime,#APPLICATION_DATE#),
+				#REVIEWERS_SIGN#,
+				CONVERT(datetime,#REVIEWERS_DATE#),
+				#APPROVE_SIGN#,
+				CONVERT(datetime,#APPROVE_DATE#),
+				#PUPL_CODE#,
+				#APP_PAY_RATE#,
+				#VER_PAY_RATE#				
+			)
+		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="PUPL_ID">
+			<![CDATA[	select @@IDENTITY as pupl_id  ]]>
+		</selectKey> 
+	</insert>		
+	<!-- 向detail2paymentlog表中插入数据 -->
+	<insert id="insertDetail2payLog" parameterClass="map">
+		<![CDATA[
+			INSERT INTO T_PUCS_DETAIL2PAYMENTLOG(
+				CREATE_USER_ID,
+				MODIFY_USER_ID,
+				PUPL_ID,
+				PUCD_ID,
+				PAY_MODE,
+				APPLICATION_PAYPRICE,
+				VERIFY_PAYPRICE,
+				APPLICATION_PAYPRICE_EQUIP,
+				VERIFY_PAYPRICE_EQUIP				
+			) SELECT
+				#s_employeeId#,
+				#s_employeeId#,
+				#PUPL_ID#,
+				t.pucd_id,
+				#PAY_MODE#,
+				#APPLICATION_PAYPRICE#,
+				#VERIFY_PAYPRICE#,
+				#PRICE_RATE# * t.unit_price / 100,
+				#PRICE_RATE# * t.unit_price / 100
+			FROM t_pucs_contractdetail t
+			where t.pucd_id in
+		]]>
+		<iterate property="pucdIds" open="(" close=")" conjunction=",">
+			#pucdIds[]#
+		</iterate>		
+	</insert>
+	<!-- 根据付款单记录的id查询相应的设备信息列表 -->
+	<select id="getPaymentEqmtByPuplID"  parameterClass="map" resultClass="java.util.HashMap">	
+		<![CDATA[
+			SELECT 
+			    t3.pucd_id              pucd_id,
+				t3.thing_kind		    thing_kind,
+				t3.thing_name  		    thing_name,
+				t3.model_spec		    model_spec,
+				t3.brand			    brand,
+				t3.unit_price		    unit_price,
+				t3.unit                 unit, 
+				t3.amount			    amount,
+				t3.memo				    memo,
+				t5.puct_code 		    puct_code			
+			FROM t_pucs_paymentlog t1 
+			left join t_pucs_detail2paymentlog t2 on t2.pupl_id = t1.pupl_id
+			left join t_pucs_contractdetail t3 on t3.pucd_id = t2.pucd_id	
+			left join t_eqmt_equipment t4 on t4.eqmt_id = t3.eqmt_id
+			left join t_pucs_contract t5 on t5.puct_id = t3.puct_id
+			WHERE t1.status=0 and t1.pupl_id = #PUPL_ID#
+		]]>
+	</select>
+	<!-- 根据付款单记录id 查询付款单信息 -->
+	<select id="getPaymentLogByPuplID"  parameterClass="map" resultClass="java.util.HashMap">	
+		<![CDATA[
+			SELECT 
+				t.pay_mode			    pay_mode,
+				t.payee		            payee,
+				t.payee_fullname  	    payee_fullname,
+				t.bank_name	            bank_name,
+				t.bank_account	        bank_account,
+				t.application_payprice	application_payprice,
+				t.verify_payprice       verify_payprice,
+				t.pay_remark			pay_remark,
+				t.pay_date				pay_date,
+				t.application_sign      application_sign,
+				t.application_date      application_date,
+				t.reviewers_sign        reviewers_sign,
+				t.reviewers_date        reviewers_date,
+				t.approve_sign          approve_sign,
+				t.approve_date		    approve_date,
+				t.pupl_code             pupl_code,
+				t.app_pay_rate          app_pay_rate,
+				t.ver_pay_rate          ver_pay_rate		
+			FROM t_pucs_paymentlog t 
+			WHERE t.status=0 and t.pupl_id = #PUPL_ID#
+		]]>
+	</select>
+	<!-- 根据付款单记录id 查询首尾款比例 -->
+	<select id="getRateByPuplID"  parameterClass="map" resultClass="java.util.HashMap">	
+		<![CDATA[
+			SELECT   t1.pupl_id                     pupl_id,
+					 t2.first_price_rate            first_price_rate,
+				     t2.last_price_rate             last_price_rate	
+			FROM t_pucs_paymentlog t1 
+			left join t_pucs_paymentplan t2 on t2.pupp_id = t1.pupp_id
+			WHERE t1.status=0 and t1.pupl_id = #PUPL_ID#
+		]]>
+	</select>
+
+	<!-- 修改付款记录表 -->
+	<update id="updatePaymentLog" parameterClass="map">
+		<![CDATA[
+		update t_pucs_paymentlog 
+		   set  MODIFY_TIME = getdate(),
+				MODIFY_USER_ID = #s_employeeId#,
+				PAY_MODE = #PAY_MODE#,
+				PAYEE = #PAYEE#,
+				PAYEE_FULLNAME = #PAYEE_FULLNAME#,
+				BANK_NAME = #BANK#,
+				BANK_ACCOUNT = #ACCOUNT#,
+				APPLICATION_PAYPRICE = #APPLICATION_PAYPRICE#,
+				VERIFY_PAYPRICE = #VERIFY_PAYPRICE#,
+				PAY_REMARK = #PAY_REMARK#,
+				PAY_DATE = CONVERT(datetime,#PAY_DATE#),
+				APPLICATION_SIGN = #APPLICATION_SIGN#,
+				APPLICATION_DATE = CONVERT(datetime,#APPLICATION_DATE#),
+				REVIEWERS_SIGN = #REVIEWERS_SIGN#,
+				REVIEWERS_DATE = CONVERT(datetime,#REVIEWERS_DATE#),
+				APPROVE_SIGN = #APPROVE_SIGN#,
+				APPROVE_DATE = CONVERT(datetime,#APPROVE_DATE#),
+				APP_PAY_RATE = #APP_PAY_RATE#,
+				VER_PAY_RATE= #VER_PAY_RATE# 
+		where pupl_id = #PUPL_ID#					
+		]]>
+	</update>
+	
+    <!-- 修改detail2paymentlog表中数据 -->
+	<update id="updateDetail2payLog" parameterClass="map">
+		<![CDATA[
+		update T_PUCS_DETAIL2PAYMENTLOG 
+		   set 	MODIFY_TIME = getdate(),
+				MODIFY_USER_ID = #s_employeeId#,
+				PAY_MODE = #PAY_MODE#,
+				APPLICATION_PAYPRICE = #APPLICATION_PAYPRICE#,
+				VERIFY_PAYPRICE = #VERIFY_PAYPRICE#,
+				APPLICATION_PAYPRICE_EQUIP = #PRICE_RATE# * #PRICE# / 100,
+				VERIFY_PAYPRICE_EQUIP = #PRICE_RATE# * #PRICE# / 100				
+		where pupl_id = #PUPL_ID#	
+			]]>
+	</update>
+	
+	<!-- 根据设备id 查询设备单价 -->
+		<select id="queryPrice"  parameterClass="map" resultClass="java.lang.Double">	
+		<![CDATA[
+			SELECT UNIT_PRICE
+			FROM T_PUCS_CONTRACTDETAIL 
+			WHERE PUCD_ID = #PUCDID# and STATUS = 0
+		]]>
+	</select>	
+	
+	
+</sqlMap>

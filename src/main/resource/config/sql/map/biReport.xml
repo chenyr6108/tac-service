@@ -1,0 +1,771 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="biReport">
+    <select id="fahuoe" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select  round(sum(trcd.irr_month_price-isnull(trcd.reduce_own_price,0)),2) weishou,
+					round(sum(isnull(trcd.reduce_own_price,0)),2) yishou
+			from t_rent_contract trct
+			left join t_rent_collectionplan trcp on trct.rect_id=trcp.rect_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id 
+			where trct.status=0 and trcp.status=0 and trcd.status=0
+		]]>
+    </select>
+    <select id="yingshou" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select t1.weishou,t2.shouru,t2.yingyeshui,t3.yuqifaxi from 
+			(select  round(sum(trcd.irr_month_price-isnull(trcd.reduce_own_price,0)),2) weishou
+			from t_rent_contract trct
+			left join t_rent_collectionplan trcp on trct.rect_id=trcp.rect_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id 
+			where trct.status=0 and trcp.status=0 and trcd.status=0) t1,
+			(select  round(sum(isnull(trcd.sales_tax,0)),2) yingyeshui,
+			         round(sum(isnull(trcd.ren_price,0)-isnull(trcd.sales_tax,0)),2) shouru
+			from t_rent_contract trct
+			left join t_rent_collectionplan trcp on trct.rect_id=trcp.rect_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id 
+			where trct.status=0 and trcp.status=0 and trcd.status=0 
+			and (trcd.reduce_own_price is null or trcd.reduce_own_price=0)) t2,
+			(
+			select
+			(select sum(isnull(tdd.dun_fine,0)) fine from t_dun_daily tdd where tdd.status=0
+			and convert(varchar,tdd.create_date,23)=convert(varchar,getdate(),23))-
+			(select isnull(sum(isnull(tdfd.derate_fine,0)),0) 
+			from t_dun_finederate tdfd 
+			where convert(varchar,tdfd.derate_date,23)=convert(varchar,getdate(),23)) as yuqifaxi
+			) t3
+		]]>
+    </select>
+    <select id="yinshouShiyebu" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select tdcp.decp_name_cn , round(sum(trcd.irr_month_price-isnull(trcd.reduce_own_price,0)),2) weishou
+			from t_rent_contract trct
+			left join t_rent_collectionplan trcp on trct.rect_id=trcp.rect_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id 
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			where trct.status=0 and trcp.status=0 and trcd.status=0
+			group by tdcp.decp_name_cn 
+		]]>
+    </select>
+    <select id="zongjine" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			with tt as
+			(select t1.dun_day, trcd.irr_month_price-isnull(trcd.reduce_own_price,0)  price
+			from 
+			(select tdd.dun_day,recp_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=convert(varchar,getdate(),23)) t1
+			left join t_rent_collectionplan trcp on t1.recp_id=trcp.recp_id
+			left join t_rent_collectiondetail trcd on t1.recp_id=trcd.recp_id)
+			
+			select t1.zhengchang,t2.ciji,t3.guanzhu,t4.keyi,0 sunshi from 
+			(select round(sum(trcd.irr_month_price-isnull(trcd.reduce_own_price,0)),2) zhengchang from t_rent_collectionplan trcp
+			left join
+			(select recp_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=convert(varchar,getdate(),23)) tdd
+			on tdd.recp_id=trcp.recp_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id
+			where tdd.recp_id is null) t1,
+			(select round(isnull(sum(price),0),2) ciji from tt where  dun_day<60) t2,
+			(select round(isnull(sum(price),0),2) guanzhu from tt where  dun_day<90 and dun_day>=60) t3,
+			(select round(isnull(sum(price),0),2) keyi from tt where  dun_day>90) t4 
+		]]>
+    </select>
+    <select id="allcompany" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select tdcp.decp_name_cn 
+			from t_rent_contract trct
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			group by tdcp.decp_name_cn 
+		]]>
+    </select>
+    <select id="fenlei" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			 with tt1 as
+			(select t1.date,tdcp.decp_name_cn,t1.dun_day,
+			trcd.irr_month_price-isnull(trcd.reduce_own_price,0)  price
+			from 
+			(select substring(convert(varchar,tdd.create_date,23),1,7) date,  
+			tdd.dun_day,recp_id, rect_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=convert(varchar,getdate(),23)) t1
+			left join t_rent_contract trct on t1.rect_id=trct.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectionplan trcp on t1.recp_id=trcp.recp_id
+			left join t_rent_collectiondetail trcd on t1.recp_id=trcd.recp_id),
+			tt2 as
+			(select t1.date,tdcp.decp_name_cn,t1.dun_day, 
+			trcd.irr_month_price-isnull(t2.real_price,0) price
+			from 
+			(select substring(convert(varchar,tdd.create_date,23),1,7) date,  
+			tdd.dun_day,recp_id, rect_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-1,getdate()),23),1,8)+'01') t1
+			left join t_rent_contract trct on t1.rect_id=trct.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectionplan trcp on t1.recp_id=trcp.recp_id
+			left join t_rent_collectiondetail trcd on t1.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-1,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=t1.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-1,getdate()),23),1,8)+'01' as datetime)) ,
+			tt3 as
+			(select t1.date,tdcp.decp_name_cn,t1.dun_day, 
+			trcd.irr_month_price-isnull(t2.real_price,0) price
+			from 
+			(select substring(convert(varchar,tdd.create_date,23),1,7) date,  
+			tdd.dun_day,recp_id, rect_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-2,getdate()),23),1,8)+'01') t1
+			left join t_rent_contract trct on t1.rect_id=trct.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectionplan trcp on t1.recp_id=trcp.recp_id
+			left join t_rent_collectiondetail trcd on t1.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-2,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=t1.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-2,getdate()),23),1,8)+'01' as datetime)) ,
+			tt4 as
+			(select t1.date,tdcp.decp_name_cn,t1.dun_day, 
+			trcd.irr_month_price-isnull(t2.real_price,0) price
+			from 
+			(select substring(convert(varchar,tdd.create_date,23),1,7) date,  
+			tdd.dun_day,recp_id, rect_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-3,getdate()),23),1,8)+'01') t1
+			left join t_rent_contract trct on t1.rect_id=trct.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectionplan trcp on t1.recp_id=trcp.recp_id
+			left join t_rent_collectiondetail trcd on t1.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-3,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=t1.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-3,getdate()),23),1,8)+'01' as datetime)) ,
+			tt5 as
+			(select t1.date,tdcp.decp_name_cn,t1.dun_day, 
+			trcd.irr_month_price-isnull(t2.real_price,0) price
+			from 
+			(select substring(convert(varchar,tdd.create_date,23),1,7) date,  
+			tdd.dun_day,recp_id, rect_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-4,getdate()),23),1,8)+'01') t1
+			left join t_rent_contract trct on t1.rect_id=trct.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectionplan trcp on t1.recp_id=trcp.recp_id
+			left join t_rent_collectiondetail trcd on t1.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-4,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=t1.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-4,getdate()),23),1,8)+'01' as datetime)) ,
+			tt6 as
+			(select t1.date,tdcp.decp_name_cn,t1.dun_day, 
+			trcd.irr_month_price-isnull(t2.real_price,0) price
+			from 
+			(select substring(convert(varchar,tdd.create_date,23),1,7) date,  
+			tdd.dun_day,recp_id, rect_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-5,getdate()),23),1,8)+'01') t1
+			left join t_rent_contract trct on t1.rect_id=trct.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectionplan trcp on t1.recp_id=trcp.recp_id
+			left join t_rent_collectiondetail trcd on t1.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-5,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=t1.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-5,getdate()),23),1,8)+'01' as datetime)) ,
+			tt7 as
+			(select t1.date,tdcp.decp_name_cn,t1.dun_day, 
+			trcd.irr_month_price-isnull(t2.real_price,0) price
+			from 
+			(select substring(convert(varchar,tdd.create_date,23),1,7) date,  
+			tdd.dun_day,recp_id, rect_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-6,getdate()),23),1,8)+'01') t1
+			left join t_rent_contract trct on t1.rect_id=trct.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectionplan trcp on t1.recp_id=trcp.recp_id
+			left join t_rent_collectiondetail trcd on t1.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-6,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=t1.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-6,getdate()),23),1,8)+'01' as datetime)),
+			tt8 as
+			(select t1.date,tdcp.decp_name_cn,t1.dun_day, 
+			trcd.irr_month_price-isnull(t2.real_price,0) price
+			from 
+			(select substring(convert(varchar,tdd.create_date,23),1,7) date,  
+			tdd.dun_day,recp_id, rect_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-7,getdate()),23),1,8)+'01') t1
+			left join t_rent_contract trct on t1.rect_id=trct.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectionplan trcp on t1.recp_id=trcp.recp_id
+			left join t_rent_collectiondetail trcd on t1.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-7,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=t1.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-7,getdate()),23),1,8)+'01' as datetime))  ,
+			tt9 as
+			(select t1.date,tdcp.decp_name_cn,t1.dun_day, 
+			trcd.irr_month_price-isnull(t2.real_price,0) price
+			from 
+			(select substring(convert(varchar,tdd.create_date,23),1,7) date,  
+			tdd.dun_day,recp_id, rect_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-8,getdate()),23),1,8)+'01') t1
+			left join t_rent_contract trct on t1.rect_id=trct.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectionplan trcp on t1.recp_id=trcp.recp_id
+			left join t_rent_collectiondetail trcd on t1.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-8,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=t1.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-8,getdate()),23),1,8)+'01' as datetime)) ,
+			tt10 as
+			(select t1.date,tdcp.decp_name_cn,t1.dun_day, 
+			trcd.irr_month_price-isnull(t2.real_price,0) price
+			from 
+			(select substring(convert(varchar,tdd.create_date,23),1,7) date,  
+			tdd.dun_day,recp_id, rect_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-9,getdate()),23),1,8)+'01') t1
+			left join t_rent_contract trct on t1.rect_id=trct.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectionplan trcp on t1.recp_id=trcp.recp_id
+			left join t_rent_collectiondetail trcd on t1.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-9,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=t1.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-9,getdate()),23),1,8)+'01' as datetime)) ,
+			tt11 as
+			(select t1.date,tdcp.decp_name_cn,t1.dun_day, 
+			trcd.irr_month_price-isnull(t2.real_price,0) price
+			from 
+			(select substring(convert(varchar,tdd.create_date,23),1,7) date,  
+			tdd.dun_day,recp_id, rect_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-10,getdate()),23),1,8)+'01') t1
+			left join t_rent_contract trct on t1.rect_id=trct.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectionplan trcp on t1.recp_id=trcp.recp_id
+			left join t_rent_collectiondetail trcd on t1.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-10,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=t1.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-10,getdate()),23),1,8)+'01' as datetime)) ,
+			
+			tt12 as
+			(select t1.date,tdcp.decp_name_cn,t1.dun_day, 
+			trcd.irr_month_price-isnull(t2.real_price,0) price
+			from 
+			(select substring(convert(varchar,tdd.create_date,23),1,7) date,  
+			tdd.dun_day,recp_id, rect_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-11,getdate()),23),1,8)+'01') t1
+			left join t_rent_contract trct on t1.rect_id=trct.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectionplan trcp on t1.recp_id=trcp.recp_id
+			left join t_rent_collectiondetail trcd on t1.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-11,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=t1.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-11,getdate()),23),1,8)+'01' as datetime)) 
+			
+			
+			select shijian,gongsi,
+			isnull(zhengchang,0) zhengchang,
+			isnull(ciji,0) guanzhu,
+			isnull(guanzhu,0) ciji,
+			isnull(keyi,0) keyi,
+			sunshi
+			from 
+			(
+			select t1.shijian,t0.gongsi,t1.zhengchang,t2.ciji,t3.guanzhu,t4.keyi,0 as sunshi from 
+			(select tdcp.decp_name_cn gongsi from t_rent_contract trct
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			group by tdcp.decp_name_cn) t0
+			left join
+			(select substring(convert(varchar,getdate(),23),1,7) shijian, 
+			tdcp.decp_name_cn gongsi,
+			round(isnull(sum(trcd.irr_month_price-isnull(trcd.reduce_own_price,0)),0),2) zhengchang
+			 from t_rent_collectionplan trcp
+			 left join
+			(select recp_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=convert(varchar,getdate(),23)) tdd
+			on tdd.recp_id=trcp.recp_id
+			left join t_rent_contract trct on trct.rect_id=trcp.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id
+			where tdd.recp_id is null group by tdcp.decp_name_cn) t1 on t1.gongsi=t0.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) ciji 
+			from tt1 where dun_day<60 group by date,decp_name_cn) t2
+			on t0.gongsi=t2.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) guanzhu 
+			from tt1 where dun_day<90 and dun_day>=60 group by date,decp_name_cn) t3
+			on t0.gongsi=t3.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2)keyi 
+			from tt1 where dun_day>=90 group by date,decp_name_cn) t4
+			on t0.gongsi=t4.gongsi
+			union
+			
+			select t1.shijian,t0.gongsi,t1.zhengchang,t2.ciji,t3.guanzhu,t4.keyi,0 as sunshi from 
+			(select tdcp.decp_name_cn gongsi from t_rent_contract trct
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			group by tdcp.decp_name_cn) t0
+			left join
+			(
+			select substring(substring(convert(varchar,dateadd(month,-1,getdate()),23),1,8)+'01',1,7) shijian, 
+			tdcp.decp_name_cn gongsi,
+			round(isnull(sum(trcd.irr_month_price-isnull(t2.real_price,0)),0),2) zhengchang
+			 from t_rent_collectionplan trcp
+			 left join
+			(select recp_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-1,getdate()),23),1,8)+'01') tdd
+			on tdd.recp_id=trcp.recp_id
+			left join t_rent_contract trct on trct.rect_id=trcp.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-1,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=trcp.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-1,getdate()),23),1,8)+'01' as datetime)
+			and tdd.recp_id is null group by tdcp.decp_name_cn
+			 
+			) t1 on t0.gongsi=t1.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) ciji 
+			from tt2 where dun_day<60 group by date,decp_name_cn) t2
+			on t0.gongsi=t2.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) guanzhu 
+			from tt2 where dun_day<90 and dun_day>=60 group by date,decp_name_cn) t3
+			on t0.gongsi=t3.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2)keyi 
+			from tt2 where dun_day>=90 group by date,decp_name_cn) t4
+			on t0.gongsi=t4.gongsi
+			union
+			
+			select t1.shijian,t0.gongsi,t1.zhengchang,t2.ciji,t3.guanzhu,t4.keyi,0 as sunshi from 
+			(select tdcp.decp_name_cn gongsi from t_rent_contract trct
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			group by tdcp.decp_name_cn) t0
+			left join
+			(
+			select substring(substring(convert(varchar,dateadd(month,-2,getdate()),23),1,8)+'01',1,7) shijian, 
+			tdcp.decp_name_cn gongsi,
+			round(isnull(sum(trcd.irr_month_price-isnull(t2.real_price,0)),0),2) zhengchang
+			 from t_rent_collectionplan trcp
+			 left join
+			(select recp_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-2,getdate()),23),1,8)+'01') tdd
+			on tdd.recp_id=trcp.recp_id
+			left join t_rent_contract trct on trct.rect_id=trcp.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-2,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=trcp.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-2,getdate()),23),1,8)+'01' as datetime)
+			and tdd.recp_id is null group by tdcp.decp_name_cn
+			 
+			) t1 on t0.gongsi=t1.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) ciji 
+			from tt3 where dun_day<60 group by date,decp_name_cn) t2
+			on t0.gongsi=t2.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) guanzhu 
+			from tt3 where dun_day<90 and dun_day>=60 group by date,decp_name_cn) t3
+			on t0.gongsi=t3.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2)keyi 
+			from tt3 where dun_day>=90 group by date,decp_name_cn) t4
+			on t0.gongsi=t4.gongsi
+			union
+			
+			select t1.shijian,t0.gongsi,t1.zhengchang,t2.ciji,t3.guanzhu,t4.keyi,0 as sunshi from 
+			(select tdcp.decp_name_cn gongsi from t_rent_contract trct
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			group by tdcp.decp_name_cn) t0
+			left join 
+			(
+			select substring(substring(convert(varchar,dateadd(month,-3,getdate()),23),1,8)+'01',1,7) shijian, 
+			tdcp.decp_name_cn gongsi,
+			round(isnull(sum(trcd.irr_month_price-isnull(t2.real_price,0)),0),2) zhengchang
+			 from t_rent_collectionplan trcp
+			 left join
+			(select recp_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-3,getdate()),23),1,8)+'01') tdd
+			on tdd.recp_id=trcp.recp_id
+			left join t_rent_contract trct on trct.rect_id=trcp.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-3,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=trcp.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-3,getdate()),23),1,8)+'01' as datetime)
+			and tdd.recp_id is null group by tdcp.decp_name_cn
+			 
+			) t1 on t0.gongsi=t1.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) ciji 
+			from tt4 where dun_day<60 group by date,decp_name_cn) t2
+			on t0.gongsi=t2.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) guanzhu 
+			from tt4 where dun_day<90 and dun_day>=60 group by date,decp_name_cn) t3
+			on t0.gongsi=t3.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2)keyi 
+			from tt4 where dun_day>=90 group by date,decp_name_cn) t4
+			on t0.gongsi=t4.gongsi
+			union
+			
+			select t1.shijian,t0.gongsi,t1.zhengchang,t2.ciji,t3.guanzhu,t4.keyi,0 as sunshi from 
+			(select tdcp.decp_name_cn gongsi from t_rent_contract trct
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			group by tdcp.decp_name_cn) t0
+			left join
+			(
+			select substring(substring(convert(varchar,dateadd(month,-4,getdate()),23),1,8)+'01',1,7) shijian, 
+			tdcp.decp_name_cn gongsi,
+			round(isnull(sum(trcd.irr_month_price-isnull(t2.real_price,0)),0),2) zhengchang
+			 from t_rent_collectionplan trcp
+			 left join
+			(select recp_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-4,getdate()),23),1,8)+'01') tdd
+			on tdd.recp_id=trcp.recp_id
+			left join t_rent_contract trct on trct.rect_id=trcp.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-4,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=trcp.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-4,getdate()),23),1,8)+'01' as datetime)
+			and tdd.recp_id is null group by tdcp.decp_name_cn
+			 
+			) t1 on t0.gongsi=t1.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) ciji 
+			from tt5 where dun_day<60 group by date,decp_name_cn) t2
+			on t0.gongsi=t2.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) guanzhu 
+			from tt5 where dun_day<90 and dun_day>=60 group by date,decp_name_cn) t3
+			on t0.gongsi=t3.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2)keyi 
+			from tt5 where dun_day>=90 group by date,decp_name_cn) t4
+			on t0.gongsi=t4.gongsi
+			union
+			
+			select t1.shijian,t0.gongsi,t1.zhengchang,t2.ciji,t3.guanzhu,t4.keyi,0 as sunshi from 
+			(select tdcp.decp_name_cn gongsi from t_rent_contract trct
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			group by tdcp.decp_name_cn) t0
+			left join
+			(
+			select substring(substring(convert(varchar,dateadd(month,-5,getdate()),23),1,8)+'01',1,7) shijian, 
+			tdcp.decp_name_cn gongsi,
+			round(isnull(sum(trcd.irr_month_price-isnull(t2.real_price,0)),0),2) zhengchang
+			 from t_rent_collectionplan trcp
+			 left join
+			(select recp_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-5,getdate()),23),1,8)+'01') tdd
+			on tdd.recp_id=trcp.recp_id
+			left join t_rent_contract trct on trct.rect_id=trcp.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-5,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=trcp.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-5,getdate()),23),1,8)+'01' as datetime)
+			and tdd.recp_id is null group by tdcp.decp_name_cn
+			 
+			) t1 on t0.gongsi=t1.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) ciji 
+			from tt6 where dun_day<60 group by date,decp_name_cn) t2
+			on t0.gongsi=t2.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) guanzhu 
+			from tt6 where dun_day<90 and dun_day>=60 group by date,decp_name_cn) t3
+			on t0.gongsi=t3.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2)keyi 
+			from tt6 where dun_day>=90 group by date,decp_name_cn) t4
+			on t0.gongsi=t4.gongsi
+			union
+			
+			select t1.shijian,t0.gongsi,t1.zhengchang,t2.ciji,t3.guanzhu,t4.keyi,0 as sunshi from 
+			(select tdcp.decp_name_cn gongsi from t_rent_contract trct
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			group by tdcp.decp_name_cn) t0
+			left join
+			(
+			select substring(substring(convert(varchar,dateadd(month,-6,getdate()),23),1,8)+'01',1,7) shijian, 
+			tdcp.decp_name_cn gongsi,
+			round(isnull(sum(trcd.irr_month_price-isnull(t2.real_price,0)),0),2) zhengchang
+			 from t_rent_collectionplan trcp
+			 left join
+			(select recp_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-6,getdate()),23),1,8)+'01') tdd
+			on tdd.recp_id=trcp.recp_id
+			left join t_rent_contract trct on trct.rect_id=trcp.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-6,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=trcp.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-6,getdate()),23),1,8)+'01' as datetime)
+			and tdd.recp_id is null group by tdcp.decp_name_cn
+			 
+			) t1 on t0.gongsi=t1.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) ciji 
+			from tt7 where dun_day<60 group by date,decp_name_cn) t2
+			on t0.gongsi=t2.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) guanzhu 
+			from tt7 where dun_day<90 and dun_day>=60 group by date,decp_name_cn) t3
+			on t0.gongsi=t3.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2)keyi 
+			from tt7 where dun_day>=90 group by date,decp_name_cn) t4
+			on t0.gongsi=t4.gongsi
+			union
+			
+			select t1.shijian,t0.gongsi,t1.zhengchang,t2.ciji,t3.guanzhu,t4.keyi,0 as sunshi from 
+			(select tdcp.decp_name_cn gongsi from t_rent_contract trct
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			group by tdcp.decp_name_cn) t0
+			left join
+			(
+			select substring(substring(convert(varchar,dateadd(month,-7,getdate()),23),1,8)+'01',1,7) shijian, 
+			tdcp.decp_name_cn gongsi,
+			round(isnull(sum(trcd.irr_month_price-isnull(t2.real_price,0)),0),2) zhengchang
+			 from t_rent_collectionplan trcp
+			 left join
+			(select recp_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-7,getdate()),23),1,8)+'01') tdd
+			on tdd.recp_id=trcp.recp_id
+			left join t_rent_contract trct on trct.rect_id=trcp.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-7,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=trcp.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-7,getdate()),23),1,8)+'01' as datetime)
+			and tdd.recp_id is null group by tdcp.decp_name_cn
+			 
+			) t1 on t0.gongsi=t1.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) ciji 
+			from tt8 where dun_day<60 group by date,decp_name_cn) t2
+			on t0.gongsi=t2.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) guanzhu 
+			from tt8 where dun_day<90 and dun_day>=60 group by date,decp_name_cn) t3
+			on t0.gongsi=t3.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2)keyi 
+			from tt8 where dun_day>=90 group by date,decp_name_cn) t4
+			on t0.gongsi=t4.gongsi
+			union
+			
+			select t1.shijian,t0.gongsi,t1.zhengchang,t2.ciji,t3.guanzhu,t4.keyi,0 as sunshi from 
+			(select tdcp.decp_name_cn gongsi from t_rent_contract trct
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			group by tdcp.decp_name_cn) t0
+			left join
+			(
+			select substring(substring(convert(varchar,dateadd(month,-8,getdate()),23),1,8)+'01',1,7) shijian, 
+			tdcp.decp_name_cn gongsi,
+			round(isnull(sum(trcd.irr_month_price-isnull(t2.real_price,0)),0),2) zhengchang
+			 from t_rent_collectionplan trcp
+			 left join
+			(select recp_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-8,getdate()),23),1,8)+'01') tdd
+			on tdd.recp_id=trcp.recp_id
+			left join t_rent_contract trct on trct.rect_id=trcp.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-8,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=trcp.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-8,getdate()),23),1,8)+'01' as datetime)
+			and tdd.recp_id is null group by tdcp.decp_name_cn
+			 
+			) t1 on t0.gongsi=t1.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) ciji 
+			from tt9 where dun_day<60 group by date,decp_name_cn) t2
+			on t0.gongsi=t2.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) guanzhu 
+			from tt9 where dun_day<90 and dun_day>=60 group by date,decp_name_cn) t3
+			on t0.gongsi=t3.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2)keyi 
+			from tt9 where dun_day>=90 group by date,decp_name_cn) t4
+			on t0.gongsi=t4.gongsi
+			
+			union
+			
+			select t1.shijian,t0.gongsi,t1.zhengchang,t2.ciji,t3.guanzhu,t4.keyi,0 as sunshi from 
+			(select tdcp.decp_name_cn gongsi from t_rent_contract trct
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			group by tdcp.decp_name_cn) t0
+			left join
+			(
+			select substring(substring(convert(varchar,dateadd(month,-9,getdate()),23),1,8)+'01',1,7) shijian, 
+			tdcp.decp_name_cn gongsi,
+			round(isnull(sum(trcd.irr_month_price-isnull(t2.real_price,0)),0),2) zhengchang
+			 from t_rent_collectionplan trcp
+			 left join
+			(select recp_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-9,getdate()),23),1,8)+'01') tdd
+			on tdd.recp_id=trcp.recp_id
+			left join t_rent_contract trct on trct.rect_id=trcp.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-9,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=trcp.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-9,getdate()),23),1,8)+'01' as datetime)
+			and tdd.recp_id is null group by tdcp.decp_name_cn
+			 
+			) t1 on t0.gongsi=t1.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) ciji 
+			from tt10 where dun_day<60 group by date,decp_name_cn) t2
+			on t0.gongsi=t2.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) guanzhu 
+			from tt10 where dun_day<90 and dun_day>=60 group by date,decp_name_cn) t3
+			on t0.gongsi=t3.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2)keyi 
+			from tt10 where dun_day>=90 group by date,decp_name_cn) t4
+			on t0.gongsi=t4.gongsi
+			
+			union
+			
+			select t1.shijian,t0.gongsi,t1.zhengchang,t2.ciji,t3.guanzhu,t4.keyi,0 as sunshi from 
+			(select tdcp.decp_name_cn gongsi from t_rent_contract trct
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			group by tdcp.decp_name_cn) t0
+			left join
+			(
+			select substring(substring(convert(varchar,dateadd(month,-10,getdate()),23),1,8)+'01',1,7) shijian, 
+			tdcp.decp_name_cn gongsi,
+			round(isnull(sum(trcd.irr_month_price-isnull(t2.real_price,0)),0),2) zhengchang
+			 from t_rent_collectionplan trcp
+			 left join
+			(select recp_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-10,getdate()),23),1,8)+'01') tdd
+			on tdd.recp_id=trcp.recp_id
+			left join t_rent_contract trct on trct.rect_id=trcp.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-10,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=trcp.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-10,getdate()),23),1,8)+'01' as datetime)
+			and tdd.recp_id is null group by tdcp.decp_name_cn
+			 
+			) t1 on t0.gongsi=t1.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) ciji 
+			from tt11 where dun_day<60 group by date,decp_name_cn) t2
+			on t0.gongsi=t2.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) guanzhu 
+			from tt11 where dun_day<90 and dun_day>=60 group by date,decp_name_cn) t3
+			on t0.gongsi=t3.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2)keyi 
+			from tt11 where dun_day>=90 group by date,decp_name_cn) t4
+			on t0.gongsi=t4.gongsi
+			
+			union
+			
+			select t1.shijian,t0.gongsi,t1.zhengchang,t2.ciji,t3.guanzhu,t4.keyi,0 as sunshi from 
+			(select tdcp.decp_name_cn gongsi from t_rent_contract trct
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			group by tdcp.decp_name_cn) t0
+			left join
+			(
+			select substring(substring(convert(varchar,dateadd(month,-11,getdate()),23),1,8)+'01',1,7) shijian, 
+			tdcp.decp_name_cn gongsi,
+			round(isnull(sum(trcd.irr_month_price-isnull(t2.real_price,0)),0),2) zhengchang
+			 from t_rent_collectionplan trcp
+			 left join
+			(select recp_id from t_dun_daily tdd
+			where convert(varchar,tdd.create_date,23)=substring(convert(varchar,dateadd(month,-11,getdate()),23),1,8)+'01') tdd
+			on tdd.recp_id=trcp.recp_id
+			left join t_rent_contract trct on trct.rect_id=trcp.rect_id
+			left join t_dept_company tdcp on tdcp.decp_id=trct.decp_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id=trcd.recp_id
+			left join (select tfcb.recp_id,tfcb.recd_period,tfcb.real_price 
+			from t_fina_collectionbill tfcb 
+			where tfcb.check_date<cast(substring(convert(varchar,dateadd(month,-11,getdate()),23),1,8)+'01' as datetime)
+			and recd_period>0) t2 
+			on t2.recp_id=trcp.recp_id and t2.recd_period=trcd.period_num
+			where trcp.create_time<cast(substring(convert(varchar,dateadd(month,-11,getdate()),23),1,8)+'01' as datetime)
+			and tdd.recp_id is null group by tdcp.decp_name_cn
+			 
+			) t1 on t0.gongsi=t1.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) ciji 
+			from tt12 where dun_day<60 group by date,decp_name_cn) t2
+			on t0.gongsi=t2.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2) guanzhu 
+			from tt12 where dun_day<90 and dun_day>=60 group by date,decp_name_cn) t3
+			on t0.gongsi=t3.gongsi
+			left join
+			(select date shijian,decp_name_cn gongsi,round(isnull(sum(price),0),2)keyi 
+			from tt12 where dun_day>=90 group by date,decp_name_cn) t4
+			on t0.gongsi=t4.gongsi
+			) ttt where shijian is not null
+			order by shijian,gongsi 
+		]]>
+    </select>
+
+</sqlMap>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="payRate">
+	<select id="readBaseRate" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 		
+		 select TOP 1  CONVERT(varchar,t.adjust_time,23) as adjust_time,
+				       t.six_months,
+				       t.one_year,
+				       t.one_three_years,
+				       t.three_five_years,
+				       t.over_five_years,
+				       t.remark
+				  from t_rate t
+				 order by t.adjust_time desc
+		 ]]>
+	</select>
+</sqlMap>

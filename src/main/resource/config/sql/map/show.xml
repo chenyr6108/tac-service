@@ -1,0 +1,1477 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+ "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="show">
+    
+    <!-- 查询客户个数 -->
+    <select id="selectCustomerCount" parameterClass="map" resultClass="java.lang.Integer">
+        <![CDATA[
+			select count(cust_id) from t_cust_customer where status=0 and create_user_id=#s_employeeId#
+		]]>
+    </select>
+    
+    <!-- 查询合同个数及总价 -->
+    <select id="selectContractCountAndSum" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select count(rect_id) contract_count,sum(lease_topric) contract_sum from t_rent_contract 
+			where status=0 
+			and create_user_id=#s_employeeId#
+		]]>
+    </select>
+    
+    <!-- 查询支付表个数及总价 -->
+    <select id="selectCollectionPlanCountAndSum" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select count(rect_id) collectionPlan_count,sum(lease_topric) collectionPlan_sum from t_rent_collectionplan 
+			where status=0 and create_user_id=#s_employeeId# 
+		]]>
+    </select>
+    
+    <!-- 查询客户调查 -->
+    <select id="selectPrjtCredit" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select top 5
+				t1.type,t2.cust_name,t4.name area_name,t1.create_date,t3.name sensor_name from t_prjt_credit t1
+				left join t_cust_customer t2 on t1.cust_id=t2.cust_id
+				left join t_user_user t3 on t1.sensor_id=t3.id
+				left join t_area t4 on t1.province_id=t4.id
+			where t1.status=0
+				and sensor_id=#s_employeeId#    order by t1.create_date desc 
+		]]>
+    </select>
+    
+    <!-- 2012/02/13 Yang Yun 首页客户汇总 -->
+    <select id="getCustInfo" parameterClass="map" resultClass="java.util.HashMap">
+    	<![CDATA[
+    		select * from (
+				select count(0) as CUST_COUNT from (
+				  select cust.CUST_ID from T_RENT_COLLECTIONPLAN recp
+				  left join T_RENT_CONTRACT rect on recp.RECT_ID = rect.RECT_ID
+				  left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+				  left join T_CUST_CUSTOMER cust on rect.CUST_ID = cust.CUST_ID
+				  where recp.STATUS = 0 and rect.STATUS = 0 and cust.STATUS = 0
+				  and (recp.RECP_STATUS = 0)
+				  and prcd.FINANCECONTRACT_DATE is not null
+				  group by cust.CUST_ID
+				)t
+			)t1,(
+			  	select count(0) as PRJT_COUNT from T_RENT_COLLECTIONPLAN recp
+			  	left join T_RENT_CONTRACT rect on recp.RECT_ID = rect.RECT_ID
+				left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+			    where recp.STATUS = 0 
+			    and prcd.FINANCECONTRACT_DATE is not null
+			    and (recp.RECP_STATUS = 0)
+			)t2,(
+				select count(0) as PRJT_COUNT_OTHER from T_RENT_COLLECTIONPLAN recp
+				left join T_RENT_CONTRACT rect on recp.RECT_ID = rect.RECT_ID
+				left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+				where recp.STATUS = 0 
+				and prcd.FINANCECONTRACT_DATE is not null
+				and (recp.RECP_STATUS = 0)
+				and recp.RECP_ID in (
+				  select rcd.RECP_ID
+				from T_RENT_COLLECTIONDETAIL rcd
+				where rcd.STATUS = 0
+				group by rcd.RECP_ID
+				having sum(rcd.IRR_MONTH_PRICE ) + isnull(sum(VALUE_ADDED_TAX),0) <= sum(REDUCE_OWN_PRICE) 
+				)
+			)t_other,(
+				select sum(t.IRR_MONTH_PRICE - isnull(t.REDUCE_OWN_PRICE,0)) as loss_price,
+				sum(isnull(t.loss_own_price,0)) as loss_own_price,
+				sum(isnull(t.loss_ren_price,0)) as loss_ren_price
+				from (
+					select recd.OWN_PRICE, recd.REN_PRICE, 
+				  (recd.IRR_MONTH_PRICE + isnull(recd.VALUE_ADDED_TAX,0)) as IRR_MONTH_PRICE, 
+				  recd.REDUCE_OWN_PRICE,
+				  
+					case when isnull(recd.REDUCE_OWN_PRICE, 0) >= isnull(recd.REN_PRICE, 0)
+					then isnull(recd.IRR_MONTH_PRICE, 0) + isnull(recd.VALUE_ADDED_TAX,0) - isnull(recd.REDUCE_OWN_PRICE, 0)
+					else isnull(recd.IRR_MONTH_PRICE, 0) + isnull(recd.VALUE_ADDED_TAX,0) - isnull(recd.REN_PRICE, 0) end 
+					as loss_own_price,
+				  
+					case when isnull(recd.REDUCE_OWN_PRICE, 0) >= isnull(recd.REN_PRICE, 0)
+					then 0
+					else isnull(recd.REN_PRICE, 0) - isnull(recd.REDUCE_OWN_PRICE, 0) end
+					as loss_ren_price
+				  
+					from T_RENT_COLLECTIONDETAIL recd
+					left join T_RENT_COLLECTIONPLAN recp on recd.RECP_ID = recp.RECP_ID
+					where recd.status = 0
+					and (recd.REDUCE_OWN_PRICE is null or recd.REDUCE_OWN_PRICE < recd.IRR_MONTH_PRICE)
+					and recp.STATUS = 0
+					and (recp.RECP_STATUS = 0)
+					and exists(
+				    select prcd.ID from T_PRJT_CREDIT prcd
+				    left join T_RENT_CONTRACT rect on rect.PRCD_ID = prcd.ID
+				    where rect.RECT_ID = recp.RECT_ID
+				    and prcd.FINANCECONTRACT_DATE is not null
+				  )
+				)t
+			)t3
+    	]]>
+    </select>
+    
+    <!-- 桌面应收统计 设备 add by ShenQi -->
+    <select id="getCustInfoEqu" parameterClass="map" resultClass="java.util.HashMap">
+    	select * from (
+				select count(0) as CUST_COUNT from (
+				  select cust.CUST_ID from T_RENT_COLLECTIONPLAN recp
+				  left join T_RENT_CONTRACT rect on recp.RECT_ID = rect.RECT_ID
+				  left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+				  left join T_CUST_CUSTOMER cust on rect.CUST_ID = cust.CUST_ID
+				  where recp.STATUS = 0 and rect.STATUS = 0 and cust.STATUS = 0
+				  and (recp.RECP_STATUS = 0)
+				  and prcd.FINANCECONTRACT_DATE is not null
+          AND prcd.PRODUCTION_TYPE=1
+				  group by cust.CUST_ID
+				)t
+			)t1,(
+			  	select count(0) as PRJT_COUNT from T_RENT_COLLECTIONPLAN recp
+			  	left join T_RENT_CONTRACT rect on recp.RECT_ID = rect.RECT_ID
+				left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+			    where recp.STATUS = 0 
+			    and prcd.FINANCECONTRACT_DATE is not null
+			    and (recp.RECP_STATUS = 0)
+          AND prcd.PRODUCTION_TYPE=1
+			)t2,(
+				select sum(t.IRR_MONTH_PRICE - isnull(t.REDUCE_OWN_PRICE,0)) as loss_price,
+				sum(isnull(t.loss_own_price,0)) as loss_own_price,
+				sum(isnull(t.loss_ren_price,0)) as loss_ren_price
+				from (
+					select recd.OWN_PRICE, recd.REN_PRICE, 
+				  (recd.IRR_MONTH_PRICE + isnull(recd.VALUE_ADDED_TAX,0)) as IRR_MONTH_PRICE, 
+				  recd.REDUCE_OWN_PRICE,
+				  
+					case when isnull(recd.REDUCE_OWN_PRICE, 0) >= isnull(recd.REN_PRICE, 0)
+					then isnull(recd.IRR_MONTH_PRICE, 0) + isnull(recd.VALUE_ADDED_TAX,0) - isnull(recd.REDUCE_OWN_PRICE, 0)
+					else isnull(recd.IRR_MONTH_PRICE, 0) + isnull(recd.VALUE_ADDED_TAX,0) - isnull(recd.REN_PRICE, 0) end 
+					as loss_own_price,
+				  
+					case when isnull(recd.REDUCE_OWN_PRICE, 0) >= isnull(recd.REN_PRICE, 0)
+					then 0
+					else isnull(recd.REN_PRICE, 0) - isnull(recd.REDUCE_OWN_PRICE, 0) end
+					as loss_ren_price
+				  
+					from T_RENT_COLLECTIONDETAIL recd
+					left join T_RENT_COLLECTIONPLAN recp on recd.RECP_ID = recp.RECP_ID
+					where recd.status = 0
+					and (recd.REDUCE_OWN_PRICE is null or recd.REDUCE_OWN_PRICE &lt; recd.IRR_MONTH_PRICE)
+					and recp.STATUS = 0
+					and (recp.RECP_STATUS = 0)
+					and exists(
+				    select prcd.ID from T_PRJT_CREDIT prcd
+				    left join T_RENT_CONTRACT rect on rect.PRCD_ID = prcd.ID
+				    where rect.RECT_ID = recp.RECT_ID
+				    and prcd.FINANCECONTRACT_DATE is not null
+            AND prcd.PRODUCTION_TYPE=1
+				  )
+				)t
+			)t3
+    </select>
+    
+    <!-- 桌面应收统计 重车 add by ShenQi -->
+    <select id="getCustInfoMotor" parameterClass="map" resultClass="java.util.HashMap">
+    	select * from (
+				select count(0) as CUST_COUNT from (
+				  select cust.CUST_ID from T_RENT_COLLECTIONPLAN recp
+				  left join T_RENT_CONTRACT rect on recp.RECT_ID = rect.RECT_ID
+				  left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+				  left join T_CUST_CUSTOMER cust on rect.CUST_ID = cust.CUST_ID
+				  where recp.STATUS = 0 and rect.STATUS = 0 and cust.STATUS = 0
+				  and (recp.RECP_STATUS = 0)
+				  and prcd.FINANCECONTRACT_DATE is not null
+          AND prcd.PRODUCTION_TYPE=2
+				  group by cust.CUST_ID
+				)t
+			)t1,(
+			  	select count(0) as PRJT_COUNT from T_RENT_COLLECTIONPLAN recp
+			  	left join T_RENT_CONTRACT rect on recp.RECT_ID = rect.RECT_ID
+				left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+			    where recp.STATUS = 0 
+			    and prcd.FINANCECONTRACT_DATE is not null
+			    and (recp.RECP_STATUS = 0)
+          AND prcd.PRODUCTION_TYPE=2
+			)t2,(
+				select sum(t.IRR_MONTH_PRICE - isnull(t.REDUCE_OWN_PRICE,0)) as loss_price,
+				sum(isnull(t.loss_own_price,0)) as loss_own_price,
+				sum(isnull(t.loss_ren_price,0)) as loss_ren_price
+				from (
+					select recd.OWN_PRICE, recd.REN_PRICE, 
+				  (recd.IRR_MONTH_PRICE + isnull(recd.VALUE_ADDED_TAX,0)) as IRR_MONTH_PRICE, 
+				  recd.REDUCE_OWN_PRICE,
+				  
+					case when isnull(recd.REDUCE_OWN_PRICE, 0) >= isnull(recd.REN_PRICE, 0)
+					then isnull(recd.IRR_MONTH_PRICE, 0) + isnull(recd.VALUE_ADDED_TAX,0) - isnull(recd.REDUCE_OWN_PRICE, 0)
+					else isnull(recd.IRR_MONTH_PRICE, 0) + isnull(recd.VALUE_ADDED_TAX,0) - isnull(recd.REN_PRICE, 0) end 
+					as loss_own_price,
+				  
+					case when isnull(recd.REDUCE_OWN_PRICE, 0) >= isnull(recd.REN_PRICE, 0)
+					then 0
+					else isnull(recd.REN_PRICE, 0) - isnull(recd.REDUCE_OWN_PRICE, 0) end
+					as loss_ren_price
+				  
+					from T_RENT_COLLECTIONDETAIL recd
+					left join T_RENT_COLLECTIONPLAN recp on recd.RECP_ID = recp.RECP_ID
+					where recd.status = 0
+					and (recd.REDUCE_OWN_PRICE is null or recd.REDUCE_OWN_PRICE &lt; recd.IRR_MONTH_PRICE)
+					and recp.STATUS = 0
+					and (recp.RECP_STATUS = 0)
+					and exists(
+				    select prcd.ID from T_PRJT_CREDIT prcd
+				    left join T_RENT_CONTRACT rect on rect.PRCD_ID = prcd.ID
+				    where rect.RECT_ID = recp.RECT_ID
+				    and prcd.FINANCECONTRACT_DATE is not null
+            AND prcd.PRODUCTION_TYPE=2
+				  )
+				)t
+			)t3
+    </select>
+    
+    <!-- 桌面应收统计 重车 add by YangYun -->
+    <select id="getCustInfoCar" parameterClass="map" resultClass="java.util.HashMap">
+    	select * from (
+				select count(0) as CUST_COUNT from (
+				  select cust.CUST_ID from T_RENT_COLLECTIONPLAN recp
+				  left join T_RENT_CONTRACT rect on recp.RECT_ID = rect.RECT_ID
+				  left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+				  left join T_CUST_CUSTOMER cust on rect.CUST_ID = cust.CUST_ID
+				  where recp.STATUS = 0 and rect.STATUS = 0 and cust.STATUS = 0
+				  and (recp.RECP_STATUS = 0)
+				  and prcd.FINANCECONTRACT_DATE is not null
+          			AND prcd.PRODUCTION_TYPE=3
+				  group by cust.CUST_ID
+				)t
+			)t1,(
+			  	select count(0) as PRJT_COUNT from T_RENT_COLLECTIONPLAN recp
+			  	left join T_RENT_CONTRACT rect on recp.RECT_ID = rect.RECT_ID
+				left join T_PRJT_CREDIT prcd on rect.PRCD_ID = prcd.ID
+			    where recp.STATUS = 0 
+			    and prcd.FINANCECONTRACT_DATE is not null
+			    and (recp.RECP_STATUS = 0)
+          		AND prcd.PRODUCTION_TYPE=3
+			)t2,(
+				select sum(t.IRR_MONTH_PRICE - isnull(t.REDUCE_OWN_PRICE,0)) as loss_price,
+				sum(isnull(t.loss_own_price,0)) as loss_own_price,
+				sum(isnull(t.loss_ren_price,0)) as loss_ren_price
+				from (
+					select recd.OWN_PRICE, recd.REN_PRICE, 
+				  (recd.IRR_MONTH_PRICE + isnull(recd.VALUE_ADDED_TAX,0)) as IRR_MONTH_PRICE, 
+				  recd.REDUCE_OWN_PRICE,
+				  
+					case when isnull(recd.REDUCE_OWN_PRICE, 0) >= isnull(recd.REN_PRICE, 0)
+					then isnull(recd.IRR_MONTH_PRICE, 0) + isnull(recd.VALUE_ADDED_TAX,0) - isnull(recd.REDUCE_OWN_PRICE, 0)
+					else isnull(recd.IRR_MONTH_PRICE, 0) + isnull(recd.VALUE_ADDED_TAX,0) - isnull(recd.REN_PRICE, 0) end 
+					as loss_own_price,
+				  
+					case when isnull(recd.REDUCE_OWN_PRICE, 0) >= isnull(recd.REN_PRICE, 0)
+					then 0
+					else isnull(recd.REN_PRICE, 0) - isnull(recd.REDUCE_OWN_PRICE, 0) end
+					as loss_ren_price
+				  
+					from T_RENT_COLLECTIONDETAIL recd
+					left join T_RENT_COLLECTIONPLAN recp on recd.RECP_ID = recp.RECP_ID
+					where recd.status = 0
+					and (recd.REDUCE_OWN_PRICE is null or recd.REDUCE_OWN_PRICE &lt; recd.IRR_MONTH_PRICE)
+					and recp.STATUS = 0
+					and (recp.RECP_STATUS = 0)
+					and exists(
+				    select prcd.ID from T_PRJT_CREDIT prcd
+				    left join T_RENT_CONTRACT rect on rect.PRCD_ID = prcd.ID
+				    where rect.RECT_ID = recp.RECT_ID
+				    and prcd.FINANCECONTRACT_DATE is not null
+            		AND prcd.PRODUCTION_TYPE=3
+				  )
+				)t
+			)t3
+    </select>
+    
+    <!-- 首页逾期情况表 全部-->
+    <select id="getDunInfo" parameterClass="map" resultClass="java.util.HashMap">
+    	<![CDATA[
+    	select
+		sum(isnull(DUN_COUNT_8,0)) as DUN_COUNT_8,
+		sum(isnull(DUN_PRICE_8,0)) as DUN_PRICE_8,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_8,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_8,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_8,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_8,
+		sum(isnull(DUN_COUNT_15,0)) as DUN_COUNT_15,
+		sum(isnull(DUN_PRICE_15,0)) as DUN_PRICE_15,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_15,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_15,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_15,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_15,
+		sum(isnull(DUN_COUNT_31,0)) as DUN_COUNT_31,
+		sum(isnull(DUN_PRICE_31,0)) as DUN_PRICE_31,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_31,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_31,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_31,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_31,
+		sum(isnull(DUN_COUNT_61,0)) as DUN_COUNT_61,
+		sum(isnull(DUN_PRICE_61,0)) as DUN_PRICE_61,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_61,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_61,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_61,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_61,
+		sum(isnull(DUN_COUNT_90,0)) as DUN_COUNT_90,
+		sum(isnull(DUN_PRICE_90,0)) as DUN_PRICE_90,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_90,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_90,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_90,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_90,
+		sum(isnull(DUN_COUNT_180,0)) as DUN_COUNT_180,
+		sum(isnull(DUN_PRICE_180,0)) as DUN_PRICE_180,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_180,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_180,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_180,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_180,
+		sum(isnull(SUB_DUN_COUNT,0)) as SUB_DUN_COUNT,
+		sum(isnull(SUB_DUN_PRICE,0)) as SUB_DUN_PRICE,
+		convert(decimal(20,2),sum(isnull(SUB_DUN_COUNT,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_SUB,
+		convert(decimal(20,2),sum(isnull(SUB_DUN_PRICE,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_SUB
+		
+		, sum(isnull(DUN_COUNT_31,0)) + sum(isnull(DUN_COUNT_61,0)) + sum(isnull(DUN_COUNT_90,0)) + sum(isnull(DUN_COUNT_180,0)) as DUN_COUNT_31_TOTAL
+		, sum(isnull(DUN_PRICE_31,0)) + sum(isnull(DUN_PRICE_61,0)) + sum(isnull(DUN_PRICE_90,0)) + sum(isnull(DUN_PRICE_180,0)) as DUN_PRICE_31_TOTAL
+		, convert(decimal(20,2),(sum(isnull(DUN_COUNT_31,0)) + sum(isnull(DUN_COUNT_61,0)) + sum(isnull(DUN_COUNT_90,0)) + sum(isnull(DUN_COUNT_180,0)))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_31_TOTAL
+		, convert(decimal(20,2),(sum(isnull(DUN_PRICE_31,0)) + sum(isnull(DUN_PRICE_61,0)) + sum(isnull(DUN_PRICE_90,0)) + sum(isnull(DUN_PRICE_180,0)))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_31_TOTAL
+		
+		, sum(isnull(DUN_COUNT_90,0)) + sum(isnull(DUN_COUNT_180,0)) as DUN_COUNT_91_TOTAL
+		, sum(isnull(DUN_PRICE_90,0)) + sum(isnull(DUN_PRICE_180,0)) as DUN_PRICE_91_TOTAL
+		, convert(decimal(20,2),(sum(isnull(DUN_COUNT_90,0)) + sum(isnull(DUN_COUNT_180,0)))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_91_TOTAL
+		, convert(decimal(20,2),(sum(isnull(DUN_PRICE_90,0)) + sum(isnull(DUN_PRICE_180,0)))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_91_TOTAL
+		
+		from T_DUN_REPORT
+		where datediff(day,create_date,getdate() - 1) = 0;
+		]]>
+    </select>
+    
+    <!-- 首页逾期情况表 设备-->
+    <select id="getDunInfoEqu" parameterClass="map" resultClass="java.util.HashMap">
+    	select
+		sum(isnull(DUN_COUNT_8,0)) as DUN_COUNT_8,
+		sum(isnull(DUN_PRICE_8,0)) as DUN_PRICE_8,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_8,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_8,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_8,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_8,
+		sum(isnull(DUN_COUNT_15,0)) as DUN_COUNT_15,
+		sum(isnull(DUN_PRICE_15,0)) as DUN_PRICE_15,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_15,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_15,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_15,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_15,
+		sum(isnull(DUN_COUNT_31,0)) as DUN_COUNT_31,
+		sum(isnull(DUN_PRICE_31,0)) as DUN_PRICE_31,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_31,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_31,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_31,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_31,
+		sum(isnull(DUN_COUNT_61,0)) as DUN_COUNT_61,
+		sum(isnull(DUN_PRICE_61,0)) as DUN_PRICE_61,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_61,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_61,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_61,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_61,
+		sum(isnull(DUN_COUNT_90,0)) as DUN_COUNT_90,
+		sum(isnull(DUN_PRICE_90,0)) as DUN_PRICE_90,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_90,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_90,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_90,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_90,
+		sum(isnull(DUN_COUNT_180,0)) as DUN_COUNT_180,
+		sum(isnull(DUN_PRICE_180,0)) as DUN_PRICE_180,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_180,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_180,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_180,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_180,
+		sum(isnull(SUB_DUN_COUNT,0)) as SUB_DUN_COUNT,
+		sum(isnull(SUB_DUN_PRICE,0)) as SUB_DUN_PRICE,
+		convert(decimal(20,2),sum(isnull(SUB_DUN_COUNT,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_SUB,
+		convert(decimal(20,2),sum(isnull(SUB_DUN_PRICE,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_SUB
+		
+		, sum(isnull(DUN_COUNT_31,0)) + sum(isnull(DUN_COUNT_61,0)) + sum(isnull(DUN_COUNT_90,0)) + sum(isnull(DUN_COUNT_180,0)) as DUN_COUNT_31_TOTAL
+		, sum(isnull(DUN_PRICE_31,0)) + sum(isnull(DUN_PRICE_61,0)) + sum(isnull(DUN_PRICE_90,0)) + sum(isnull(DUN_PRICE_180,0)) as DUN_PRICE_31_TOTAL
+		, convert(decimal(20,2),(sum(isnull(DUN_COUNT_31,0)) + sum(isnull(DUN_COUNT_61,0)) + sum(isnull(DUN_COUNT_90,0)) + sum(isnull(DUN_COUNT_180,0)))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_31_TOTAL
+		, convert(decimal(20,2),(sum(isnull(DUN_PRICE_31,0)) + sum(isnull(DUN_PRICE_61,0)) + sum(isnull(DUN_PRICE_90,0)) + sum(isnull(DUN_PRICE_180,0)))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_31_TOTAL
+		
+		, sum(isnull(DUN_COUNT_90,0)) + sum(isnull(DUN_COUNT_180,0)) as DUN_COUNT_91_TOTAL
+		, sum(isnull(DUN_PRICE_90,0)) + sum(isnull(DUN_PRICE_180,0)) as DUN_PRICE_91_TOTAL
+		, convert(decimal(20,2),(sum(isnull(DUN_COUNT_90,0)) + sum(isnull(DUN_COUNT_180,0)))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_91_TOTAL
+		, convert(decimal(20,2),(sum(isnull(DUN_PRICE_90,0)) + sum(isnull(DUN_PRICE_180,0)))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_91_TOTAL
+		
+		from T_DUN_REPORT_EQU
+		where datediff(day,create_date,getdate() - 1) = 0
+		  AND (DECP_NAME LIKE '%$cmpyType1$%' OR DECP_NAME LIKE '%$cmpyType2$%')
+    </select>
+    
+    <!-- 首页逾期情况表 重车-->
+    <select id="getDunInfoMotor" parameterClass="map" resultClass="java.util.HashMap">
+    	select
+		sum(isnull(DUN_COUNT_8,0)) as DUN_COUNT_8,
+		sum(isnull(DUN_PRICE_8,0)) as DUN_PRICE_8,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_8,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_8,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_8,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_8,
+		sum(isnull(DUN_COUNT_15,0)) as DUN_COUNT_15,
+		sum(isnull(DUN_PRICE_15,0)) as DUN_PRICE_15,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_15,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_15,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_15,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_15,
+		sum(isnull(DUN_COUNT_31,0)) as DUN_COUNT_31,
+		sum(isnull(DUN_PRICE_31,0)) as DUN_PRICE_31,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_31,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_31,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_31,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_31,
+		sum(isnull(DUN_COUNT_61,0)) as DUN_COUNT_61,
+		sum(isnull(DUN_PRICE_61,0)) as DUN_PRICE_61,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_61,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_61,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_61,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_61,
+		sum(isnull(DUN_COUNT_90,0)) as DUN_COUNT_90,
+		sum(isnull(DUN_PRICE_90,0)) as DUN_PRICE_90,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_90,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_90,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_90,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_90,
+		sum(isnull(DUN_COUNT_180,0)) as DUN_COUNT_180,
+		sum(isnull(DUN_PRICE_180,0)) as DUN_PRICE_180,
+		convert(decimal(20,2),sum(isnull(DUN_COUNT_180,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_180,
+		convert(decimal(20,2),sum(isnull(DUN_PRICE_180,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_180,
+		sum(isnull(SUB_DUN_COUNT,0)) as SUB_DUN_COUNT,
+		sum(isnull(SUB_DUN_PRICE,0)) as SUB_DUN_PRICE,
+		convert(decimal(20,2),sum(isnull(SUB_DUN_COUNT,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_SUB,
+		convert(decimal(20,2),sum(isnull(SUB_DUN_PRICE,0))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_SUB
+		
+		, sum(isnull(DUN_COUNT_31,0)) + sum(isnull(DUN_COUNT_61,0)) + sum(isnull(DUN_COUNT_90,0)) + sum(isnull(DUN_COUNT_180,0)) as DUN_COUNT_31_TOTAL
+		, sum(isnull(DUN_PRICE_31,0)) + sum(isnull(DUN_PRICE_61,0)) + sum(isnull(DUN_PRICE_90,0)) + sum(isnull(DUN_PRICE_180,0)) as DUN_PRICE_31_TOTAL
+		, convert(decimal(20,2),(sum(isnull(DUN_COUNT_31,0)) + sum(isnull(DUN_COUNT_61,0)) + sum(isnull(DUN_COUNT_90,0)) + sum(isnull(DUN_COUNT_180,0)))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_31_TOTAL
+		, convert(decimal(20,2),(sum(isnull(DUN_PRICE_31,0)) + sum(isnull(DUN_PRICE_61,0)) + sum(isnull(DUN_PRICE_90,0)) + sum(isnull(DUN_PRICE_180,0)))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_31_TOTAL
+		
+		, sum(isnull(DUN_COUNT_90,0)) + sum(isnull(DUN_COUNT_180,0)) as DUN_COUNT_91_TOTAL
+		, sum(isnull(DUN_PRICE_90,0)) + sum(isnull(DUN_PRICE_180,0)) as DUN_PRICE_91_TOTAL
+		, convert(decimal(20,2),(sum(isnull(DUN_COUNT_90,0)) + sum(isnull(DUN_COUNT_180,0)))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_COUNT,0))) * 100 as DUN_COUNT_PER_91_TOTAL
+		, convert(decimal(20,2),(sum(isnull(DUN_PRICE_90,0)) + sum(isnull(DUN_PRICE_180,0)))) / convert(decimal(20,2),sum(isnull(TOTAL_DUN_PRICE,0))) * 100 as DUN_PRICE_PER_91_TOTAL
+		
+		from T_DUN_REPORT_MOTOR
+		where datediff(day,create_date,getdate() - 1) = 0
+		  AND (DECP_NAME LIKE '%$cmpyType1$%' OR DECP_NAME LIKE '%$cmpyType2$%')
+		  <!-- AND DECP_NAME NOT LIKE '%$cmpyType2$%' -->
+    </select>
+    
+    <!-- 查询逾期情况(当天) -->
+    <select id="selectDunDaily" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select recp_id,dun_monthprice,dun_day from t_dun_daily
+				where convert(datetime,convert(varchar, create_date ,23)) 
+				 = 
+				 convert(datetime,convert(varchar,getdate(),23)) 
+					and status = 0
+		]]>
+    </select>
+    <!-- 查询逾期情况(上1个月) -->
+    <select id="selectDunDailyTwoMonth" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select dun_monthprice,dun_day from t_dun_daily
+				where  create_date
+					=  convert(datetime,#twoMonth# ) 
+					and status = 0
+		]]>
+    </select>
+    <!-- 查询逾期情况(上2个月) -->
+    <select id="selectDunDailyThreeMonth" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select dun_monthprice,dun_day from t_dun_daily
+				where   create_date
+				 = convert(datetime,#threeMonth# )
+					and status = 0
+		]]>
+    </select>
+    <!-- 查询逾期情况(上3个月) -->
+    <select id="selectDunDailyFourMonth" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select dun_monthprice,dun_day from t_dun_daily
+				where   create_date
+				  = convert(datetime,#fourMonth# )
+					and status = 0
+		]]>
+    </select>
+    <!-- 查询逾期情况(上4个月) -->
+    <select id="selectDunDailyFiveMonth" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select dun_monthprice,dun_day from t_dun_daily
+				where   create_date
+				  = convert(datetime,#fiveMonth# )
+					and status = 0
+		]]>
+    </select>
+    <!-- 查询逾期情况(上5个月) -->
+    <select id="selectDunDailySixMonth" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select dun_monthprice,dun_day from t_dun_daily
+				where  create_date
+				 = convert(datetime,#sixMonth# )
+					and status = 0
+		]]>
+    </select>
+    
+    <!-- 查询目标额度(当天) -->
+    <select id="selectTargetLimitToday" parameterClass="map" resultClass="java.lang.Integer">
+        <!-- 2011/12/22 Yang Yun Update query way(PAY_MONEY, PAY_DATE). Start
+        <![CDATA[
+			select isnull(sum(lease_topric),0) sumLease from t_rent_contract 
+				where   dateadd(mm, datediff(mm,0,lessor_time),0) 
+				=  convert(datetime,convert(varchar,getdate(),23))
+					and rect_status = 1
+					and status = 0
+		]]>
+		 -->
+		 <![CDATA[
+		SELECT SUM(O.sumLease) sumLease FROM
+				(
+				select ISNULL(SUM(pd.pay_money),0) AS sumLease
+						from T_SUPL_PLAYDETIL pd
+						left join T_PRJT_CREDIT pc on pd.CREDIT_ID = pc.ID
+						LEFT JOIN T_RENT_CONTRACT rc ON rc.PRCD_ID = pc.ID
+						where datediff(day,PAY_DATE,GETDATE()) = 0
+						and pd.STATE = 3 and pd.STATUS = 0 and rc.STATUS = 0 and pc.STATUS = 0
+						and pd.BACKSTATE = 0
+				    UNION ALL
+				    
+				                 SELECT ISNULL(SUM(PAY_MONEY),0) sumLease
+									                                             FROM T_LOAN_CASE 
+									                                            WHERE STATUS=0 
+									                                              AND LOAN_MODE=3 
+									                                              AND CASE_STATUS_ID=2 
+				                                                        AND CONVERT(DATE,PAY_DATE)= CONVERT(DATE,GETDATE())
+				                                                        ) O
+		]]>
+		<!-- 2011/12/22 Yang Yun Update query way(PAY_MONEY, PAY_DATE). End-->
+    </select>
+    
+    <!-- 目标额度  设备 add by ShenQi -->
+    <select id="selectTargetLimitTodayEqu" resultClass="java.lang.Integer">
+              SELECT ISNULL(SUM(PD.PAY_MONEY),0) sumLease 
+           		FROM T_SUPL_PLAYDETIL PD
+    	   LEFT JOIN T_PRJT_CREDIT PC ON PD.CREDIT_ID=PC.ID
+           LEFT JOIN T_RENT_CONTRACT RC ON RC.PRCD_ID=PC.ID
+               WHERE DATEDIFF(DAY,PAY_DATE,GETDATE())=0
+            	 AND PD.STATE=3 
+                 AND PD.STATUS=0 
+                 AND RC.STATUS=0
+                 AND PC.STATUS=0
+                 AND PD.BACKSTATE=0
+                 AND PC.PRODUCTION_TYPE=1
+    </select>
+    <!-- 目标额度  重车 add by ShenQi -->
+    <select id="selectTargetLimitTodayMotor" resultClass="java.lang.Integer">
+    		  SELECT ISNULL(SUM(PD.PAY_MONEY),0) sumLease 
+           		FROM T_SUPL_PLAYDETIL PD
+    	   LEFT JOIN T_PRJT_CREDIT PC ON PD.CREDIT_ID=PC.ID
+           LEFT JOIN T_RENT_CONTRACT RC ON RC.PRCD_ID=PC.ID
+               WHERE DATEDIFF(DAY,PAY_DATE,GETDATE())=0
+            	 AND PD.STATE=3 
+                 AND PD.STATUS=0 
+                 AND RC.STATUS=0
+                 AND PC.STATUS=0
+                 AND PD.BACKSTATE=0
+                 AND PC.PRODUCTION_TYPE=2
+    </select>
+    
+     <!-- 目标额度  小车 add by ShenQi -->
+    <select id="selectTargetLimitTodayCar" resultClass="java.lang.Integer">
+    SELECT SUM(O.sumLease) sumLease FROM(
+    		  SELECT ISNULL(SUM(PD.PAY_MONEY),0) sumLease 
+           		FROM T_SUPL_PLAYDETIL PD
+    	   LEFT JOIN T_PRJT_CREDIT PC ON PD.CREDIT_ID=PC.ID
+           LEFT JOIN T_RENT_CONTRACT RC ON RC.PRCD_ID=PC.ID
+               WHERE DATEDIFF(DAY,PAY_DATE,GETDATE())=0
+            	 AND PD.STATE=3 
+                 AND PD.STATUS=0 
+                 AND RC.STATUS=0
+                 AND PC.STATUS=0
+                 AND PD.BACKSTATE=0
+                 AND PC.PRODUCTION_TYPE=3
+                 UNION ALL
+			  SELECT ISNULL(SUM(PAY_MONEY),0) sumLease
+                FROM T_LOAN_CASE 
+               WHERE STATUS=0 
+                 AND LOAN_MODE=3 
+                 AND CASE_STATUS_ID=2 
+                 AND CONVERT(DATE,PAY_DATE)= CONVERT(DATE,GETDATE())
+                 ) O
+    </select>
+    
+    <!-- 2012/01/16 Yang Yun 目标额度，按月显示. -->
+    <select id="getGoalMoneyByMonth" parameterClass="map" resultClass="java.util.HashMap">
+    	<![CDATA[
+    		select gl.MONTH, 
+			isnull(sum(gl.GOAL_MONEY) * 1000,0) as GOAL_MONEY, 
+			isnull(max(p.PAY_MONEY),0) as PAY_MONEY,
+			case when sum(gl.GOAL_MONEY) is null or max(p.PAY_MONEY) is null then 0
+			else ((max(p.PAY_MONEY)/(sum(gl.GOAL_MONEY) * 1000)) * 100) end as PERCENT_MONEY,
+			datediff(day,(
+		      case when month(convert(date,#searchDate#)) >= gl.MONTH then convert(datetime,#searchDate#) + 1
+		      else (convert(varchar,max(gl.year)) + '-' + convert(varchar,gl.month) + '-1') end
+		      ),convert(date,
+			case when gl.month != 12 then
+			(convert(varchar,max(gl.year)) + '-' + convert(varchar,(gl.month + 1)) + '-1')
+			else (convert(varchar,(max(gl.year) + 1)) + '-1-1') end
+			)) as DAYREMAINING
+			, isnull(max(tr.avgTr), 0) as AVGTR
+			from T_GOAL_LINE gl
+			left join (
+				select month(pay.pay_date) as month, 
+				case when month(pay.pay_date) = 1 AND YEAR(pay.pay_date)=2012 then SUM(pay.pay_money) + 
+				(select sum(pay.pay_money) 
+				from T_SUPL_PLAYDETIL pay
+				where pay.PAY_DATE >= convert(date,'2011-12-26')
+				and pay.PAY_DATE < convert(date,'2012-1-1')
+				and pay.STATE = 3 and pay.BACKSTATE = 0 and pay.STATUS = 0)
+				else SUM(pay.pay_money) end as pay_money 
+				from T_SUPL_PLAYDETIL pay
+				left join T_PRJT_CREDIT pc on pay.CREDIT_ID = pc.ID and pc.STATUS = 0
+				LEFT JOIN T_RENT_CONTRACT rc ON rc.PRCD_ID = pc.ID and rc.STATUS = 0
+				where year(pay.PAY_DATE) = year(convert(date,#searchDate#)) 
+				and pay.STATE = 3 and pay.BACKSTATE = 0 and pay.STATUS = 0
+				group by month(pay.pay_date),YEAR(pay.pay_date)
+			) p on p.month = gl.month
+			left join (
+				select month(prc.FINANCECONTRACT_DATE) as 'month',
+				sum(prsc.LEASE_RZE * prsc.TR_IRR_RATE) / sum(prsc.LEASE_RZE) as avgTr
+				from t_prjt_credit prc
+				left join T_PRJT_CREDITSCHEME prsc on prsc.CREDIT_ID = prc.ID
+				left join (
+				  select CREDIT_ID, sum(PAY_MONEY) as pay_money
+				  from T_SUPL_PLAYDETIL
+				  group by CREDIT_ID
+				)t on t.CREDIT_ID = prc.ID
+				where year(prc.FINANCECONTRACT_DATE) = year(convert(date,#searchDate#))
+				AND prc.PRODUCTION_TYPE!=3
+				group by month(prc.FINANCECONTRACT_DATE)
+			) tr on tr.month = gl.month
+			where gl.year = year(convert(date,#searchDate#))
+			group by gl.MONTH
+			order by gl.MONTH
+    	]]>
+    </select>
+    
+    <!-- 目标额度 设备 add by ShenQi -->
+    <select id="getGoalMoneyByMonthEqu" parameterClass="map" resultClass="java.util.HashMap">
+    	select gl.MONTH, 
+			isnull(sum(gl.GOAL_MONEY) * 1000,0) as GOAL_MONEY, 
+			isnull(max(p.PAY_MONEY),0) as PAY_MONEY,
+			case when sum(gl.GOAL_MONEY) is null or max(p.PAY_MONEY) is null then 0
+			else ((max(p.PAY_MONEY)/(sum(gl.GOAL_MONEY) * 1000)) * 100) end as PERCENT_MONEY,
+			datediff(day,(
+		      case when month(convert(date,#searchDate#)) >= gl.MONTH then convert(datetime,#searchDate#) + 1
+		      else (convert(varchar,max(gl.year)) + '-' + convert(varchar,gl.month) + '-1') end
+		      ),convert(date,
+			case when gl.month != 12 then
+			(convert(varchar,max(gl.year)) + '-' + convert(varchar,(gl.month + 1)) + '-1')
+			else (convert(varchar,(max(gl.year) + 1)) + '-1-1') end
+			)) as DAYREMAINING
+			, isnull(max(tr.avgTr), 0) as AVGTR
+			from T_GOAL_LINE gl
+			left join (
+				select month(pay.pay_date) as month, 
+				case when month(pay.pay_date) = 1 AND YEAR(pay.pay_date)=2012 then SUM(pay.pay_money) + 
+				ISNULL((select sum(pay.pay_money) 
+				from T_SUPL_PLAYDETIL pay
+        left join T_PRJT_CREDIT pc on pay.CREDIT_ID = pc.ID and pc.STATUS = 0
+				where pay.PAY_DATE >= convert(date,'2011-12-26')
+				and pay.PAY_DATE &lt; convert(date,'2012-1-1')
+				and pay.STATE = 3 and pay.BACKSTATE = 0 and pay.STATUS = 0
+        and pc.PRODUCTION_TYPE=1),0)
+				else SUM(pay.pay_money) end as pay_money 
+				from T_SUPL_PLAYDETIL pay
+				left join T_PRJT_CREDIT pc on pay.CREDIT_ID = pc.ID and pc.STATUS = 0
+				LEFT JOIN T_RENT_CONTRACT rc ON rc.PRCD_ID = pc.ID and rc.STATUS = 0
+				where year(pay.PAY_DATE) = year(convert(date,#searchDate#)) 
+				and pay.STATE = 3 and pay.BACKSTATE = 0 and pay.STATUS = 0
+        and pc.PRODUCTION_TYPE=1
+				group by month(pay.pay_date),YEAR(pay.pay_date)
+			) p on p.month = gl.month
+			left join (
+				select month(prc.FINANCECONTRACT_DATE) as 'month',
+				sum(prsc.LEASE_RZE * prsc.TR_IRR_RATE) / sum(prsc.LEASE_RZE) as avgTr,
+        prc.PRODUCTION_TYPE
+				from t_prjt_credit prc
+				left join T_PRJT_CREDITSCHEME prsc on prsc.CREDIT_ID = prc.ID
+				left join (
+				  select CREDIT_ID, sum(PAY_MONEY) as pay_money
+				  from T_SUPL_PLAYDETIL
+				  group by CREDIT_ID
+				)t on t.CREDIT_ID = prc.ID
+				where year(prc.FINANCECONTRACT_DATE) = year(convert(date,#searchDate#))
+          AND prc.PRODUCTION_TYPE=1
+				group by month(prc.FINANCECONTRACT_DATE),prc.PRODUCTION_TYPE
+			) tr on tr.month = gl.month
+			where gl.year = year(convert(date,#searchDate#))
+      AND gl.DEPT_ID IN
+      (SELECT ID 
+      FROM T_DEPT_DEPARTMENT T1 
+     WHERE T1.STATUS=0 AND EXISTS
+    (SELECT 1 FROM T_DEPT_COMPANY T2 WHERE T2.STATUS=0 AND T2.DECP_ID=T1.DECP_ID AND T2.DECP_NAME_CN LIKE '%$cmpyName$%'))
+			group by gl.MONTH
+			order by gl.MONTH
+    </select>
+    <!-- 目标额度 重车 add by ShenQi -->
+    <select id="getGoalMoneyByMonthMotor" parameterClass="map" resultClass="java.util.HashMap">
+    	select gl.MONTH, 
+			isnull(sum(gl.GOAL_MONEY) * 1000,0) as GOAL_MONEY, 
+			isnull(max(p.PAY_MONEY),0) as PAY_MONEY,
+			case when sum(gl.GOAL_MONEY) is null or max(p.PAY_MONEY) is null then 0
+			else ((max(p.PAY_MONEY)/(sum(gl.GOAL_MONEY) * 1000)) * 100) end as PERCENT_MONEY,
+			datediff(day,(
+		      case when month(convert(date,#searchDate#)) >= gl.MONTH then convert(datetime,#searchDate#) + 1
+		      else (convert(varchar,max(gl.year)) + '-' + convert(varchar,gl.month) + '-1') end
+		      ),convert(date,
+			case when gl.month != 12 then
+			(convert(varchar,max(gl.year)) + '-' + convert(varchar,(gl.month + 1)) + '-1')
+			else (convert(varchar,(max(gl.year) + 1)) + '-1-1') end
+			)) as DAYREMAINING
+			, isnull(max(tr.avgTr), 0) as AVGTR
+			from T_GOAL_LINE gl
+			left join (
+				select month(pay.pay_date) as month, 
+				case when month(pay.pay_date) = 1 AND YEAR(pay.pay_date)=2012 then SUM(pay.pay_money) + 
+				ISNULL((select sum(pay.pay_money) 
+				from T_SUPL_PLAYDETIL pay
+        left join T_PRJT_CREDIT pc on pay.CREDIT_ID = pc.ID and pc.STATUS = 0
+				where pay.PAY_DATE >= convert(date,'2011-12-26')
+				and pay.PAY_DATE &lt; convert(date,'2012-1-1')
+				and pay.STATE = 3 and pay.BACKSTATE = 0 and pay.STATUS = 0
+        and pc.PRODUCTION_TYPE=2),0)
+				else SUM(pay.pay_money) end as pay_money 
+				from T_SUPL_PLAYDETIL pay
+				left join T_PRJT_CREDIT pc on pay.CREDIT_ID = pc.ID and pc.STATUS = 0
+				LEFT JOIN T_RENT_CONTRACT rc ON rc.PRCD_ID = pc.ID and rc.STATUS = 0
+				where year(pay.PAY_DATE) = year(convert(date,#searchDate#)) 
+				and pay.STATE = 3 and pay.BACKSTATE = 0 and pay.STATUS = 0
+        and pc.PRODUCTION_TYPE=2
+				group by month(pay.pay_date),YEAR(pay.pay_date)
+			) p on p.month = gl.month
+			left join (
+				select month(prc.FINANCECONTRACT_DATE) as 'month',
+				sum(prsc.LEASE_RZE * prsc.TR_IRR_RATE) / sum(prsc.LEASE_RZE) as avgTr,
+        prc.PRODUCTION_TYPE
+				from t_prjt_credit prc
+				left join T_PRJT_CREDITSCHEME prsc on prsc.CREDIT_ID = prc.ID
+				left join (
+				  select CREDIT_ID, sum(PAY_MONEY) as pay_money
+				  from T_SUPL_PLAYDETIL
+				  group by CREDIT_ID
+				)t on t.CREDIT_ID = prc.ID
+				where year(prc.FINANCECONTRACT_DATE) = year(convert(date,#searchDate#))
+          AND prc.PRODUCTION_TYPE=2
+				group by month(prc.FINANCECONTRACT_DATE),prc.PRODUCTION_TYPE
+			) tr on tr.month = gl.month
+			where gl.year = year(convert(date,#searchDate#))
+      AND gl.DEPT_ID IN
+      (SELECT ID 
+      FROM T_DEPT_DEPARTMENT T1 
+     WHERE T1.STATUS=0 AND EXISTS
+    (SELECT 1 FROM T_DEPT_COMPANY T2 WHERE T2.STATUS=0 AND T2.DECP_ID=T1.DECP_ID AND T2.DECP_NAME_CN LIKE '%$cmpyName$%'))
+			group by gl.MONTH
+			order by gl.MONTH
+    </select>
+    <select id="getGoalMoneyByMonthCar" parameterClass="map" resultClass="java.util.HashMap">
+    	select gl.MONTH, 
+			isnull(sum(gl.GOAL_MONEY) * 1000,0) as GOAL_MONEY, 
+			isnull(max(p.PAY_MONEY),0) as PAY_MONEY,
+			case when sum(gl.GOAL_MONEY) is null or max(p.PAY_MONEY) is null then 0
+			else ((max(p.PAY_MONEY)/(sum(gl.GOAL_MONEY) * 1000)) * 100) end as PERCENT_MONEY,
+			datediff(day,(
+		      case when month(convert(date,#searchDate#)) >= gl.MONTH then convert(datetime,#searchDate#) + 1
+		      else (convert(varchar,max(gl.year)) + '-' + convert(varchar,gl.month) + '-1') end
+		      ),convert(date,
+			case when gl.month != 12 then
+			(convert(varchar,max(gl.year)) + '-' + convert(varchar,(gl.month + 1)) + '-1')
+			else (convert(varchar,(max(gl.year) + 1)) + '-1-1') end
+			)) as DAYREMAINING
+			, <!-- isnull(max(tr.avgTr), 0) -->0 as AVGTR
+			from T_GOAL_LINE gl
+			left join (
+				select month(pay.pay_date) as month, 
+				case when month(pay.pay_date) = 1 AND YEAR(pay.pay_date)=2012 then SUM(pay.pay_money) + 
+				ISNULL((select sum(pay.pay_money) 
+				from T_SUPL_PLAYDETIL pay
+        left join T_PRJT_CREDIT pc on pay.CREDIT_ID = pc.ID and pc.STATUS = 0
+				where pay.PAY_DATE >= convert(date,'2011-12-26')
+				and pay.PAY_DATE &lt; convert(date,'2012-1-1')
+				and pay.STATE = 3 and pay.BACKSTATE = 0 and pay.STATUS = 0
+        and pc.PRODUCTION_TYPE=3),0)
+				else SUM(pay.pay_money) end as pay_money 
+				from T_SUPL_PLAYDETIL pay
+				left join T_PRJT_CREDIT pc on pay.CREDIT_ID = pc.ID and pc.STATUS = 0
+				LEFT JOIN T_RENT_CONTRACT rc ON rc.PRCD_ID = pc.ID and rc.STATUS = 0
+				where year(pay.PAY_DATE) = year(convert(date,#searchDate#)) 
+				and pay.STATE = 3 and pay.BACKSTATE = 0 and pay.STATUS = 0
+        and pc.PRODUCTION_TYPE=3
+				group by month(pay.pay_date),YEAR(pay.pay_date)
+			) p on p.month = gl.month
+			left join (
+				select month(prc.FINANCECONTRACT_DATE) as 'month',
+				sum(prsc.LEASE_RZE * prsc.TR_IRR_RATE) / sum(prsc.LEASE_RZE) as avgTr,
+        prc.PRODUCTION_TYPE
+				from t_prjt_credit prc
+				left join T_PRJT_CREDITSCHEME prsc on prsc.CREDIT_ID = prc.ID
+				left join (
+				  select CREDIT_ID, sum(PAY_MONEY) as pay_money
+				  from T_SUPL_PLAYDETIL
+				  group by CREDIT_ID
+				)t on t.CREDIT_ID = prc.ID
+				where year(prc.FINANCECONTRACT_DATE) = year(convert(date,#searchDate#))
+          AND prc.PRODUCTION_TYPE=3
+				group by month(prc.FINANCECONTRACT_DATE),prc.PRODUCTION_TYPE
+			) tr on tr.month = gl.month
+			where gl.year = year(convert(date,#searchDate#))
+      AND gl.DEPT_ID IN
+      (SELECT ID 
+      FROM T_DEPT_DEPARTMENT T1 
+     WHERE T1.STATUS=0 AND EXISTS
+    (SELECT 1 FROM T_DEPT_COMPANY T2 WHERE T2.STATUS=0 AND T2.DECP_ID=T1.DECP_ID AND T2.DECP_NAME_CN LIKE '%$cmpyName$%'))
+			group by gl.MONTH
+			order by gl.MONTH
+    </select>
+    <!-- 查询目标额度(所有) -->
+    <select id="selectTargetLimitAll" parameterClass="map" resultClass="java.lang.Integer">
+    	<!-- 2011/12/22 Yang Yun Update query way(PAY_MONEY, PAY_DATE). Start
+        <![CDATA[
+			select isnull(sum(lease_topric) ,0 ) sumLease from t_rent_contract 
+				where  year(lessor_time ) =  year(getdate()) 
+					and rect_status = 1
+					and status = 0
+		]]>
+		-->
+		<![CDATA[
+			select ISNULL(SUM(pd.pay_money),0) AS sumLease
+				from T_SUPL_PLAYDETIL pd
+				left join T_PRJT_CREDIT pc on pd.CREDIT_ID = pc.ID
+				LEFT JOIN T_RENT_CONTRACT rc ON rc.PRCD_ID = pc.ID
+				where (year(pd.PAY_DATE) =  year(getdate())
+		]]>
+		<!-- 2012/1/10 Yang Yun 由于2012年以及之前的业绩都是从上月的26号算到本月25号，
+			但是2013年开始就是从1号算到当月最后一天，所以算年度业绩的时候不用算上年的最后5天.
+			此查询条件从2013年开始失效.************************************************ -->
+		<![CDATA[
+				    or (pd.PAY_DATE >= convert(date,'2011-12-26')
+				      and pd.PAY_DATE <= convert(date,'2012-12-31')
+				      and year(getdate()) = 2012))
+		]]>
+		<!-- *********************************************************************** -->
+		<![CDATA[
+				and pd.STATE = 3 and pd.STATUS = 0 and rc.STATUS = 0 and pc.STATUS = 0
+				and pd.BACKSTATE = 0
+		]]>
+		<!-- 2011/12/22 Yang Yun Update query way(PAY_MONEY, PAY_DATE). End-->
+    </select>
+    
+    <!-- 查询支付表明细(本月) -->
+    <select id="selectRentCollectionDetail" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select sum(own_price) ownPrice, sum(ren_price) renPrice from t_rent_collectiondetail 
+				where   convert(datetime,convert(varchar,create_time,23))
+				 		= convert(datetime,convert(varchar,getdate(),23))
+					and status = 0
+		]]>
+    </select>
+    
+    <!-- 查询逾期日报表(当天) -->
+    <select id="selectDunDetail" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select sum(dun_fine) dunFine, sum(dun_fineinterest) dunFineinterest from t_dun_daily 
+				where    dateadd(mm, datediff(mm,0,create_date ),0)
+				 =   convert(datetime,convert(varchar,getdate(),23))
+					and status = 0
+		]]>
+    </select>
+    
+    <!-- 查询用户是否设置过 -->
+    <select id="selectDeskCountByUser" parameterClass="map" resultClass="java.lang.Integer">
+        <![CDATA[
+			select count(user_id) desk_count from t_desk_desktop where user_id=#s_employeeId#
+		]]>
+    </select>
+    
+    <!-- 查询用户设置过的desk顺序 -->
+    <select id="selectDeskByUser" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select div_id,desk_level,desk_column from t_desk_desktop where user_id=#s_employeeId# order by desk_level
+		]]>
+    </select>
+    
+    
+    <!-- 查询用户是否添加过desk顺序 -->
+    <select id="selectDeskByUserAndDiv" parameterClass="map" resultClass="java.util.HashMap">
+        <![CDATA[
+			select desk_level,desk_column from t_desk_desktop 
+			where 
+			user_id=#s_employeeId# and div_id=#div_id#
+		]]>
+    </select>
+    
+    <!-- 添加desk顺序 -->
+    <insert id="create" parameterClass="map">
+        <![CDATA[ 
+				insert into t_desk_desktop(
+				 div_id,user_id,desk_level,desk_column,create_time,create_user_id,desk_status)
+				values(
+				 #div_id#,#s_employeeId#,#desk_level#,#desk_column#,getdate(),#s_employeeId#,0)
+	  	]]>
+    </insert>
+    
+    <select id="getDeskLevel" resultClass="java.lang.Integer">
+    	SELECT ISNULL(MAX(DESK_LEVEL)+1,1) FROM T_DESK_DESKTOP WHERE USER_ID=#s_employeeId# AND DESK_COLUMN=#desk_column#
+    </select>
+    
+    <!-- 更新desk顺序 -->
+    <update id="update" parameterClass="map">
+        <![CDATA[
+			update t_desk_desktop 
+			set 
+			desk_level=#desk_level#,desk_column=#desk_column#
+			where 
+			div_id=#div_id# and user_id=#s_employeeId#
+		]]>
+    </update>
+    
+    <delete id="deleteAll">
+    	DELETE FROM T_DESK_DESKTOP WHERE USER_ID=#s_employeeId#
+    </delete>
+    
+	<!-- 查询租金提醒 -->
+	<select id="getAllDunRent" parameterClass="map" resultClass="hashmap"> 
+		<![CDATA[
+		select * from (select  
+               tcc.cust_name,
+               tcc.cust_code,
+               count(distinct trc.rect_id) cnt_rect,
+               count(distinct trcp.recp_id) cnt_recp,
+               sum(isnull(trcd.IRR_MONTH_PRICE, 0)) month_price,      
+               sum(isnull(trcd.reduce_own_price, 0))  reduce_price  
+          from t_rent_contract trc
+          left join t_cust_customer tcc on tcc.cust_id = trc.cust_id
+          left join t_rent_collectionplan trcp on trc.rect_id = trcp.rect_id
+          left join (select * from t_rent_collectiondetail t1 where ( t1.PAY_DATE  > getdate() )  or (   t1.PAY_DATE  <  dateadd(d,6,getdate())  ) ) trcd on trcp.recp_id = trcd.recp_id
+          left join (select tdd.cust_id, max(tdd.recp_state) recp_status  from t_dun_daily tdd  where convert(varchar,tdd.create_date,23)   =   convert(varchar,getdate(),23)  
+              group by tdd.cust_id) tdd on trc.cust_id = tdd.cust_id
+			 where trc.status = 0 and trc.rect_status = 1  and trcp.status = 0  and (trcp.warn_status = 0 or trcp.warn_status=1) 
+			      ]]>
+				<dynamic>
+				   	   <isNotEmpty prepend="and" property="start_date">
+				   	   		<![CDATA[
+				   	   		convert(datetime, convert(varchar, trcd.pay_date,23))
+							>=
+							convert(datetime, convert(varchar, #start_date#,23))
+				   	   		  ]]>
+				   	   </isNotEmpty>
+				   	   <isEmpty  prepend="and" property="end_date">
+				   	   		<![CDATA[
+				   	   			convert(datetime, convert(varchar, trcd.pay_date,23))
+								  <=
+								  convert(datetime, convert(varchar, getdate() +10,23))
+				   	   		  ]]>
+				   	   </isEmpty>
+				   	    <isNotEmpty prepend="and" property="end_date">
+				   	   		<![CDATA[
+				   	   			convert(datetime, convert(varchar, trcd.pay_date,23))
+								  <=
+								  convert(datetime, convert(varchar, #end_date#,23))
+				   	   		  ]]>
+				   	   </isNotEmpty> 
+				   </dynamic>	   
+			 	group by tcc.cust_name, tcc.cust_code, tdd.recp_status having count(trcp.recp_id) > 0) t11
+			 
+	</select>
+	
+	<select id="getDelayPay" resultClass="hashMap">
+	<![CDATA[
+		select 
+		decp.DECP_NAME_CN,
+		isnull(delay.pay_money,0) as PAY_MONEY,
+		isnull(delay.totalCount,0) as TOTALCOUNT,
+		isnull(valid.dunCount,0) as DUNCOUNT,
+		isnull(valid.LEASE_RZE,0) as LEASE_RZE,
+		isnull(total.c,0) as TOTAL_COUNT,
+		isnull(total.rze,0) as TOTAL_RZE
+		from T_DEPT_COMPANY decp
+		left join (
+		  select t.DECP_ID, 
+		  sum(t.pay_money) as pay_money,
+		  count(0) as totalCount
+		  from (
+		    select prcd.ID, prcd.CREDIT_RUNCODE,
+		    sc.LEASE_TOPRIC - sc.PLEDGE_ENTER_MCTOAG - sc.PLEDGE_ENTER_AG as pay_money
+		    ,dept.DECP_ID
+		    from T_PRJT_CREDIT prcd
+		    left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+		    left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		    left join T_PRJT_CREDITSCHEME sc on sc.CREDIT_ID = prcd.ID
+		    where prcd.DELAY_PAY_STATUS = -1 and prcd.STATUS = 0
+		    and datediff(day, prcd.WIND_RESULT_DATE, getdate()) <= prcd.VALID_DAY
+		  ) t
+		  group by t.DECP_ID
+		) delay on delay.DECP_ID = decp.DECP_ID
+		left join (
+		  select dept.DECP_ID, count(0) as dunCount,
+		  sum(prcs.LEASE_RZE) as LEASE_RZE
+		  from T_PRJT_CREDIT pd
+		  left join T_PRJT_CREDITSCHEME prcs on prcs.CREDIT_ID = pd.ID
+		  left join (
+		    select c.CREDIT_ID, max(c.FINISH_TIME) as FINISH_TIME
+		    from T_PRJT_RISK_CONTROL c
+		    where c.STATE = 1 and c.STATUS = 0
+		    group by c.CREDIT_ID
+		  ) pc on pc.CREDIT_ID = pd.ID
+		  left join T_USER_USER u on pd.SENSOR_ID = u.ID
+		  left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+		  where pd.STATUS = 0
+		  and year(pc.FINISH_TIME) = year(getdate())
+		  and datediff(day, pc.FINISH_TIME, getdate()) > pd.VALID_DAY
+		  and FINANCECONTRACT_DATE is null
+		  group by dept.DECP_ID
+		) valid on valid.DECP_ID = decp.DECP_ID
+		left join (
+			select
+			dept.DECP_ID
+			, count(0) as c
+			, sum(prcs.LEASE_RZE) as rze
+			from T_PRJT_CREDIT prcd
+			left join T_PRJT_CREDITSCHEME prcs on prcs.CREDIT_ID = prcd.ID
+			left join T_USER_USER u on prcd.SENSOR_ID = u.ID
+			left join T_DEPT_DEPARTMENT dept on u.DEPT_ID = dept.ID
+			where prcd.ID in (
+			  select CREDIT_ID
+			  from T_PRJT_RISK_CONTROL
+			  where year(FINISH_TIME) = year(getdate())
+			  and STATE = 1
+			  group by CREDIT_ID
+			)
+			group by dept.DECP_ID
+		) total on total.DECP_ID = decp.DECP_ID
+		where decp.STATUS = 0 and decp.LEGELR = 2
+				and decp.DECP_ID != 1
+		order by decp.[ORDER]
+		]]>
+	</select>
+	
+    <!-- 删除desk顺序 -->
+    <delete id="delete" parameterClass="map">
+        <![CDATA[
+			delete from t_desk_desktop 
+			where
+			div_id=#div_id# and user_id=#s_employeeId#
+		]]>
+    </delete>
+    
+    <select id="getYearList" resultClass="java.lang.Integer">
+    	SELECT DISTINCT YEAR FROM T_GOAL_LINE WHERE STATUS=0
+    </select>
+    
+    <select id="getAvgPeriod" resultClass="java.util.HashMap">
+ 	        SELECT YEAR(PC.FINANCECONTRACT_DATE)AS Y,
+	               MONTH(PC.FINANCECONTRACT_DATE)AS M,
+	               CONVERT(DECIMAL(20,2),AVG(PS.LEASE_TERM))AS AVG_PERIOD,
+	               COUNT(1)*AVG(PS.LEASE_TERM) TOTAL_PERIOD,COUNT(1) TOTAL_COUNT	
+    		  FROM T_PRJT_CREDIT PC
+		 LEFT JOIN T_USER_USER U ON PC.SENSOR_ID=U.ID
+		 LEFT JOIN T_DEPT_DEPARTMENT DP ON U.DEPT_ID=DP.ID
+		 LEFT JOIN T_DEPT_COMPANY DC ON DP.DECP_ID=DC.DECP_ID
+		 LEFT JOIN T_PRJT_CREDITSCHEME PS ON PS.CREDIT_ID=PC.ID
+		WHERE PC.STATUS=0
+		  AND PC.FINANCECONTRACT_DATE IS NOT NULL
+	      AND DC.DECP_NAME_CN LIKE '%$cmpyName$%'
+	 GROUP BY YEAR(PC.FINANCECONTRACT_DATE),MONTH(PC.FINANCECONTRACT_DATE)
+	   HAVING YEAR(PC.FINANCECONTRACT_DATE)=YEAR(GETDATE())		
+	 ORDER BY MONTH(PC.FINANCECONTRACT_DATE)
+    </select>
+    
+    <select id="getTargetAmount" parameterClass="map" resultClass="java.lang.Double">
+    	select sum(GOAL_MONEY)
+		from T_GOAL_LINE gl
+		where STATUS = 0
+		and gl.[YEAR] = #year#
+		<isNotEmpty property="month">
+			and gl.[MONTH] = #month#
+		</isNotEmpty>
+		and exists (
+		 select 0 from T_DEPT_DEPARTMENT dp
+		 left join T_DEPT_COMPANY dc on dp.DECP_ID = dc.DECP_ID
+		 where dc.STATUS = 0 and dp.STATUS = 0
+		 and dp.ID = gl.DEPT_ID
+		 <isNotEmpty property="productionType">
+			 <isEqual property="productionType" compareValue="1">
+			 	and dc.DECP_NAME_CN like '%设备%'
+			 </isEqual>
+			 <isEqual property="productionType" compareValue="2">
+			 	and dc.DECP_NAME_CN like '%商用车%'
+			 </isEqual>
+			 <isEqual property="productionType" compareValue="3">
+			 	and dc.DECP_NAME_CN like '%乘用车%'
+			 </isEqual>
+		 </isNotEmpty>
+		)
+    </select>
+    
+    <select id="getPayMoney" parameterClass="map" resultClass="java.lang.Double">
+    	select sum(pay.PAY_MONEY) 
+		from T_SUPL_PLAYDETIL pay
+		left join T_PRJT_CREDIT pc on pay.CREDIT_ID = pc.ID
+		where pay.STATUS = 0
+		and pay.STATE = 3
+		and pay.BACKSTATE = 0
+		and convert(date, PAY_DATE) >= convert(date, #startDate#)
+		<![CDATA[and convert(date, PAY_DATE) <= convert(date, #endDate#)]]>
+		<isNotEmpty property="productionType">
+			and pc.PRODUCTION_TYPE = #productionType#
+		</isNotEmpty>
+    </select>
+    
+    <select id="getAvgUnitPrice" parameterClass="map" resultClass="java.lang.Double">
+    	select avg(t.PAY_MONEY)
+		from (
+		select sum(pay.PAY_MONEY) as PAY_MONEY
+		from T_SUPL_PLAYDETIL pay
+		left join T_PRJT_CREDIT pc on pay.CREDIT_ID = pc.ID
+		where pay.STATUS = 0
+		and pay.STATE = 3
+		and convert(date, PAY_DATE) >= convert(date, #startDate#)
+		<![CDATA[and convert(date, PAY_DATE) <= convert(date, #endDate#)]]>
+		<isNotEmpty property="productionType">
+			and pc.PRODUCTION_TYPE = #productionType#
+		</isNotEmpty>
+		group by pc.ID
+		) t
+    </select>
+    
+    <select id="getSumLeaseToday" parameterClass="map" resultClass="java.lang.Double">
+    	select isnull(sum(pay.PAY_MONEY), 0)
+		from T_SUPL_PLAYDETIL pay
+		left join T_PRJT_CREDIT pc on pay.CREDIT_ID = pc.ID
+		where pay.STATUS = 0
+		and pay.STATE = 3
+		AND PAY.BACKSTATE=0
+		and convert(date, pay.PAY_DATE) = convert(date, getdate())
+		<isNotEmpty property="productionType">
+			and pc.PRODUCTION_TYPE = #productionType#
+		</isNotEmpty>
+    </select>
+    
+    <select id="getDayRemain" resultClass="java.util.HashMap">
+    	SELECT [YEAR],[MONTH],CONVERT(DATE,GETDATE()),CONVERT(DATE,BEGINTIME),CONVERT(DATE,ENDTIME),
+		       CASE WHEN CONVERT(DATE,GETDATE())>=CONVERT(DATE,ENDTIME) 
+		            THEN 0
+		            WHEN CONVERT(DATE,GETDATE())&lt;CONVERT(DATE,ENDTIME) AND CONVERT(DATE,BEGINTIME)&lt;CONVERT(DATE,GETDATE()) 
+		            THEN DATEDIFF(DAY,CONVERT(DATE,GETDATE()),CONVERT(DATE,ENDTIME))+1
+		            ELSE DATEDIFF(DAY,CONVERT(DATE,BEGINTIME),CONVERT(DATE,ENDTIME))+1
+		             END DATEDIFF
+  			FROM T_REPORT_DATE WHERE YEAR=YEAR(GETDATE())
+  	    ORDER BY [MONTH]
+    </select>
+    
+    
+    <select id="getAvgTrReportByYearAndMonth" parameterClass="map" resultClass="java.lang.Double">
+		select convert(decimal(20,2), 
+			isnull(sum(ps.LEASE_RZE * ps.TR_IRR_RATE) / sum(ps.LEASE_RZE), 0)
+			)as AVG_TR
+		from T_PRJT_CREDIT pc
+		left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY dc on dp.DECP_ID = dc.DECP_ID
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		
+		where pc.STATUS = 0
+		<isNotEmpty property="decp">
+			and dc.DECP_NAME_CN = #decp#
+		</isNotEmpty>
+		<isNotEmpty property="busi_type">
+			and pc.PRODUCTION_TYPE = #busi_type#
+		</isNotEmpty>
+		<![CDATA[
+		and pc.FINANCECONTRACT_DATE is not null
+		and pc.FINANCECONTRACT_DATE >= convert(date, #start_date#)
+		and pc.FINANCECONTRACT_DATE <= convert(date, #end_date#)
+		]]>
+		
+	</select>
+	
+	<select id="getAvgPeriodReportByYearAndMonth" parameterClass="map" resultClass="java.lang.Double">
+		select convert(decimal(20,2), 
+				  isnull(avg(ps.LEASE_TERM), 0)
+				)as AVG_PERIOD
+		from T_PRJT_CREDIT pc
+		left join T_USER_USER u on pc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY dc on dp.DECP_ID = dc.DECP_ID
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		where pc.STATUS = 0
+		and pc.FINANCECONTRACT_DATE is not null
+		<isNotEmpty property="decp">
+			and dc.DECP_NAME_CN = #decp#
+		</isNotEmpty>
+		<isNotEmpty property="busi_type">
+			and pc.PRODUCTION_TYPE = #busi_type#
+		</isNotEmpty>
+		<![CDATA[
+		and pc.FINANCECONTRACT_DATE >= convert(date, #start_date#)
+		and pc.FINANCECONTRACT_DATE <= convert(date, #end_date#)
+		]]>
+		
+	</select>
+    
+    <!-- add by xuyuefei 2014/7/24 -->
+    <select id="getSearchDate" resultClass="java.lang.String">
+             SELECT top 1 TRL.LITIGATION_DATE
+				FROM T_RENT_LITIGATION TRL
+				LEFT JOIN T_RENT_CONTRACT TRCT ON TRL.RECT_ID = TRCT.RECT_ID AND TRCT.STATUS = 0
+				LEFT JOIN T_RENT_COLLECTIONPLAN TRPN ON TRCT.RECT_ID = TRPN.RECT_ID AND TRPN.STATUS = 0
+				WHERE TRL.STATUS='1'
+        and TRPN.RECP_STATUS not in(1,3) 
+        order by TRL.LITIGATION_DATE
+    </select>
+    
+    <!-- 抓取机器设备的合同 -->
+    <select id="getequ" resultClass="java.util.HashMap">
+      			<!--  select distinct rect_id
+      			from T_RENT_LITIGATION
+      			where rect_id in
+      			(
+      			SELECT TRL.RECT_ID
+				FROM T_RENT_LITIGATION TRL
+				LEFT JOIN T_RENT_CONTRACT TRCT ON TRL.RECT_ID = TRCT.RECT_ID AND TRCT.STATUS = 0
+				LEFT JOIN T_RENT_COLLECTIONPLAN TRPN ON TRCT.RECT_ID = TRPN.RECT_ID AND TRPN.STATUS = 0
+				LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE = '供应商保证' AND  TDSUPL.CODE = TRPN.SUPL_TRUE 
+				LEFT JOIN T_CUST_CUSTOMER TCCT ON TRCT.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+				LEFT JOIN T_USER_USER TUU ON TUU.ID = TRCT.SENSOR_ID 
+				LEFT JOIN (SELECT RECT_ID,MAX(T.BRAND) BRAND FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) T1
+				ON T1.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN (SELECT RECT_ID,MIN(LOCK_CODE) LOCK_CODE FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) TLOCK
+				ON TLOCK.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN T_DATA_DICTIONARY TDLOCK ON TDLOCK.TYPE = '锁码方式' AND  TDLOCK.CODE = TLOCK.LOCK_CODE 
+				LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = TUU.DEPT_ID AND DEPT.STATUS = 0
+				LEFT JOIN T_DEPT_COMPANY COMP ON DEPT.DECP_ID = COMP.DECP_ID AND COMP.STATUS = 0
+				LEFT JOIN T_DUN_DAILY TDD ON TDD.RECT_ID=TRCT.RECT_ID AND	CONVERT(DATETIME,CONVERT(VARCHAR,TDD.CREATE_DATE,23))=CONVERT(DATETIME,CONVERT(VARCHAR,getdate(),23))
+				LEFT JOIN  T_DATA_DICTIONARY TDDY ON TDDY.CODE=TRL.PROCESS AND TDDY.TYPE='诉讼进程' AND TDDY.STATUS=0 
+				WHERE TRL.STATUS='1'
+        and TRPN.RECP_STATUS not in(1,3)
+        AND COMP.DECP_ID not in (19,20,21,28,15,16)
+                )
+        and LITIGATION_DATE in(select min(LITIGATION_DATE) from T_RENT_LITIGATION where rect_id in
+        (
+                SELECT TRL.RECT_ID
+				FROM T_RENT_LITIGATION TRL
+				LEFT JOIN T_RENT_CONTRACT TRCT ON TRL.RECT_ID = TRCT.RECT_ID AND TRCT.STATUS = 0
+				LEFT JOIN T_RENT_COLLECTIONPLAN TRPN ON TRCT.RECT_ID = TRPN.RECT_ID AND TRPN.STATUS = 0
+				LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE = '供应商保证' AND  TDSUPL.CODE = TRPN.SUPL_TRUE 
+				LEFT JOIN T_CUST_CUSTOMER TCCT ON TRCT.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+				LEFT JOIN T_USER_USER TUU ON TUU.ID = TRCT.SENSOR_ID 
+				LEFT JOIN (SELECT RECT_ID,MAX(T.BRAND) BRAND FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) T1
+				ON T1.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN (SELECT RECT_ID,MIN(LOCK_CODE) LOCK_CODE FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) TLOCK
+				ON TLOCK.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN T_DATA_DICTIONARY TDLOCK ON TDLOCK.TYPE = '锁码方式' AND  TDLOCK.CODE = TLOCK.LOCK_CODE 
+				LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = TUU.DEPT_ID AND DEPT.STATUS = 0
+				LEFT JOIN T_DEPT_COMPANY COMP ON DEPT.DECP_ID = COMP.DECP_ID AND COMP.STATUS = 0
+				LEFT JOIN T_DUN_DAILY TDD ON TDD.RECT_ID=TRCT.RECT_ID AND	CONVERT(DATETIME,CONVERT(VARCHAR,TDD.CREATE_DATE,23))=CONVERT(DATETIME,CONVERT(VARCHAR,getdate(),23))
+				LEFT JOIN  T_DATA_DICTIONARY TDDY ON TDDY.CODE=TRL.PROCESS AND TDDY.TYPE='诉讼进程' AND TDDY.STATUS=0 
+				WHERE TRL.STATUS='1'
+        and TRPN.RECP_STATUS not in(1,3)
+        AND COMP.DECP_ID not in (19,20,21,28,15,16)
+        )
+        group by RECT_ID )        
+        and convert(char(7),LITIGATION_DATE,20)=#searchDate#-->
+        select trl.rect_id,trl.lease_code 
+        from T_RENT_LITIGATION trl
+				LEFT JOIN T_RENT_CONTRACT TRCT ON TRL.RECT_ID = TRCT.RECT_ID AND TRCT.STATUS = 0
+				LEFT JOIN T_RENT_COLLECTIONPLAN TRPN ON TRCT.RECT_ID = TRPN.RECT_ID AND TRPN.STATUS = 0
+				LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE = '供应商保证' AND  TDSUPL.CODE = TRPN.SUPL_TRUE 
+				LEFT JOIN T_CUST_CUSTOMER TCCT ON TRCT.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+				LEFT JOIN T_USER_USER TUU ON TUU.ID = TRCT.SENSOR_ID 
+				LEFT JOIN (SELECT RECT_ID,MAX(T.BRAND) BRAND FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) T1
+				ON T1.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN (SELECT RECT_ID,MIN(LOCK_CODE) LOCK_CODE FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) TLOCK
+				ON TLOCK.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN T_DATA_DICTIONARY TDLOCK ON TDLOCK.TYPE = '锁码方式' AND  TDLOCK.CODE = TLOCK.LOCK_CODE 
+				LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = TUU.DEPT_ID AND DEPT.STATUS = 0
+				LEFT JOIN T_DEPT_COMPANY COMP ON DEPT.DECP_ID = COMP.DECP_ID AND COMP.STATUS = 0
+				LEFT JOIN T_DUN_DAILY TDD ON TDD.RECT_ID=TRCT.RECT_ID AND	CONVERT(DATETIME,CONVERT(VARCHAR,TDD.CREATE_DATE,23))=CONVERT(DATETIME,CONVERT(VARCHAR,getdate(),23))
+				LEFT JOIN  T_DATA_DICTIONARY TDDY ON TDDY.CODE=TRL.PROCESS AND TDDY.TYPE='诉讼进程' AND TDDY.STATUS=0 
+            where trpn.recp_status=0
+            AND COMP.DECP_ID not in (19,20,21,28,15,16)
+            group by trl.rect_id,trl.lease_code
+            having convert(char(7),min(trl.LITIGATION_DATE),20)=#searchDate#
+        
+    </select>
+    
+        <!-- 抓取乘用车的合同 -->
+    <select id="getPassengerVehicle" resultClass="java.util.HashMap">
+      			<!-- select distinct rect_id
+      			from T_RENT_LITIGATION
+      			where rect_id in
+      			(
+      			SELECT TRL.RECT_ID
+				FROM T_RENT_LITIGATION TRL
+				LEFT JOIN T_RENT_CONTRACT TRCT ON TRL.RECT_ID = TRCT.RECT_ID AND TRCT.STATUS = 0
+				LEFT JOIN T_RENT_COLLECTIONPLAN TRPN ON TRCT.RECT_ID = TRPN.RECT_ID AND TRPN.STATUS = 0
+				LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE = '供应商保证' AND  TDSUPL.CODE = TRPN.SUPL_TRUE 
+				LEFT JOIN T_CUST_CUSTOMER TCCT ON TRCT.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+				LEFT JOIN T_USER_USER TUU ON TUU.ID = TRCT.SENSOR_ID 
+				LEFT JOIN (SELECT RECT_ID,MAX(T.BRAND) BRAND FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) T1
+				ON T1.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN (SELECT RECT_ID,MIN(LOCK_CODE) LOCK_CODE FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) TLOCK
+				ON TLOCK.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN T_DATA_DICTIONARY TDLOCK ON TDLOCK.TYPE = '锁码方式' AND  TDLOCK.CODE = TLOCK.LOCK_CODE 
+				LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = TUU.DEPT_ID AND DEPT.STATUS = 0
+				LEFT JOIN T_DEPT_COMPANY COMP ON DEPT.DECP_ID = COMP.DECP_ID AND COMP.STATUS = 0
+				LEFT JOIN T_DUN_DAILY TDD ON TDD.RECT_ID=TRCT.RECT_ID AND	CONVERT(DATETIME,CONVERT(VARCHAR,TDD.CREATE_DATE,23))=CONVERT(DATETIME,CONVERT(VARCHAR,getdate(),23))
+				LEFT JOIN  T_DATA_DICTIONARY TDDY ON TDDY.CODE=TRL.PROCESS AND TDDY.TYPE='诉讼进程' AND TDDY.STATUS=0 
+				WHERE TRL.STATUS='1'
+        and TRPN.RECP_STATUS not in(1,3) 
+        AND COMP.DECP_ID in (19,20,21,28)
+                )
+         and LITIGATION_DATE in(select min(LITIGATION_DATE) from  T_RENT_LITIGATION where rect_id in
+         (
+                SELECT TRL.RECT_ID
+				FROM T_RENT_LITIGATION TRL
+				LEFT JOIN T_RENT_CONTRACT TRCT ON TRL.RECT_ID = TRCT.RECT_ID AND TRCT.STATUS = 0
+				LEFT JOIN T_RENT_COLLECTIONPLAN TRPN ON TRCT.RECT_ID = TRPN.RECT_ID AND TRPN.STATUS = 0
+				LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE = '供应商保证' AND  TDSUPL.CODE = TRPN.SUPL_TRUE 
+				LEFT JOIN T_CUST_CUSTOMER TCCT ON TRCT.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+				LEFT JOIN T_USER_USER TUU ON TUU.ID = TRCT.SENSOR_ID 
+				LEFT JOIN (SELECT RECT_ID,MAX(T.BRAND) BRAND FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) T1
+				ON T1.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN (SELECT RECT_ID,MIN(LOCK_CODE) LOCK_CODE FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) TLOCK
+				ON TLOCK.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN T_DATA_DICTIONARY TDLOCK ON TDLOCK.TYPE = '锁码方式' AND  TDLOCK.CODE = TLOCK.LOCK_CODE 
+				LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = TUU.DEPT_ID AND DEPT.STATUS = 0
+				LEFT JOIN T_DEPT_COMPANY COMP ON DEPT.DECP_ID = COMP.DECP_ID AND COMP.STATUS = 0
+				LEFT JOIN T_DUN_DAILY TDD ON TDD.RECT_ID=TRCT.RECT_ID AND	CONVERT(DATETIME,CONVERT(VARCHAR,TDD.CREATE_DATE,23))=CONVERT(DATETIME,CONVERT(VARCHAR,getdate(),23))
+				LEFT JOIN  T_DATA_DICTIONARY TDDY ON TDDY.CODE=TRL.PROCESS AND TDDY.TYPE='诉讼进程' AND TDDY.STATUS=0 
+				WHERE TRL.STATUS='1'
+        and TRPN.RECP_STATUS not in(1,3) 
+        AND COMP.DECP_ID in (19,20,21,28)
+         )
+           group by RECT_ID )       
+        and convert(char(7),LITIGATION_DATE,20)=#searchDate# -->
+                select trl.rect_id,trl.lease_code 
+                from T_RENT_LITIGATION trl
+				LEFT JOIN T_RENT_CONTRACT TRCT ON TRL.RECT_ID = TRCT.RECT_ID AND TRCT.STATUS = 0
+				LEFT JOIN T_RENT_COLLECTIONPLAN TRPN ON TRCT.RECT_ID = TRPN.RECT_ID AND TRPN.STATUS = 0
+				LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE = '供应商保证' AND  TDSUPL.CODE = TRPN.SUPL_TRUE 
+				LEFT JOIN T_CUST_CUSTOMER TCCT ON TRCT.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+				LEFT JOIN T_USER_USER TUU ON TUU.ID = TRCT.SENSOR_ID 
+				LEFT JOIN (SELECT RECT_ID,MAX(T.BRAND) BRAND FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) T1
+				ON T1.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN (SELECT RECT_ID,MIN(LOCK_CODE) LOCK_CODE FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) TLOCK
+				ON TLOCK.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN T_DATA_DICTIONARY TDLOCK ON TDLOCK.TYPE = '锁码方式' AND  TDLOCK.CODE = TLOCK.LOCK_CODE 
+				LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = TUU.DEPT_ID AND DEPT.STATUS = 0
+				LEFT JOIN T_DEPT_COMPANY COMP ON DEPT.DECP_ID = COMP.DECP_ID AND COMP.STATUS = 0
+				LEFT JOIN T_DUN_DAILY TDD ON TDD.RECT_ID=TRCT.RECT_ID AND	CONVERT(DATETIME,CONVERT(VARCHAR,TDD.CREATE_DATE,23))=CONVERT(DATETIME,CONVERT(VARCHAR,getdate(),23))
+				LEFT JOIN  T_DATA_DICTIONARY TDDY ON TDDY.CODE=TRL.PROCESS AND TDDY.TYPE='诉讼进程' AND TDDY.STATUS=0 
+            where trpn.recp_status=0
+            AND COMP.DECP_ID in (19,20,21,28)
+            group by trl.rect_id,trl.lease_code
+            having convert(char(7),min(trl.LITIGATION_DATE),20)=#searchDate#
+    </select>
+    
+        <!-- 抓取商用车的合同 -->
+    <select id="geteCommercialVehicle" resultClass="java.util.HashMap">
+      			<!-- select distinct rect_id
+      			from T_RENT_LITIGATION
+      			where rect_id in
+      			(
+      			SELECT TRL.RECT_ID
+				FROM T_RENT_LITIGATION TRL
+				LEFT JOIN T_RENT_CONTRACT TRCT ON TRL.RECT_ID = TRCT.RECT_ID AND TRCT.STATUS = 0
+				LEFT JOIN T_RENT_COLLECTIONPLAN TRPN ON TRCT.RECT_ID = TRPN.RECT_ID AND TRPN.STATUS = 0
+				LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE = '供应商保证' AND  TDSUPL.CODE = TRPN.SUPL_TRUE 
+				LEFT JOIN T_CUST_CUSTOMER TCCT ON TRCT.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+				LEFT JOIN T_USER_USER TUU ON TUU.ID = TRCT.SENSOR_ID 
+				LEFT JOIN (SELECT RECT_ID,MAX(T.BRAND) BRAND FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) T1
+				ON T1.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN (SELECT RECT_ID,MIN(LOCK_CODE) LOCK_CODE FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) TLOCK
+				ON TLOCK.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN T_DATA_DICTIONARY TDLOCK ON TDLOCK.TYPE = '锁码方式' AND  TDLOCK.CODE = TLOCK.LOCK_CODE 
+				LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = TUU.DEPT_ID AND DEPT.STATUS = 0
+				LEFT JOIN T_DEPT_COMPANY COMP ON DEPT.DECP_ID = COMP.DECP_ID AND COMP.STATUS = 0
+				LEFT JOIN T_DUN_DAILY TDD ON TDD.RECT_ID=TRCT.RECT_ID AND	CONVERT(DATETIME,CONVERT(VARCHAR,TDD.CREATE_DATE,23))=CONVERT(DATETIME,CONVERT(VARCHAR,getdate(),23))
+				LEFT JOIN  T_DATA_DICTIONARY TDDY ON TDDY.CODE=TRL.PROCESS AND TDDY.TYPE='诉讼进程' AND TDDY.STATUS=0 
+				WHERE TRL.STATUS='1'
+        and TRPN.RECP_STATUS not in(1,3) 
+        AND COMP.DECP_ID  in (15,16)
+                )
+         and LITIGATION_DATE in(select min(LITIGATION_DATE) from T_RENT_LITIGATION where rect_id in
+         (
+                SELECT TRL.RECT_ID
+				FROM T_RENT_LITIGATION TRL
+				LEFT JOIN T_RENT_CONTRACT TRCT ON TRL.RECT_ID = TRCT.RECT_ID AND TRCT.STATUS = 0
+				LEFT JOIN T_RENT_COLLECTIONPLAN TRPN ON TRCT.RECT_ID = TRPN.RECT_ID AND TRPN.STATUS = 0
+				LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE = '供应商保证' AND  TDSUPL.CODE = TRPN.SUPL_TRUE 
+				LEFT JOIN T_CUST_CUSTOMER TCCT ON TRCT.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+				LEFT JOIN T_USER_USER TUU ON TUU.ID = TRCT.SENSOR_ID 
+				LEFT JOIN (SELECT RECT_ID,MAX(T.BRAND) BRAND FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) T1
+				ON T1.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN (SELECT RECT_ID,MIN(LOCK_CODE) LOCK_CODE FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) TLOCK
+				ON TLOCK.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN T_DATA_DICTIONARY TDLOCK ON TDLOCK.TYPE = '锁码方式' AND  TDLOCK.CODE = TLOCK.LOCK_CODE 
+				LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = TUU.DEPT_ID AND DEPT.STATUS = 0
+				LEFT JOIN T_DEPT_COMPANY COMP ON DEPT.DECP_ID = COMP.DECP_ID AND COMP.STATUS = 0
+				LEFT JOIN T_DUN_DAILY TDD ON TDD.RECT_ID=TRCT.RECT_ID AND	CONVERT(DATETIME,CONVERT(VARCHAR,TDD.CREATE_DATE,23))=CONVERT(DATETIME,CONVERT(VARCHAR,getdate(),23))
+				LEFT JOIN  T_DATA_DICTIONARY TDDY ON TDDY.CODE=TRL.PROCESS AND TDDY.TYPE='诉讼进程' AND TDDY.STATUS=0 
+				WHERE TRL.STATUS='1'
+        and TRPN.RECP_STATUS not in(1,3) 
+        AND COMP.DECP_ID  in (15,16)
+         )
+          group by RECT_ID )       
+        and convert(char(7),LITIGATION_DATE,20)=#searchDate# -->
+                select trl.rect_id,trl.lease_code 
+                from T_RENT_LITIGATION trl
+				LEFT JOIN T_RENT_CONTRACT TRCT ON TRL.RECT_ID = TRCT.RECT_ID AND TRCT.STATUS = 0
+				LEFT JOIN T_RENT_COLLECTIONPLAN TRPN ON TRCT.RECT_ID = TRPN.RECT_ID AND TRPN.STATUS = 0
+				LEFT JOIN T_DATA_DICTIONARY TDSUPL ON TDSUPL.TYPE = '供应商保证' AND  TDSUPL.CODE = TRPN.SUPL_TRUE 
+				LEFT JOIN T_CUST_CUSTOMER TCCT ON TRCT.CUST_ID = TCCT.CUST_ID AND TCCT.STATUS = 0
+				LEFT JOIN T_USER_USER TUU ON TUU.ID = TRCT.SENSOR_ID 
+				LEFT JOIN (SELECT RECT_ID,MAX(T.BRAND) BRAND FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) T1
+				ON T1.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN (SELECT RECT_ID,MIN(LOCK_CODE) LOCK_CODE FROM T_RENT_CONTRACTDETAIL T WHERE T.STATUS = 0 GROUP BY T.RECT_ID) TLOCK
+				ON TLOCK.RECT_ID = TRCT.RECT_ID 
+				LEFT JOIN T_DATA_DICTIONARY TDLOCK ON TDLOCK.TYPE = '锁码方式' AND  TDLOCK.CODE = TLOCK.LOCK_CODE 
+				LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = TUU.DEPT_ID AND DEPT.STATUS = 0
+				LEFT JOIN T_DEPT_COMPANY COMP ON DEPT.DECP_ID = COMP.DECP_ID AND COMP.STATUS = 0
+				LEFT JOIN T_DUN_DAILY TDD ON TDD.RECT_ID=TRCT.RECT_ID AND	CONVERT(DATETIME,CONVERT(VARCHAR,TDD.CREATE_DATE,23))=CONVERT(DATETIME,CONVERT(VARCHAR,getdate(),23))
+				LEFT JOIN  T_DATA_DICTIONARY TDDY ON TDDY.CODE=TRL.PROCESS AND TDDY.TYPE='诉讼进程' AND TDDY.STATUS=0 
+            where trpn.recp_status=0
+            AND COMP.DECP_ID in (15,16)
+            group by trl.rect_id,trl.lease_code
+            having convert(char(7),min(trl.LITIGATION_DATE),20)=#searchDate#    
+    </select>
+    
+    <!-- 抓取机器设备的逾期180天以上案件的总件数及总金额 -->
+    <select id="getDunCaseOfEqu" resultClass="java.util.HashMap">
+    
+    
+       SELECT COUNT(T.CREDIT_ID) amount,SUM(T.balance)balance 
+       FROM T_Unpay_Case_180_job T
+       LEFT JOIN T_PRJT_CREDIT TPC ON T.CREDIT_ID=TPC.ID AND TPC.STATUS=0
+   	   WHERE TPC.PRODUCTION_TYPE=1
+   	   AND T.STATUS=0
+   	   AND convert(char(7),T.create_time,20)=#thisMonth#
+      <!--  select count(k.rect_id) amount,isnull(sum(k.balance),0) balance 
+       from(
+       select rect_id, balance,tdc.DECP_NAME_CN from T_Unpay_Case_180_job tuc
+       left join T_PRJT_CREDIT tpc on tpc.id=tuc.credit_id and tpc.STATUS=0
+       left join T_USER_USER tuu on tuu.id=tpc.SENSOR_ID and tuu.STATUS = 0
+       left join T_DEPT_DEPARTMENT tdd on tuu.DEPT_ID=tdd.ID 
+       left join T_DEPT_COMPANY tdc on tdd.DECP_ID = tdc.DECP_ID
+       where convert(char(7),tuc.create_time,20)=#thisMonth#
+       and rect_id is not null
+       and tdc.DECP_ID not in (19,20,21,28,15,16)
+       除去已经统计过的案件
+       and rect_id not in
+                (
+                  select rect_id
+                  from T_Unpay_Case_180_job
+                  where convert(char(7),create_time,20)=#lastMonth#
+                  and rect_id is not null
+                )
+      group by rect_id,balance,tdc.DECP_NAME_CN
+           ) k -->
+    </select>
+    
+    <!-- 抓取乘用车的逾期180天以上案件的总件数及总金额 -->
+    <select id="getDunCaseOfPassengerVehicle" resultClass="java.util.HashMap">
+            SELECT COUNT(T.CREDIT_ID) amount,SUM(T.balance) balance 
+            FROM T_Unpay_Case_180_job T
+            LEFT JOIN T_PRJT_CREDIT TPC ON T.CREDIT_ID=TPC.ID AND TPC.STATUS=0
+   	        WHERE TPC.PRODUCTION_TYPE=3
+   	        AND T.STATUS=0
+   	        AND convert(char(7),T.create_time,20)=#thisMonth#
+    </select>
+    
+    <!--抓取商用车的逾期180天以上案件的总件数及总金额  -->
+    <select id="getDunCaseOfCommercialVehicle" resultClass="java.util.HashMap">
+           SELECT COUNT(T.CREDIT_ID) amount,SUM(T.balance) balance 
+           FROM T_Unpay_Case_180_job T
+           LEFT JOIN T_PRJT_CREDIT TPC ON T.CREDIT_ID=TPC.ID AND TPC.STATUS=0
+   	       WHERE TPC.PRODUCTION_TYPE=2
+   	       AND T.STATUS=0
+   	       AND convert(char(7),T.create_time,20)=#thisMonth#
+    </select>
+    
+    <select id="getMinDate" resultClass="java.lang.String">
+          select convert(date,Min(create_time)) from T_Unpay_Case_180_job
+    </select>
+</sqlMap>

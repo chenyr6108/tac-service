@@ -1,0 +1,456 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="pucsContract">
+	
+	<statement id="queryEquipmentsByRectId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		SELECT T1.RECD_ID,
+		       T1.THING_KIND,
+		       T1.THING_NAME,
+		       T1.MODEL_SPEC,
+		       T1.BRAND,
+		       T1.UNIT_PRICE,
+		       T1.SHUI_PRICE,
+		       T1.UNIT,
+		       T1.STAYBUY_PRICE,
+		       T1.AMOUNT,
+		       T1.MEMO,
+		       T4.SUPPLIER_ID 
+		  FROM T_RENT_CONTRACTDETAIL T1
+		  LEFT JOIN T_EQMT_EQUIPMENT T2 ON T2.EQMT_ID = T1.EQMT_ID
+		  LEFT JOIN T_PUCS_CONTRACTDETAIL T3 ON T3.EQMT_ID = T2.EQMT_ID
+		  LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID=T2.SUEQ_ID
+		 WHERE T1.STATUS = 0
+		   AND T2.STATUS = 0
+		   AND T3.PUCD_ID IS NULL
+		   AND T4.STATUS=0
+		   AND T1.RECT_ID = #RECT_ID#
+		]]>
+	</statement>
+	<statement id="queryEquipmentsByRecdIds" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		SELECT T1.RECD_ID,
+		       T1.THING_KIND,
+		       T1.THING_NAME,
+		       T1.MODEL_SPEC,
+		       T1.BRAND,
+		       T1.UNIT_PRICE,
+		       T1.UNIT,
+		       T1.STAYBUY_PRICE,
+		       T1.AMOUNT,
+		       T1.MEMO,
+		       T4.SUPPLIER_ID,
+		       T1.EQMT_ID
+		  FROM T_RENT_CONTRACTDETAIL T1
+		  LEFT JOIN T_EQMT_EQUIPMENT T2 ON T2.EQMT_ID = T1.EQMT_ID
+		  LEFT JOIN T_PUCS_CONTRACTDETAIL T3 ON T3.EQMT_ID = T2.EQMT_ID
+		  LEFT JOIN T_SUPL_EQUIPMENT T4 ON T4.SUEQ_ID=T2.SUEQ_ID
+		 WHERE T1.STATUS = 0
+		   AND T2.STATUS = 0
+		   AND T3.PUCD_ID IS NULL
+		   AND T4.STATUS=0
+		   AND T1.RECD_ID IN 
+		]]>
+		<iterate property="recdIds" open="(" close=")" conjunction=",">
+			#recdIds[]#
+		</iterate>
+	</statement>
+
+	<!-- read suppliers-->
+	<select id="readSupplierBySuplId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T1.ID                  SUPPLIER_ID,
+			       T1.NAME                SUPPLIER_NAME,
+			       T1.LICENCE_ADDRESS     LICENCE_ADDRESS,
+			       T1.COMPANY_CORPORATION COMPANY_CORPORATION,
+			       T1.LINKMAN_NAME        LINKMAN_NAME,
+			       T1.LINKMAN_TELPHONE    LINKMAN_TELPHONE,
+			       T1.OPEN_ACCOUNT_BANK   OPEN_ACCOUNT_BANK,
+			       T1.BANK_ACCOUNT        BANK_ACCOUNT,
+			       T1.LINKMAN_ZIP         LINKMAN_ZIP
+			  FROM T_SUPL_SUPPLIER T1
+			 WHERE T1.STATUS = 0
+			   AND T1.ID = #SUPL_ID#
+		]]>
+	</select>
+	<!-- query Suppliers-->
+	<select id="querySuppliers" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T1.ID                  SUPPLIER_ID,
+			       T1.NAME                SUPPLIER_NAME,
+			       T1.LICENCE_ADDRESS     LICENCE_ADDRESS,
+			       T1.COMPANY_CORPORATION COMPANY_CORPORATION,
+			       T1.LINKMAN_NAME        LINKMAN_NAME,
+			       T1.LINKMAN_TELPHONE    LINKMAN_TELPHONE,
+			       T1.OPEN_ACCOUNT_BANK   OPEN_ACCOUNT_BANK,
+			       T1.BANK_ACCOUNT        BANK_ACCOUNT,
+			       T1.LINKMAN_ZIP         LINKMAN_ZIP
+			  FROM T_SUPL_SUPPLIER T1
+			 WHERE T1.STATUS = 0
+			 ORDER BY T1.NAME
+		]]>
+	</select>
+	<!-- 根据租赁合同 id 查找承租人的姓名-->
+	<select id="getCustomerByRectId" parameterClass="map"	resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT T1.CUST_NAME,
+		       T1.CUST_ADDRESS,
+		       T1.CUST_ZIP,
+		       T1.CUST_PHONE,
+		       T1.CUST_FAX,
+		       T1.CUST_LINKMAN,
+		       T1.OPEN_BANK,
+		       T1.BANK_ACCOUNTS,
+		       T1.CORP_ORAGNIZATION_CODE,
+		       T1.NATU_IDCARD,
+		       T1.NATU_MATE_NAME,
+		       T1.NATU_MATE_IDCARD
+		  FROM T_RENT_CONTRACT T1
+		 WHERE T1.RECT_ID = #RECT_ID#
+		]]>
+	</select>
+	<!-- CREATE  -->
+	<insert id="createPucsContract" parameterClass="map"> 
+		<![CDATA[
+			INSERT INTO T_PUCS_CONTRACT
+						  (
+						   CREATE_USER_ID,
+						   MODIFY_USER_ID,
+						   RECT_ID,
+						   PRCD_ID,
+						   SUPL_ID,
+						   PUCT_CODE,
+						   TOTAL,
+						   DELIVERY_DATE,
+						   DELIVERY_ADDRESS,
+						   DELIVERY_TYPE,
+						   UNLOAD_TYPE,
+						   RECEIVING_UNIT,
+						   EQUPMENT_ADDRESS,
+						   LINKMAN,
+						   LINKMAN_MOBILE,
+						   LINKMAN_TEL,
+						   SELLER_UNIT_NAME,
+						   SELLER_UNIT_ADDR,
+						   SELLER_LEGAL_REPR,
+						   SELLER_AGENT,
+						   SELLER_PHONE,
+						   SELLER_FAX,
+						   SELLER_BANK_ACCO,
+						   SELLER_ACCOUNT,
+						   SELLER_CODE,
+						   BUYER_UNIT_NAME,
+						   BUYER_UNIT_ADDR,
+						   BUYER_LEGAL_REPR,
+						   BUYER_AGENT,
+						   BUYER_PHONE,
+						   BUYER_FAX,
+						   BUYER_BANK_ACCO,
+						   BUYER_ACCOUNT,
+						   BUYER_UNIT_TAX,
+						   BUYER_CODE,
+						   BUYER_IDCARD,
+						   BUYER_HOME_ADDR,
+						   CUST_UNIT_NAME,
+						   CUST_UNIT_ADDR,
+						   CUST_LEGAL_REPR,
+						   CUST_AGENT,
+						   CUST_PHONE,
+						   CUST_FAX,
+						   CUST_BANK_ACCO,
+						   CUST_ACCOUNT,
+						   CUST_UNIT_TAX,
+						   CUST_CODE,
+						   CUST_IDCARD,
+						   CUST_HOME_ADDR,
+						   SIGN_ADDRESS,
+						   SIGN_DATE)
+						  SELECT 
+						         #s_employeeId#,
+						         #s_employeeId#,
+						         #RECT_ID#,
+						         T.PRCD_ID,
+						         #SUPL_ID#,
+						         #PUCT_CODE#,
+						         #TOTAL#,
+						         convert(datetime,#DELIVERY_DATE#),
+						         #DELIVERY_ADDRESS#,
+						         #DELIVERY_TYPE#,
+						         #UNLOAD_TYPE#,
+						         #RECEIVING_UNIT#,
+						         #EQUPMENT_ADDRESS#,
+						         #LINKMAN#,
+						         #LINKMAN_MOBILE#,
+						         #LINKMAN_TEL#,
+						         #SELLER_UNIT_NAME#,
+						         #SELLER_UNIT_ADDR#,
+						         #SELLER_LEGAL_REPR#,
+						         #SELLER_AGENT#,
+						         #SELLER_PHONE#,
+						         #SELLER_FAX#,
+						         #SELLER_BANK_ACCO#,
+						         #SELLER_ACCOUNT#,
+						         #SELLER_CODE#,
+						         #BUYER_UNIT_NAME#,
+						         #BUYER_UNIT_ADDR#,
+						         #BUYER_LEGAL_REPR#,
+						         #BUYER_AGENT#,
+						         #BUYER_PHONE#,
+						         #BUYER_FAX#,
+						         #BUYER_BANK_ACCO#,
+						         #BUYER_ACCOUNT#,
+						         #BUYER_UNIT_TAX#,
+						         #BUYER_CODE#,
+						         #BUYER_IDCARD#,
+						         #BUYER_HOME_ADDR#,
+						         #CUST_UNIT_NAME#,
+						         #CUST_UNIT_ADDR#,
+						         #CUST_LEGAL_REPR#,
+						         #CUST_AGENT#,
+						         #CUST_PHONE#,
+						         #CUST_FAX#,
+						         #CUST_BANK_ACCO#,
+						         #CUST_ACCOUNT#,
+						         #CUST_UNIT_TAX#,
+						         #CUST_CODE#,
+						         #CUST_IDCARD#,
+						         #CUST_HOME_ADDR#,
+						         #SIGN_ADDRESS#,
+						         convert(datetime,#SIGN_DATE#)
+						    FROM T_RENT_CONTRACT T
+						   WHERE T.RECT_ID = #RECT_ID#
+		]]>
+		<selectKey resultClass="java.lang.Long" keyProperty="PUCT_ID">
+			<![CDATA[	SELECT @@IDENTITY AS PUCT_ID  ]]>
+		</selectKey> 
+	</insert>
+	<insert id="createPucsContractPlan" parameterClass="map">
+	<![CDATA[
+	INSERT INTO T_PUCS_PAYMENTPLAN
+			  (
+			   CREATE_USER_ID,
+			   MODIFY_USER_ID,
+			   PUCT_ID,
+			   FIRST_PRICE_RATE,
+			   FIRST_PRICE,
+			   FIRST_PRICE_3DAYS,
+			   FIRST_PRICE_15DAYS,
+			   LAST_PRICE_RATE,
+			   LAST_PRICE,
+			   CUST_PRICE_RATE,
+			   CUST_PRICE,
+			   CUST_PRICE_3DAYS,
+			   CUST_PRICE_15DAYS)
+			VALUES
+			  (
+			   #s_employeeId#,
+			   #s_employeeId#,
+			   #PUCT_ID#,
+			   #FIRST_PRICE_RATE#,
+			   #FIRST_PRICE#,
+			   #FIRST_PRICE_3DAYS#,
+			   #FIRST_PRICE_15DAYS#,
+			   #LAST_PRICE_RATE#,
+			   #LAST_PRICE#,
+			   #CUST_PRICE_RATE#,
+			   #CUST_PRICE#,
+			   #CUST_PRICE_3DAYS#,
+			   #CUST_PRICE_15DAYS#)
+	
+	]]>
+	</insert>
+	<insert id="createPucsContractDetail" parameterClass="map">
+	<![CDATA[
+		INSERT INTO T_PUCS_CONTRACTDETAIL
+		  (
+		   CREATE_USER_ID,
+		   MODIFY_USER_ID,
+		   PUCT_ID,
+		   EQMT_ID,
+		   THING_KIND,
+		   THING_NAME,
+		   BRAND,
+		   MODEL_SPEC,
+		   UNIT_PRICE,
+		   AMOUNT,
+		   UNIT,
+		   MEMO,
+		   STAYBUY_PRICE)
+		  SELECT 
+		         #s_employeeId#,
+		         #s_employeeId#,
+		         #PUCT_ID#,
+		         T1.EQMT_ID,
+		         T1.THING_KIND,
+		         T1.THING_NAME,
+		         T1.BRAND,
+		         T1.MODEL_SPEC,
+		         T1.UNIT_PRICE,
+		         T1.AMOUNT,
+		         T1.UNIT,
+		         T1.MEMO,
+		         T1.STAYBUY_PRICE
+		    FROM T_EQMT_EQUIPMENT T1
+		   WHERE T1.EQMT_ID IN
+	]]>
+	<iterate property="eqmtIds" open="(" close=")" conjunction=",">
+		#eqmtIds[]#
+	</iterate>
+	</insert>
+	
+	<!-- READ -->
+	<statement id="readPucsContract" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+			SELECT PUCT_ID,
+		       RECT_ID,
+		       PRCD_ID,
+		       SUPL_ID,
+		       PUCT_CODE,
+		       TOTAL,
+		       DELIVERY_DATE,
+		       DELIVERY_ADDRESS,
+		       DELIVERY_TYPE,
+		       UNLOAD_TYPE,
+		       RECEIVING_UNIT,
+		       EQUPMENT_ADDRESS,
+		       LINKMAN,
+		       LINKMAN_MOBILE,
+		       LINKMAN_TEL,
+		       SELLER_UNIT_NAME,
+		       SELLER_UNIT_ADDR,
+		       SELLER_LEGAL_REPR,
+		       SELLER_AGENT,
+		       SELLER_PHONE,
+		       SELLER_FAX,
+		       SELLER_BANK_ACCO,
+		       SELLER_ACCOUNT,
+		       SELLER_CODE,
+		       BUYER_UNIT_NAME,
+		       BUYER_UNIT_ADDR,
+		       BUYER_LEGAL_REPR,
+		       BUYER_AGENT,
+		       BUYER_PHONE,
+		       BUYER_FAX,
+		       BUYER_BANK_ACCO,
+		       BUYER_ACCOUNT,
+		       BUYER_UNIT_TAX,
+		       BUYER_CODE,
+		       BUYER_IDCARD,
+		       BUYER_HOME_ADDR,
+		       CUST_UNIT_NAME,
+		       CUST_UNIT_ADDR,
+		       CUST_LEGAL_REPR,
+		       CUST_AGENT,
+		       CUST_PHONE,
+		       CUST_FAX,
+		       CUST_BANK_ACCO,
+		       CUST_ACCOUNT,
+		       CUST_UNIT_TAX,
+		       CUST_CODE,
+		       CUST_IDCARD,
+		       CUST_HOME_ADDR,
+		       SIGN_ADDRESS,
+		       SIGN_DATE
+		  FROM T_PUCS_CONTRACT T
+		 WHERE T.PUCT_ID = #PUCT_ID#
+	]]>
+	</statement>
+	<statement id="readPucsContractPlan" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT PUPP_ID,
+		       PUCT_ID,
+		       FIRST_PRICE_RATE,
+		       FIRST_PRICE,
+		       FIRST_PRICE_3DAYS,
+		       FIRST_PRICE_15DAYS,
+		       LAST_PRICE_RATE,
+		       LAST_PRICE,
+		       CUST_PRICE_RATE,
+		       CUST_PRICE,
+		       CUST_PRICE_3DAYS,
+		       CUST_PRICE_15DAYS
+		  FROM T_PUCS_PAYMENTPLAN T
+		 WHERE T.STATUS=0 AND T.PUCT_ID = #PUCT_ID#
+	]]>
+	</statement>
+	<statement id="readPucsContractDetail" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		SELECT T1.PUCD_ID,
+			   T1.EQMT_ID,
+		       T1.THING_KIND,
+		       T1.THING_NAME,
+		       T1.MODEL_SPEC,
+		       T1.BRAND,
+		       T1.UNIT_PRICE,
+		       T1.AMOUNT,
+		       T1.UNIT,
+		       T1.STAYBUY_PRICE,
+		       T1.MEMO
+		  FROM T_PUCS_CONTRACTDETAIL T1
+		 WHERE T1.STATUS = 0
+		   AND T1.PUCT_ID = #PUCT_ID#
+	]]>
+	</statement>
+	<!-- UPDATE -->
+	<update id="updatePucsContract" parameterClass="map">
+	<![CDATA[
+		UPDATE T_PUCS_CONTRACT 
+		   SET MODIFY_USER_ID    = #s_employeeId#,
+		       PUCT_CODE         = #PUCT_CODE#,
+		       DELIVERY_DATE     = convert(datetime,#DELIVERY_DATE#),
+		       DELIVERY_ADDRESS  = #DELIVERY_ADDRESS#,
+		       DELIVERY_TYPE     = #DELIVERY_TYPE#,
+		       UNLOAD_TYPE       = #UNLOAD_TYPE#,
+		       RECEIVING_UNIT    = #RECEIVING_UNIT#,
+		       EQUPMENT_ADDRESS  = #EQUPMENT_ADDRESS#,
+		       LINKMAN           = #LINKMAN#,
+		       LINKMAN_MOBILE    = #LINKMAN_MOBILE#,
+		       LINKMAN_TEL       = #LINKMAN_TEL#,
+		       SELLER_UNIT_NAME  = #SELLER_UNIT_NAME#,
+		       SELLER_UNIT_ADDR  = #SELLER_UNIT_ADDR#,
+		       SELLER_LEGAL_REPR = #SELLER_LEGAL_REPR#,
+		       SELLER_AGENT      = #SELLER_AGENT#,
+		       SELLER_PHONE      = #SELLER_PHONE#,
+		       SELLER_FAX        = #SELLER_FAX#,
+		       SELLER_BANK_ACCO  = #SELLER_BANK_ACCO#,
+		       SELLER_ACCOUNT    = #SELLER_ACCOUNT#,
+		       SELLER_CODE       = #SELLER_CODE#,
+		       BUYER_UNIT_NAME   = #BUYER_UNIT_NAME#,
+		       BUYER_UNIT_ADDR   = #BUYER_UNIT_ADDR#,
+		       BUYER_LEGAL_REPR  = #BUYER_LEGAL_REPR#,
+		       BUYER_AGENT       = #BUYER_AGENT#,
+		       BUYER_PHONE       = #BUYER_PHONE#,
+		       BUYER_FAX         = #BUYER_FAX#,
+		       BUYER_BANK_ACCO   = #BUYER_BANK_ACCO#,
+		       BUYER_ACCOUNT     = #BUYER_ACCOUNT#,
+		       BUYER_UNIT_TAX    = #BUYER_UNIT_TAX#,
+		       BUYER_CODE        = #BUYER_CODE#,
+		       BUYER_IDCARD      = #BUYER_IDCARD#,
+		       BUYER_HOME_ADDR   = #BUYER_HOME_ADDR#,
+		       CUST_UNIT_NAME    = #CUST_UNIT_NAME#,
+		       CUST_UNIT_ADDR    = #CUST_UNIT_ADDR#,
+		       CUST_LEGAL_REPR   = #CUST_LEGAL_REPR#,
+		       CUST_AGENT        = #CUST_AGENT#,
+		       CUST_PHONE        = #CUST_PHONE#,
+		       CUST_FAX          = #CUST_FAX#,
+		       CUST_BANK_ACCO    = #CUST_BANK_ACCO#,
+		       CUST_ACCOUNT      = #CUST_ACCOUNT#,
+		       CUST_UNIT_TAX     = #CUST_UNIT_TAX#,
+		       CUST_CODE         = #CUST_CODE#,
+		       CUST_IDCARD       = #CUST_IDCARD#,
+		       CUST_HOME_ADDR    = #CUST_HOME_ADDR#,
+		       SIGN_ADDRESS      = #SIGN_ADDRESS#,
+		       SIGN_DATE         = convert(datetime,#SIGN_DATE#)
+		 WHERE PUCT_ID = #PUCT_ID#
+	]]>
+	</update>
+	<update id="deletePucsContractPlan" parameterClass="map">
+	<![CDATA[
+		UPDATE T_PUCS_PAYMENTPLAN  SET MODIFY_TIME=GETDATE(),MODIFY_USER_ID=#s_employeeId#,STATUS=-2 WHERE STATUS=0 AND PUCT_ID=#PUCT_ID#
+	]]>
+	</update>
+	
+	
+</sqlMap>

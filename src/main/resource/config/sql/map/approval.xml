@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+<sqlMap namespace="approval">
+	
+	<insert id="insertApproval" parameterClass="com.brick.aprv.to.ApprovalTo">
+		INSERT INTO T_APRV_APPROVAL(APRV_CODE,APPLY_USER_ID,COMPANY_CODE,SUMMARY,CONTENT,PROCESS_ID,CREATE_TIME,PRJT_ID,AUDIT_DATA)
+		VALUES((
+			SELECT TOP 1 
+				'H'+ substring(CONVERT(varchar(100), GETDATE(), 112),0,7) + 
+				right('000'+CAST(isnull(cast(substring(MAX(APRV_CODE),8,3) as int),0)+1 AS nvarchar),3) 
+			FROM T_APRV_APPROVAL
+			WHERE APRV_CODE LIKE 
+				'H'+ substring(CONVERT(varchar(100), GETDATE(), 112),0,7) + '%'
+		),#applyUserId#,#companyCode#,#summary#,#content#,#processId#,#createTime#,#rectId#,#auditData#)
+		<selectKey resultClass="java.lang.Integer" keyProperty="aprvId">
+			SELECT @@IDENTITY aprvId
+		</selectKey>
+	</insert>
+	
+	
+	
+	<update id="updateApproval" parameterClass="com.brick.aprv.to.ApprovalTo">
+		UPDATE T_APRV_APPROVAL SET
+		<isNotEmpty property="summary">
+			SUMMARY = #summary#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="content">
+			CONTENT = #content#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="processId">
+			PROCESS_ID = #processId#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="hisProcess">
+			HIS_PROCESS = #hisProcess#
+		</isNotEmpty>
+		<isNotEmpty prepend="," property="auditData">
+			AUDIT_DATA = #auditData#
+		</isNotEmpty>
+		WHERE APRV_ID = #aprvId#
+	</update>
+	
+	<select id="selectApprovalWithPaging_count" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT 
+		count(1)
+		FROM T_APRV_APPROVAL APRV
+		LEFT JOIN T_USER_USER U ON APRV.APPLY_USER_ID = U.[ID]
+		LEFT JOIN T_DEPT_DEPARTMENT D ON U.DEPT_ID=D.ID
+		LEFT JOIN T_BPM_INS_PROCESS P ON APRV.PROCESS_ID = P.PROCESS_INS_ID
+		LEFT JOIN T_PRJT_CREDIT PRJT ON APRV.PRJT_ID = PRJT.ID
+		LEFT JOIN T_CUST_CUSTOMER CUST ON PRJT.CUST_ID = CUST.CUST_ID
+		<dynamic prepend="WHERE">
+			<isNotEmpty property="flowStatus">
+				<isEqual prepend="AND" property="flowStatus" compareValue = "0">
+					<![CDATA[ APRV.PROCESS_ID IS NULL ]]>
+				</isEqual>
+				<isEqual prepend="AND" property="flowStatus" compareValue = "1">
+					<![CDATA[ P.FLOW_STATUS & 4 > 0 ]]>
+				</isEqual>
+				<isEqual prepend="AND" property="flowStatus" compareValue = "2">
+					<![CDATA[ (P.FLOW_STATUS & 64 > 0 OR P.FLOW_STATUS & 512 > 0) ]]>
+				</isEqual>
+				<isEqual prepend="AND" property="flowStatus" compareValue = "3">
+					<![CDATA[ (P.FLOW_STATUS & 4098 > 0 OR P.FLOW_STATUS & 32784 > 0) ]]>
+				</isEqual>
+				<isEqual prepend="AND" property="flowStatus" compareValue = "4">
+					<![CDATA[ (P.FLOW_STATUS & 16392 > 0 OR P.FLOW_STATUS & 65568 > 0) ]]>
+				</isEqual>
+				<isEqual prepend="AND" property="flowStatus" compareValue = "5">
+					<![CDATA[ (P.FLOW_STATUS & 16 > 0 OR P.FLOW_STATUS & 256 > 0 OR P.FLOW_STATUS & 2048 > 0) ]]>
+				</isEqual>
+			</isNotEmpty>
+			<isEqual prepend="AND" property="selfOnly" compareValue="1">
+				(
+					aprv.APPLY_USER_ID = #s_employeeId#
+					OR
+					EXISTS(SELECT * FROM T_BPM_INS_TASK t WHERE (t.CHARGE = '$s_employeeId$' OR t.DELEGATE = '$s_employeeId$') AND t.TASK_STATUS IN (2,3) AND t.PROCESS_INS_ID = APRV.PROCESS_ID)
+				)
+			</isEqual>
+			<isEqual prepend="AND" property="selfOnly" compareValue="2">
+				<![CDATA[ ',' + rtrim(P.CURRENT_CHARGE) + ',' LIKE '%[,()]$s_employeeId$[,()]%' OR ',' + rtrim(P.CURRENT_DELEGATE) + ',' LIKE '%[,()]$s_employeeId$[,()]%' ]]>
+			</isEqual>
+			<isEqual prepend="AND" property="selfApply" compareValue="1">
+				<![CDATA[ APRV.APPLY_USER_ID = #s_employeeId# ]]>
+			</isEqual>
+			<isNotEmpty prepend="AND" property="searchContent" >
+				<![CDATA[ (P.CURRENT_CHARGE_NAME LIKE '%$searchContent$%' OR P.CURRENT_DELEGATE_NAME LIKE '%$searchContent$%' OR U.[NAME] LIKE '%$searchContent$%' OR APRV.APRV_CODE LIKE '%$searchContent$%' OR PRJT.LEASE_CODE LIKE '%$searchContent$%' OR APRV.SUMMARY LIKE '%$searchContent$%' OR APRV.CONTENT LIKE '%$searchContent$%' ) ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="companyCode" >
+				<![CDATA[ APRV.COMPANY_CODE = #companyCode# ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<select id="selectApprovalWithPaging" parameterClass="map" resultClass="com.brick.aprv.to.ApprovalTo">
+		SELECT 
+			APRV.APRV_ID aprvId,
+			APRV.APRV_CODE aprvCode,
+			APRV.APPLY_USER_ID applyUserId,
+			U.upper_user upUserId,
+			U.[NAME] applyUserName,
+			D.DEPT_NAME deptName,
+			APRV.COMPANY_CODE companyCode,
+			APRV.PRJT_ID AS rectId,
+			(SELECT MAX(PRRC.PRC_ID) FROM T_PRJT_RISK_CONTROL PRRC WHERE PRRC.CREDIT_ID = PRJT.ID AND PRRC.STATUS=0) prcId,
+			PRJT.LEASE_CODE AS leaseCode,
+			CUST.CUST_NAME AS custName,
+			CASE WHEN PRJT.FINANCECONTRACT_DATE IS NOT NULL THEN 1 ELSE 0 END AS payed,
+			APRV.AUDIT_DATA auditData,
+			APRV.SUMMARY summary,
+			APRV.CONTENT content,
+			APRV.PROCESS_ID processId,
+			P.FLOW_STATUS flowStatus,
+			APRV.CREATE_TIME createTime,
+			APRV.UPDATE_TIME updateTime,
+      		PRCS.LEASE_RZE payMoney,
+      		(SELECT MAX(PRCM.CREATE_TIME) FROM T_PRJT_RISK_CONTROLMEMO PRCM WHERE PRCM.PRC_ID IN (SELECT PRRC.PRC_ID FROM T_PRJT_RISK_CONTROL PRRC WHERE PRRC.CREDIT_ID = PRJT.ID AND PRRC.STATUS=0)) payDate
+		FROM T_APRV_APPROVAL APRV
+		LEFT JOIN T_USER_USER U ON APRV.APPLY_USER_ID = U.[ID]
+		LEFT JOIN T_DEPT_DEPARTMENT D ON U.DEPT_ID=D.ID
+		LEFT JOIN T_BPM_INS_PROCESS P ON APRV.PROCESS_ID = P.PROCESS_INS_ID
+		LEFT JOIN T_PRJT_CREDIT PRJT ON APRV.PRJT_ID = PRJT.ID
+    	LEFT JOIN T_PRJT_CREDITSCHEME PRCS ON PRJT.ID = PRCS.CREDIT_ID
+		LEFT JOIN T_CUST_CUSTOMER CUST ON PRJT.CUST_ID = CUST.CUST_ID
+		<dynamic prepend="WHERE">
+			<isNotEmpty property="flowStatus">
+				<isEqual prepend="AND" property="flowStatus" compareValue = "0">
+					<![CDATA[ APRV.PROCESS_ID IS NULL ]]>
+				</isEqual>
+				<isEqual prepend="AND" property="flowStatus" compareValue = "1">
+					<![CDATA[ P.FLOW_STATUS & 4 > 0 ]]>
+				</isEqual>
+				<isEqual prepend="AND" property="flowStatus" compareValue = "2">
+					<![CDATA[ (P.FLOW_STATUS & 64 > 0 OR P.FLOW_STATUS & 512 > 0) ]]>
+				</isEqual>
+				<isEqual prepend="AND" property="flowStatus" compareValue = "3">
+					<![CDATA[ (P.FLOW_STATUS & 4096 > 0 OR P.FLOW_STATUS & 32768 > 0) ]]>
+				</isEqual>
+				<isEqual prepend="AND" property="flowStatus" compareValue = "4">
+					<![CDATA[ (P.FLOW_STATUS & 16384 > 0 OR P.FLOW_STATUS & 65536 > 0) ]]>
+				</isEqual>
+				<isEqual prepend="AND" property="flowStatus" compareValue = "5">
+					<![CDATA[ (P.FLOW_STATUS & 16 > 0 OR P.FLOW_STATUS & 256 > 0 OR P.FLOW_STATUS & 2048 > 0) ]]>
+				</isEqual>
+			</isNotEmpty>
+			<isEqual prepend="AND" property="selfOnly" compareValue="1">
+				(
+					aprv.APPLY_USER_ID = #s_employeeId#
+					OR
+					EXISTS(SELECT * FROM T_BPM_INS_TASK t WHERE (t.CHARGE = '$s_employeeId$' OR t.DELEGATE = '$s_employeeId$') AND t.TASK_STATUS IN (2,3) AND t.PROCESS_INS_ID = APRV.PROCESS_ID)
+				)
+			</isEqual>
+			<isEqual prepend="AND" property="selfOnly" compareValue="2">
+				<![CDATA[ ',' + rtrim(P.CURRENT_CHARGE) + ',' LIKE '%[,()]$s_employeeId$[,()]%' OR ',' + rtrim(P.CURRENT_DELEGATE) + ',' LIKE '%[,()]$s_employeeId$[,()]%' ]]>
+			</isEqual>
+			<isEqual prepend="AND" property="selfApply" compareValue="1">
+				<![CDATA[ APRV.APPLY_USER_ID = #s_employeeId# ]]>
+			</isEqual>
+			<isNotEmpty prepend="AND" property="searchContent" >
+				<![CDATA[ (P.CURRENT_CHARGE_NAME LIKE '%$searchContent$%' OR P.CURRENT_DELEGATE_NAME LIKE '%$searchContent$%' OR U.[NAME] LIKE '%$searchContent$%' OR APRV.APRV_CODE LIKE '%$searchContent$%' OR PRJT.LEASE_CODE LIKE '%$searchContent$%' OR APRV.SUMMARY LIKE '%$searchContent$%' OR APRV.CONTENT LIKE '%$searchContent$%' ) ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="AND" property="companyCode" >
+				<![CDATA[ APRV.COMPANY_CODE = #companyCode# ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<select id="selectOriRiskUser" parameterClass="map" resultClass="java.util.HashMap">
+      	SELECT riskmemo.CREATE_USER_ID,MAX(riskmemo.PRCM_USER_LEVEL) AS PRCM_LEVEL FROM T_PRJT_CREDIT prjt
+			LEFT JOIN T_PRJT_RISK_CONTROL risk ON prjt.ID = risk.CREDIT_ID
+			LEFT JOIN T_PRJT_RISK_CONTROLMEMO riskmemo ON risk.PRC_ID = riskmemo.PRC_ID 
+			LEFT JOIN T_USER_USER tuser ON riskmemo.CREATE_USER_ID = tuser.ID
+			WHERE prjt.ID = #prjtId# AND tuser.STATUS = 0 
+	      	GROUP BY riskmemo.CREATE_USER_ID
+	        ORDER BY PRCM_LEVEL
+	</select>
+	
+	<select id="selectApproval" parameterClass="com.brick.aprv.filter.ApprovalFilter" resultClass="com.brick.aprv.to.ApprovalTo">
+		SELECT 
+			APRV.APRV_ID aprvId,
+			APRV.APRV_CODE aprvCode,
+			APRV.APPLY_USER_ID applyUserId,
+			U.upper_user upUserId,
+			U.[NAME] applyUserName,
+			D.DEPT_NAME deptName,
+			APRV.COMPANY_CODE companyCode,
+			APRV.PRJT_ID AS rectId,
+			PRJT.LEASE_CODE AS leaseCode,
+			CUST.CUST_NAME AS custName,
+			CASE WHEN PRJT.FINANCECONTRACT_DATE IS NOT NULL THEN 1 ELSE 0 END AS payed,
+			APRV.AUDIT_DATA auditData,
+			APRV.SUMMARY summary,
+			APRV.CONTENT content,
+			APRV.PROCESS_ID processId,
+			P.FLOW_STATUS flowStatus,
+			APRV.HIS_PROCESS hisProcess,
+			APRV.CREATE_TIME createTime,
+			APRV.UPDATE_TIME updateTime,
+			rtrim(P.CURRENT_CHARGE) currentCharge,
+			rtrim(P.CURRENT_DELEGATE) currentDelegate,
+			PRCS.LEASE_RZE payMoney,
+      		(SELECT MAX(PRCM.CREATE_TIME) FROM T_PRJT_RISK_CONTROLMEMO PRCM WHERE PRCM.PRC_ID IN (SELECT PRRC.PRC_ID FROM T_PRJT_RISK_CONTROL PRRC WHERE PRRC.CREDIT_ID = PRJT.ID AND PRRC.STATUS=0)) payDate,
+		    D_RISK.VALUE riskUser,
+		    D_UP.VALUE upUser
+		FROM T_APRV_APPROVAL APRV
+		LEFT JOIN T_USER_USER U ON APRV.APPLY_USER_ID = U.[ID]
+		LEFT JOIN T_DEPT_DEPARTMENT D ON U.DEPT_ID=D.ID
+		LEFT JOIN T_BPM_INS_PROCESS P ON APRV.PROCESS_ID = P.PROCESS_INS_ID
+		LEFT JOIN T_PRJT_CREDIT PRJT ON APRV.PRJT_ID = PRJT.ID
+		LEFT JOIN T_PRJT_CREDITSCHEME PRCS ON PRJT.ID = PRCS.CREDIT_ID
+		LEFT JOIN T_CUST_CUSTOMER CUST ON PRJT.CUST_ID = CUST.CUST_ID
+	    LEFT JOIN T_BPM_INS_DATA D_RISK ON P.PROCESS_INS_ID = D_RISK.PROCESS_INS_ID AND D_RISK.DATA_DEF_ID = 'RISK_LIST'
+	    LEFT JOIN T_BPM_INS_DATA D_UP ON P.PROCESS_INS_ID = D_UP.PROCESS_INS_ID AND D_UP.DATA_DEF_ID = 'UP_USER'
+		<dynamic prepend="WHERE">
+			<isNotEmpty prepend="AND" property="aprvId">
+				<![CDATA[ APRV.APRV_ID = #aprvId# ]]>
+			</isNotEmpty>
+		</dynamic>
+	</select>
+	
+	<select id="previewApproval" parameterClass="com.brick.aprv.filter.ApprovalFilter" resultClass="com.brick.aprv.to.ApprovalTo">
+		SELECT
+	    	CASE WHEN PRJT.FINANCECONTRACT_DATE IS NOT NULL THEN 1 ELSE 0 END AS payed,
+	    	PRCS.LEASE_RZE payMoney,
+			(SELECT MAX(PRCM.CREATE_TIME) FROM T_PRJT_RISK_CONTROLMEMO PRCM WHERE PRCM.PRC_ID IN (SELECT PRRC.PRC_ID FROM T_PRJT_RISK_CONTROL PRRC WHERE PRRC.CREDIT_ID = PRJT.ID AND PRRC.STATUS=0)) payDate,
+	    	CUST.CUST_NAME AS custName
+	    FROM T_PRJT_CREDIT PRJT 
+	    LEFT JOIN T_PRJT_CREDITSCHEME PRCS ON PRJT.ID = PRCS.CREDIT_ID
+	    LEFT JOIN T_CUST_CUSTOMER CUST ON PRJT.CUST_ID = CUST.CUST_ID
+	    WHERE PRJT.LEASE_CODE = #leaseCode#
+	</select>
+	
+</sqlMap>

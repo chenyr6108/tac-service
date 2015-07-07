@@ -1,0 +1,411 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	     http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+	     http://www.springframework.org/schema/context
+	     http://www.springframework.org/schema/context/spring-context-3.2.xsd
+	     http://www.springframework.org/schema/tx
+	     http://www.springframework.org/schema/tx/spring-tx-3.2.xsd">
+
+	<bean id="riskAudit" class="com.brick.risk_audit.RiskAudit" parent="baseCommand">
+		<property name="riskAuditService" ref="riskAuditService"/>
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="tagService" ref="tagService"/>
+	</bean> 
+    
+    <bean id = "permission" class="com.brick.permission.service.PermissionService" parent="baseCommand"/>
+    
+    <bean id="caseReportService" class="com.brick.caseReport.service.CaseReportService">    
+    </bean>
+    	<!-- Add By Michael 2012 1/9 For 销账日报表 -->
+	<bean id="showDailyDecomposeExcel" class="com.brick.decompose.service.ShowDailyDecomposeReportExcel"></bean>
+
+	<!-- 各区业绩表 add by ShenQi -->
+	<bean id="achievementReportCommand" class="com.brick.bussinessReport.command.AchievementReportCommand">
+	    <property name="achievementReportService" ref="achievementReportService"/>
+	</bean>
+	
+	<bean id = "businessSupport" class="com.brick.businessSupport.command.BusinessSupportCommand" parent="baseCommand">
+		<property name="businessSupportService" ref="businessSupportService"/>
+		<property name="visitationService" ref="visitationService"/>
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+<!-- 发送短信 Add  by Michael 2012 4-11 -->
+	<bean id = "sendMessage" class="com.brick.sendMessage.SendMessageThread">
+		<property name="strHost">
+			<value type="java.lang.String">www.mobset.com</value>
+		</property>
+		<property name="iCorpID">
+			<value type="java.lang.Integer">116626</value>
+		</property>
+		<property name="strLoginName">
+			<value type="java.lang.String">yrzl</value>
+		</property>
+		<property name="strPasswd">
+			<value type="java.lang.String">tac.1234</value>
+		</property>
+		<property name="iTimeOut">
+			<value type="java.lang.Integer">30</value>
+		</property>			
+	</bean>
+	
+	<bean id="jobCommand" class="com.brick.job.command.JobCommand" parent="baseCommand">
+		<property name="jobService" ref="jobService"/>
+	</bean>
+	
+	<!-- 日业绩表 add by ShenQi -->
+	<bean id="achievementDailyCommand" class="com.brick.bussinessReport.command.AchievementDailyCommand">
+	    <property name="achievementDailyService" ref="achievementDailyService"/>
+	</bean>
+	
+	<!-- 每年工作日节假日的初始化Batch Job add by ShenQi -->
+	<bean id="dateInitializeConfig" class="com.brick.bussinessReport.command.DateInitializeConfigBatchJob">
+		<property name="dateInitializeService" ref="dateInitializeService"/>
+	</bean>
+	
+	<!-- 各区业绩同期比 add by ShenQi -->
+	<bean id="achievementCompareCommand" class="com.brick.bussinessReport.command.AchievementCompareCommand">
+		<property name="achievementCompareService" ref="achievementCompareService"/>
+	</bean>
+	
+	<!-- 导出虚拟账号 Add  by Michael 2012 4-11 -->
+	<bean id = "exportCustomerVirtualCode" class="com.brick.customer.service.ExportCustomerVirtualCodeExcel">
+	</bean>
+	
+	<!-- Add By Michael 2012 4/9 For 导出回租合同PDF -->
+	<bean id="leaseBackContractPDF" class="com.brick.contract.util.LeaseBackContractPDF"></bean>
+
+   	<!-- Add By Michael 2012 4/19 For 销账日报表 -->
+	<bean id="financeDecomposeReport" class="com.brick.job.service.FinanceDecomposeReport"></bean>
+	
+	<bean id="loanCommand" class="com.brick.activityLog.command.LoanCommand" parent="baseCommand">
+		<property name="loanService" ref="loanService"/>
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	
+	<!-- 2012/05/15 Yang Yun 访厂管理 -->
+	<bean id="visitCommand" class="com.brick.visitation.command.VisitationCommand" parent="baseCommand">
+		<property name="visitationService" ref="visitationService"/>
+	</bean>
+	
+	<bean id="achievementCaseCommand" class="com.brick.bussinessReport.command.AchievementCaseCommand" parent="baseCommand">
+		<property name="achievementCaseService" ref="achievementCaseService"/>
+		<property name="achievementReportService" ref="achievementReportService"/>
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	
+	<bean id="avgPayMoneyReportCommand" class="com.brick.bussinessReport.command.AvgPayMoneyReportCommand" parent="baseCommand">
+		<property name="avgPayMoneyBatchJobService" ref="avgPayMoneyBatchJobService"/>
+	</bean>
+	
+	<bean id="caseCompareDayCommand" class="com.brick.bussinessReport.command.CaseCompareDayCommand">
+		<property name="caseCompareDayService" ref="caseCompareDayService"></property>
+	</bean>
+	
+	<bean id="springSendEmail" class="com.brick.sms.email.MailTest" parent="baseService">
+		<property name="mailSender" ref="javaMailSender"/>
+		<property name="mailMessage" ref="mailMessage"/>
+		<property name="mimeMessage" ref="mimeMessage"/>
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="mailSettingService" ref="mailSettingService"/>
+	</bean>
+		<!-- MimeMessage -->
+	<bean id="mimeMessage" class="javax.mail.internet.MimeMessage" factory-bean="javaMailSender"
+		factory-method="createMimeMessage" />
+		
+	<bean id="javaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+		<property name="host" value="mail.tacleasing.cn" />
+		<property name="username" value="tacfinance_service@tacleasing.cn" />
+		<property name="password" value="1qaz2wsx5tgb" /> 
+		
+		<property name="javaMailProperties">
+		 
+			<props>
+				<prop key="mail.smtp.auth">true</prop>
+				<prop key="mail.smtp.timeout">25000</prop>
+				<prop key="mail.smtp.port">25</prop>
+				<prop key="mail.smtp.socketFactory.port">25</prop>
+				<prop key="mail.smtp.socketFactory.fallback">false</prop>
+			<!-- 	<prop key="mail.smtp.socketFactory.class">javax.net.ssl.SSLSocketFactory</prop>  -->
+			</props>
+		
+		</property>
+	
+	</bean>
+	
+	<!-- 简单的message -->
+		<!-- 简单的message -->
+	<bean id="mailMessage" class="org.springframework.mail.SimpleMailMessage">
+		<property name="to" value="sunman518@126.com" />
+		<property name="from" value="micahel@tacleasing.cn" />
+		<property name="subject" value="测试邮件" />
+	</bean>
+	
+	<bean id="creditDisabledEnabledCommand" class="com.brick.businessSupport.command.CreditDisabledEnabledCommand">
+		<property name="creditDisabledEnabledService" ref="creditDisabledEnabledService"/>
+	</bean>
+	
+	<bean id="supplerContributeCommand" class="com.brick.bussinessReport.command.SupplerContributeCommand" parent="baseCommand">
+		<property name="supplerContributeService" ref="supplerContributeService"/>
+		<property name="baseDAO" ref="baseDAO"/>
+	</bean>
+	
+	<bean id="customerCaseBatchJobCommand" class="com.brick.bussinessReport.command.CustomerCaseBatchJobCommand">
+		<property name="customerCaseBatchJobService" ref="customerCaseBatchJobService"/>
+		<property name="baseDAO" ref="baseDAO"/>
+	</bean>
+	
+	<bean id="supplerCustomerCaseBatchJobCommand" class="com.brick.bussinessReport.command.SupplerCustomerCaseBatchJobCommand">
+		<property name="supplerCustomerCaseBatchJobService" ref="supplerCustomerCaseBatchJobService"/>
+	</bean>
+	
+	<bean id="sendEmailForNotApproved" class="com.brick.businessSupport.command.SendEmailForNotApproved" parent="baseService">
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	
+	<bean id="sendEmailForSatisfaction" class="com.brick.job.service.SendEmailForSatisfaction" parent="baseService">
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	
+	<!-- 绿色通道，进件总台，VIP -->
+	<bean id = "creditCustomerVip" class="com.brick.credit.vip.service.CreditCustomerManage" /> 
+	<bean id = "creditReportVip" class="com.brick.credit.vip.service.CreditReportManage" parent="baseCommand">
+		<property name="riskAuditService" ref="riskAuditService"/>
+		<property name="tagService" ref="tagService"></property>
+	</bean>
+	<bean id = "creditCustomerCorpVip" class="com.brick.credit.vip.service.CreditCustomerCorpService" /> 
+	<bean id = "creditPriorRecordsVip" class="com.brick.credit.vip.service.CreditPriorRecordsService" /> 
+	<bean id = "creditPaylistServiceVip" class="com.brick.credit.vip.service.CreditPaylistService" />
+	<bean id = "creditVoucherVip" class="com.brick.credit.vip.service.CreditVouchService" />
+	<bean id = "expQuoToPdfVip" class="com.brick.credit.vip.service.ExportQuoToPdf" />
+	<bean id = "creditVouchManageVip" class="com.brick.credit.vip.service.CreditVouchManage" />
+	<!-- Add by zhangbo 2012 11-13 增加本金收据 -->
+	<bean id = "rentReceipt" class="com.brick.rentReceipt.RentReceipt" parent="baseCommand"/>
+	<bean id = "rentReceiptToPdf" class="com.brick.rentReceipt.RentReceiptToPdf"/>
+	
+	
+			<!-- Add by Michael 2012 06-06 增加报价单 -->
+	<bean id="quotation" class="com.brick.quotation.service.Quotation"></bean>
+	
+	<bean id="mailSettingCommand" class="com.brick.common.mail.command.MailSettingCommand" parent="baseCommand">
+		<property name="mailSettingService" ref="mailSettingService"/>
+	</bean>
+	
+	<!-- Add by Michael 2012 6-25 For Apache 发邮件方法 -->
+	<bean id="commanSendEmail" class="com.brick.sms.email.CommonEmail">
+		<property name="host" value="mail.tacleasing.cn" />
+		<property name="username" value="tacfinance_service@tacleasing.cn" />
+		<property name="password" value="1qaz2wsx5tgb" /> 
+	</bean>
+	
+	<bean id = "actionLogCommand" class="com.brick.log.command.ActionLogCommand" parent="baseCommand"/>
+<!-- Add by Michael 2012 07-16 增加重车回租合同导出 -->
+<bean id="expCarLeaseBackPDF" class="com.brick.contract.util.ExpCarLeaseBackPDF"/>
+	<bean id="customerVisitCommand" class="com.brick.customerVisit.command.CustomerVisitCommand">
+		<property name="customerVisitService" ref="customerVisitService"/>
+	</bean>
+	
+	<bean id="auditReportCommand" class="com.brick.auditReport.command.AuditReportCommand" parent="baseCommand">
+	</bean>
+	
+	<bean id="dataDictionaryCommand" class="com.brick.sys.command.DataDictionaryCommand" parent="baseCommand">
+		<property name="dataDictionaryService" ref="dataDictionaryService"/>
+	</bean>
+	
+	<bean id="anomalousProjectCommand" class="com.brick.credit.command.AnomalousProjectCommand" parent="baseCommand"/>
+	
+	<bean id="insuranceCommand" class="com.brick.insurance.command.InsuranceCommand" parent="baseCommand">
+		<property name="insuranceService" ref="insuranceService"/>
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	
+	<bean id="unnaturalCaseCommand" class="com.brick.unnaturalCase.command.UnnaturalCaseCommand" parent="baseCommand">
+		<property name="unnaturalCaseService" ref="unnaturalCaseService"/>
+	</bean>
+	
+	<bean id="customerVisitReportCommand" class="com.brick.bussinessReport.command.CustomerVisitReportCommand" parent="baseCommand">
+		<property name="customerVisitReportService" ref="customerVisitReportService"/>
+	</bean>
+	<bean id="completedFileControl" class="com.brick.completedFile.control.CompletedFileControl" parent="baseCommand">
+		<property name="completedFileBiz" ref="completedFileBiz"/>
+	</bean>
+	<bean id="modifyOrderCommand" class="com.brick.modifyOrder.command.ModifyOrderCommand" parent="baseCommand">
+		<property name="modifyOrderService" ref="modifyOrderService"/>
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	<bean id="dunCaseCommand" class="com.brick.bussinessReport.command.DunCaseCommand" parent="baseCommand">
+		<property name="dunCaseService" ref="dunCaseService"/>
+	</bean>
+	
+	<bean id="appPercentCommand" class="com.brick.report.command.ApprovedPercentReportCommand" parent="baseCommand">
+		<property name="appPercentService" ref="appPercentService"/>
+	</bean>
+	
+	<bean id="avgTrCommand" class="com.brick.report.command.AvgTrReportCommand" parent="baseCommand" />
+	<bean id="avgPeriodCommand" class="com.brick.report.command.AvgPeriodReportCommand" parent="baseCommand" />
+	
+	<bean id="supplierGroupCommand" class="com.brick.supplier.command.SupplierGroupCommand" parent="baseCommand">
+		<property name="supplierGroupService" ref="supplierGroupService"/>
+	</bean>
+	
+	<bean id="commonCommand" class="com.brick.common.command.CommonCommand" parent="baseCommand">
+		<property name="commonService" ref="commonService"/>
+	</bean>
+	<bean id="litigationCommand" class="com.brick.litigation.command.LitigationCommand" parent="baseCommand">
+		<property name="litigationService" ref="litigationService"/>
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="birt" ref="birtReportEngine" />
+	</bean>
+	<bean id="vipReportCommand" class="com.brick.report.command.VipProjectInfoReportCommand" parent="baseCommand"/>
+	
+	<bean id="employeeCommand" class="com.brick.employee.command.EmployeeCommand" parent="baseCommand">
+		<property name="employeeService" ref="employeeService"/>
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="companyService" ref="companyService"/>	
+	</bean>
+	
+	<bean id="deptCmpyCommand" class="com.brick.deptCmpy.command.DeptCmpyCommand" parent="baseCommand">
+		<property name="deptCmpyService" ref="deptCmpyService"/>
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="deptMapDAO" ref="deptMapDAO"/>
+	</bean>
+	
+	<bean id="ichartCommand" class="com.brick.ichart.command.IchartCommand" parent="baseCommand">
+		<property name="ichartService" ref="ichartService"/>
+	</bean>
+	
+	<bean id="deskCommand" class="com.brick.desk.command.DeskCommand" parent="baseCommand">
+		<property name="deskService" ref="deskService"/>
+	</bean>
+	
+	<bean id="creditSpecialCommand" class="com.brick.special.command.CreditSpecialCommand" parent="baseCommand">
+		<property name="creditSpecialService" ref="creditSpecialService"/>
+	</bean>
+	
+	<bean id="kingDeerTransferService" class="com.brick.kingDeerTransfer.service.kingDeerTransferService" parent="baseCommand">
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	
+	<bean id="amountCommand" class="com.brick.targetAmount.command.AmountCommand" parent="baseCommand">
+		<property name="amountService" ref="amountService"/>
+	</bean>
+	<bean id="expPassengerCarPDF" class="com.brick.contract.util.ExpPassengerCarPDF" />
+	
+	<!-- <bean id="riskControlCommand" class="com.brick.riskSystem.command.RiskControlCommand" parent="baseCommand">
+	</bean> -->
+	<bean id="dunTaskLawCommand" class="com.brick.dun.command.DunTaskLawCommand" parent="baseCommand">
+		<property name="dunTaskLawService" ref="dunTaskLawService"/>
+	</bean>
+	<!-- 年度业绩同期比 -->
+	<bean id="compareSamePeriodReport" class="com.brick.report.command.CompareSamePeriodReportCommand" parent="baseCommand">
+	
+	</bean>
+	<!-- 年度业管文审统计 -->
+	<bean id="aduitedRentContractReport" class="com.brick.report.command.AduitedRentContractReportCommand" parent="baseCommand">
+	
+	</bean>
+		<!-- 更改单用时统计报表 -->
+	<bean id="modifyOrderReport" class="com.brick.report.command.ModifyOrderReportCommand" parent="baseCommand">
+	
+	</bean>
+	
+	<bean id="insuranceFeeRemainderReportCommand" class="com.brick.financialReport.command.InsuranceFeeRemainderReportCommand" parent="baseCommand">
+		<property name="insuranceFeeRemainderReportService" ref="insuranceFeeRemainderReportService"/>
+	</bean>
+	
+	<bean id="contractControlSheetCommand" class="com.brick.financial.command.ContractControlSheetCommand" parent="baseCommand">
+		<property name="contractControlSheetService" ref="contractControlSheetService"/>
+	</bean>
+	<bean id="tagManageCommand" class="com.brick.project.command.TagManageCommand" parent="baseCommand">
+		<property name="tagService" ref="tagService"></property>
+	</bean>
+	
+	<bean id="interestIncomeReportCommand" class="com.brick.financialReport.command.InterestIncomeReportCommand" parent="baseCommand">
+		<property name="interestIncomeReportService" ref="interestIncomeReportService"/>
+	</bean>
+	
+	<bean id="insuranceForAccountantReportCommand" class="com.brick.report.command.InsuranceForAccountantReportCommand" parent="baseCommand"></bean>
+	
+	<bean id="invoiceManageCommand" class="com.brick.invoice.command.InvoiceManageCommand" parent="baseCommand">
+		<property name="invoiceManageService" ref="invoiceManageService"/>
+	</bean>
+	
+	<bean id="supplierCommand" class="com.brick.supplier.command.SupplierCommand" parent="baseCommand">
+		<property name="supplierService" ref="supplierService"></property>
+	</bean>
+	
+	<bean id="oneBarcodeCommand" class="com.brick.common.command.OneBarcodeCommand" parent="baseCommand">
+	</bean>
+	
+	<bean id="rentFinanceCommand" class="com.brick.rent.command.RentFinanceCommand" parent="baseCommand">
+		<property name="rentFinanceService" ref="rentFinanceService"/>
+		<property name="mailUtilService" ref="mailUtilService"/>
+		<property name="userService" ref="userService"/>
+	</bean>
+
+	<bean id="helpCommand" class="com.brick.help.command.HelpCommand" parent="baseCommand">
+		<property name="helpService" ref="helpService" />		
+	</bean>
+
+	<bean id="contributionCommand" class="com.brick.contribution.command.ContributionCommand" parent="baseCommand">
+		<property name="contributionService" ref="contributionService" />
+	</bean>
+	<bean id = "recordCommand" class="com.brick.record.RentContractRecordCommand" parent="baseCommand">
+		<property name="recordService" ref="recordService" />
+		<property name="userService"  ref="userService" />
+		<property name="agentService" ref="agentService"></property>
+	</bean>
+	
+	<bean id="deptCommand" class="com.tac.dept.command.DeptCommand" parent="baseCommand">
+		<property name="deptService" ref="deptService" />
+		<property name="companyService" ref="companyService" />		
+	</bean>
+	
+	<bean id="companyCommand" class="com.tac.company.command.CompanyCommand" parent="baseCommand">
+		<property name="companyService" ref="companyService" />		
+	</bean>
+	<bean id="userCommand" class="com.tac.user.command.UserCommand" parent="baseCommand">
+		<property name="userService" ref="userService" />		
+	</bean>
+	<bean id="carBackLeaseCommand" class="com.brick.car.command.CarBackLeaseCommand" parent="baseCommand">
+	    
+	</bean>
+	<bean id="agentCommand" class="com.tac.agent.command.AgentCommand" parent="baseCommand">
+	    <property name="agentService" ref="agentService" />		
+	</bean>
+	
+	<bean id="invoiceManagementCommand" class="com.brick.invoiceManagement.command.InvoiceManagementCommand" parent="baseCommand">
+		<property name="invoiceManagementService" ref="invoiceManagementService" />
+	</bean>
+	
+	<bean id="ChangeSenson" class="com.brick.support.service.ChangeSenson" parent="baseCommand"></bean>
+	
+	<bean id="payerCommand" class="com.brick.payer.command.PayerCommand" parent="baseCommand">
+		<property name="payerService" ref="payerService" />
+	</bean>
+	
+	<bean id="signOrderCommand" class="com.brick.signOrder.command.SignOrderCommand" parent="baseCommand">
+		<property name="signOrderService" ref="signOrderService" />
+		<property name="mailUtilService" ref="mailUtilService"/>
+	</bean>
+	
+	<bean id="bpmCommand" class="com.brick.bpm.command.TaskCommand" parent="baseCommand">
+		<property name="bpmTaskService" ref="bpmTaskService"/>
+		<property name="bpmInstanceService" ref="bpmInstanceService"/>
+		<property name="bpmDefinitionDao" ref="bpmDefinitionDao"/>
+	</bean>
+	
+	<bean id="approvalCommand" class="com.brick.aprv.command.ApprovalCommand" parent="baseCommand">
+		<property name="approvalService" ref="approvalService"/>
+		<property name="bpmTaskService" ref="bpmTaskService"/>
+	</bean>
+	
+	<bean id="dataSessionCommand" class="com.brick.base.command.DataSessionCommand" parent="baseCommand">
+		<property name="dataSessionService" ref="dataSessionService" />
+	</bean>
+	
+	<bean id="kingDeerCommand" class="com.brick.kingDeer.command.KingDeerCommand" parent="baseCommand">
+		<property name="kingDeerService" ref="kingDeerService"/>
+	</bean>
+</beans>

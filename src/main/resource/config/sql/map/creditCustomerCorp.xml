@@ -1,0 +1,606 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="creditCustomerCorp">
+	 <!-- 插入一条资信法人信息 -->
+	 <insert id="createCreditCustomerCorp" parameterClass="map">
+	 	insert into t_prjt_creditcustomercorp
+			(
+			CREDIT_ID,
+			CORP_NAME_CN,
+			CORP_NAME_EN,
+			EMPLOYEE_COUNT,
+			CORP_TYPE,
+			BUSINESS_LICENCE_CODE,
+			BUSINESS_TIME_LIMIT,
+			ORGANIZATION_CODE_CERTIFICATE,
+			ROAD_WORTHINESS_INSPECTION,
+			TAX_REGISTRATION_NUMBER,
+			INCORPORATING_DATE,
+			REGISTERED_CAPITAL,
+			REGISTERED_OFFICE_ADDRESS,
+			MANAGING_SCOPE,
+			TELEPHONE,
+			FAX,
+			URL,
+			MEMO,
+			CONTRIBUTED_CAPITAL,
+			POSTCODE,
+			LEGAL_PERSON,
+			LEGAL_ID_CARD,
+			LEGAL_TELEPHONE,
+			LEGAL_POSTCODE,
+			LEGAL_HOME_ADDRESS,
+			LEGAL_MOBILE_NUMBER1,
+			LEGAL_MOBILE_NUMBER2,
+			LINK_MAN,
+			LINK_ID_CARD,
+			LINK_TELEPHONE,
+			LINK_JOB,
+			LINK_POSTCODE,
+			LINK_MAILING_ADDRESS,
+			LINK_MOBILE_NUMBER1,
+			LINK_MOBILE_NUMBER2,
+			LINK_EMAIL,
+			LINK_MSN,
+			OTHER_INFO,
+			STATUS,
+			CREATE_USER_ID,
+			MODIFY_USER_ID,
+			CREATE_DATE,
+			MODIFY_DATE,
+			COMMON_OFFICE_ADDRESS,
+			LEGAL_IDCARD_FLAG,
+			LINK_IDCARD_FLAG,
+			TAX_CODE,
+			EXPERIENCE,
+			ISLISTED,
+			BUSINESS_SURVEY,<!-- 公司沿革下面加入营业概况栏位 add by ShenQi 2012-8-28 -->
+			REGISTERED_CAPITAL_CURRENCY,
+			CONTRIBUTED_CAPITAL_CURRENCY
+			)
+			values
+			(
+			#credit_id#,
+			#CORP_NAME_CN#,
+			#CORP_NAME_EN#,
+			#EMPLOYEE_COUNT#,
+			#CORP_TYPE#,
+			#BUSINESS_LICENCE_CODE#,
+			#BUSINESS_TIME_LIMIT#,
+			#ORGANIZATION_CODE_CERTIFICATE#,
+			#ROAD_WORTHINESS_INSPECTION#,
+			#TAX_REGISTRATION_NUMBER#,
+			CONVERT(datetime,#INCORPORATING_DATE#),
+			#REGISTERED_CAPITAL#,
+			#REGISTERED_OFFICE_ADDRESS#,
+			#MANAGING_SCOPE#,
+			#TELEPHONE#,
+			#FAX#,
+			#URL#,
+			#MEMO#,
+			#CONTRIBUTED_CAPITAL#,
+			#POSTCODE#,
+			#LEGAL_PERSON#,
+			#LEGAL_ID_CARD#,
+			#LEGAL_TELEPHONE#,
+			#LEGAL_POSTCODE#,
+			#LEGAL_HOME_ADDRESS#,
+			#LEGAL_MOBILE_NUMBER1#,
+			#LEGAL_MOBILE_NUMBER2#,
+			#LINK_MAN#,
+			#LINK_ID_CARD#,
+			#LINK_TELEPHONE#,
+			#LINK_JOB#,
+			#LINK_POSTCODE#,
+			#LINK_MAILING_ADDRESS#,
+			#LINK_MOBILE_NUMBER1#,
+			#LINK_MOBILE_NUMBER2#,
+			#LINK_EMAIL#,
+			#LINK_MSN#,
+			#OTHER_INFO#,
+			0,
+			#s_employeeId#,
+			#s_employeeId#,
+			getdate(),
+			getdate(),
+			#COMMON_OFFICE_ADDRESS#,
+			#LEGAL_IDCARD_FLAG#,
+			#LINK_IDCARD_FLAG#,
+			#TAX_CODE#,
+			#experience#,
+			#isListed#,
+			<isEmpty property="BUSINESS_SURVEY">
+			' '
+			</isEmpty>
+			<isNotEmpty property="BUSINESS_SURVEY">
+			#BUSINESS_SURVEY#
+			</isNotEmpty>
+			,#REGISTERED_CAPITAL_CURRENCY#,
+			#CONTRIBUTED_CAPITAL_CURRENCY#
+			)
+	 </insert>
+	 <!--
+	    插入一条资信自然人信息    
+	  -->
+	 <insert id="createCreditNatunal" parameterClass="map">
+	 	insert into t_prjt_natunal
+			(
+			 natu_name,
+			 cust_code,
+			natu_idcard,
+			age,
+			sex,
+			home_phone,
+			home_addr,
+			work_unit,
+			mate_name,
+			mate_age,
+			mate_idcard,
+			mate_work_unit,
+			mobile_phone,
+			mate_phone,
+			mate_mobile,
+			credit_id,
+			natu_linkman,
+			linkman_phone,
+			natu_zip,
+			natu_fax,
+			create_user_id,
+			modify_user_id,
+			id_card_type
+			)
+			values
+			(
+			#natu_name#,
+			 #cust_code#,
+			#natu_idcard#,
+			#age#,
+			#sex#,
+			#home_phone#,
+			#home_addr#,
+			#work_unit#,
+			#mate_name#,
+			#mate_age#,
+			#mate_idcard#,
+			#mate_work_unit#,
+			#mobile_phone#,
+			#mate_phone#,
+			#mate_phone#,
+			#credit_id#,
+			#natu_linkman#,
+			#linkman_phone#,
+			#natu_zip#,
+			#natu_fax#,
+			#s_employeeId#,
+			#s_employeeId#,
+			#ID_CARD_TYPE#
+			)
+	 </insert>
+	 
+	 
+	 <insert id="createNatuFam" parameterClass="map">
+	 	insert into t_prjt_natufamily
+			(
+			 credit_id,
+			fam_name,
+			fam_relation,
+			fam_addr,
+			remark,
+			fam_link,
+			create_user_id,
+			modify_user_id
+			)
+			values
+			(
+			#CREDIT_ID#,
+			#fam_name#,
+			#fam_relation#,
+			#fam_addr#,
+			#remark#,
+			#fam_link#,
+			#s_employeeId#,
+			#s_employeeId#
+			)
+	 </insert>
+	 
+	 
+	 <insert id="createNatuSoc" parameterClass="map">
+	 	insert into t_prjt_natusocial
+			(
+			 credit_id,
+			soci_name,
+			soci_work,
+			soci_position,
+			soci_remark,
+			soci_link,
+			create_user_id,
+			modify_user_id
+			)
+			values
+			(
+			#CREDIT_ID#,
+			#soci_name#,
+			#soci_work#,
+			#soci_position#,
+			#soci_remark#,
+			#soci_link#,
+			#s_employeeId#,
+			#s_employeeId#
+			)
+	 </insert>
+	  <select id="getCreditCustomerCorpByCreditId" parameterClass="map" resultClass="hashmap">
+	 	select * from t_prjt_creditcustomercorp where credit_id=#credit_id#
+		 </select>
+	 <select id="getCreditCCorpByCreditId" parameterClass="map" resultClass="hashmap">
+	 	
+	  SELECT T.PJCCC_ID,
+		 ISNULL(T.CORP_NAME_CN,'  ') CORP_NAME_CN,
+		ISNULL(T.CORP_NAME_EN,' ') CORP_NAME_EN,
+		ISNULL(T.CORP_TYPE,' ') CORP_TYPE,
+		ISNULL(T.BUSINESS_LICENCE_CODE,' ') BUSINESS_LICENCE_CODE,
+		ISNULL(T.BUSINESS_TIME_LIMIT,' ') BUSINESS_TIME_LIMIT,
+		ISNULL(T.ORGANIZATION_CODE_CERTIFICATE,'') ORGANIZATION_CODE_CERTIFICATE,
+		ISNULL(T.LEGAL_PERSON,' ') LEGAL_PERSON,
+		ISNULL(T.TELEPHONE,'') TELEPHONE,
+		ISNULL(T.FAX,'') FAX,
+		ISNULL(T.POSTCODE,'') POSTCODE,
+		ISNULL(T.REGISTERED_OFFICE_ADDRESS,'') REGISTERED_OFFICE_ADDRESS,
+		ISNULL(T.COMMON_OFFICE_ADDRESS,'') COMMON_OFFICE_ADDRESS,
+		ISNULL(T.LINK_MAN,'') LINK_MAN,
+		ISNULL(T.LEGAL_ID_CARD,'') LEGAL_ID_CARD,
+		ISNULL(T1.LEASE_CODE,'') LEASE_CODE,
+     	TDDP.DECP_ID,
+		  T2.CUST_CODE,
+		  T1.WIND_STATE,
+		  T1.CONTRACT_TYPE,
+		  T2.NATU_IDCARD_ADDRESS,
+		  T2.NATU_HOME_ADDRESS,
+		  T2.NATU_MOBILE
+		 FROM T_PRJT_CREDIT  T1 
+		LEFT JOIN T_PRJT_CREDITCUSTOMERCORP T ON  T.CREDIT_ID = T1.ID
+		LEFT JOIN T_CUST_CUSTOMER T2 ON  T1.CUST_ID =T2.CUST_ID
+     Left join T_USER_USER TUU  on T1.SENSOR_ID = TUU.ID
+     LEFT JOIN T_DEPT_DEPARTMENT TDDP ON TUU.DEPT_ID=TDDP.ID
+		 WHERE T1.ID=#credit_id#
+		 
+	 </select>
+	 
+	  <select id="getCreditCCorpByCreditIdUpdateCon" parameterClass="map" resultClass="hashmap">
+	 	
+	 select ISNULL(t.LESSEE,' ') CORP_NAME_CN,
+		 ISNULL(t3.CORP_NAME_EN,' ') CORP_NAME_EN,
+		 ISNULL(t3.CORP_TYPE,' ') CORP_TYPE,
+		 ISNULL(t3.BUSINESS_LICENCE_CODE,' ') BUSINESS_LICENCE_CODE,
+		 ISNULL(t3.BUSINESS_TIME_LIMIT,' ') BUSINESS_TIME_LIMIT,
+		 ISNULL(t.CORP_ORAGNIZATION_CODE,'') ORGANIZATION_CODE_CERTIFICATE,
+		ISNULL(t3.LEGAL_PERSON,' ') LEGAL_PERSON,
+		ISNULL(t.CUST_PHONE,'') TELEPHONE,
+		ISNULL(t.CUST_FAX,'') FAX,
+		ISNULL(t.CUST_ZIP,'') POSTCODE,
+		ISNULL(t.CORP_REGISTE_ADDRESS,'') REGISTERED_OFFICE_ADDRESS,
+		ISNULL(t.CORP_WORK_ADDRESS,'') COMMON_OFFICE_ADDRESS,
+		ISNULL(t.CUST_LINKMAN,'') LINK_MAN,
+		ISNULL(t3.LEGAL_ID_CARD,'') LEGAL_ID_CARD,
+		ISNULL(t.LEASE_CODE,'') LEASE_CODE,
+		  t.CUST_CODE,
+		  t2.WIND_STATE,
+		  t2.CONTRACT_TYPE,
+      	TDDP.DECP_ID
+		 from T_RENT_CONTRACT t
+		 left join T_RENT_CONTRACTSCHEMA t1 on t.RECT_ID=t1.RECT_ID and t1.STATUS=0
+		 left join T_PRJT_CREDIT t2 on t2.ID=t.PRCD_ID and t2.STATUS=0
+    	 Left join T_USER_USER TUU  on t2.SENSOR_ID = TUU.ID
+     	LEFT JOIN T_DEPT_DEPARTMENT TDDP ON TUU.DEPT_ID=TDDP.ID
+		 left join T_PRJT_CREDITCUSTOMERCORP t3 on t3.CREDIT_ID=t2.ID and t3.STATUS=0
+		 where t.RECT_STATUS=1 and t.STATUS=0 and t.PRCD_ID=#credit_id#
+		 
+	 </select>
+	 
+	 <select id="getCreditCNatuByCreditId" parameterClass="map" resultClass="hashmap">
+	 	
+	 SELECT T.PJCCC_ID,
+		 ISNULL(T.CORP_NAME_CN,'  ') CORP_NAME_CN,
+		ISNULL(T.CORP_NAME_EN,' ') CORP_NAME_EN,
+		ISNULL(T.CORP_TYPE,' ') CORP_TYPE,
+		ISNULL(T.BUSINESS_LICENCE_CODE,' ') BUSINESS_LICENCE_CODE,
+		ISNULL(T.BUSINESS_TIME_LIMIT,' ') BUSINESS_TIME_LIMIT,
+		ISNULL(T.ORGANIZATION_CODE_CERTIFICATE,'') ORGANIZATION_CODE_CERTIFICATE,
+		ISNULL(T.LEGAL_PERSON,' ') LEGAL_PERSON,
+		ISNULL(T.TELEPHONE,'') TELEPHONE,
+		ISNULL(T.FAX,'') FAX,
+		ISNULL(T.POSTCODE,'') POSTCODE,
+		ISNULL(T.REGISTERED_OFFICE_ADDRESS,'') REGISTERED_OFFICE_ADDRESS,
+		ISNULL(T.COMMON_OFFICE_ADDRESS,'') COMMON_OFFICE_ADDRESS,
+		ISNULL(T.LINK_MAN,'') LINK_MAN,
+		ISNULL(T.LEGAL_ID_CARD,'') LEGAL_ID_CARD,
+		ISNULL(T1.LEASE_CODE,'') LEASE_CODE,
+		  T2.CUST_CODE,
+		  T1.CONTRACT_TYPE
+		 FROM T_PRJT_CREDIT  T1 
+		LEFT JOIN T_PRJT_NATUNAL T ON  T.CREDIT_ID = T1.ID
+		LEFT JOIN T_CUST_CUSTOMER T2 ON  T1.CUST_ID =T2.CUST_ID
+		 WHERE ID=#credit_id#
+		 
+	 </select>
+	
+
+	 <select id="getCreditCustomerNatuByCreditId" parameterClass="map" resultClass="hashmap">
+	 	select * from t_prjt_natunal where credit_id=#credit_id#
+	 </select>
+
+
+
+	 <select id="getCustTypeByCreditId" parameterClass="map" resultClass="hashmap">
+		 SELECT T.PJCCC_ID,
+	   		T2.CUST_TYPE,
+		  T2.CUST_CODE,
+		  T1.CONTRACT_TYPE
+		 FROM T_PRJT_CREDIT  T1 
+		LEFT JOIN T_CUST_CUSTOMER T2 ON  T1.CUST_ID =T2.CUST_ID
+		 WHERE ID=#credit_id#
+		 
+	 </select>
+
+		<delete id="deleteCreditCustomerCorpByCreditId" parameterClass="map">
+		 	  delete from t_prjt_creditcustomercorp
+		 	  where credit_id=#credit_id#	
+		 </delete>	 
+	 
+	 <update id="updateCreditCustomerCorpById" parameterClass="map">
+	 	update t_prjt_creditcustomercorp
+  			  set
+			CORP_NAME_CN=#CORP_NAME_CN#,
+			CORP_NAME_EN=#CORP_NAME_EN#,
+			EMPLOYEE_COUNT=#EMPLOYEE_COUNT#,
+			CORP_TYPE=#CORP_TYPE#,
+			BUSINESS_LICENCE_CODE=#BUSINESS_LICENCE_CODE#,
+			BUSINESS_TIME_LIMIT=#BUSINESS_TIME_LIMIT#,
+			ORGANIZATION_CODE_CERTIFICATE=#ORGANIZATION_CODE_CERTIFICATE#,
+			ROAD_WORTHINESS_INSPECTION=#ROAD_WORTHINESS_INSPECTION#,
+			TAX_REGISTRATION_NUMBER=#TAX_REGISTRATION_NUMBER#,
+			INCORPORATING_DATE=CONVERT(datetime,#INCORPORATING_DATE#),
+			REGISTERED_CAPITAL=#REGISTERED_CAPITAL#,
+			REGISTERED_OFFICE_ADDRESS=#REGISTERED_OFFICE_ADDRESS#,
+			MANAGING_SCOPE=#MANAGING_SCOPE#,
+			TELEPHONE=#TELEPHONE#,
+			FAX=#FAX#,
+			URL=#URL#,
+			MEMO=#MEMO#,
+			CONTRIBUTED_CAPITAL=#CONTRIBUTED_CAPITAL#,
+			POSTCODE=#POSTCODE#,
+			LEGAL_PERSON=#LEGAL_PERSON#,
+			LEGAL_TELEPHONE=#LEGAL_TELEPHONE#,
+			LEGAL_POSTCODE=#LEGAL_POSTCODE#,
+			LEGAL_HOME_ADDRESS=#LEGAL_HOME_ADDRESS#,
+			LEGAL_MOBILE_NUMBER1=#LEGAL_MOBILE_NUMBER1#,
+			LEGAL_MOBILE_NUMBER2=#LEGAL_MOBILE_NUMBER2#,
+			LINK_MAN=#LINK_MAN#,
+			LINK_TELEPHONE=#LINK_TELEPHONE#,
+			LINK_JOB=#LINK_JOB#,
+			LINK_POSTCODE=#LINK_POSTCODE#,
+			LINK_MAILING_ADDRESS=#LINK_MAILING_ADDRESS#,
+			LINK_MOBILE_NUMBER1=#LINK_MOBILE_NUMBER1#,
+			LINK_MOBILE_NUMBER2=#LINK_MOBILE_NUMBER2#,
+			LINK_EMAIL=#LINK_EMAIL#,
+			LINK_MSN=#LINK_MSN#,
+			OTHER_INFO=#OTHER_INFO#,  
+			MODIFY_USER_ID=#s_employeeId#, 
+			MODIFY_DATE=getdate(),
+			COMMON_OFFICE_ADDRESS=#COMMON_OFFICE_ADDRESS#,
+			LEGAL_IDCARD_FLAG=#LEGAL_IDCARD_FLAG#,
+			LINK_IDCARD_FLAG= #LINK_IDCARD_FLAG#,
+				 LEGAL_ID_CARD=#LEGAL_ID_CARD# ,
+				  LINK_ID_CARD=#LINK_ID_CARD#,
+				  TAX_CODE=#TAX_CODE#
+     		 where 
+   	  		 PJCCC_ID=#creditCustomerCorp_id#
+			 
+	 </update>
+	 
+	 <update id="updateCreditCustomerNatuById" parameterClass="map" >
+	 update t_prjt_natunal set
+	 natu_name =#natu_name#,
+	 natu_idcard =#natu_idcard# ,
+	 age =#age# ,
+	 sex =#sex# ,
+	 home_phone  =#home_phone# ,
+	 home_addr =#home_addr#  ,
+	 work_unit  =#work_unit# ,
+	 mate_name=#mate_name#  ,
+	 mate_age  =#mate_age#,
+	 mate_idcard  =#mate_idcard# ,
+	 mate_work_unit  =#mate_work_unit# ,
+	 mobile_phone =#mobile_phone#  ,
+	 mate_phone =#mate_phone# ,
+	 mate_mobile =#mate_phone# ,
+	 natu_linkman=#natu_linkman#,
+			linkman_phone=#linkman_phone#,
+			natu_zip=#natu_zip#,
+			natu_fax=#natu_fax#,
+	 modify_user_id   =#s_employeeId#,
+	 modify_date=getdate() ,
+	 id_card_type=#ID_CARD_TYPE#
+	where  credit_id  =#credit_id# 
+	 </update>
+	 
+
+	 <update id="updateCreditNatuFamById" parameterClass="map" >
+	 	update t_prjt_natufamily set
+			fam_name= #fam_name#,
+			fam_relation= #fam_relation#,
+			fam_addr= #fam_addr#,
+			remark= #remark#,
+			fam_link= #fam_link#,
+			modify_user_id = #s_employeeId#,
+			modify_date=getdate() 
+	where  credit_id  =#CREDIT_ID# 
+	 </update>
+	 
+	 <update id="updateCreditNatuSocById" parameterClass="map" >
+	 	update t_prjt_natusocial set
+			soci_name=#soci_name#,
+			soci_work=#soci_work#,
+			soci_position=#soci_position#,
+			soci_remark=#soci_remark#,
+			soci_link=#soci_link#,
+			modify_user_id=#s_employeeId#,
+			modify_date=getdate() 
+	where  credit_id  =#CREDIT_ID# 
+	 </update>
+	 
+	 
+	 
+	 
+	 <!-- 添加一条资信法人的银行账号信息 -->
+	 <insert id="createCreditCorpBankAccount" parameterClass="map">
+	 	insert into t_prjt_creditcorpbankaccount
+			(
+			BANK_NAME,	
+			BANK_ACCOUNT,
+			STATE,
+			STATUS,
+			CREATE_DATE,
+			MODIFY_DATE,
+			CREDIT_ID
+			)
+			values
+			(
+			#BANK_NAME#,
+			#BANK_ACCOUNT#,
+			#STATE#,
+			0,
+			getdate(),
+			getdate(),
+			#CREDIT_ID#
+			)
+	 </insert>
+	 
+	 <!-- 根据资信id查询该ID下的所有银行账户 -->
+	 <select id="getCreditCorpBankAccountByCreditId" parameterClass="map" resultClass="hashmap">
+	 	select * from t_prjt_creditcorpbankaccount where status=0 and credit_id=#credit_id# 
+	 </select>
+	 
+	 <!-- 根据账户id 更新该基本账户的信息 -->
+	 <update id="updateCreditCorpBankAccountById" parameterClass="map">
+	 	update t_prjt_creditcorpbankaccount
+	 	set BANK_NAME=#BANK_NAME#,
+	 	BANK_ACCOUNT=#BANK_ACCOUNT#,
+	 	MODIFY_DATE=getdate()
+	 	where PCCBA_ID=#PCCBA_ID#
+	 </update>
+	 <!-- 根据资信id 删除银行账户的信息 -->
+	 <update id="deleteCreditCorpBankAccountById" parameterClass="map">
+	 	update t_prjt_creditcorpbankaccount
+	 	set status=-2
+	 	where credit_id=#credit_id#
+	 </update>	 
+	 <!-- 根绝资信ID删除该id下的所有其他账户 -->
+	 <delete id="deleteCreditCorpBankAccountByCreditId" parameterClass="map">
+	 	delete from t_prjt_creditcorpbankaccount where state=1 and credit_id=#credit_id# 
+	 </delete>
+	 
+	 <!-- 插入一条资信法人股东信息 -->
+	 <insert id="createCreditCorpShareholder" parameterClass="map">
+	 	insert into t_prjt_creditcorpshareholder
+			( 
+			HOLDER_NAME,	 
+			HOLDER_CAPITAL, 
+			HOLDER_WAY,	 
+			HOLDER_RATE,	 
+			HOLDER_MOME ,
+			CREDIT_ID, 
+			STATUS,
+			CREATE_DATE,
+			MODIFY_DATE
+			)	 
+			values
+			( 
+			#HOLDER_NAME#,	 
+			#HOLDER_CAPITAL#, 
+			#HOLDER_WAY#,	 
+			#HOLDER_RATE#,	 
+			#HOLDER_MOME#,
+			#CREDIT_ID#, 
+			0,
+			getdate(),
+			getdate()
+			)	 
+	 </insert>
+	 <!-- 根据资信ID删除资信下的股东信息 -->
+	 <delete id="deleteCreditCorpShareholderByCreditId" parameterClass="map">
+	 	  delete from t_prjt_creditcorpshareholder 
+	 	  where credit_id=#credit_id#	
+	 </delete>
+	 
+	 
+	 <delete id="deleteCreditFamByCreditId" parameterClass="map">
+	 	  delete from t_prjt_natufamily
+	 	  where credit_id=#credit_id#	
+	 </delete>
+	 
+	 
+	 <delete id="deleteCreditSocByCreditId" parameterClass="map">
+	 	  delete from t_prjt_natusocial
+	 	  where credit_id=#credit_id#	
+	 </delete>
+	 
+	 <!-- 根据资信id查询该资信下的所有股东信息 -->
+	 <select id="getCreditCorpShareholderByCreditId" parameterClass="map" resultClass="hashmap">
+	 	select * from t_prjt_creditcorpshareholder where credit_id=#credit_id#	
+	 	and status=0
+	 </select> 
+
+
+	 <select id="getCreditNatuFamByCreditId" parameterClass="map" resultClass="hashmap">
+	 	select * from t_prjt_natufamily where credit_id= #credit_id#
+		and status=0  
+	 </select> 
+	 <select id="getCreditNatuSocByCreditId" parameterClass="map" resultClass="hashmap">
+	 	select * from t_prjt_natusocial where credit_id=#credit_id#	
+		and status=0  
+	 </select> 
+	 
+	 <!-- 插入一条资信法人公司项目 -->
+	 <insert id="createCreditCorpProject" parameterClass="map">
+	 	insert into t_prjt_creditcorpproject
+			(	 
+			PROJECT_NAME ,
+			PROJECT_DATE ,
+			PROJECT_CONTENT ,
+			STATUS ,
+			CREATE_DATE ,
+			MODIFY_DATE ,
+			CREDIT_ID	  
+			)
+			values
+			( 
+			#PROJECT_NAME# ,
+			#PROJECT_DATE# ,
+			#PROJECT_CONTENT# ,
+			0 ,
+			getdate() ,
+			getdate() ,
+			#CREDIT_ID#	   
+			)
+	 </insert>
+	 
+	 <!--根据资信id查询资信法人公司项目  -->
+	 <select id="getCreditCorpProjectByCreditId" parameterClass="map" resultClass="hashmap">
+	 	select * from t_prjt_creditcorpproject where credit_id=#credit_id# and status=0
+	 </select>
+	 
+	 <!-- 根据资信id删除资信法人公司项目 -->
+	 <delete id="deleteCreditCorpProjectByCreditId">
+	 	delete from t_prjt_creditcorpproject where credit_id=#credit_id#  
+	 </delete>
+	 
+	 <!-- 验证是否是老客户 -->
+	 <select id="validOldCustomer" parameterClass="map" resultClass="int">
+	 	    
+		select  count(1) cnt from t_prjt_credit tpc 
+		where tpc.status=0 and tpc.cust_id=
+		(select cust_id from t_prjt_credit tpc where tpc.id=#credit_id#) 
+	 </select>
+</sqlMap>

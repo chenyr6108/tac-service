@@ -1,0 +1,957 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="quotation">
+	<insert id="createQuotationScheme" parameterClass="map">
+		   <![CDATA[
+			insert into T_QUOTATION_SCHEME
+			  (
+			   LEASE_TERM,
+			   LEASE_PERIOD,
+			   PLEDGE_PRICE, 
+			   HEAD_HIRE,
+			   HEAD_HIRE_PERCENT,
+			   FLOAT_RATE,
+			   YEAR_INTEREST,
+			   LEASE_TOPRIC,
+			   PAY_WAY,
+			   LEASE_RZE,
+			   STATUS,
+			   PLEDGE_PRICE_RATE,
+			   CREATE_USER_ID,
+			   CREATE_DATE,
+			   PLEDGE_PERIOD,
+			   TR_RATE,
+			   TR_IRR_RATE,
+			   OTHER_TAX,
+			   PLEDGE_AVE_PRICE,
+			   PLEDGE_BACK_PRICE,
+			   PLEDGE_LAST_PRICE,
+			   PLEDGE_LAST_PERIOD,
+			   RATE_DIFF,
+			   STAYBUY_PRICE,
+			   CUST_NAME,
+			   IS_TAX,
+			   REN_PRICE,
+			   SALES_TAX,
+			   TOTALRENPRICE,
+			   PLEDGE_AVG_PRICE,CONTRACT_TYPE,TAX_PLAN_CODE,TOTAL_VALUEADDED_TAX,PLEDGE_LAST_PRICE_TAX,DEFER_PERIOD,LEASE_ALLPRIC,REMARK
+			   )
+			   values
+			   (
+			   #LEASE_TERM#,
+			   #LEASE_PERIOD#,
+			   #PLEDGE_PRICE#, 
+			   #HEAD_HIRE#,
+			   #HEAD_HIRE_PERCENT#,
+			   #FLOAT_RATE#,
+			   #YEAR_INTEREST#,
+			   #LEASE_TOPRIC#,
+			   #PAY_WAY#,
+			   #LEASE_RZE#,
+			   0,
+			   #PLEDGE_PRICE_RATE#,
+			   #s_employeeId#, 
+			   getdate(),
+			   #PLEDGE_PERIOD#,
+			   #TR_RATE#,
+			   #TR_IRR_RATE#,
+			   0,
+			   #PLEDGE_AVE_PRICE#,
+			   #PLEDGE_BACK_PRICE#,
+			   #PLEDGE_LAST_PRICE#,
+			   #PLEDGE_LAST_PERIOD#,
+			   #RATE_DIFF#,
+			   #STAYBUY_PRICE#,
+   			   #CUST_NAME#,
+   			   #IS_TAX#,
+   			   #REN_PRICE#,
+			   #SALES_TAX#,
+			   #TOTALRENPRICE#,
+			   #PLEDGE_AVG_PRICE#,#CONTRACT_TYPE#,#TAX_PLAN_CODE#,#TOTAL_VALUEADDED_TAX#,#PLEDGE_LAST_PRICE_TAX#,#DEFER_PERIOD#,#LEASE_ALLPRIC#,#REMARK#
+			   )
+		   ]]> 
+		   
+   		 	<selectKey resultClass="java.lang.Long" keyProperty="ID">
+				<![CDATA[	SELECT @@IDENTITY AS ID  ]]>
+			</selectKey> 
+	</insert>
+	<insert id="createQuotationScheme1" parameterClass="map">
+			insert into T_QUOTATION_SCHEME
+			  (
+			   LEASE_TERM,
+			   LEASE_PERIOD,
+			   PLEDGE_PRICE, 
+			   HEAD_HIRE,
+			   HEAD_HIRE_PERCENT,
+			   FLOAT_RATE,
+			   YEAR_INTEREST,
+			   LEASE_TOPRIC,
+			   PAY_WAY,
+			   LEASE_RZE,
+			   STATUS,
+			   PLEDGE_PRICE_RATE,
+			   CREATE_USER_ID,
+			   CREATE_DATE,
+			   PLEDGE_PERIOD,
+			   TR_RATE,
+			   TR_IRR_RATE,
+			   OTHER_TAX,
+			   PLEDGE_AVE_PRICE,
+			   PLEDGE_BACK_PRICE,
+			   PLEDGE_LAST_PRICE,
+			   PLEDGE_LAST_PERIOD,
+			   RATE_DIFF,
+			   STAYBUY_PRICE,
+			   CUST_NAME,
+			   PLEDGE_AVG_PRICE,CONTRACT_TYPE,TAX_PLAN_CODE,PLEDGE_LAST_PRICE_TAX,DEFER_PERIOD,REMARK,
+			   HANSHUI,WEISHUI,CHA,JINXIANG,TOTALRENPRICE,REN_PRICE,
+			   SALES_PAY,INCOME_PAY,OUT_PAY
+			   )
+			   values
+			   (
+			   #LEASE_TERM#,
+			   #LEASE_PERIOD#,
+			   #PLEDGE_PRICE#, 
+			   #HEAD_HIRE#,
+			   #HEAD_HIRE_PERCENT#,
+			   #FLOAT_RATE#,
+			   #YEAR_INTEREST#,
+			   #LEASE_TOPRIC#,
+			   #PAY_WAY#,
+			   #LEASE_RZE#,
+			   0,
+			   #PLEDGE_PRICE_RATE#,
+			   #s_employeeId#, 
+			   getdate(),
+			   #PLEDGE_PERIOD#,
+			   #TR_RATE#,
+			   #TR_IRR_RATE#,
+			   0,
+			   #PLEDGE_AVE_PRICE#,
+			   #PLEDGE_BACK_PRICE#,
+			   #PLEDGE_LAST_PRICE#,
+			   #PLEDGE_LAST_PERIOD#,
+			   #RATE_DIFF#,
+			   #STAYBUY_PRICE#,
+   			   #CUST_NAME#,
+   			   
+			   #PLEDGE_AVG_PRICE#,
+			   #CONTRACT_TYPE#,
+			   #TAX_PLAN_CODE#,
+			   #PLEDGE_LAST_PRICE_TAX#,#DEFER_PERIOD#,#REMARK#,
+			   #HANSHUI#,#WEISHUI#,#CHA#,#JINXIANG#,#TOTALRENPRICE#,#REN_PRICE#,
+			   #pay__money#,#incomePay#,#outPay#
+			   )
+		   
+   		 	<selectKey resultClass="java.lang.Long" keyProperty="ID">
+				<![CDATA[	SELECT @@IDENTITY AS ID  ]]>
+			</selectKey> 
+	</insert>
+	
+	<insert id="createQuotationEquipment" parameterClass="map">
+		insert into T_QUOTATION_EQUIPMENT 
+		(
+			CREATE_TIME,
+			TYPE_NAME,
+			KIND_NAME,
+			AMOUNT,
+			CREATE_ID,
+			SCHEME_ID,
+			SUPL_NAME
+		)
+		values
+		(			
+			getdate(),
+			#TYPE_NAME#,
+			#KIND_NAME#,
+			#AMOUNT#,
+			#s_employeeId#,
+			#SCHEME_ID#,
+			#SUPL_NAME#
+		) 
+	</insert>
+	
+	<insert id="insertQuotationFeeList" parameterClass="map">
+		insert into T_QUOTATION_FEE 
+		(
+			SCHEME_ID,
+			FEE_SET_ID,
+			CREATE_SHOW_NAME,
+			FEE,
+			CREATE_TIME,
+			CREATE_ID,
+			IS_LEASERZE_COST,
+			CREATE_FILED_NAME
+		)
+		values
+		(			
+			#SCHEME_ID#,
+			#FEE_SET_ID#,
+			#CREATE_SHOW_NAME#,
+			#FEE#,
+			getdate(),
+			#s_employeeId#,
+			#IS_LEASERZE_COST#,
+			#CREATE_FILED_NAME#
+		) 
+	</insert>
+	
+	<insert id="insertQuotationOwnprice" parameterClass="map">
+		insert into T_QUOTATION_OWNPRICE 
+		(
+			SCHEME_ID,
+			REN_PRICE,
+			OWN_PRICE,
+			LAST_PRICE,
+			MONTH_PRICE,
+			PERIOD_NUM,VALUE_ADDED_TAX
+		)
+		values
+		(			
+			#SCHEME_ID#,
+			#REN_PRICE#,
+			#OWN_PRICE#,
+			#LAST_PRICE#,
+			#MONTH_PRICE#,
+			#PERIOD_NUM#,#VALUE_ADDED_TAX#
+		) 
+	</insert>
+	
+	<delete id="deleteQuotationOwnprice" parameterClass="map">
+		delete from T_QUOTATION_OWNPRICE where SCHEME_ID=#SCHEME_ID# 
+	 </delete>	
+	
+	<delete id="deleteQuotationFeeList" parameterClass="map">
+		delete from T_QUOTATION_FEE where SCHEME_ID=#SCHEME_ID# 
+	 </delete>	
+	 
+	 <select id="queryQuotationList5_count" resultClass="java.lang.Integer">
+	  				SELECT COUNT(T1.ID)
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and T1.TAX_PLAN_CODE=8
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>		   
+	</select>
+	<select id="queryQuotationList5" resultClass="java.util.HashMap">
+	  				SELECT T1.ID,
+					     T1.CUST_NAME,
+						 upper.NAME CLERK_NAME,
+						 T6.NAME SENSOR_NAME,
+						  t9.DECP_NAME_CN,
+						  T1.CREATE_DATE
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and T1.TAX_PLAN_CODE=8
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>
+		    ORDER BY  T1.CREATE_DATE DESC
+	</select>
+	 
+	 <select id="queryQuotationList4_count" resultClass="java.lang.Integer">
+	  				SELECT COUNT(T1.ID)
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and T1.TAX_PLAN_CODE=7
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>		   
+	</select>
+	<select id="queryQuotationList4" resultClass="java.util.HashMap">
+	  				SELECT T1.ID,
+					     T1.CUST_NAME,
+						 upper.NAME CLERK_NAME,
+						 T6.NAME SENSOR_NAME,
+						  t9.DECP_NAME_CN,
+						  T1.CREATE_DATE
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and T1.TAX_PLAN_CODE=7
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>
+		    ORDER BY  T1.CREATE_DATE DESC
+	</select>
+	 
+	<select id="queryQuotationList3_count" resultClass="java.lang.Integer">
+	  				SELECT COUNT(T1.ID)
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and T1.TAX_PLAN_CODE=6
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>		   
+	</select>
+	<select id="queryQuotationList3" resultClass="java.util.HashMap">
+	  				SELECT T1.ID,
+					     T1.CUST_NAME,
+						 upper.NAME CLERK_NAME,
+						 T6.NAME SENSOR_NAME,
+						  t9.DECP_NAME_CN,
+						  T1.CREATE_DATE
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and T1.TAX_PLAN_CODE=6
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>
+		    ORDER BY  T1.CREATE_DATE DESC
+	</select>
+	<select id="queryQuotationList" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ SELECT T1.ID,
+					     T1.CUST_NAME,
+						 upper.NAME CLERK_NAME,
+						 T6.NAME SENSOR_NAME,
+						  t9.DECP_NAME_CN,
+						  T1.CREATE_DATE
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and t1.CONTRACT_TYPE='1'
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>
+		<![CDATA[  
+		    ORDER BY  T1.CREATE_DATE DESC
+		]]>
+	</select>
+	<select id="queryQuotationList1" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ SELECT T1.ID,
+					     T1.CUST_NAME,
+						 upper.NAME CLERK_NAME,
+						 T6.NAME SENSOR_NAME,
+						  t9.DECP_NAME_CN,
+						  T1.CREATE_DATE
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and t1.CONTRACT_TYPE='7' AND t1.TAX_PLAN_CODE=4
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>
+		<![CDATA[  
+		    ORDER BY  T1.CREATE_DATE DESC
+		]]>
+	</select>
+	<select id="queryQuotationList2" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ SELECT T1.ID,
+					     T1.CUST_NAME,
+						 upper.NAME CLERK_NAME,
+						 T6.NAME SENSOR_NAME,
+						  t9.DECP_NAME_CN,
+						  T1.CREATE_DATE
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and t1.CONTRACT_TYPE='8'
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>
+		<![CDATA[  
+		    ORDER BY  T1.CREATE_DATE DESC
+		]]>
+	</select>
+	
+	<select id="queryLittleCarQuotationList_count" parameterClass="map" resultClass="java.lang.Integer">
+		SELECT count(*)
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and t1.CONTRACT_TYPE='6'
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+			</isNotEmpty>
+	</select>
+	<select id="queryLittleCarQuotationList" resultClass="java.util.HashMap">
+			SELECT T1.ID,
+					     T1.CUST_NAME,
+						 upper.NAME CLERK_NAME,
+						 T6.NAME SENSOR_NAME,
+						  t9.DECP_NAME_CN,
+						  T1.CREATE_DATE,
+						  T1.TAX_PLAN_CODE
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and t1.CONTRACT_TYPE='6'
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+			</isNotEmpty>
+		    ORDER BY  T1.CREATE_DATE DESC
+	</select>
+
+	<select id="queryCarQuotationList" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ SELECT T1.ID,
+					     T1.CUST_NAME,
+						 upper.NAME CLERK_NAME,
+						 T6.NAME SENSOR_NAME,
+						  t9.DECP_NAME_CN,
+						  T1.CREATE_DATE,
+						  T1.TAX_PLAN_CODE
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and t1.CONTRACT_TYPE='4'
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>
+		<![CDATA[  
+		    ORDER BY  T1.CREATE_DATE DESC
+		]]>
+	</select>
+	<select id="queryCarQuotationList_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ SELECT count(*)
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and t1.CONTRACT_TYPE='4'
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>
+	</select>
+
+
+	<select id="queryQuotationList_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ SELECT count(*)
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and t1.CONTRACT_TYPE='1'
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>
+	</select>
+	
+	<select id="queryQuotationList1_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ SELECT count(*)
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and t1.CONTRACT_TYPE='7' AND t1.TAX_PLAN_CODE=4
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>
+	</select>
+	<select id="queryQuotationList2_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ SELECT count(*)
+			  FROM T_QUOTATION_SCHEME T1
+			  LEFT JOIN T_USER_USER T6 ON T1.CREATE_USER_ID = T6.ID
+			  left join T_USER_USER upper on upper.id = T6.upper_user
+			  left join T_DEPT_DEPARTMENT dept on dept.ID = T6.DEPT_ID and dept.STATUS = 0
+      	  	  left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+			  WHERE 1=1 and t1.STATUS=0 and t1.CONTRACT_TYPE='8'
+			]]>
+			<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ 
+		  	 	(T1.CREATE_USER_ID = #s_employeeId#
+		  	 	or upper.ID = #s_employeeId#)
+		  	 	]]>
+		  	</isEqual>
+			<isEqual prepend="and" property="p_usernode" compareValue="2">
+				<![CDATA[
+					exists(select uc.DEPT_ID from dbo.T_USER_USER2COMPANY uc
+					where uc.USER_ID = #s_employeeId# and uc.dept_id = dept.id)
+				]]>
+			</isEqual>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	T1.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR T6.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or t9.DECP_NAME_CN like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>
+	</select>
+	
+	<select id="queryQuotationSchema" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+			SELECT * from T_QUOTATION_SCHEME
+			where id=#ID#
+		]]>
+	</select>	
+	
+	<select id="queryQuotationEquipment" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+			SELECT * from T_QUOTATION_EQUIPMENT
+			where SCHEME_ID=#ID#
+		]]>
+	</select>	
+	
+	<select id="queryQuotationFee" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+			select * from T_QUOTATION_FEE
+			where SCHEME_ID=#ID#
+		]]>
+	</select>
+	
+	<statement id="createQuotationSchemaIrr" parameterClass="map">
+		<![CDATA[
+			INSERT INTO T_QUOTATION_SCHEMEIRR
+	           (CREATE_ID
+	           ,CREATE_DATE
+	           ,STATUS
+	           ,TYPE
+	           ,IRR_MONTH_PRICE
+	           ,IRR_MONTH_PRICE_START
+	           ,IRR_MONTH_PRICE_END
+	           ,SCHEME_ID,REN_RATE) VALUES(
+	     	  #S_EMPLOYEEID#
+	           ,GETDATE()
+	           ,0
+	           ,0
+	           ,#IRR_MONTH_PRICE#
+	           ,#IRR_MONTH_PRICE_START#
+	           ,#IRR_MONTH_PRICE_END#
+	           ,#SCHEME_ID#,#REN_RATE#
+          )
+         ]]>
+	</statement>	
+	
+	<!--查询报告费用明细  影响概算成本为1 不影响为0 -->
+	<select id="getCreditFeeListRZE" parameterClass="map" resultClass="java.util.HashMap">
+		select * from T_QUOTATION_FEE where is_leaserze_cost='1' and SCHEME_ID=#ID#
+	</select>
+	<select id="getCreditFeeList" parameterClass="map" resultClass="java.util.HashMap">
+		select * from T_QUOTATION_FEE where is_leaserze_cost='0' and  SCHEME_ID=#ID#
+	</select>
+
+	<!--查询费用设定明细  影响概算成本为1 不影响为0 -->
+	<select id="getFeeSetListRZE" parameterClass="map" resultClass="java.util.HashMap">
+		select * from t_rent_paylist_feeset where is_leaserze_cost='1' and  status=0
+			and id not in (select fee_set_id from T_QUOTATION_FEE where is_leaserze_cost='1' and SCHEME_ID=#ID#)
+	</select>	
+	<select id="getFeeSetList" parameterClass="map" resultClass="java.util.HashMap">
+		select * from t_rent_paylist_feeset where is_leaserze_cost='0' and  status=0
+			and id not in (select fee_set_id from T_QUOTATION_FEE where is_leaserze_cost='0' and SCHEME_ID=#ID#)
+	</select>	
+	
+	<select id="queryQuotationSchemaIrr" parameterClass="map" resultClass="java.util.HashMap">
+		select * from T_QUOTATION_SCHEMEIRR where SCHEME_ID=#ID#
+	</select>	
+	
+	<delete id="deleteQuotationScheme" parameterClass="map">
+		 delete from T_QUOTATION_SCHEME where ID=#SCHEME_ID# 
+	 </delete>
+	<delete id="deleteQuotationSchemeIrr" parameterClass="map">
+		 delete from T_QUOTATION_SCHEMEIRR where SCHEME_ID=#SCHEME_ID# 
+ 	</delete>	
+	<delete id="deleteQuotationFee" parameterClass="map">
+		 delete from T_QUOTATION_FEE where SCHEME_ID=#SCHEME_ID# 
+	</delete>
+	<delete id="deleteQuotationEquipment" parameterClass="map">
+		 delete from T_QUOTATION_EQUIPMENT where SCHEME_ID=#SCHEME_ID# 
+ 	</delete>		
+	
+	
+	<select id="queryQuotationForExport" parameterClass="map" resultClass="java.util.HashMap">	
+		select tqs.*,CONVERT(date,dateadd(day,15,tqs.create_date),23) LIMIT_DATE2,(LEASE_TOPRIC-PLEDGE_PRICE+REN_PRICE) LEASE_TOP,
+		isnull(tqs.PLEDGE_LAST_PRICE_TAX,0)PLEDGE_LAST_PRICE_TAX,isnull(tqs.PLEDGE_LAST_PRICE_TAX,0)+isnull(tqs.PLEDGE_LAST_PRICE,0) TOTAL_LAST_PRICE,tdd.FLAG,SUBSTRING(tdd.FLAG,1,2)FLAGSTR,CONVERT(date,tqs.create_date,23) COMMIT_DATE,CONVERT(date,dateadd(day,30,tqs.create_date),23) LIMIT_DATE,tuu.NAME,tuu.MOBILE,t9.DECP_NAME_CN,t9.FAX,t9.TELEPHONE,t9.COMMUNICATION_ADDRESS,tqs.TOTAL_VALUEADDED_TAX from T_QUOTATION_SCHEME  tqs
+		left join T_DATA_DICTIONARY tdd
+		on convert(varchar,tqs.PAY_WAY)=tdd.CODE and tdd.TYPE =#payway#
+		left join T_USER_USER tuu
+		on tqs.CREATE_USER_ID=tuu.ID
+	    left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+  	    left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where tqs.id=#ID#
+	</select>
+	
+	
+	<select id="queryExportQuotationFee" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+			select * from T_QUOTATION_FEE
+			where fee>0 and SCHEME_ID=#ID#
+		]]>
+	</select>
+	
+	<select id="queryExportOwnprice" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+			select ID,scheme_id,ROUND(ren_price,2) ren_price,own_price,last_price,month_price,period_num,isnull(VALUE_ADDED_TAX,0)VALUE_ADDED_TAX from T_QUOTATION_OWNPRICE
+			where SCHEME_ID=#ID# ORDER BY period_num 
+		]]>
+	</select>
+	
+	<!-- 增加日志 -->
+	<statement id="createQuotationExportlog" parameterClass="map">
+		<![CDATA[
+			INSERT INTO T_QUOTATION_EXPORTLOG
+           (SCHEME_ID
+	           ,CUST_NAME
+	           ,MEMO
+	           ,CREATE_TIME
+	           ,CREATE_USER_ID
+			) VALUES(
+			  #ID#
+			  ,#CUST_NAME#
+			  ,#MEMO#
+		      ,GETDATE()
+		      ,#s_employeeId#
+          )
+         ]]>
+	</statement>
+
+	<!-- 查询日志 -->
+	<select id="queryQuotationExportLog" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ 
+			select tqel.*,tuu.NAME from T_QUOTATION_EXPORTLOG tqel
+			left join T_USER_USER tuu
+			on tqel.create_user_id=tuu.ID
+		    WHERE 1=1
+			]]>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	tqel.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR tuu.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or tqel.MEMO like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>
+		<![CDATA[  
+		    ORDER BY  tqel.CREATE_TIME DESC
+		]]>
+	</select>
+	
+	<select id="queryQuotationExportLog_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ 
+			select count(*) from T_QUOTATION_EXPORTLOG tqel
+			left join T_USER_USER tuu
+			on tqel.create_user_id=tuu.ID
+		    WHERE 1=1
+			]]>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(	tqel.CUST_NAME LIKE '%$QSEARCH_VALUE$%' 
+					 	OR tuu.NAME LIKE '%$QSEARCH_VALUE$%'
+					 	or tqel.MEMO like '%$QSEARCH_VALUE$%'
+					 )
+				  ]]>
+			</isNotEmpty>
+	</select>	
+	
+	<update id="deleteQuotation" parameterClass="map">
+		<![CDATA[ 
+		   update T_QUOTATION_SCHEME
+		   set STATUS=-2
+		   where ID = #ID#
+		]]>
+	</update> 
+	
+	<insert id="insertQuotationOwnpriceForInternal" parameterClass="map">
+		INSERT INTO T_QUOTATION_OWNPRICE 
+		(
+			SCHEME_ID,
+			IRR_MONTH_PRICE_1,
+			IRR_PRICE_1,
+			MONTH_PRICE_1,
+			OWN_PRICE_1,
+			REN_PRICE_1,
+			LAST_PRICE_1,
+			PERIOD_NUM
+		)
+		VALUES
+		(			
+			#SCHEME_ID#,
+			#IRR_MONTH_PRICE#,
+			#IRR_PRICE#,
+			#MONTH_PRICE#,
+			#OWN_PRICE#,
+			#REN_PRICE#,
+			#LAST_PRICE#,
+			#PERIOD_NUM#
+		) 
+	</insert>
+	
+	<select id="queryExportOwnpriceForInternal" parameterClass="map" resultClass="java.util.HashMap">
+			select ID,scheme_id,ROUND(IRR_MONTH_PRICE_1,2) IRR_MONTH_PRICE_1,IRR_PRICE_1,MONTH_PRICE_1,period_num,OWN_PRICE_1,REN_PRICE_1,LAST_PRICE_1 from T_QUOTATION_OWNPRICE
+			where SCHEME_ID=#ID#
+	</select>
+</sqlMap>

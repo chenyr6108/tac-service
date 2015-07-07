@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="custComterManage">
+    
+
+	
+	<select id="getCustmer" resultClass="java.util.HashMap" parameterClass="map">
+	    <![CDATA[
+	 		select * from (select 
+			DISTINCT t8.CUST_ID ID,t8.CUST_NAME NAME,t9.counti COUNTS,t111.SUMLEASE_TOPRIC SUMLEASE_TOPRIC,t111.SUMMONTH_PRICE SUMMONTH_PRICE,t10.SHENGYUZUJIN,t10.SHIJISHENGYUZUJIN,t10.SUMLASTPRICE,tnew.GRANT_PRICE,tnew.LAST_PRICE
+			from T_CUST_CUSTOMER t8
+			inner join (select t1.CUST_ID,COUNT(t2.RECT_ID) counti
+						from T_CUST_CUSTOMER t1
+						left join T_RENT_CONTRACT t2 on t1.CUST_ID=t2.CUST_ID
+						LEFT JOIN T_RENT_COLLECTIONPLAN T3 ON T3.RECT_ID=t2.RECT_ID and T3.STATUS=0
+						where t2.STATUS=0 and t1.STATUS=0 and (t3.RECP_STATUS<>1 and t3.RECP_STATUS<>3) and t1.CUST_ID = #id#
+						group by t1.CUST_ID
+			) t9 on t9.CUST_ID=t8.CUST_ID
+			left join (
+					select t211.CUST_ID,COUNT(t211.RECT_ID) CONTRACTCOUNT,SUM(t211.LEASE_TOPRIC) SUMLEASE_TOPRIC,SUM(SMONTH_PRICE) SUMMONTH_PRICE 
+					from  
+					(
+						select t21.CUST_ID,t22.RECT_ID,t22.LEASE_TOPRIC,SUM(T4.MONTH_PRICE) SMONTH_PRICE
+						from T_CUST_CUSTOMER t21
+						left join T_RENT_CONTRACT t22 on t22.CUST_ID=t21.CUST_ID
+						LEFT JOIN T_RENT_COLLECTIONPLAN T3 ON T3.RECT_ID=t22.RECT_ID and T3.STATUS=0
+						LEFT JOIN T_RENT_COLLECTIONDETAIL T4  ON T4.RECP_ID=T3.RECP_ID and t4.STATUS=0
+						where t21.STATUS=0 and t22.STATUS=0 and (t3.RECP_STATUS<>1 and t3.RECP_STATUS<>3)
+	               and t21.CUST_ID = #id#
+						GROUP  BY t21.CUST_ID,t22.RECT_ID,t22.LEASE_TOPRIC
+					) t211
+					group by t211.CUST_ID
+			) t111 on t111.CUST_ID = t8.CUST_ID
+			left join (
+				select  t33.CUST_ID,SUM(t6.LASTPRICE) SUMLASTPRICE, SUM(t6.SHENGYUZUJIN) SHENGYUZUJIN,SUM(t6.SHIJISHENGYUZUJIN) SHIJISHENGYUZUJIN
+				from 
+				(
+				select t31.CUST_ID,t32.RECT_ID,t32.LEASE_TOPRIC
+				from T_CUST_CUSTOMER t31
+				left join T_RENT_CONTRACT t32
+				LEFT JOIN T_RENT_COLLECTIONPLAN T33 ON T33.RECT_ID=t32.RECT_ID and T33.STATUS=0
+				on t32.CUST_ID=t31.CUST_ID
+				where t31.STATUS=0 and t32.STATUS=0 and (t33.RECP_STATUS<>1 and t33.RECP_STATUS<>3) and t31.CUST_ID =#id#
+				) t33 				 
+				left join (
+					select t11.RECT_ID, MAX(t11.LAST_PRICE) LASTPRICE,COUNT(t11.PERIOD_NUM) WEIJIAOQISHU,SUM(t11.MONTH_PRICE) SHENGYUZUJIN,SUM(t11.IRR_MONTH_PRICE) SHIJISHENGYUZUJIN 
+					from(
+						select  t3.RECP_ID,t3.RECT_ID, t3.PERIOD_NUM,t3.MONTH_PRICE,t3.IRR_MONTH_PRICE,t3.LAST_PRICE 
+						from(
+							select t2.RECT_ID,t2.STATUS, t2.RECP_ID, t1.PERIOD_NUM,t1.MONTH_PRICE,t1.IRR_MONTH_PRICE,t1.LAST_PRICE 
+							from T_RENT_COLLECTIONDETAIL t1
+							left join T_RENT_COLLECTIONPLAN t2
+							on t2.RECP_ID=t1.RECP_ID
+							where t1.STATUS=0 and  t2.STATUS=0 
+							and (t2.RECP_STATUS<>1 and t2.RECP_STATUS<>3)			
+						) t3
+						where  not exists (
+										SELECT T.PERIOD_NUM
+								    	FROM T_RENT_COLLECTIONDETAIL T
+										LEFT JOIN (
+											SELECT RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+											FROM T_FINA_COLLECTIONBILL t 
+											WHERE t.FICB_TYPE=0 AND t.FICB_ITEM= #C#
+													AND T.FICB_STATE = 5 
+													AND t.STATUS=0
+													AND t.RECP_ID = t3.RECP_ID
+											GROUP BY  RECD_PERIOD
+										) T1 ON T1.recp_id = T.recp_id AND T1.RECD_PERIOD = T.PERIOD_NUM
+										WHERE ((T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) <= 0.005
+										AND (T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) >= -0.005)
+										AND T.STATUS = 0 
+										AND T.RECP_ID = t3.RECP_ID and  T.PERIOD_NUM = t3.PERIOD_NUM
+							)
+					) t11 
+					group by t11.RECT_ID
+					) t6 on t6.RECT_ID=t33.RECT_ID 
+				group by t33.CUST_ID
+				) t10 on t10.CUST_ID=t8.CUST_ID
+		left join (
+		SELECT  TCC.CUST_ID,
+				TCP.GRANT_PRICE,
+				TCP.LAST_PRICE		
+	 	FROM T_CUST_CUSTOMER  TCC
+	 	LEFT JOIN T_CUST_GRANTPLAN TCP ON TCP.CUST_ID = TCC.CUST_ID
+	 	WHERE TCC.STATUS = 0 AND (TCP.STATUS IS NULL OR TCP.STATUS=0)) tnew
+		on tnew.CUST_ID=t8.CUST_ID
+		where t8.STATUS=0  and t8.CUST_ID = #id#) tbig where 1=1	and tbig.ID = #id# 	
+		]]>    	    	    
+	</select>
+	
+   	<select id="getAllCustomer" parameterClass="map" resultClass="com.brick.base.to.SelectionTo">
+   	    select 
+	   		cust_name as 'display_name',
+	   		cust_id as 'option_value' 
+		from T_CUST_CUSTOMER 
+		where STATUS =0    	    
+   	</select>
+	<!--  fenye zs-->
+	<select id="findAllCustomter_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[
+	       select COUNT(*) from (      select * from (select 
+	DISTINCT t8.CUST_ID ID,t8.CUST_NAME NAME,t9.counti COUNTS,t111.SUMLEASE_TOPRIC SUMLEASE_TOPRIC,t111.SUMMONTH_PRICE SUMMONTH_PRICE,t10.SHENGYUZUJIN,t10.SHIJISHENGYUZUJIN,t10.SUMLASTPRICE,tnew.GRANT_PRICE,tnew.LAST_PRICE
+	from T_CUST_CUSTOMER t8
+	left join (select t1.CUST_ID,COUNT(t2.RECT_ID) counti
+				from T_CUST_CUSTOMER t1
+				left join T_RENT_CONTRACT t2
+				on t1.CUST_ID=t2.CUST_ID
+				where t2.STATUS=0 and t1.STATUS=0
+				group by t1.CUST_ID
+				) t9 
+	on t9.CUST_ID=t8.CUST_ID
+	left join (select t211.CUST_ID,COUNT(t211.RECT_ID) CONTRACTCOUNT,SUM(t211.LEASE_TOPRIC) SUMLEASE_TOPRIC,SUM(SMONTH_PRICE) SUMMONTH_PRICE 
+				from  (
+						select t21.CUST_ID,t22.RECT_ID,t22.LEASE_TOPRIC,SUM(T4.MONTH_PRICE) SMONTH_PRICE
+						from T_CUST_CUSTOMER t21
+						left join T_RENT_CONTRACT t22 on t22.CUST_ID=t21.CUST_ID
+						LEFT JOIN T_RENT_COLLECTIONPLAN T3 ON T3.RECT_ID=t22.RECT_ID and T3.STATUS=0
+						LEFT JOIN T_RENT_COLLECTIONDETAIL T4  ON T4.RECP_ID=T3.RECP_ID and t4.STATUS=0
+						where t21.STATUS=0 and t22.STATUS=0
+						GROUP  BY t21.CUST_ID,t22.RECT_ID,t22.LEASE_TOPRIC
+						) t211
+				group by t211.CUST_ID
+	) t111 on t111.CUST_ID=t8.CUST_ID
+	left join (select  t33.CUST_ID,SUM(t6.LASTPRICE) SUMLASTPRICE, SUM(t6.SHENGYUZUJIN) SHENGYUZUJIN,SUM(t6.SHIJISHENGYUZUJIN) SHIJISHENGYUZUJIN
+				from 
+					(
+					select t31.CUST_ID,t32.RECT_ID,t32.LEASE_TOPRIC
+					from T_CUST_CUSTOMER t31
+					left join T_RENT_CONTRACT t32
+					on t32.CUST_ID=t31.CUST_ID
+					where t31.STATUS=0 and t32.STATUS=0
+					) t33 				 
+				left join (select t11.RECT_ID, MAX(t11.LAST_PRICE) LASTPRICE,COUNT(t11.PERIOD_NUM) WEIJIAOQISHU,SUM(t11.MONTH_PRICE) SHENGYUZUJIN,SUM(t11.IRR_MONTH_PRICE) SHIJISHENGYUZUJIN from
+							(select distinct t3.RECP_ID,t3.RECT_ID, t3.PERIOD_NUM,t3.MONTH_PRICE,t3.IRR_MONTH_PRICE,t3.LAST_PRICE from
+								(select t2.RECT_ID,t2.STATUS, t2.RECP_ID, t1.PERIOD_NUM,t1.MONTH_PRICE,t1.IRR_MONTH_PRICE,t1.LAST_PRICE from T_RENT_COLLECTIONDETAIL t1
+								left join T_RENT_COLLECTIONPLAN t2
+								on t2.RECP_ID=t1.RECP_ID
+								where t1.STATUS=0 and  t2.STATUS=0 and t2.VERSION_CODE=(select max(version_code) from t_rent_collectionplan where t2.recp_code=recp_code)
+								) t3
+							where  t3.PERIOD_NUM not in (SELECT T.PERIOD_NUM
+									    	FROM T_RENT_COLLECTIONDETAIL T
+												LEFT JOIN (SELECT RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+															    FROM T_FINA_COLLECTIONBILL t 
+																WHERE
+																	t.FICB_TYPE=0 
+																	AND t.FICB_ITEM= #C#
+																	AND T.FICB_STATE = 5 
+																	AND t.STATUS=0
+																	AND t.RECP_ID = t3.RECP_ID
+																GROUP BY  RECD_PERIOD
+															) T1 ON T1.recp_id = T.recp_id AND T1.RECD_PERIOD = T.PERIOD_NUM
+											WHERE ((T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) <= 0.005
+																				AND (T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) >= -0.005)
+																				AND T.STATUS = 0 
+																				AND T.RECP_ID = t3.RECP_ID)
+						) t11 
+						group by t11.RECT_ID) t6 
+				on t6.RECT_ID=t33.RECT_ID 
+		group by t33.CUST_ID) t10 on t10.CUST_ID=t8.CUST_ID
+	left join (SELECT  TCC.CUST_ID,
+				TCP.GRANT_PRICE,
+				TCP.LAST_PRICE		
+		 	FROM T_CUST_CUSTOMER  TCC
+		 	LEFT JOIN T_CUST_GRANTPLAN TCP ON TCP.CUST_ID = TCC.CUST_ID
+		 		WHERE TCC.STATUS = 0 AND (TCP.STATUS IS NULL OR TCP.STATUS=0)) tnew
+on tnew.CUST_ID=t8.CUST_ID
+where t8.STATUS=0 ) tbig where COUNTS is not null) ttbig where 1=1]]> 		
+			<isNotEmpty prepend="and" property="searchValue">
+				<![CDATA[ NAME like '%$searchValue$%' ]]>
+			</isNotEmpty>
+	</select>
+	
+		<!--  zongjieshu zs-->
+		<!-- Modify by Michael 2012 02/07 去除结清案件 -->
+	<select id="findAllCustomter" parameterClass="map" resultClass="java.util.HashMap">
+		<!--
+		<![CDATA[    
+             select * from (select 
+	DISTINCT t8.CUST_ID ID,t8.CUST_NAME NAME,t9.counti COUNTS,t111.SUMLEASE_TOPRIC SUMLEASE_TOPRIC,t111.SUMMONTH_PRICE SUMMONTH_PRICE,t10.SHENGYUZUJIN,t10.SHIJISHENGYUZUJIN,t10.SUMLASTPRICE,tnew.GRANT_PRICE,tnew.LAST_PRICE
+	from T_CUST_CUSTOMER t8
+	left join (select t1.CUST_ID,COUNT(t2.RECT_ID) counti
+				from T_CUST_CUSTOMER t1
+				left join T_RENT_CONTRACT t2
+				on t1.CUST_ID=t2.CUST_ID
+				where t2.STATUS=0 and t1.STATUS=0
+				group by t1.CUST_ID
+				) t9 
+	on t9.CUST_ID=t8.CUST_ID
+	left join (select t211.CUST_ID,COUNT(t211.RECT_ID) CONTRACTCOUNT,SUM(t211.LEASE_TOPRIC) SUMLEASE_TOPRIC,SUM(SMONTH_PRICE) SUMMONTH_PRICE 
+				from  (
+						select t21.CUST_ID,t22.RECT_ID,t22.LEASE_TOPRIC,SUM(T4.MONTH_PRICE) SMONTH_PRICE
+						from T_CUST_CUSTOMER t21
+						left join T_RENT_CONTRACT t22 on t22.CUST_ID=t21.CUST_ID
+						LEFT JOIN T_RENT_COLLECTIONPLAN T3 ON T3.RECT_ID=t22.RECT_ID and T3.STATUS=0
+						LEFT JOIN T_RENT_COLLECTIONDETAIL T4  ON T4.RECP_ID=T3.RECP_ID and t4.STATUS=0
+						where t21.STATUS=0 and t22.STATUS=0
+						GROUP  BY t21.CUST_ID,t22.RECT_ID,t22.LEASE_TOPRIC
+						) t211
+				group by t211.CUST_ID
+	) t111 on t111.CUST_ID=t8.CUST_ID
+	left join (select  t33.CUST_ID,SUM(t6.LASTPRICE) SUMLASTPRICE, SUM(t6.SHENGYUZUJIN) SHENGYUZUJIN,SUM(t6.SHIJISHENGYUZUJIN) SHIJISHENGYUZUJIN
+				from 
+					(
+					select t31.CUST_ID,t32.RECT_ID,t32.LEASE_TOPRIC
+					from T_CUST_CUSTOMER t31
+					left join T_RENT_CONTRACT t32
+					on t32.CUST_ID=t31.CUST_ID
+					where t31.STATUS=0 and t32.STATUS=0
+					) t33 				 
+				left join (select t11.RECT_ID, MAX(t11.LAST_PRICE) LASTPRICE,COUNT(t11.PERIOD_NUM) WEIJIAOQISHU,SUM(t11.MONTH_PRICE) SHENGYUZUJIN,SUM(t11.IRR_MONTH_PRICE) SHIJISHENGYUZUJIN from
+							(select distinct t3.RECP_ID,t3.RECT_ID, t3.PERIOD_NUM,t3.MONTH_PRICE,t3.IRR_MONTH_PRICE,t3.LAST_PRICE from
+								(select t2.RECT_ID,t2.STATUS, t2.RECP_ID, t1.PERIOD_NUM,t1.MONTH_PRICE,t1.IRR_MONTH_PRICE,t1.LAST_PRICE from T_RENT_COLLECTIONDETAIL t1
+								left join T_RENT_COLLECTIONPLAN t2
+								on t2.RECP_ID=t1.RECP_ID
+								where t1.STATUS=0 and  t2.STATUS=0 and t2.VERSION_CODE=(select max(version_code) from t_rent_collectionplan where t2.recp_code=recp_code)
+								) t3
+							where  t3.PERIOD_NUM not in (SELECT T.PERIOD_NUM
+									    	FROM T_RENT_COLLECTIONDETAIL T
+												LEFT JOIN (SELECT RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+															    FROM T_FINA_COLLECTIONBILL t 
+																WHERE
+																	t.FICB_TYPE=0 
+																	AND t.FICB_ITEM= #C#
+																	AND T.FICB_STATE = 5 
+																	AND t.STATUS=0
+																	AND t.RECP_ID = t3.RECP_ID
+																GROUP BY  RECD_PERIOD
+															) T1 ON T1.recp_id = T.recp_id AND T1.RECD_PERIOD = T.PERIOD_NUM
+											WHERE ((T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) <= 0.005
+																				AND (T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) >= -0.005)
+																				AND T.STATUS = 0 
+																				AND T.RECP_ID = t3.RECP_ID)
+						) t11 
+						group by t11.RECT_ID) t6 
+				on t6.RECT_ID=t33.RECT_ID 
+		group by t33.CUST_ID) t10 on t10.CUST_ID=t8.CUST_ID
+	left join (SELECT  TCC.CUST_ID,
+				TCP.GRANT_PRICE,
+				TCP.LAST_PRICE		
+		 	FROM T_CUST_CUSTOMER  TCC
+		 	LEFT JOIN T_CUST_GRANTPLAN TCP ON TCP.CUST_ID = TCC.CUST_ID
+		 		WHERE TCC.STATUS = 0 AND (TCP.STATUS IS NULL OR TCP.STATUS=0)) tnew
+on tnew.CUST_ID=t8.CUST_ID
+where t8.STATUS=0 ) tbig where COUNTS is not null
+					]]>		
+			<isNotEmpty prepend="and" property="searchValue" >
+				<![CDATA[ NAME like '%$searchValue$%' ]]>
+			</isNotEmpty>
+ -->
+			 <![CDATA[ 		 	
+			  select * from (select 
+							DISTINCT t8.CUST_ID ID,t8.CUST_NAME NAME,t9.counti COUNTS,t111.SUMLEASE_TOPRIC SUMLEASE_TOPRIC,t111.SUMMONTH_PRICE SUMMONTH_PRICE,t10.SHENGYUZUJIN,t10.SHIJISHENGYUZUJIN,t10.SUMLASTPRICE,tnew.GRANT_PRICE,tnew.LAST_PRICE
+							from T_CUST_CUSTOMER t8
+							inner join (select t1.CUST_ID,COUNT(t2.RECT_ID) counti
+										from T_CUST_CUSTOMER t1
+										left join T_RENT_CONTRACT t2 on t1.CUST_ID=t2.CUST_ID
+										LEFT JOIN T_RENT_COLLECTIONPLAN T3 ON T3.RECT_ID=t2.RECT_ID and T3.STATUS=0
+										where t2.STATUS=0 and t1.STATUS=0 and (t3.RECP_STATUS<>1 and t3.RECP_STATUS<>3)
+										group by t1.CUST_ID
+							) t9 on t9.CUST_ID=t8.CUST_ID
+							left join (
+									select t211.CUST_ID,COUNT(t211.RECT_ID) CONTRACTCOUNT,SUM(t211.LEASE_TOPRIC) SUMLEASE_TOPRIC,SUM(SMONTH_PRICE) SUMMONTH_PRICE 
+									from  
+									(
+										select t21.CUST_ID,t22.RECT_ID,t22.LEASE_TOPRIC,SUM(T4.MONTH_PRICE) SMONTH_PRICE
+										from T_CUST_CUSTOMER t21
+										left join T_RENT_CONTRACT t22 on t22.CUST_ID=t21.CUST_ID
+										LEFT JOIN T_RENT_COLLECTIONPLAN T3 ON T3.RECT_ID=t22.RECT_ID and T3.STATUS=0
+										LEFT JOIN T_RENT_COLLECTIONDETAIL T4  ON T4.RECP_ID=T3.RECP_ID and t4.STATUS=0
+										where t21.STATUS=0 and t22.STATUS=0 and (t3.RECP_STATUS<>1 and t3.RECP_STATUS<>3)
+										GROUP  BY t21.CUST_ID,t22.RECT_ID,t22.LEASE_TOPRIC
+									) t211
+									group by t211.CUST_ID
+							) t111 on t111.CUST_ID = t8.CUST_ID
+							left join (
+								select  t33.CUST_ID,SUM(t6.LASTPRICE) SUMLASTPRICE, SUM(t6.SHENGYUZUJIN) SHENGYUZUJIN,SUM(t6.SHIJISHENGYUZUJIN) SHIJISHENGYUZUJIN
+								from 
+								(
+								select t31.CUST_ID,t32.RECT_ID,t32.LEASE_TOPRIC
+								from T_CUST_CUSTOMER t31
+								left join T_RENT_CONTRACT t32
+								LEFT JOIN T_RENT_COLLECTIONPLAN T33 ON T33.RECT_ID=t32.RECT_ID and T33.STATUS=0
+								on t32.CUST_ID=t31.CUST_ID
+								where t31.STATUS=0 and t32.STATUS=0 and (t33.RECP_STATUS<>1 and t33.RECP_STATUS<>3)
+								) t33 				 
+								left join (
+									select t11.RECT_ID, MAX(t11.LAST_PRICE) LASTPRICE,COUNT(t11.PERIOD_NUM) WEIJIAOQISHU,SUM(t11.MONTH_PRICE) SHENGYUZUJIN,SUM(t11.IRR_MONTH_PRICE) SHIJISHENGYUZUJIN 
+									from(
+										select  t3.RECP_ID,t3.RECT_ID, t3.PERIOD_NUM,t3.MONTH_PRICE,t3.IRR_MONTH_PRICE,t3.LAST_PRICE 
+										from(
+											select t2.RECT_ID,t2.STATUS, t2.RECP_ID, t1.PERIOD_NUM,t1.MONTH_PRICE,t1.IRR_MONTH_PRICE,t1.LAST_PRICE 
+											from T_RENT_COLLECTIONDETAIL t1
+											left join T_RENT_COLLECTIONPLAN t2
+											on t2.RECP_ID=t1.RECP_ID
+											where t1.STATUS=0 and  t2.STATUS=0 
+											and (t2.RECP_STATUS<>1 and t2.RECP_STATUS<>3)			
+										) t3
+										where  not exists (
+														SELECT T.PERIOD_NUM
+												    	FROM T_RENT_COLLECTIONDETAIL T
+														LEFT JOIN (
+															SELECT RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+															FROM T_FINA_COLLECTIONBILL t 
+															WHERE t.FICB_TYPE=0 AND t.FICB_ITEM= #C#
+																	AND T.FICB_STATE = 5 
+																	AND t.STATUS=0
+																	AND t.RECP_ID = t3.RECP_ID
+															GROUP BY  RECD_PERIOD
+														) T1 ON T1.recp_id = T.recp_id AND T1.RECD_PERIOD = T.PERIOD_NUM
+														WHERE ((T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) <= 0.005
+														AND (T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) >= -0.005)
+														AND T.STATUS = 0 
+														AND T.RECP_ID = t3.RECP_ID and  T.PERIOD_NUM = t3.PERIOD_NUM
+											)
+									) t11 
+									group by t11.RECT_ID
+									) t6 on t6.RECT_ID=t33.RECT_ID 
+								group by t33.CUST_ID
+								) t10 on t10.CUST_ID=t8.CUST_ID
+						left join (
+						SELECT  TCC.CUST_ID,
+								TCP.GRANT_PRICE,
+								TCP.LAST_PRICE		
+					 	FROM T_CUST_CUSTOMER  TCC
+					 	LEFT JOIN T_CUST_GRANTPLAN TCP ON TCP.CUST_ID = TCC.CUST_ID
+					 	WHERE TCC.STATUS = 0 AND (TCP.STATUS IS NULL OR TCP.STATUS=0)) tnew
+						on tnew.CUST_ID=t8.CUST_ID
+						where t8.STATUS=0 ) tbig where 1=1		 
+			 ]]>
+ 			<isNotEmpty prepend="and" property="searchValue" >
+				<![CDATA[ NAME like '%$searchValue$%' ]]>
+			</isNotEmpty>			
+	</select>
+	
+	<!--  根据单个客户找到所有合同的id,承租人,合同号,合同总额 zs-->
+<!-- Modify by Michael 2012 02/07 去除结清案件 -->
+	<select id="findContractInfoByCustomerId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[		
+		select t21.CUST_ID,t22.RECT_ID,T3.RECP_ID,t22.LEASE_TOPRIC,t22.LEASE_CODE,t22.CUST_NAME,trc.TR_IRR_RATE,SUM(T3.MONTH_PRICE) SUMMONTH_PRICE
+		from T_CUST_CUSTOMER t21
+		left join T_RENT_CONTRACT t22 on t22.CUST_ID=t21.CUST_ID
+		left join T_RENT_COLLECTIONPLAN trc on trc.RECT_ID=t22.RECT_ID
+		LEFT JOIN T_RENT_COLLECTIONDETAIL T3 ON T3.RECP_ID=trc.RECP_ID
+		and trc.STATUS=0 and trc.VERSION_CODE=(select max(version_code) from t_rent_collectionplan where trc.recp_code=recp_code)
+		where t22.CUST_ID=#costomerid# AND t21.STATUS=0 and t22.STATUS=0
+		and (trc.RECP_STATUS<>1 and trc.RECP_STATUS<>3)
+		GROUP BY t21.CUST_ID,T3.RECP_ID,t22.RECT_ID,t22.LEASE_TOPRIC,t22.LEASE_CODE,t22.CUST_NAME,trc.TR_IRR_RATE,trc.SUPL_TRUE	
+		order by trc.SUPL_TRUE		
+		]]>	
+
+	</select>
+
+	<!-- 根据合同的id找到没有付钱的支付表,并统计出总期数,未交期数,剩余租金,实际剩余租金 -->
+	<select id="findContractNoPayByContractId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[select MAX(t11.LAST_PRICE) LASTPRICE,COUNT(t11.PERIOD_NUM) WEIJIAOQISHU,SUM(t11.MONTH_PRICE) SHENGYUZUJIN,SUM(t11.IRR_MONTH_PRICE) SHIJISHENGYUZUJIN,t22.ZONGQISHU from
+					(select t3.RECP_ID, t3.PERIOD_NUM,t3.MONTH_PRICE,t3.IRR_MONTH_PRICE,t3.LAST_PRICE from 
+						(select t2.RECP_ID, t1.PERIOD_NUM,t1.MONTH_PRICE,t1.IRR_MONTH_PRICE,t1.LAST_PRICE from T_RENT_COLLECTIONDETAIL t1
+						left join T_RENT_COLLECTIONPLAN t2
+						on t2.RECP_ID=t1.RECP_ID
+						where t2.RECT_ID=#RECT_ID# and t1.STATUS=0 and  t2.STATUS=0 and t2.VERSION_CODE=(select max(version_code) from t_rent_collectionplan where t2.recp_code=recp_code)
+						) t3
+						where t3.PERIOD_NUM not in (select t4.RECD_PERIOD from T_FINA_COLLECTIONBILL t4 left join T_RENT_COLLECTIONPLAN t5 on t5.RECP_ID=t4.RECP_ID and t5.RECT_ID=#RECT_ID# where t4.STATUS=0 and t5.STATUS=0 and t5.VERSION_CODE=(select max(version_code) from t_rent_collectionplan where t5.recp_code=recp_code))
+					) t11
+					left join 
+						(SELECT RECP_ID, LEASE_PERIOD*LEASE_TERM ZONGQISHU FROM T_RENT_COLLECTIONPLAN WHERE RECT_ID=#RECT_ID#) t22
+						 on t11.RECP_ID=t22.RECP_ID
+					group by t22.ZONGQISHU
+		]]>		
+	</select>
+
+</sqlMap>

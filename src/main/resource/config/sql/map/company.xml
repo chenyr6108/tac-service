@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="company">
+	<typeAlias alias="company" type="com.tac.company.to.CompanyTo"/>
+	
+	<insert id="insertCompany" parameterClass="company">	
+		insert into t_company
+		(
+			name,
+			code,
+			business_licence_code,
+			tax_registration_number,
+			incorporating_date,
+			telephone,
+			fax,
+			url,
+			postcode,
+			legal_person,
+			legal_home_address,
+			address,
+			registered_address,
+			open_account_bank,
+			bank_account,
+			status,
+			order_no,
+			create_by,
+			create_date,
+			parent_id,
+			comment
+		)
+		values(
+			#name#,
+			#code#,
+			#businessLicenceCode#,
+			#taxRegistrationNumber#,
+			#incorporatingDate#,
+			#telephone#,
+			#fax#,
+			#url#,
+			#postcode#,
+			#legalPerson#,
+			#legalHomeAddress#,
+			#address#,
+			#registeredAddress#,
+			#openAccountBank#,
+			#bankAccount#,
+			0,
+			#orderNo#,
+			#createBy#,
+			getDate(),
+			#parentId#,
+			#comment#
+		)
+	</insert>
+	
+	<update id="updateCompany" parameterClass="company">
+		update t_company 
+		set 
+			name=#name#,
+			code=#code#,
+			business_licence_code=#businessLicenceCode#,
+			tax_registration_number=#taxRegistrationNumber#,
+			incorporating_date=#incorporatingDate#,
+			telephone=#telephone#,
+			fax=#fax#,
+			url=#url#,
+			postcode=#postcode#,
+			legal_person=#legalPerson#,
+			legal_home_address=#legalHomeAddress#,
+			address=#address#,
+			registered_address=#registeredAddress#,
+			open_account_bank=#openAccountBank#,
+			bank_account=#bankAccount#,
+			order_no=#orderNo#,
+			modify_by=#modifyBy#,
+			modify_date=getDate(),
+			parent_id=#parentId#,
+			comment=#comment#
+		where id = #id#
+	</update>
+	
+	<update id="deleteCompany" parameterClass="map">
+		update  t_company set status = 1 
+		where id = #id#
+	</update>
+		
+	<select id="getCompanyById" parameterClass="map" resultClass="company">
+		select 
+			id as id,
+			name as name,
+			code as code,
+			business_licence_code as businessLicenceCode,
+			tax_registration_number as taxRegistrationNumber,
+			incorporating_date as incorporatingDate,
+			telephone as telephone,
+			fax as fax,
+			url as url,
+			postcode as postcode,
+			legal_person as legalPerson,
+			legal_home_address as legalHomeAddress,
+			address as address,
+			registered_address as registeredAddress,
+			open_account_bank as openAccountBank,
+			bank_account as bankAccount,
+			status as status,
+			order_no as orderNo,
+			create_by as createBy,
+			create_date as createDate,
+			modify_by as modifyBy,
+			modify_date as modifyDate,
+			parent_id as parentId,
+			comment as comment 
+		from t_company
+		where id = #id#
+	</select>
+	
+	<select id="getCompanys" parameterClass="map" resultClass="company">
+		select 
+			t.id as id,
+			t.name as name,
+			t.code as code,
+			t.business_licence_code as businessLicenceCode,
+			t.tax_registration_number as taxRegistrationNumber,
+			t.incorporating_date as incorporatingDate,
+			t.telephone as telephone,
+			t.fax as fax,
+			t.url as url,
+			t.postcode as postcode,
+			t.legal_person as legalPerson,
+			t.legal_home_address as legalHomeAddress,
+			t.address as address,
+			t.registered_address as registeredAddress,
+			t.open_account_bank as openAccountBank,
+			t.bank_account as bankAccount,
+			t.status as status,
+			t.order_no as orderNo,
+			t.create_by as createBy,
+			t.create_date as createDate,
+			t.modify_by as modifyBy,
+			t.modify_date as modifyDate,
+			t.parent_id as parentId,
+			t.comment as comment,
+			tc.name as parentCompanyName
+		from t_company t
+		left join  t_company tc on tc.id = t.parent_id and tc.status = 0
+		where t.status = 0 
+		<isNotEmpty prepend="and" property="content">
+		(		
+		t.name like '%$content$%'
+		or		
+		t.code like '%$content$%'
+		or		
+		t.business_licence_code like '%$content$%'
+		or		
+		t.tax_registration_number like '%$content$%'
+		or		
+		t.telephone like '%$content$%'
+		or		
+		t.fax like '%$content$%'
+		or		
+		t.url like '%$content$%'
+		or		
+		t.postcode like '%$content$%'
+		or		
+		t.legal_person like '%$content$%'
+		or		
+		t.legal_home_address like '%$content$%'
+		or		
+		t.address like '%$content$%'
+		or		
+		t.registered_address like '%$content$%'
+		or		
+		t.open_account_bank like '%$content$%'
+		or		
+		t.bank_account like '%$content$%'
+		or		
+		t.comment like '%$content$%'
+		or 
+		tc.name like '%$content$%'		
+		)		
+		</isNotEmpty>
+	</select>
+	
+	<select id="getAllCompany" resultClass="company">
+	    select 
+			id as id,
+			name as name
+	    from t_company where status = 0 
+	</select>
+</sqlMap>

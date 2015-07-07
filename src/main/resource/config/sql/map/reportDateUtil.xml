@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+ "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="reportDateUtil">
+	<select id="queryReportDateInfo"  resultClass="com.brick.base.to.ReportDateTo">
+		select id,year,month,beginTime,endTime from T_REPORT_DATE WHERE status = 0 order by year desc,month desc
+	</select>
+	
+	<!-- 获得每个结账周期第二个工作日至下个结账周期的第一个工作日,用于财务销帐报表 add by ShenQi 2014-2-11 -->
+	<select id="queryDecomposeReportBeginToEndPeriod" resultClass="com.brick.base.to.ReportDateTo">
+		   SELECT T.YEAR year,T.MONTH month,U.SECOND_WD beginTime,O.FIRST_WD endTime
+		     FROM T_REPORT_DATE T
+		LEFT JOIN
+		   (SELECT CASE WHEN [MONTH]=1 THEN [YEAR]-1 ELSE [YEAR] END [YEAR],
+		           CASE WHEN [MONTH]=1 THEN 12 ELSE [MONTH]-1 END [MONTH],
+		           (SELECT TOP 1 DATE FROM T_DAY_TYPE WHERE DATE BETWEEN BEGINTIME AND ENDTIME AND DAY_TYPE='WD' ORDER BY DATE ASC) FIRST_WD
+		      FROM T_REPORT_DATE WHERE STATUS=0) O ON T.YEAR=O.[YEAR] AND T.MONTH=O.MONTH
+		LEFT JOIN
+		   (SELECT [YEAR],[MONTH],(SELECT TOP 1 I.DATE 
+		                             FROM (SELECT TOP 2 DATE FROM T_DAY_TYPE WHERE DATE BETWEEN BEGINTIME AND ENDTIME AND DAY_TYPE='WD' ORDER BY DATE ASC) I
+		                         ORDER BY I.DATE DESC) SECOND_WD
+		      FROM T_REPORT_DATE WHERE STATUS=0) U ON T.YEAR=U.[YEAR] AND T.MONTH=U.MONTH
+		    WHERE CONVERT(DATE,GETDATE()) BETWEEN U.SECOND_WD AND O.FIRST_WD
+	</select>
+</sqlMap>

@@ -1,0 +1,1324 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+ "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="prePayStaticForSupplier">
+
+
+	<!-- <select resultClass="java.util.HashMap" id="getAllDay"> select top 
+		30 a.DATE from T_DAY_TYPE a where convert(date,a.date)>=convert(date,#jobDay#) 
+		</select> -->
+
+	<!-- test -->
+	<!-- <select id="getAllTest" resultClass="java.util.HashMap"> select a.BACKCOMP, 
+		a.EXPECTEDDATE,count(backcomp) 'count',sum(PAY_MONEY)'pay' from T_SUPL_PLAYDETIL 
+		a where a.BACKTYPE=1 and a.status=0 and a.ADVANCE_FLAG=0 and a.EXPECTEDDATE 
+		in <iterate property="dayList" open="(" close=")" conjunction=",">#dayList[]#</iterate> 
+		group by a.BACKCOMP,a.EXPECTEDDATE </select> <select id="getAllTest_count" 
+		resultClass="java.lang.Integer"> select count( distinct a.backcomp) from 
+		T_SUPL_PLAYDETIL a where a.BACKTYPE=1 and a.STATUS=0 and a.ADVANCE_FLAG=0 
+		</select> -->
+
+
+
+	<select id="getAll" resultClass="java.util.HashMap">
+		select c.APPRORIATENAME as
+		backcomp,
+		convert(date,pay_date) as
+		EXPECTEDDATE,count(c.APPRORIATENAME) 'count',sum(c.APPRORIATEMON)'pay'
+		from T_SUPL_PLAYDETIL a
+		left join T_PRJT_CREDIT b
+		on a.CREDIT_ID=b.ID AND a.STATUS=0
+		left join T_PRJT_CREDITAPPROPIATE c
+		on b.ID = c.CREDIT_ID AND C.status=0
+		left join T_USER_USER u
+		on u.ID = b.SENSOR_ID and c.STATUS=0
+		left join T_DEPT_DEPARTMENT tdd
+		on tdd.ID=u.DEPT_ID and tdd.status=0
+		left join T_DEPT_COMPANY tdc
+		on tdc.DECP_ID = tdd.DECP_ID
+		where a.PAY_ORDER=1
+		AND a.BACKSTATE=0
+		and A.STATE=3
+		and A.STATUS=0
+		and b.FINANCECONTRACT_DATE is not null
+		and c.type=0
+		and a.PAY_DATE between #begin# and #end#
+		group by c.APPRORIATENAME,convert(date,pay_date)
+		order by convert(date,pay_date) desc
+	</select>
+
+	<select id="getAll_count" resultClass="java.lang.Integer">
+		select
+		count(k.EXPECTEDDATE) from(select c.APPRORIATENAME as backcomp,
+		convert(date,pay_date) as EXPECTEDDATE,count(c.APPRORIATENAME)
+		'count',sum(c.APPRORIATEMON)'pay'
+		from T_SUPL_PLAYDETIL a
+		left join T_PRJT_CREDIT b
+		on a.CREDIT_ID=b.ID AND a.STATUS=0
+		left join T_PRJT_CREDITAPPROPIATE c
+		on b.ID = c.CREDIT_ID AND C.status=0
+		left join T_USER_USER u
+		on u.ID = b.SENSOR_ID and c.STATUS=0
+		left join T_DEPT_DEPARTMENT tdd
+		on tdd.ID=u.DEPT_ID and tdd.status=0
+		left join T_DEPT_COMPANY tdc
+		on tdc.DECP_ID = tdd.DECP_ID
+		where a.PAY_ORDER=1
+		AND a.BACKSTATE=0
+		and A.STATE=3
+		and A.STATUS=0
+		and c.type=0
+		and b.FINANCECONTRACT_DATE is not null
+		and a.PAY_DATE between #begin# and #end#
+		group by c.APPRORIATENAME,convert(date,pay_date)
+		) k
+	</select>
+
+	<select id="getJobData"
+		resultClass="com.brick.prePayStatic.to.PrePayStaticForSupplierJobTo">
+		select c.APPRORIATENAME as
+		name,
+		convert(date,pay_date) as
+		EXPECTEDDATE,count(c.APPRORIATENAME) as payNum,sum(c.APPRORIATEMON) as payMoney
+		from T_SUPL_PLAYDETIL a
+		left join T_PRJT_CREDIT b
+		on a.CREDIT_ID=b.ID AND a.STATUS=0
+		left join T_PRJT_CREDITAPPROPIATE c
+		on b.ID = c.CREDIT_ID AND C.status=0
+		left join T_USER_USER u
+		on u.ID = b.SENSOR_ID and c.STATUS=0
+		left join T_DEPT_DEPARTMENT tdd
+		on tdd.ID=u.DEPT_ID and tdd.status=0
+		left join T_DEPT_COMPANY tdc
+		on tdc.DECP_ID = tdd.DECP_ID
+		where a.PAY_ORDER=1
+		AND a.BACKSTATE=0
+		and A.STATE=3
+		and A.STATUS=0
+		and c.type=0
+		and convert(date,a.pay_date)=convert(date,getdate())
+		group by c.APPRORIATENAME,convert(date,pay_date)
+		order by convert(date,pay_date) desc
+	</select>
+
+	<insert id="addRecordOfStatic">
+		insert into t_PREPAYFORSUPPLIER_JOB
+		values(#id#,#name#,#payNum#,#payMoney#,getDate())
+	</insert>
+
+	<select id="getYearList" resultClass="java.lang.String">
+		select year(create_time)
+         from T_dataStatic_prepay
+        group by year(create_time)
+        order by year(create_time) desc
+	</select>
+    
+    <!-- 交机前拨款金额及实际达成金额 -->
+	<select id="getDataList" resultClass="com.brick.prePayStatic.to.prePayStaticForDeptTo">
+		select a.DECP_ID,a.DECP_NAME_CN as name,
+	isnull(bokuan1.PAY_MONEY,0) as 'actureOfJan',
+    isnull(k1.APPRORIATEMON,0) as 'prePayOfJan',
+    isnull(u1.actrueNumOfJan,0) as actrueNumOfJan,
+    isnull(k1.prePayNumOfJan,0) as prePayNumOfJan,
+    isnull(ppt1.daibu,0) as count1,
+    isnull(qqt1.remanent_money,0) as remanentMoney1,
+  
+	isnull(bokuan2.PAY_MONEY,0) as 'actureOfFeb',
+    isnull(k2.APPRORIATEMON,0)as 'prePayOfFeb',
+    isnull(u2.actrueNumOfFeb,0) as actrueNumOfFeb,
+    isnull(k2.prePayNumOfFeb,0) as prePayNumOfFeb,
+    isnull(ppt2.daibu,0) as count2,
+    isnull(qqt2.remanent_money,0) as remanentMoney2,
+  
+	isnull(bokuan3.PAY_MONEY,0) as 'actureOfMar',
+    isnull(k3.APPRORIATEMON,0) as 'prePayOfMar',
+    isnull(u3.actrueNumOfMar,0) as actrueNumOfMar,
+    isnull(k3.prePayNumOfMar,0) as prePayNumOfMar,
+    isnull(ppt3.daibu,0) as count3,
+    isnull(qqt3.remanent_money,0) as remanentMoney3,
+  
+	isnull(bokuan4.PAY_MONEY,0) as 'actureOfApr',
+    isnull(k4.APPRORIATEMON,0)as 'prePayOfApr',
+    isnull(u4.actrueNumOfApr,0) as actrueNumOfApr,
+    isnull(k4.prePayNumOfApr,0) as prePayNumOfApr,
+    isnull(ppt4.daibu,0) as count4,
+    isnull(qqt4.remanent_money,0) as remanentMoney4,
+  
+	isnull(bokuan5.PAY_MONEY,0) as 'actureOfMay',
+    isnull(k5.APPRORIATEMON,0) as 'prePayOfMay',
+    isnull(u5.actrueNumOfMay,0) as actrueNumOfMay,
+    isnull(k5.prePayNumOfMay,0) as prePayNumOfMay,
+    isnull(ppt5.daibu,0) as count5,
+    isnull(qqt5.remanent_money,0) as remanentMoney5,
+  
+	isnull(bokuan6.PAY_MONEY,0) as 'actureOfJun',
+    isnull(k6.APPRORIATEMON,0)as 'prePayOfJun',
+    isnull(u6.actrueNumOfJun,0) as actrueNumOfJun,
+    isnull(k6.prePayNumOfJun,0) as prePayNumOfJun,
+    isnull(ppt6.daibu,0) as count6,
+    isnull(qqt6.remanent_money,0) as remanentMoney6,
+  
+	isnull(bokuan7.PAY_MONEY,0) as 'actureOfJul',
+    isnull(k7.APPRORIATEMON,0) as 'prePayOfJul',
+    isnull(u7.actrueNumOfJul,0) as actrueNumOfJul,
+    isnull(k7.prePayNumOfJul,0) as prePayNumOfJul,
+    isnull(ppt7.daibu,0) as count7,
+    isnull(qqt7.remanent_money,0) as remanentMoney7,
+  
+	isnull(bokuan8.PAY_MONEY,0) as 'actureOfAus',
+    isnull(k8.APPRORIATEMON,0)as 'prePayOfAus',
+    isnull(u8.actrueNumOfAus,0) as actrueNumOfAus,
+    isnull(k8.prePayNumOfAus,0) as prePayNumOfAus,
+    isnull(ppt8.daibu,0) as count8,
+    isnull(qqt8.remanent_money,0) as remanentMoney8,
+  
+	isnull(bokuan9.PAY_MONEY,0) as 'actureOfSep',
+    isnull(k9.APPRORIATEMON,0) as 'prePayOfSep',
+    isnull(u9.actrueNumOfSep,0) as actrueNumOfSep,
+    isnull(k9.prePayNumOfSep,0) as prePayNumOfSep,
+    isnull(ppt9.daibu,0) as count9,
+    isnull(qqt9.remanent_money,0) as remanentMoney9,
+  
+	isnull(bokuan10.PAY_MONEY,0) as'actureOfOct',
+    isnull(k10.APPRORIATEMON,0) as 'prePayOfOct',
+    isnull(u10.actrueNumOfOct,0) as actrueNumOfOct,
+    isnull(k10.prePayNumOfOct,0) as prePayNumOfOct,
+    isnull(ppt10.daibu,0) as count10,
+    isnull(qqt10.remanent_money,0) as remanentMoney10,
+  
+	isnull(bokuan11.PAY_MONEY,0) as'actureOfNov',
+    isnull(k11.APPRORIATEMON,0) as 'prePayOfNov',
+    isnull(u11.actrueNumOfNov,0) as actrueNumOfNov,
+    isnull(k11.prePayNumOfNov,0) as prePayNumOfNov,
+    isnull(ppt11.daibu,0) as count11,
+    isnull(qqt11.remanent_money,0) as remanentMoney11,
+  
+	isnull(bokuan12.PAY_MONEY,0) as'actureOfDec',
+    isnull(k12.APPRORIATEMON,0) as 'prePayOfDec',
+    isnull(u12.actrueNumOfDec,0) as actrueNumOfDec,
+    isnull(k12.prePayNumOfDec,0) as prePayNumOfDec,
+    isnull(ppt12.daibu,0) as count12,
+    isnull(qqt12.remanent_money,0) as remanentMoney12
+	from T_DEPT_COMPANY a
+	right join
+	(
+	select tdc.DECP_ID from T_SUPL_PLAYDETIL p
+	left join T_PRJT_CREDIT tpc
+	on tpc.ID=p.CREDIT_ID
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where year(p.PAY_DATE)=#YEAR#
+	and p.STATE=3
+	and p.STATUS=0
+	and p.BACKSTATE=0
+	and tdc.DECP_ID is not null
+	group by tdc.DECP_ID
+	) n
+	on n.DECP_ID=a.DECP_ID
+	
+	<!-- 1月 实际拨款件数 -->
+	left join(
+	 	select tdc.DECP_ID,count(tdc.decp_id) as actrueNumOfJan from  T_PRJT_CREDIT tpc
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where 
+	tpc.status=0
+	<!-- and (convert(date,p.pay_date) between convert(date,#begin1#) and convert(date,#end1#) )  -->
+    and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin1#) and convert(date,#end1#) ) 
+	group by tdc.DECP_ID
+	)u1
+	on u1.decp_id=a.decp_id
+    
+    <!-- 1月 拨款总金额  -->
+	left join(
+	select tdc.DECP_ID,sum(p.PAY_MONEY) as pay_money  from T_SUPL_PLAYDETIL p
+	left join T_PRJT_CREDIT tpc
+	on tpc.ID=p.CREDIT_ID
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where p.STATE=3
+	and p.STATUS=0
+	and p.BACKSTATE=0
+	and (convert(date,p.pay_date) between convert(date,#begin1#) and convert(date,#end1#) ) 
+	<!-- and year(p.PAY_DATE)=#YEAR#
+	and month(p.PAY_DATE)='1' -->
+	group by tdc.DECP_ID
+	) bokuan1
+	on bokuan1.DECP_ID=a.DECP_ID
+	
+	left join
+	(
+	select tc.DECP_ID,sum(tcc.APPRORIATEMON)as APPRORIATEMON,count(tc.DECP_ID) as prePayNumOfJan
+	from T_PRJT_CREDITAPPROPIATE tcc
+	left join T_PRJT_CREDIT tpc on tcc.credit_id=tpc.ID
+	left join T_USER_USER u on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT td on u.DEPT_ID=td.ID
+	left join T_DEPT_COMPANY tc on tc.DECP_ID = tpc.DECP_ID
+	where tpc.FINANCECONTRACT_DATE is not null
+	and tcc.TYPE=0
+	and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin1#) and convert(date,#end1#) )
+	<!-- and year(tpc.FINANCECONTRACT_DATE)=#YEAR#
+	and month(tpc.FINANCECONTRACT_DATE)='1' -->
+	group by tc.DECP_ID
+	) k1
+	on k1.decp_id=a.decp_id
+	
+	<!-- 交机前待补文件统计 -->
+	left join
+	(
+	   select tuuc.dept_id,tuuc.dept_name,count(1) as daibu
+       from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+       where convert(date,tuuc.create_on)=#s1# and tuuc.FILE_NAME like '%购置凭证%'
+       and tuuc.TYPE='交机前拨款'
+       <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up1# ) -->
+       group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as ppt1
+	on ppt1.DEPT_ID=n.DECP_ID
+	
+	<!-- 交机前待补金额 -->
+	left join
+	(
+	    select tuuc.dept_id,tuuc.dept_name,sum(tpi.remanent_money) as remanent_money
+        from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+        left join T_PRJT_INVOICE tpi on tpi.CREDIT_ID = tuuc.CREDIT_ID and tpi.status=0
+        where convert(date,tuuc.create_on)=#s1# and tuuc.FILE_NAME like '%购置凭证%'
+        and tuuc.TYPE='交机前拨款'
+        <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up1# ) -->
+        and tpi.REMANENT_MONEY>0
+        group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as qqt1
+	on qqt1.DEPT_ID = n.DECP_ID
+    
+    	left join(
+	 	select tdc.DECP_ID,count(tdc.decp_id) as actrueNumOfFeb from  T_PRJT_CREDIT tpc
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where 
+	tpc.status=0
+	<!-- and (convert(date,p.pay_date) between convert(date,#begin1#) and convert(date,#end1#) )  -->
+    and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin2#) and convert(date,#end2#) ) 
+	group by tdc.DECP_ID
+	)u2
+	on u2.decp_id=a.decp_id
+    
+	left join(
+	select tdc.DECP_ID,sum(p.PAY_MONEY) as pay_money from T_SUPL_PLAYDETIL p
+	left join T_PRJT_CREDIT tpc
+	on tpc.ID=p.CREDIT_ID
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where p.STATE=3
+	and p.STATUS=0
+	and p.BACKSTATE=0
+	and (convert(date,p.pay_date) between convert(date,#begin2#) and convert(date,#end2#) )
+	<!-- and year(p.PAY_DATE)=#YEAR#
+	and month(p.PAY_DATE)='2' -->
+	group by tdc.DECP_ID
+	) bokuan2
+	on bokuan2.DECP_ID=a.DECP_ID
+	
+	left join
+	(
+	select tc.DECP_ID,sum(tcc.APPRORIATEMON)as APPRORIATEMON,count(tc.DECP_ID) as prePayNumOfFeb
+	from T_PRJT_CREDITAPPROPIATE tcc
+	left join T_PRJT_CREDIT tpc on tcc.credit_id=tpc.ID
+	left join T_USER_USER u on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT td on u.DEPT_ID=td.ID
+	left join T_DEPT_COMPANY tc on tc.DECP_ID = tpc.DECP_ID
+	where tpc.FINANCECONTRACT_DATE is not null
+	and tcc.TYPE=0
+	and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin2#) and convert(date,#end2#) )
+	<!-- and year(tpc.FINANCECONTRACT_DATE)=#YEAR#
+	and month(tpc.FINANCECONTRACT_DATE)='2' -->
+	group by tc.DECP_ID
+	) k2
+	on k2.decp_id=a.decp_id
+	
+		<!-- 交机前待补文件统计 -->
+	left join
+	(
+	   select tuuc.dept_id,tuuc.dept_name,count(1) as daibu
+       from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+       where convert(date,tuuc.create_on)=#s2# and tuuc.FILE_NAME like '%购置凭证%'
+       and tuuc.TYPE='交机前拨款'
+       <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up2# ) -->
+       group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as ppt2
+	on ppt2.DEPT_ID=n.DECP_ID
+	
+	<!-- 交机前待补金额 -->
+	left join
+	(
+	    select tuuc.dept_id,tuuc.dept_name,sum(tpi.remanent_money) as remanent_money
+        from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+        left join T_PRJT_INVOICE tpi on tpi.CREDIT_ID = tuuc.CREDIT_ID and tpi.status=0
+        where convert(date,tuuc.create_on)=#s2# and tuuc.FILE_NAME like '%购置凭证%'
+        and tuuc.TYPE='交机前拨款'
+        <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up2# ) -->
+        and tpi.REMANENT_MONEY>0
+        group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as qqt2
+	on qqt2.DEPT_ID = n.DECP_ID
+    
+     left join(
+	 select tdc.DECP_ID,count(tdc.decp_id) as actrueNumOfMar from  T_PRJT_CREDIT tpc
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where 
+	tpc.status=0
+	<!-- and (convert(date,p.pay_date) between convert(date,#begin1#) and convert(date,#end1#) )  -->
+    and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin3#) and convert(date,#end3#) ) 
+	group by tdc.DECP_ID
+	)u3
+	on u3.decp_id=a.decp_id
+    
+	left join(
+	select tdc.DECP_ID,sum(p.PAY_MONEY) as pay_money from T_SUPL_PLAYDETIL p
+	left join T_PRJT_CREDIT tpc
+	on tpc.ID=p.CREDIT_ID
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where p.STATE=3
+	and p.STATUS=0
+	and p.BACKSTATE=0
+	and (convert(date,p.pay_date) between convert(date,#begin3#) and convert(date,#end3#) )
+	<!-- and year(p.PAY_DATE)=#YEAR#
+	and month(p.PAY_DATE)='3' -->
+	group by tdc.DECP_ID
+	) bokuan3
+	on bokuan3.DECP_ID=a.DECP_ID
+	left join
+	(
+	select tc.DECP_ID,sum(tcc.APPRORIATEMON)as APPRORIATEMON,count(tc.DECP_ID) as prePayNumOfMar
+	from T_PRJT_CREDITAPPROPIATE tcc
+	left join T_PRJT_CREDIT tpc on tcc.credit_id=tpc.ID
+	left join T_USER_USER u on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT td on u.DEPT_ID=td.ID
+	left join T_DEPT_COMPANY tc on tc.DECP_ID = tpc.DECP_ID
+	where tpc.FINANCECONTRACT_DATE is not null
+	and tcc.TYPE=0
+	and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin3#) and convert(date,#end3#) )
+	<!-- and year(tpc.FINANCECONTRACT_DATE)=#YEAR#
+	and month(tpc.FINANCECONTRACT_DATE)='3' -->
+	group by tc.DECP_ID
+	) k3
+	on k3.decp_id=a.decp_id
+	
+		<!-- 交机前待补文件统计 -->
+	left join
+	(
+	   select tuuc.dept_id,tuuc.dept_name,count(1) as daibu
+       from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+       where convert(date,tuuc.create_on)=#s3# and tuuc.FILE_NAME like '%购置凭证%'
+       and tuuc.TYPE='交机前拨款'
+       <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up3# ) -->
+       group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as ppt3
+	on ppt3.DEPT_ID=n.DECP_ID
+	
+	<!-- 交机前待补金额 -->
+	left join
+	(
+	    select tuuc.dept_id,tuuc.dept_name,sum(tpi.remanent_money) as remanent_money
+        from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+        left join T_PRJT_INVOICE tpi on tpi.CREDIT_ID = tuuc.CREDIT_ID and tpi.status=0
+        where convert(date,tuuc.create_on)=#s3# and tuuc.FILE_NAME like '%购置凭证%'
+        and tuuc.TYPE='交机前拨款'
+        <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up3# ) -->
+        and tpi.REMANENT_MONEY>0
+        group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as qqt3
+	on qqt3.DEPT_ID = n.DECP_ID
+    
+     left join(
+	select tdc.DECP_ID,count(tdc.decp_id) as actrueNumOfApr from  T_PRJT_CREDIT tpc
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where 
+	tpc.status=0
+	<!-- and (convert(date,p.pay_date) between convert(date,#begin1#) and convert(date,#end1#) )  -->
+    and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin4#) and convert(date,#end4#) ) 
+	group by tdc.DECP_ID
+	)u4
+	on u4.decp_id=a.decp_id
+    
+	left join(
+	select tdc.DECP_ID,sum(p.PAY_MONEY) as pay_money from T_SUPL_PLAYDETIL p
+	left join T_PRJT_CREDIT tpc
+	on tpc.ID=p.CREDIT_ID
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where p.STATE=3
+	and p.STATUS=0
+	and p.BACKSTATE=0
+	and (convert(date,p.pay_date) between convert(date,#begin4#) and convert(date,#end4#) )
+	<!-- and year(p.PAY_DATE)=#YEAR#
+	and month(p.PAY_DATE)='4' -->
+	group by tdc.DECP_ID
+	) bokuan4
+	on bokuan4.DECP_ID=a.DECP_ID
+	left join
+	(
+	select tc.DECP_ID,sum(tcc.APPRORIATEMON)as APPRORIATEMON,count(tc.DECP_ID) as prePayNumOfApr
+	from T_PRJT_CREDITAPPROPIATE tcc
+	left join T_PRJT_CREDIT tpc on tcc.credit_id=tpc.ID
+	left join T_USER_USER u on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT td on u.DEPT_ID=td.ID
+	left join T_DEPT_COMPANY tc on tc.DECP_ID = tpc.DECP_ID
+	where tpc.FINANCECONTRACT_DATE is not null
+	and tcc.TYPE=0
+	and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin4#) and convert(date,#end4#) )
+	<!-- and year(tpc.FINANCECONTRACT_DATE)=#YEAR#
+	and month(tpc.FINANCECONTRACT_DATE)='4' -->
+	group by tc.DECP_ID
+	) k4
+	on k4.decp_id=a.decp_id
+	
+		<!-- 交机前待补文件统计 -->
+	left join
+	(
+	   select tuuc.dept_id,tuuc.dept_name,count(1) as daibu
+       from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+       where convert(date,tuuc.create_on)=#s4# and tuuc.FILE_NAME like '%购置凭证%'
+       and tuuc.TYPE='交机前拨款'
+       <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up4# ) -->
+       group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as ppt4
+	on ppt4.DEPT_ID=n.DECP_ID
+	
+	<!-- 交机前待补金额 -->
+	left join
+	(
+	    select tuuc.dept_id,tuuc.dept_name,sum(tpi.remanent_money) as remanent_money
+        from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+        left join T_PRJT_INVOICE tpi on tpi.CREDIT_ID = tuuc.CREDIT_ID and tpi.status=0
+        where convert(date,tuuc.create_on)=#s4# and tuuc.FILE_NAME like '%购置凭证%'
+        and tuuc.TYPE='交机前拨款'
+        <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up4# ) -->
+        and tpi.REMANENT_MONEY>0
+        group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as qqt4
+	on qqt4.DEPT_ID = n.DECP_ID
+    
+    left join(
+	select tdc.DECP_ID,count(tdc.decp_id) as actrueNumOfMay from  T_PRJT_CREDIT tpc
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where 
+	tpc.status=0
+	<!-- and (convert(date,p.pay_date) between convert(date,#begin1#) and convert(date,#end1#) )  -->
+    and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin5#) and convert(date,#end5#) ) 
+	group by tdc.DECP_ID
+	)u5
+	on u5.decp_id=a.decp_id
+    
+	left join(
+	select tdc.DECP_ID,sum(p.PAY_MONEY) as pay_money from T_SUPL_PLAYDETIL p
+	left join T_PRJT_CREDIT tpc
+	on tpc.ID=p.CREDIT_ID
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where p.STATE=3
+	and p.STATUS=0
+	and p.BACKSTATE=0
+	and (convert(date,p.pay_date) between convert(date,#begin5#) and convert(date,#end5#) )
+	<!-- and year(p.PAY_DATE)=#YEAR#
+	and month(p.PAY_DATE)='5' -->
+	group by tdc.DECP_ID
+	) bokuan5
+	on bokuan5.DECP_ID=a.DECP_ID
+	left join
+	(
+	select tc.DECP_ID,sum(tcc.APPRORIATEMON)as APPRORIATEMON,count(tc.DECP_ID) as prePayNumOfMay
+	from T_PRJT_CREDITAPPROPIATE tcc
+	left join T_PRJT_CREDIT tpc on tcc.credit_id=tpc.ID
+	left join T_USER_USER u on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT td on u.DEPT_ID=td.ID
+	left join T_DEPT_COMPANY tc on tc.DECP_ID = tpc.DECP_ID
+	where tpc.FINANCECONTRACT_DATE is not null
+	and tcc.TYPE=0
+	and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin5#) and convert(date,#end5#) )
+	<!-- and year(tpc.FINANCECONTRACT_DATE)=#YEAR#
+	and month(tpc.FINANCECONTRACT_DATE)='5' -->
+	group by tc.DECP_ID
+	) k5
+	on k5.decp_id=a.decp_id
+	
+		<!-- 交机前待补文件统计 -->
+	left join
+	(
+	   select tuuc.dept_id,tuuc.dept_name,count(1) as daibu
+       from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+       where convert(date,tuuc.create_on)=#s5# and tuuc.FILE_NAME like '%购置凭证%'
+       and tuuc.TYPE='交机前拨款'
+       <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up5# ) -->
+       group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as ppt5
+	on ppt5.DEPT_ID=n.DECP_ID
+	
+	<!-- 交机前待补金额 -->
+	left join
+	(
+	    select tuuc.dept_id,tuuc.dept_name,sum(tpi.remanent_money) as remanent_money
+        from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+        left join T_PRJT_INVOICE tpi on tpi.CREDIT_ID = tuuc.CREDIT_ID and tpi.status=0
+        where convert(date,tuuc.create_on)=#s5# and tuuc.FILE_NAME like '%购置凭证%'
+        and tuuc.TYPE='交机前拨款'
+        <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up5# ) -->
+        and tpi.REMANENT_MONEY>0
+        group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as qqt5
+	on qqt5.DEPT_ID = n.DECP_ID
+    
+    left join(
+	select tdc.DECP_ID,count(tdc.decp_id) as actrueNumOfJun from  T_PRJT_CREDIT tpc
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where 
+	tpc.status=0
+	<!-- and (convert(date,p.pay_date) between convert(date,#begin1#) and convert(date,#end1#) )  -->
+    and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin6#) and convert(date,#end6#) ) 
+	group by tdc.DECP_ID
+	)u6
+	on u6.decp_id=a.decp_id
+    
+	left join(
+	select tdc.DECP_ID,sum(p.PAY_MONEY) as pay_money from T_SUPL_PLAYDETIL p
+	left join T_PRJT_CREDIT tpc
+	on tpc.ID=p.CREDIT_ID
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where p.STATE=3
+	and p.STATUS=0
+	and p.BACKSTATE=0
+	and (convert(date,p.pay_date) between convert(date,#begin6#) and convert(date,#end6#) )
+	<!-- and year(p.PAY_DATE)=#YEAR#
+	and month(p.PAY_DATE)='6' -->
+	group by tdc.DECP_ID
+	) bokuan6
+	on bokuan6.DECP_ID=a.DECP_ID
+	left join
+	(
+	select tc.DECP_ID,sum(tcc.APPRORIATEMON)as APPRORIATEMON,count(tc.DECP_ID) as prePayNumOfJun
+	from T_PRJT_CREDITAPPROPIATE tcc
+	left join T_PRJT_CREDIT tpc on tcc.credit_id=tpc.ID
+	left join T_USER_USER u on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT td on u.DEPT_ID=td.ID
+	left join T_DEPT_COMPANY tc on tc.DECP_ID = tpc.DECP_ID
+	where tpc.FINANCECONTRACT_DATE is not null
+	and tcc.TYPE=0
+	and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin6#) and convert(date,#end6#) )
+	<!-- and year(tpc.FINANCECONTRACT_DATE)=#YEAR#
+	and month(tpc.FINANCECONTRACT_DATE)='6' -->
+	group by tc.DECP_ID
+	) k6
+	on k6.decp_id=a.decp_id
+	
+		<!-- 交机前待补文件统计 -->
+	left join
+	(
+	   select tuuc.dept_id,tuuc.dept_name,count(1) as daibu
+       from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+       where convert(date,tuuc.create_on)=#s6# and tuuc.FILE_NAME like '%购置凭证%'
+       and tuuc.TYPE='交机前拨款'
+       <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up6# ) -->
+       group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as ppt6
+	on ppt6.DEPT_ID=n.DECP_ID
+	
+	<!-- 交机前待补金额 -->
+	left join
+	(
+	    select tuuc.dept_id,tuuc.dept_name,sum(tpi.remanent_money) as remanent_money
+        from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+        left join T_PRJT_INVOICE tpi on tpi.CREDIT_ID = tuuc.CREDIT_ID and tpi.status=0
+        where convert(date,tuuc.create_on)=#s6# and tuuc.FILE_NAME like '%购置凭证%'
+        and tuuc.TYPE='交机前拨款'
+        <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up6# ) -->
+        and tpi.REMANENT_MONEY>0
+        group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as qqt6
+	on qqt6.DEPT_ID = n.DECP_ID
+	
+	 left join(
+	select tdc.DECP_ID,count(tdc.decp_id) as actrueNumOfJul from  T_PRJT_CREDIT tpc
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where 
+	tpc.status=0
+	<!-- and (convert(date,p.pay_date) between convert(date,#begin1#) and convert(date,#end1#) )  -->
+    and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin7#) and convert(date,#end7#) ) 
+	group by tdc.DECP_ID
+	)u7
+	on u7.decp_id=a.decp_id
+
+	left join(
+	select tdc.DECP_ID,sum(p.PAY_MONEY) as pay_money from T_SUPL_PLAYDETIL p
+	left join T_PRJT_CREDIT tpc
+	on tpc.ID=p.CREDIT_ID
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where p.STATE=3
+	and p.STATUS=0
+	and p.BACKSTATE=0
+	and (convert(date,p.pay_date) between convert(date,#begin7#) and convert(date,#end7#) )
+	<!-- and year(p.PAY_DATE)=#YEAR#
+	and month(p.PAY_DATE)='7' -->
+	group by tdc.DECP_ID
+	) bokuan7
+	on bokuan7.DECP_ID=a.DECP_ID
+	left join
+	(
+	select tc.DECP_ID,sum(tcc.APPRORIATEMON)as APPRORIATEMON,count(tc.DECP_ID) as prePayNumOfJul
+	from T_PRJT_CREDITAPPROPIATE tcc
+	left join T_PRJT_CREDIT tpc on tcc.credit_id=tpc.ID
+	left join T_USER_USER u on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT td on u.DEPT_ID=td.ID
+	left join T_DEPT_COMPANY tc on tc.DECP_ID = tpc.DECP_ID
+	where tpc.FINANCECONTRACT_DATE is not null
+	and tcc.TYPE=0
+	and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin7#) and convert(date,#end7#) )
+	<!-- and year(tpc.FINANCECONTRACT_DATE)=#YEAR#
+	and month(tpc.FINANCECONTRACT_DATE)='7' -->
+	group by tc.DECP_ID
+	) k7
+	on k7.decp_id=a.decp_id
+	
+		<!-- 交机前待补文件统计 -->
+	left join
+	(
+	   select tuuc.dept_id,tuuc.dept_name,count(1) as daibu
+       from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+       where convert(date,tuuc.create_on)=#s7# and tuuc.FILE_NAME like '%购置凭证%'
+       and tuuc.TYPE='交机前拨款'
+       <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up7# ) -->
+       group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as ppt7
+	on ppt7.DEPT_ID=n.DECP_ID
+	
+	<!-- 交机前待补金额 -->
+	left join
+	(
+	    select tuuc.dept_id,tuuc.dept_name,sum(tpi.remanent_money) as remanent_money
+        from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+        left join T_PRJT_INVOICE tpi on tpi.CREDIT_ID = tuuc.CREDIT_ID and tpi.status=0
+        where convert(date,tuuc.create_on)=#s7# and tuuc.FILE_NAME like '%购置凭证%'
+        and tuuc.TYPE='交机前拨款'
+        <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up7# ) -->
+        and tpi.REMANENT_MONEY>0
+        group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as qqt7
+	on qqt7.DEPT_ID = n.DECP_ID
+	
+	  left join(
+	select tdc.DECP_ID,count(tdc.decp_id) as actrueNumOfAus from  T_PRJT_CREDIT tpc
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where 
+	tpc.status=0
+	<!-- and (convert(date,p.pay_date) between convert(date,#begin1#) and convert(date,#end1#) )  -->
+    and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin8#) and convert(date,#end8#) ) 
+	group by tdc.DECP_ID
+	)u8
+	on u8.decp_id=a.decp_id
+
+	left join(
+	select tdc.DECP_ID,sum(p.PAY_MONEY) as pay_money from T_SUPL_PLAYDETIL p
+	left join T_PRJT_CREDIT tpc
+	on tpc.ID=p.CREDIT_ID
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where p.STATE=3
+	and p.STATUS=0
+	and p.BACKSTATE=0
+	and (convert(date,p.pay_date) between convert(date,#begin8#) and convert(date,#end8#) )
+	<!-- and year(p.PAY_DATE)=#YEAR#
+	and month(p.PAY_DATE)='8' -->
+	group by tdc.DECP_ID
+	) bokuan8
+	on bokuan8.DECP_ID=a.DECP_ID
+	left join
+	(
+	select tc.DECP_ID,sum(tcc.APPRORIATEMON)as APPRORIATEMON,count(tc.DECP_ID) as prePayNumOfAus
+	from T_PRJT_CREDITAPPROPIATE tcc
+	left join T_PRJT_CREDIT tpc on tcc.credit_id=tpc.ID
+	left join T_USER_USER u on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT td on u.DEPT_ID=td.ID
+	left join T_DEPT_COMPANY tc on tc.DECP_ID = tpc.DECP_ID
+	where tpc.FINANCECONTRACT_DATE is not null
+	and tcc.TYPE=0
+	and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin8#) and convert(date,#end8#) )
+	<!-- and year(tpc.FINANCECONTRACT_DATE)=#YEAR#
+	and month(tpc.FINANCECONTRACT_DATE)='8' -->
+	group by tc.DECP_ID
+	) k8
+	on k8.decp_id=a.decp_id
+	
+		<!-- 交机前待补文件统计 -->
+	left join
+	(
+	   select tuuc.dept_id,tuuc.dept_name,count(1) as daibu
+       from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+       where convert(date,tuuc.create_on)=#s8# and tuuc.FILE_NAME like '%购置凭证%'
+       and tuuc.TYPE='交机前拨款'
+       <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up8# ) -->
+       group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as ppt8
+	on ppt8.DEPT_ID=n.DECP_ID
+	
+	<!-- 交机前待补金额 -->
+	left join
+	(
+	    select tuuc.dept_id,tuuc.dept_name,sum(tpi.remanent_money) as remanent_money
+        from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+        left join T_PRJT_INVOICE tpi on tpi.CREDIT_ID = tuuc.CREDIT_ID and tpi.status=0
+        where convert(date,tuuc.create_on)=#s8# and tuuc.FILE_NAME like '%购置凭证%'
+        and tuuc.TYPE='交机前拨款'
+        <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up8# ) -->
+        and tpi.REMANENT_MONEY>0
+        group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as qqt8
+	on qqt8.DEPT_ID = n.DECP_ID
+	
+	 left join(
+	 select tdc.DECP_ID,count(tdc.decp_id) as actrueNumOfSep from  T_PRJT_CREDIT tpc
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where 
+	tpc.status=0
+	<!-- and (convert(date,p.pay_date) between convert(date,#begin1#) and convert(date,#end1#) )  -->
+    and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin9#) and convert(date,#end9#) ) 
+	group by tdc.DECP_ID
+	)u9
+	on u9.decp_id=a.decp_id
+
+	left join(
+	select tdc.DECP_ID,sum(p.PAY_MONEY) as pay_money from T_SUPL_PLAYDETIL p
+	left join T_PRJT_CREDIT tpc
+	on tpc.ID=p.CREDIT_ID
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where p.STATE=3
+	and p.STATUS=0
+	and p.BACKSTATE=0
+	and (convert(date,p.pay_date) between convert(date,#begin9#) and convert(date,#end9#) )
+	<!-- and year(p.PAY_DATE)=#YEAR#
+	and month(p.PAY_DATE)='9' -->
+	group by tdc.DECP_ID
+	) bokuan9
+	on bokuan9.DECP_ID=a.DECP_ID
+	left join
+	(
+	select tc.DECP_ID,sum(tcc.APPRORIATEMON)as APPRORIATEMON,count(tc.DECP_ID) as prePayNumOfSep
+	from T_PRJT_CREDITAPPROPIATE tcc
+	left join T_PRJT_CREDIT tpc on tcc.credit_id=tpc.ID
+	left join T_USER_USER u on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT td on u.DEPT_ID=td.ID
+	left join T_DEPT_COMPANY tc on tc.DECP_ID = tpc.DECP_ID
+	where tpc.FINANCECONTRACT_DATE is not null
+	and tcc.TYPE=0
+	and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin9#) and convert(date,#end9#) )
+	<!-- and year(tpc.FINANCECONTRACT_DATE)=#YEAR#
+	and month(tpc.FINANCECONTRACT_DATE)='9' -->
+	group by tc.DECP_ID
+	) k9
+	on k9.decp_id=a.decp_id
+	
+		<!-- 交机前待补文件统计 -->
+	left join
+	(
+	   select tuuc.dept_id,tuuc.dept_name,count(1) as daibu
+       from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+       where convert(date,tuuc.create_on)=#s9# and tuuc.FILE_NAME like '%购置凭证%'
+       and tuuc.TYPE='交机前拨款'
+       <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up9# ) -->
+       group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as ppt9
+	on ppt9.DEPT_ID=n.DECP_ID
+	
+	<!-- 交机前待补金额 -->
+	left join
+	(
+	    select tuuc.dept_id,tuuc.dept_name,sum(tpi.remanent_money) as remanent_money
+        from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+        left join T_PRJT_INVOICE tpi on tpi.CREDIT_ID = tuuc.CREDIT_ID and tpi.status=0
+        where convert(date,tuuc.create_on)=#s9# and tuuc.FILE_NAME like '%购置凭证%'
+        and tuuc.TYPE='交机前拨款'
+        <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up9# ) -->
+        and tpi.REMANENT_MONEY>0
+        group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as qqt9
+	on qqt9.DEPT_ID = n.DECP_ID
+	
+	left join(
+	select tdc.DECP_ID,count(tdc.decp_id) as actrueNumOfOct from  T_PRJT_CREDIT tpc
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where 
+	tpc.status=0
+	<!-- and (convert(date,p.pay_date) between convert(date,#begin1#) and convert(date,#end1#) )  -->
+    and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin10#) and convert(date,#end10#) ) 
+	group by tdc.DECP_ID
+	)u10
+	on u10.decp_id=a.decp_id
+
+	left join(
+	select tdc.DECP_ID,sum(p.PAY_MONEY) as pay_money from T_SUPL_PLAYDETIL p
+	left join T_PRJT_CREDIT tpc
+	on tpc.ID=p.CREDIT_ID
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where p.STATE=3
+	and p.STATUS=0
+	and p.BACKSTATE=0
+	and (convert(date,p.pay_date) between convert(date,#begin10#) and convert(date,#end10#) )
+	<!-- and year(p.PAY_DATE)=#YEAR#
+	and month(p.PAY_DATE)='10' -->
+	group by tdc.DECP_ID
+	) bokuan10
+	on bokuan10.DECP_ID=a.DECP_ID
+	left join
+	(
+	select tc.DECP_ID,sum(tcc.APPRORIATEMON)as APPRORIATEMON,count(tc.DECP_ID) as prePayNumOfOct
+	from T_PRJT_CREDITAPPROPIATE tcc
+	left join T_PRJT_CREDIT tpc on tcc.credit_id=tpc.ID
+	left join T_USER_USER u on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT td on u.DEPT_ID=td.ID
+	left join T_DEPT_COMPANY tc on tc.DECP_ID = tpc.DECP_ID
+	where tpc.FINANCECONTRACT_DATE is not null
+	and tcc.TYPE=0
+	and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin10#) and convert(date,#end10#) )
+	<!-- and year(tpc.FINANCECONTRACT_DATE)=#YEAR#
+	and month(tpc.FINANCECONTRACT_DATE)='10' -->
+	group by tc.DECP_ID
+	) k10
+	on k10.decp_id=a.decp_id
+	
+		<!-- 交机前待补文件统计 -->
+	left join
+	(
+	   select tuuc.dept_id,tuuc.dept_name,count(1) as daibu
+       from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+       where convert(date,tuuc.create_on)=#s10# and tuuc.FILE_NAME like '%购置凭证%'
+       and tuuc.TYPE='交机前拨款'
+       <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up10# ) -->
+       group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as ppt10
+	on ppt10.DEPT_ID=n.DECP_ID
+	
+	<!-- 交机前待补金额 -->
+	left join
+	(
+	    select tuuc.dept_id,tuuc.dept_name,sum(tpi.remanent_money) as remanent_money
+        from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+        left join T_PRJT_INVOICE tpi on tpi.CREDIT_ID = tuuc.CREDIT_ID and tpi.status=0
+        where convert(date,tuuc.create_on)=#s10# and tuuc.FILE_NAME like '%购置凭证%'
+        and tuuc.TYPE='交机前拨款'
+        <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up10# ) -->
+        and tpi.REMANENT_MONEY>0
+        group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as qqt10
+	on qqt10.DEPT_ID = n.DECP_ID
+	
+	 left join(
+	select tdc.DECP_ID,count(tdc.decp_id) as actrueNumOfNov from  T_PRJT_CREDIT tpc
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where 
+	tpc.status=0
+	<!-- and (convert(date,p.pay_date) between convert(date,#begin1#) and convert(date,#end1#) )  -->
+    and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin11#) and convert(date,#end11#) ) 
+	group by tdc.DECP_ID
+	)u11
+	on u11.decp_id=a.decp_id
+
+	left join(
+	select tdc.DECP_ID,sum(p.PAY_MONEY) as pay_money from T_SUPL_PLAYDETIL p
+	left join T_PRJT_CREDIT tpc
+	on tpc.ID=p.CREDIT_ID
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where p.STATE=3
+	and p.STATUS=0
+	and p.BACKSTATE=0
+	and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin11#) and convert(date,#end11#) )
+	<!-- and year(p.PAY_DATE)=#YEAR#
+	and month(p.PAY_DATE)='11' -->
+	group by tdc.DECP_ID
+	) bokuan11
+	on bokuan11.DECP_ID=a.DECP_ID
+	left join
+	(
+	select tc.DECP_ID,sum(tcc.APPRORIATEMON)as APPRORIATEMON,count(tc.DECP_ID) as prePayNumOfNov
+	from T_PRJT_CREDITAPPROPIATE tcc
+	left join T_PRJT_CREDIT tpc on tcc.credit_id=tpc.ID
+	left join T_USER_USER u on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT td on u.DEPT_ID=td.ID
+	left join T_DEPT_COMPANY tc on tc.DECP_ID = tpc.DECP_ID
+	where tpc.FINANCECONTRACT_DATE is not null
+	and tcc.TYPE=0
+	and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin11#) and convert(date,#end11#) )
+	<!-- and year(tpc.FINANCECONTRACT_DATE)=#YEAR#
+	and month(tpc.FINANCECONTRACT_DATE)='11' -->
+	group by tc.DECP_ID
+	) k11
+	on k11.decp_id=a.decp_id
+	
+		<!-- 交机前待补文件统计 -->
+	left join
+	(
+	   select tuuc.dept_id,tuuc.dept_name,count(1) as daibu
+       from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+       where convert(date,tuuc.create_on)=#s11# and tuuc.FILE_NAME like '%购置凭证%'
+       and tuuc.TYPE='交机前拨款'
+       <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up11# ) -->
+       group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as ppt11
+	on ppt11.DEPT_ID=n.DECP_ID
+	
+	<!-- 交机前待补金额 -->
+	left join
+	(
+	    select tuuc.dept_id,tuuc.dept_name,sum(tpi.remanent_money) as remanent_money
+        from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+        left join T_PRJT_INVOICE tpi on tpi.CREDIT_ID = tuuc.CREDIT_ID and tpi.status=0
+        where convert(date,tuuc.create_on)=#s11# and tuuc.FILE_NAME like '%购置凭证%'
+        and tuuc.TYPE='交机前拨款'
+        <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up11# ) -->
+        and tpi.REMANENT_MONEY>0
+        group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as qqt11
+	on qqt11.DEPT_ID = n.DECP_ID
+	
+	left join(
+	select tdc.DECP_ID,count(tdc.decp_id) as actrueNumOfDec from  T_PRJT_CREDIT tpc
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where 
+	tpc.status=0
+	<!-- and (convert(date,p.pay_date) between convert(date,#begin1#) and convert(date,#end1#) )  -->
+    and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin12#) and convert(date,#end12#) ) 
+	group by tdc.DECP_ID
+	)u12
+	on u12.decp_id=a.decp_id
+
+	left join(
+	select tdc.DECP_ID,sum(p.PAY_MONEY) as pay_money from T_SUPL_PLAYDETIL p
+	left join T_PRJT_CREDIT tpc
+	on tpc.ID=p.CREDIT_ID
+	left join T_USER_USER u
+	on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT tpd
+	on tpd.ID = u.DEPT_ID
+	left join T_DEPT_COMPANY tdc
+	on tdc.DECP_ID = tpd.DECP_ID
+	where p.STATE=3
+	and p.STATUS=0
+	and p.BACKSTATE=0
+	and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin12#) and convert(date,#end12#) )
+	<!-- and year(p.PAY_DATE)=#YEAR#
+	and month(p.PAY_DATE)='12' -->
+	group by tdc.DECP_ID
+	) bokuan12
+	on bokuan12.DECP_ID=a.DECP_ID
+	left join
+	(
+	select tc.DECP_ID,sum(tcc.APPRORIATEMON)as APPRORIATEMON,count(tc.DECP_ID) as prePayNumOfDec
+	from T_PRJT_CREDITAPPROPIATE tcc
+	left join T_PRJT_CREDIT tpc on tcc.credit_id=tpc.ID
+	left join T_USER_USER u on tpc.SENSOR_ID = u.ID
+	left join T_DEPT_DEPARTMENT td on u.DEPT_ID=td.ID
+	left join T_DEPT_COMPANY tc on tc.DECP_ID = tpc.DECP_ID
+	where tpc.FINANCECONTRACT_DATE is not null
+	and tcc.TYPE=0
+	and (convert(date,tpc.FINANCECONTRACT_DATE) between convert(date,#begin12#) and convert(date,#end12#) )
+	<!-- and year(tpc.FINANCECONTRACT_DATE)=#YEAR#
+	and month(tpc.FINANCECONTRACT_DATE)='12' -->
+	group by tc.DECP_ID
+	) k12
+	on k12.decp_id=a.decp_id
+	
+		<!-- 交机前待补文件统计 -->
+	left join
+	(
+	   select tuuc.dept_id,tuuc.dept_name,count(1) as daibu
+       from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+       where convert(date,tuuc.create_on)=#s12# and tuuc.FILE_NAME like '%购置凭证%'
+       and tuuc.TYPE='交机前拨款'
+       <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up12# ) -->
+       group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as ppt12
+	on ppt12.DEPT_ID=n.DECP_ID
+	
+	<!-- 交机前待补金额 -->
+	left join
+	(
+	    select tuuc.dept_id,tuuc.dept_name,sum(tpi.remanent_money) as remanent_money
+        from T_UNNATURAL_UNCOMPLETED_FILE_CASE tuuc
+        left join T_PRJT_INVOICE tpi on tpi.CREDIT_ID = tuuc.CREDIT_ID and tpi.status=0
+        where convert(date,tuuc.create_on)=#s12# and tuuc.FILE_NAME like '%购置凭证%'
+        and tuuc.TYPE='交机前拨款'
+        <!-- and tuuc.ID not in(select id from T_UNNATURAL_UNCOMPLETED_FILE_CASE t1 where t1.FILE_NAME like '%购置凭证%' and convert(date,t1.CREATE_ON)=#up12# ) -->
+        and tpi.REMANENT_MONEY>0
+        group by tuuc.DEPT_ID,tuuc.DEPT_NAME
+	) as qqt12
+	on qqt12.DEPT_ID = n.DECP_ID
+	
+	order by a.decp_id
+	</select>
+	
+	<!-- 记录当天交机前拨款金额与件数  用于跑job -->
+	<insert id="addRecordOfPrepay" parameterClass="com.brick.prePayStatic.to.prePayStaticForDeptTo">
+	  insert into t_datastatic_prepay values(#id#,#DECP_ID#,#name#,#actureOfJan#,#prePayOfJan#,#actrueNumOfJan#,#prePayNumOfJan#,#count1#,#remanentMoney1#,
+	  #actureOfFeb#,#prePayOfFeb#,#actrueNumOfFeb#,#prePayNumOfFeb#,#count2#,#remanentMoney2#,
+	  #actureOfMar#,#prePayOfMar#,#actrueNumOfMar#,#prePayNumOfMar#,#count3#,#remanentMoney3#,
+	  #actureOfApr#,#prePayOfApr#,#actrueNumOfApr#,#prePayNumOfApr#,#count4#,#remanentMoney4#,
+	  #actureOfMay#,#prePayOfMay#,#actrueNumOfMay#,#prePayNumOfMay#,#count5#,#remanentMoney5#,
+	  #actureOfJun#,#prePayOfJun#,#actrueNumOfJun#,#prePayNumOfJun#,#count6#,#remanentMoney6#,
+	  #actureOfJul#,#prePayOfJul#,#actrueNumOfJul#,#prePayNumOfJul#,#count7#,#remanentMoney7#,
+	  #actureOfAus#,#prePayOfAus#,#actrueNumOfAus#,#prePayNumOfAus#,#count8#,#remanentMoney8#,
+	  #actureOfSep#,#prePayOfSep#,#actrueNumOfSep#,#prePayNumOfSep#,#count9#,#remanentMoney9#,
+	  #actureOfOct#,#prePayOfOct#,#actrueNumOfOct#,#prePayNumOfOct#,#count10#,#remanentMoney10#,
+	  #actureOfNov#,#prePayOfNov#,#actrueNumOfNov#,#prePayNumOfNov#,#count11#,#remanentMoney11#,
+	  #actureOfDec#,#prePayOfDec#,#actrueNumOfDec#,#prePayNumOfDec#,#count12#,#remanentMoney12#,
+	  getDate())
+	</insert>
+	
+	<!-- 获取财务结帐周期 -->
+	<select id="getFinancialDate" resultClass="java.util.HashMap">
+	select id,begintime,endtime from T_REPORT_DATE where year=#YEAR# and
+	month=1
+	union
+	select id,begintime,endtime from T_REPORT_DATE where year=#YEAR# and month=2
+	union
+	select id,begintime,endtime from T_REPORT_DATE where year=#YEAR# and month=3
+	union
+	select id,begintime,endtime from T_REPORT_DATE where year=#YEAR# and month=4
+	union
+	select id,begintime,endtime from T_REPORT_DATE where year=#YEAR# and month=5
+	union
+	select id,begintime,endtime from T_REPORT_DATE where year=#YEAR# and month=6
+	union
+	select id,begintime,endtime from T_REPORT_DATE where year=#YEAR# and month=7
+	union
+	select id,begintime,endtime from T_REPORT_DATE where year=#YEAR# and month=8
+	union
+	select id,begintime,endtime from T_REPORT_DATE where year=#YEAR# and month=9
+	union
+	select id,begintime,endtime from T_REPORT_DATE where year=#YEAR# and month=10
+	union
+	select id,begintime,endtime from T_REPORT_DATE where year=#YEAR# and month=11
+	union
+	select id,begintime,endtime from T_REPORT_DATE where year=#YEAR# and month=12
+	</select>
+	
+	<select id="getLoseCaseDaily" resultClass="java.util.HashMap">
+	    select 
+	    SHOULD_FINISH_DATE, 
+	    DELAY_DAY,
+	    tufc.LEASE_CODE,
+        tcc.cust_name, 
+        tuu.[NAME],
+        trc.FINANCECONTRACT_DATE,
+       (select  sum(UNIT_PRICE*AMOUNT) from t_prjt_creditequipment where CREDIT_ID=tufc.CREDIT_ID) as total,
+       (select sum(pay_money) from T_SUPL_PLAYDETIL where status=0 and state=3 and backstate=0 and CREDIT_ID=tufc.CREDIT_ID) pay_money
+       from T_UNNATURAL_UNCOMPLETED_FILE_CASE tufc
+       left join T_PRJT_CREDIT trc on trc.ID=tufc.CREDIT_ID and trc.STATUS=0
+       left join T_CUST_CUSTOMER tcc on trc.CUST_ID = tcc.CUST_ID and tcc.status=0
+       left join T_USER_USER tuu on tuu.id=trc.SENSOR_ID and tuu.status=0 
+       where convert(date,tufc.CREATE_ON)=#daily#
+       and tufc.[TYPE]='交机前拨款'
+       and tufc.STATUS=0
+       and tufc.[FILE_NAME] like '%购置凭证%'
+	</select>
+	
+	
+	<select id="getAllData" resultClass="com.brick.prePayStatic.to.prePayStaticForDeptTo">
+	   select
+	   dept_id DECP_ID,
+	   dept_name name,
+	   acture_Jan actureOfJan,
+	   prePay_Jan prePayOfJan,
+	   actrueNum_Jan actrueNumOfJan,
+	   prePayNum_Jan prePayNumOfJan,
+	   count1,
+	   remanentmoney1,
+	   
+	   acture_Feb actureOfFeb,
+	   prePay_Feb prePayOfFeb,
+	   actrueNum_Feb actrueNumOfFeb,
+	   prePayNum_Feb prePayNumOfFeb,
+	   count2,
+	   remanentmoney2,
+	   
+	   acture_Mar actureOfMar,
+	   prePay_Mar prePayOfMar,
+	   actrueNum_Mar actrueNumOfMar,
+	   prePayNum_Mar prePayNumOfMar,
+	   count3,
+	   remanentmoney3,
+	   
+	   acture_Apr actureOfApr,
+	   prePay_Apr prePayOfApr,
+	   actrueNum_Apr actrueNumOfApr,
+	   prePayNum_Apr prePayNumOfApr,
+	   count4,
+	   remanentmoney4,
+	   
+	   acture_May actureOfMay,
+	   prePay_May prePayOfMay,
+	   actrueNum_May actrueNumOfMay,
+	   prePayNum_May prePayNumOfMay,
+	   count5,
+	   remanentmoney5,
+	   
+	   acture_Jun actureOfJun,
+	   prePay_Jun prePayOfJun,
+	   actrueNum_Jun actrueNumOfJun,
+	   prePayNum_Jun prePayNumOfJun,
+	   count6,
+	   remanentmoney6,
+	   
+	   acture_Jul actureOfJul,
+	   prePay_Jul prePayOfJul,
+	   actrueNum_Jul actrueNumOfJul,
+	   prePayNum_Jul prePayNumOfJul,
+	   count7,
+	   remanentmoney7,
+	   
+	   acture_Aus actureOfAus,
+	   prePay_Aus prePayOfAus,
+	   actrueNum_Aus actrueNumOfAus,
+	   prePayNum_Aus prePayNumOfAus,
+	   count8,
+	   remanentmoney8,
+	   
+	   acture_Sep actureOfSep,
+	   prePay_Sep prePayOfSep,
+	   actrueNum_Sep actrueNumOfSep,
+	   prePayNum_Sep prePayNumOfSep,
+	   count9,
+	   remanentmoney9,
+	   
+	   acture_Oct actureOfOct,
+	   prePay_Oct prePayOfOct,
+	   actrueNum_Oct actrueNumOfOct,
+	   prePayNum_Oct prePayNumOfOct,
+	   count10,
+	   remanentmoney10,
+	   
+	   acture_Nov actureOfNov,
+	   prePay_Nov prePayOfNov,
+	   actrueNum_Nov actrueNumOfNov,
+	   prePayNum_Nov prePayNumOfNov,
+	   count11,
+	   remanentmoney11,
+	   
+	   acture_Dec actureOfDec,
+	   prePay_Dec prePayOfDec,
+	   actrueNum_Dec actrueNumOfDec,
+	   prePayNum_Dec prePayNumOfDec,
+	   count12,
+	   remanentmoney12
+	   from T_dataStatic_prepay T1
+	   where convert(date,T1.create_time)=convert(date,#search#)
+	   order by T1.dept_id
+	</select>
+</sqlMap>

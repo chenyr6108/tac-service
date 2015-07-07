@@ -1,0 +1,1237 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="creditPriorRecords">
+
+
+
+<resultMap class="hashmap" id="periodProjectMap">
+	<result property="PCPP_ID" column="PCPP_ID"/>
+	<result property="PROJECT_NAME" column="PROJECT_NAME"/>
+	<result property="PROJECT_PRIOD" column="PROJECT_PRIOD"/>
+	<result property="STATE" column="STATE"/>
+	<result property="STATUS" column="STATUS"/>
+	<result property="CRATE_DATE" column="CRATE_DATE"/>
+	<result property="CREDIT_ID" column="CREDIT_ID"/>
+	<result property="PROJECT_CONTENT" column="PROJECT_CONTENT" javaType="java.lang.String" jdbcType="TEXT"/>
+</resultMap>
+	
+	 
+	 <!-- 添加或更新客户往来记录 -->
+	 <insert id="createCreditPriorRecords" parameterClass="map">
+	 	insert into T_PRJT_CREDITPRIORRECORDS 
+			(
+			LEASE_CODE ,
+			EQUIPMENT_NAME ,
+			SALES_PRICE ,
+			GATHERING_PRICE	 ,
+			INFO_REMARK	 ,
+			CREDIT_ID	 ,
+			CREATE_DATE ,
+			MODIFY_DATE ,
+			STATUS	 
+			)
+			values
+			(
+			#LEASE_CODE# ,
+			#EQUIPMENT_NAME#,
+			#SALES_PRICE#,
+			#GATHERING_PRICE#,
+			#INFO_REMARK#,
+			#credit_id#,
+			getdate(),
+			getdate(),
+			0
+			)
+	 </insert>
+	 
+	 <!-- 根据资信ID查询该资信下的所有过往记录 -->
+	 <select id="getCreditPriorRecords" parameterClass="map" resultClass="hashmap">
+	 	select * from T_PRJT_CREDITPRIORRECORDS where credit_id=#credit_id# and status=0
+	 </select>
+	 
+	 <!--根据资信ID删除该资信下的所有过往记录  -->
+	 <delete id="deleteCreditPriorRecords" parameterClass="map">
+	 	delete from T_PRJT_CREDITPRIORRECORDS where credit_id=#credit_id#
+	 </delete>
+	 
+	 <!-- 添加一条资信过往记录的项目 -->
+	 <insert id="createCreditPriorProjects" parameterClass="map">
+	 	insert into T_PRJT_CREDITPRIORPROJECTS
+			(
+			PROJECT_NAME, 
+			STATE,
+			STATUS,
+			CRATE_DATE,
+			CREDIT_ID,
+			PROJECT_CONTENT
+			)
+			values
+			(
+			#PROJECT_NAME#, 
+			#STATE#,
+			0,
+			getdate(),
+			#credit_id#,
+			#PROJECT_CONTENT#
+			)
+	 </insert>
+	 
+	  <!--根据资信ID删除该资信下的所有过往记录的项目  -->
+	 <delete id="deleteCreditPriorProjects" parameterClass="map">
+	 	delete from T_PRJT_CREDITPRIORPROJECTS where credit_id=#credit_id# AND STATE!='1' AND STATE!='50' <!--STATE 1是租赁方案中的建议承做理由,50是其他租赁条件说明  add by ShenQi -->
+	 </delete>
+	 
+	 <delete id="deleteCreditPriorProjectsVip" parameterClass="map">
+	 	delete from T_PRJT_CREDITPRIORPROJECTS where credit_id=#credit_id#
+	 </delete>
+	 
+	 <delete id="deleteCreditPriorProjects1" parameterClass="map">
+	 	delete from T_PRJT_CREDITPRIORPROJECTS where credit_id=#credit_id# AND (STATE='1' OR STATE='50')
+	 </delete>
+	 
+	  <!-- 根据资信ID查询该资信下的所有过往记录的项目 -->
+	 <select id="getCreditPriorProjects" parameterClass="map" resultMap="periodProjectMap" resultClass="hashmap">
+	 	select * from T_PRJT_CREDITPRIORPROJECTS where credit_id=#credit_id# and status=0
+	 </select>
+	 
+	 <!-- 插入一条资信财务情况信息 -->
+	 <insert id="createCreditFinaneStatement" parameterClass="map">
+	 	insert into t_prjt_creditfinanestatement
+			(
+			PROJECT_NAME,
+			MONEY_FUNDS,
+			ACCOUNTS_RECEIVABLE,
+			STOCK,
+			CAPITAL_ASSERTS,
+			TOTAL_ASSERTS,
+			SHORTTIME_LOAN,
+			ACCOUNTS_PAYABLE,
+			TOTAL_OWES,
+			CONTRIBUTED_CAPITAL,
+			CAPITAL_RESERVE,
+			UNDISTRIBUTED_PROFIT,
+			SALES_REVENUE,
+			COST_OF_MARKETING,
+			PERIOD_EXPENSE,
+			TOTAL_PROFIT,
+			DEBTR,
+			PROFIT_MARGIN,
+			TTM,
+			SALES_GROWTH,
+			NAGR,
+			CREDIT_ID,
+			CREATE_DATE,
+			MODIFY_DATE,
+			CREATE_USER_ID,
+			MODIFY_USER_ID,
+			STATUS
+			)
+			values
+			(
+			#PROJECT_NAME#,
+			#MONEY_FUNDS#,
+			#ACCOUNTS_RECEIVABLE#,
+			#STOCK#,
+			#CAPITAL_ASSERTS#,
+			#TOTAL_ASSERTS#,
+			#SHORTTIME_LOAN#,
+			#ACCOUNTS_PAYABLE#,
+			#TOTAL_OWES#,
+			#CONTRIBUTED_CAPITAL#,
+			#CAPITAL_RESERVE#,
+			#UNDISTRIBUTED_PROFIT#,
+			#SALES_REVENUE#,
+			#COST_OF_MARKETING#,
+			#PERIOD_EXPENSE#,
+			#TOTAL_PROFIT#,
+			#DEBTR#,
+			#PROFIT_MARGIN#,
+			#TTM#,
+			#SALES_GROWTH#,
+			#NAGR#,
+			#credit_id#,
+			getdate(),
+			getdate(),
+			#s_employeeId#,
+			#s_employeeId#,
+			0
+			) 
+	 </insert>
+	 
+	 <!-- 插入一条资信财务情况的备注信息 -->
+	 <insert id="createCFS_Remark" parameterClass="map">
+	 	insert into T_PRJT_CFS_REMARK
+			(
+			PROJECT_NAME,
+			MONEY_FUNDS,
+			ACCOUNTS_RECEIVABLE,
+			STOCK,
+			CAPITAL_ASSERTS,
+			TOTAL_ASSERTS,
+			SHORTTIME_LOAN,
+			ACCOUNTS_PAYABLE,
+			TOTAL_OWES,
+			CONTRIBUTED_CAPITAL,
+			CAPITAL_RESERVE,
+			UNDISTRIBUTED_PROFIT,
+			SALES_REVENUE,
+			COST_OF_MARKETING,
+			PERIOD_EXPENSE,
+			TOTAL_PROFIT,
+			DEBTR,
+			PROFIT_MARGIN,
+			TTM,
+			SALES_GROWTH,
+			NAGR,
+			CREDIT_ID,
+			CREATE_DATE,
+			MODIFY_DATE, 
+			STATUS
+			)
+			values
+			(
+			#PROJECT_NAME#,
+			#MONEY_FUNDS#,
+			#ACCOUNTS_RECEIVABLE#,
+			#STOCK#,
+			#CAPITAL_ASSERTS#,
+			#TOTAL_ASSERTS#,
+			#SHORTTIME_LOAN#,
+			#ACCOUNTS_PAYABLE#,
+			#TOTAL_OWES#,
+			#CONTRIBUTED_CAPITAL#,
+			#CAPITAL_RESERVE#,
+			#UNDISTRIBUTED_PROFIT#,
+			#SALES_REVENUE#,
+			#COST_OF_MARKETING#,
+			#PERIOD_EXPENSE#,
+			#TOTAL_PROFIT#,
+			#DEBTR#,
+			#PROFIT_MARGIN#,
+			#TTM#,
+			#SALES_GROWTH#,
+			#NAGR#,
+			#credit_id#,
+			getdate(),
+			getdate(), 
+			0
+			) 
+	 </insert>
+	 
+	 <!-- 根据资信id查询该资信下的所有财务情况 -->
+	 <select id="getCreditFinaceStatement" parameterClass="map" resultClass="hashmap">
+	 	select * from t_prjt_creditfinanestatement where credit_id=#credit_id# and status=0 order by pcfs_id
+	 </select>
+	 
+	 <!-- 根据资信id查询该资信下的所有财务情况备注 -->
+	 <select id="getCFS_Remark" parameterClass="map" resultClass="hashmap">
+	 	select * from T_PRJT_CFS_REMARK where credit_id=#credit_id# and status=0
+	 </select>
+	 
+	  <!--根据资信ID删除该资信下的所有财务情况  -->
+	 <delete id="deleteCreditFinaceStatement" parameterClass="map">
+	 	delete from t_prjt_creditfinanestatement where credit_id=#credit_id#
+	 </delete>
+	 
+	 <!--根据资信ID删除该资信下的所有财务情况备注  -->
+	 <delete id="deleteCFS_Remark" parameterClass="map">
+	 	delete from t_prjt_cfs_remark where credit_id=#credit_id#
+	 </delete>
+	 
+	 <!-- 根据承租人id查询改承租人的过往合同 -->
+	 <select id="getContractInfoBycust_id_xxxxxxx" parameterClass="map" resultClass="hashmap">
+	 	select trc.lease_code,
+       trc.lessor_time,
+       trcp.recp_code,
+       trcp.lease_topric,
+       trcp.year_interest,
+       trcp.lease_term,
+       trcp.lease_period,
+       max(tdd.daily_id) daily_id,
+       round(month_price, 2) month_price,
+       round(own_price, 2) own_price
+		  from t_rent_contract trc
+		  left join t_rent_collectionplan trcp on trcp.rect_id = trc.rect_id
+		  left join t_dun_daily tdd on tdd.recp_id = trcp.recp_id
+		  left join (select trcd.recp_id,
+		                    sum(ISNULL(trcd.month_price, 0)) -
+		                    sum(ISNULL(trcd.reduce_own_price, 0) +
+		                        ISNULL(trcd.reduce_ren_price, 0) +
+		                        ISNULL(trcd.reduce_other_price, 0)) month_price,
+		                    sum(trcd.own_price) - sum(ISNULL(trcd.reduce_own_price, 0)) own_price
+		               from t_rent_collectiondetail trcd
+		               left join t_rent_collectionplan trcp on trcp.recp_id =
+		                                                       trcd.recp_id
+		               left join t_rent_contract trc on trcp.rect_id = trc.rect_id
+		              where trc.cust_id=#cust_id#
+		              group by trcd.recp_id) t1 on t1.recp_id = trcp.recp_id
+		 where trc.cust_id=#cust_id#
+		   and trc.rect_status = 1
+		   and trcp.status = 0
+		 group by trc.lease_code,
+		          trc.lessor_time,
+		          trcp.recp_code,
+		          trcp.lease_topric,
+		          trcp.year_interest,
+		          trcp.lease_term,
+		          trcp.lease_period,
+		          month_price,
+		          own_price
+		 order by trc.lease_code, trcp.recp_code
+	 </select>
+	 <select id="getContractInfoBycust_id" parameterClass="map" resultClass="hashmap">
+	 select trc.lease_code,
+       trc.lessor_time,
+       trcp.recp_code,
+       trcp.recp_id,
+       trcp.lease_topric,
+       trcp.lease_rze,
+       trcp.year_interest,
+       trcp.lease_term,
+       trcp.lease_period,
+       max(tdd.daily_id) daily_id,
+       round(month_price, 2) month_price,
+       round(real_own_price, 2) own_price,
+       ROUND(total_price,2) total_price,
+       ROUND(total_ren,2) total_ren 
+       ,max(t_dun.RECP_ID) as has_dun
+		  from t_rent_contract trc
+		  left join t_rent_collectionplan trcp on trcp.rect_id = trc.rect_id
+		  left join t_dun_daily tdd on tdd.recp_id = trcp.recp_id
+		  left join (select trcd.recp_id,
+		                    sum(ISNULL(trcd.month_price, 0)) -
+		                    sum(ISNULL(trcd.reduce_own_price, 0) +
+		                        ISNULL(trcd.reduce_ren_price, 0) +
+		                        ISNULL(trcd.reduce_other_price, 0)) month_price,
+		                    sum(trcd.own_price) - sum(ISNULL(trcd.reduce_own_price, 0)) own_price,
+		                    SUM(ISNULL(trcd.month_price, 0)) total_price
+		               from t_rent_collectiondetail trcd
+		               left join t_rent_collectionplan trcp on trcp.recp_id =
+		                                                       trcd.recp_id
+		               left join t_rent_contract trc on trcp.rect_id = trc.rect_id
+		              where trc.cust_id=#cust_id#
+		              group by trcd.recp_id) t1 on t1.recp_id = trcp.recp_id
+		   left join (select trcd.recp_id,trc.rect_id,
+		                 (case when trcd.RECP_ID is null then trcs.LEASE_TOPRIC-trcs.PLEDGE_ENTER_AG-trcs.PLEDGE_ENTER_MCTOAG
+		                    when trcp.RECP_ID is not null and (trcp.RECP_STATUS=1 OR trcp.RECP_STATUS=3) then 0
+		                    when trcd.RECP_ID is not null then min(trcd.REAL_OWN_PRICE) end) real_own_price
+		               from  t_rent_contract trc
+					   left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID
+		               left join t_rent_collectionplan trcp on trcp.RECT_ID =
+		                                                       trc.RECT_ID
+		               left join  t_rent_collectiondetail trcd on trcd.RECP_ID = trcp.RECP_ID and ISNULL(trcd.reduce_own_price, 0) +
+		                        ISNULL(trcd.reduce_ren_price, 0) +
+		                        ISNULL(trcd.reduce_other_price, 0)>0
+		              where trc.cust_id=#cust_id# 
+		              group by trcp.RECP_ID,trc.RECT_ID,trcd.RECP_ID,trcp.RECP_STATUS,trcs.LEASE_TOPRIC,trcs.PLEDGE_ENTER_AG,trcs.PLEDGE_ENTER_MCTOAG
+	
+						) t22 on t22.rect_id = trcp.rect_id  
+		    left join (select trcd.recp_id,
+		                    SUM(ISNULL(trcd.REN_PRICE, 0)) total_ren
+		               from t_rent_collectiondetail trcd
+		               left join t_rent_collectionplan trcp on trcp.recp_id =
+		                                                       trcd.recp_id
+		               left join t_rent_contract trc on trcp.rect_id = trc.rect_id
+		              where trc.cust_id=#cust_id# and (trcd.REDUCE_OWN_PRICE is null or trcd.REDUCE_OWN_PRICE = 0  or trcd.REDUCE_OWN_PRICE = '') 
+		              group by trcd.recp_id) t2 on t2.recp_id = trcp.recp_id       
+		    left join (
+		      select recd.RECP_ID
+		      from T_RENT_COLLECTIONDETAIL recd
+		      left join T_FINA_COLLECTIONBILL fcb
+		        on fcb.RECP_ID = recd.RECP_ID 
+		        and fcb.RECD_PERIOD = recd.PERIOD_NUM 
+		        and fcb.FICB_ITEM = '租金' 
+		      and fcb.STATUS = 0
+		      left join T_FINA_INCOME fi
+		        on fi.FIIN_ID = fcb.FIIN_ID
+		        and fi.status = 0
+		      where recd.status = 0
+		      <![CDATA[
+		      and recd.PAY_DATE < getdate() - 1
+		      and (
+		        fi.OPPOSING_DATE > recd.PAY_DATE
+		        or fi.OPPOSING_DATE is null
+		      )
+		      ]]>
+		      group by recd.RECP_ID
+		     )t_dun on trcp.RECP_ID = t_dun.RECP_ID
+		 where trc.cust_id=#cust_id#
+		   and trc.rect_status = 1
+		   and trcp.status = 0
+		 group by trc.lease_code,
+		          trc.lessor_time,
+		          trcp.recp_id,
+		          trcp.recp_code,
+		          trcp.lease_topric,
+		          trcp.lease_rze,
+		          trcp.year_interest,
+		          trcp.lease_term,
+		          trcp.lease_period,
+		          month_price,
+		          own_price,
+		          real_own_price,
+		          total_price,
+		          total_ren
+		 order by trc.lease_code, trcp.recp_code
+	 </select>
+	 
+	 <delete id="deleteCorpReport" parameterClass="map">
+	 	delete from t_prjt_creditCorpReport where credit_id=#credit_id#
+	 </delete>
+	 
+	 <select id="getCorpReports" parameterClass="map" resultClass="hashmap">
+	 	select * from t_prjt_creditCorpReport where credit_id=#credit_id#  order by project_item desc;
+	 </select>
+	 
+	 <select id="getXQCreditId" parameterClass="map" resultClass="int">
+		select MAX(ID) credit_id
+		from t_prjt_credit
+		where ID != #credit_id# and CUST_ID = (select CUST_ID
+										from t_prjt_credit
+										where ID = #credit_id#)
+	</select>
+	 
+	 <insert id="createCorpReport" parameterClass="map">
+	 	insert into t_prjt_creditCorpReport
+	 	( 
+			project_item,
+			ca_cash_price,
+			ca_short_Invest,
+			ca_bills_should,
+			ca_Funds_should,
+			ca_Goods_stock,
+			ca_other,
+			fa_land,
+			fa_buildings,
+			fa_equipments,
+			fa_rent_Assets,
+			fa_transports,
+			fa_other,
+			fa_Depreciations,
+			fa_Incompleted_projects,
+			lang_Invest,
+			other_Assets,
+			sd_short_debt,
+			sd_bills_should,
+			sd_funds_should,
+			sd_other_pay,
+			sd_shareholders,
+			sd_one_year,
+			sd_other,
+			lang_debt,
+			other_long_debt,
+			other_debt,
+			share_capital,
+			surplus_Capital,
+			surplus_income,
+			this_losts,
+			project_changed,
+			s_start_date,
+			s_sale_net_income,
+			s_sale_cost,
+			s_other_gross_profit,
+			s_operating_expenses,
+			credit_id,
+			s_nonbusiness_income,
+			s_interest_expense,
+			s_other_nonbusiness_expense,
+			s_income_tax_expense,
+			ca_other_Funds_should
+	 	)values
+	 	(
+	 	    #project_item#,
+			#ca_cash_price#,
+			#ca_short_Invest#,
+			#ca_bills_should#,
+			#ca_Funds_should#,
+			#ca_Goods_stock#,
+			#ca_other#,
+			#fa_land#,
+			#fa_buildings#,
+			#fa_equipments#,
+			#fa_rent_Assets#,
+			#fa_transports#,
+			#fa_other#,
+			#fa_Depreciations#,
+			#fa_Incompleted_projects#,
+			#lang_Invest#,
+			#other_Assets#,
+			#sd_short_debt#,
+			#sd_bills_should#,
+			#sd_funds_should#,
+			#sd_other_pay#,
+			#sd_shareholders#,
+			#sd_one_year#,
+			#sd_other#,
+			#lang_debt#,
+			#other_long_debt#,
+			#other_debt#,
+			#share_capital#,
+			#surplus_Capital#,
+			#surplus_income#,
+			#this_losts#,
+			#project_changed#,
+			#s_start_date#,
+			#s_sale_net_income#,
+			#s_sale_cost#,
+			#s_other_gross_profit#,
+			#s_operating_expenses#,
+			#credit_id#,
+			#s_nonbusiness_income#,
+			#s_interest_expense#,
+			#s_other_nonbusiness_expense#,
+			#s_income_tax_expense#,
+			#ca_other_Funds_should#
+			)
+	 </insert>
+	 <insert id="insertCorpReportRemark" parameterClass="map">
+	 	insert into T_PRJT_CREDITCORPREPORTREMARK
+	 	( 
+			create_id,
+			create_date,
+			credit_id,
+			remark,
+			type	
+	 	)
+	 	values
+	 	(
+	 		#s_employeeId#,
+	 		getdate(),
+	 	    #credit_id#,
+			#remark#,
+			#type#
+		)
+	 </insert>
+	 
+	 <select id="selectCorpReportsRemark" parameterClass="map" resultClass="hashmap">
+	 	select top 1 * from T_PRJT_CREDITCORPREPORTREMARK where credit_id=#credit_id# and type=#type# order by prcr_id desc;
+	 </select>
+	 
+	 <!-- changfang -->
+	  <insert id="createCreditPriorFactoryBulding" parameterClass="map">
+	 	insert into T_PRJT_CREDITFACTORYBULIDING 
+			(
+			FBTYPE,
+			FBIDENTIFY,
+			FBAREA,
+			LESSOR,
+			MONTHCOST,
+			REMARK,
+			REMARKCONTEXT,
+			CREATE_USER_ID,
+			MODIFY_USER_ID,
+			CREATE_DATE,
+			MODIFY_DATE,
+			CREDIT_ID,
+			STATUS,
+			BANK_TONGYE	 
+			)
+			values
+			(
+			#FBTYPE# ,
+			#FBIDENTIFY#,
+			#FBAREA#,
+			#LESSOR#,
+			#MONTHCOST#,
+			#REMARK#,
+			#REMARKCONTEXT#,
+			#s_employeeId#,
+			#s_employeeId#,
+			getdate(),
+			getdate(),
+			#credit_id#,
+			0,
+			#BANK_TONGYE#
+			)
+	 </insert>
+	 
+	  <select id="getcreditPriorFactoryBuld" parameterClass="map" resultClass="hashmap">
+	 	select * from T_PRJT_CREDITFACTORYBULIDING where credit_id=#credit_id# and status=0;
+	 </select>
+	 
+	 <delete id="deleteCreditPriorFactoryBulding" parameterClass="map">
+	 	delete from T_PRJT_CREDITFACTORYBULIDING where credit_id=#credit_id#
+	 </delete>
+	 <!-- changfang -->
+	 <!-- jingjixiaoyi -->
+	 <insert id="createCreditPriorSubmitMachine" parameterClass="map">
+	 	<![CDATA[insert into T_PRJT_CREDITSUBMITMACHINE 
+			(
+			CREDIT_ID,
+			BECELLINCOME,
+			BEOTHERINCOME,
+      		BERESOURCECOST,
+      		BEFBMONTHPRICE,
+      		BESALARY,
+      		BEWATERELEC,
+      		BEBEFORECOST,
+      		BETAXMON,
+      		BEOTHERBANKLOAN,
+      		BEBANKLOAN,
+      		BETHISRENT,
+      		BESUM,
+      		AFCELLINCOME,
+      		AFOTHERINCOME,
+      		AFRESOURCECOST,
+      		AFFBMONTHPRICE,
+      		AFSALARY,
+      		AFWATERELEC,
+      		AFBEFORECOST,
+      		AFTAXMON,
+      		AFOTHERBANKLOAN,
+      		AFBANKLOAN,
+      		AFTHISRENT,
+      		AFSUM,
+      		CREATE_USER_ID,
+      		MODIFY_USER_ID,
+      		CREATE_DATE,
+      		MODIFY_DATE,
+      		CELLINCOMEPER,
+      		OTHERINCOMEPER,
+      		RESOURCECOSTPER,
+      		FBMONTHPRICEPER,
+      		SALARYPER,
+      		WATERELECPER,
+      		BEFORECOSTPER,
+      		TAXMONPER,
+      		OTHERBANKLOANPER,
+      		BANKLOANPER,
+      		THISRENTPER,
+      		SUMPER,
+      		REMARK,
+      		STATUS
+      		)
+			values
+			(
+			#credit_id#,
+			#BECELLINCOME#,
+			#BEOTHERINCOME#,
+			#BERESOURCECOST#,
+			#BEFBMONTHPRICE#,
+			#BESALARY#,
+			#BEWATERELEC#,
+			#BEBEFORECOST#,
+			#BETAXMON#,
+			#BEOTHERBANKLOAN#,
+			#BEBANKLOAN#,
+			#BETHISRENT#,
+			#BESUM#,
+			
+			#AFCELLINCOME#,
+			#AFOTHERINCOME#,
+			#AFRESOURCECOST#,
+			#AFFBMONTHPRICE#,
+			#AFSALARY#,
+			#AFWATERELEC#,
+			#AFBEFORECOST#,
+			#AFTAXMON#,
+			#AFOTHERBANKLOAN#,
+			#AFBANKLOAN#,
+			#AFTHISRENT#,
+			#AFSUM#,
+			#s_employeeId#,
+			#s_employeeId#,
+			getdate(),
+			getdate(),
+			#CELLINCOMEPER#,
+			#OTHERINCOMEPER#,
+			#RESOURCECOSTPER#,
+			#FBMONTHPRICEPER#,
+			#SALARYPER#,
+			#WATERELECPER#,
+			#BEFORECOSTPER#,
+			#TAXMONPER#,
+			#OTHERBANKLOANPER#,
+			#BANKLOANPER#,
+			#THISRENTPER#,
+			#SUMPER#,
+			#benefit_remark#,
+			0
+		)]]>
+	 </insert>
+	 
+	 
+	 <select id="getcreditPriorSubmitMachine" parameterClass="map" resultClass="hashmap">
+	 	select * from T_PRJT_CREDITSUBMITMACHINE where credit_id=#credit_id# and status=0;
+	 </select>
+	 
+	 <delete id="deleteCreditPriorSubmitMachine" parameterClass="map">
+	 	delete from T_PRJT_CREDITSUBMITMACHINE where credit_id=#credit_id#
+	 </delete>
+	  <!-- jingjixiaoyi -->
+	  
+	   <!-- shebeibeizhu -->
+	 <insert id="createCreditPriorALLEquipRemarks" parameterClass="map">
+	 	<![CDATA[insert into T_PRJT_CREDITPROJECTEQUPALLREMARK 
+			(
+			CREDIT_ID,
+			ALLREMARK,
+			STATUS,
+			CREATE_USER_ID,
+			MODIFY_USER_ID,
+			CREATE_DATE,
+			MODIFY_DATE
+      		)
+			values
+			(
+			#credit_id#,
+			#ALLREMARK#,
+			0,
+			#s_employeeId#,
+			#s_employeeId#,
+			getdate(),
+			getdate()
+		)]]>
+		<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS id
+		</selectKey> 
+	 </insert> 
+	 
+	  <select id="getcreditPriorALLEquipRemarks" parameterClass="map" resultClass="hashmap">
+	 	select * from T_PRJT_CREDITPROJECTEQUPALLREMARK where credit_id=#credit_id# and status=0;
+	 </select>
+	 
+	 <delete id="deleteCreditPriorALLEquipRemarks" parameterClass="map">
+	 	delete from T_PRJT_CREDITPROJECTEQUPALLREMARK where credit_id=#credit_id#
+	 </delete>
+	 
+	 <!-- shebeibeizhu -->
+	 
+	 <!-- shebei -->
+	 <insert id="createCreditPriorEquipments" parameterClass="map">
+	 	<![CDATA[insert into T_PRJT_CREDITPROJECTEQUIPMENTS 
+			(
+			CREDIT_ID,
+			EQUPNAME,
+			EQUPNUM,
+			EQUPMODEL,
+			EQUPBUYDATE,
+			EQUPBUYMON,
+			EQUPREMARK,
+			STATUS,
+			CREATE_USER_ID,
+			MODIFY_USER_ID,
+			CREATE_DATE,
+			MODIFY_DATE,
+			ALLREMARK_ID
+      		)
+			values
+			(
+			#credit_id#,
+			#EQUPNAME#,
+			#EQUPNUM#,
+			#EQUPMODEL#,
+			#EQUPBUYDATE#,
+			#EQUPBUYMON#,
+			#EQUPREMARK#,
+			0,
+			#s_employeeId#,
+			#s_employeeId#,
+			getdate(),
+			getdate(),
+			#ALLREMARK_ID#
+		)]]>
+	 </insert>
+	 
+	   <select id="getcreditPriorEquipments" parameterClass="map" resultClass="hashmap">
+	 	select * from T_PRJT_CREDITPROJECTEQUIPMENTS where credit_id=#credit_id#  and status=0;
+	 </select>
+	 <!--  查询上一次报告的id  -->
+	 <select id="getLestCreditId" parameterClass="map" resultClass="java.lang.String">
+ 		<![CDATA[
+		 	SELECT 
+				MAX(T.ID)
+			FROM
+				T_PRJT_CREDIT T 
+			WHERE
+				T.CUST_ID = ( SELECT CUST_ID FROM T_PRJT_CREDIT WHERE ID=#credit_id#)
+				AND T.ID != #credit_id#
+				AND T.STATUS = 0
+		]]>
+	 </select>
+	 <delete id="deleteCreditPriorEquipments" parameterClass="map">
+	 	delete from T_PRJT_CREDITPROJECTEQUIPMENTS where credit_id=#credit_id#
+	 </delete>
+	 <!-- shebei -->
+	 
+	 <!-- gouhuochangfang -->
+	 <insert id="createCreditPriorBuyFactorys" parameterClass="map">
+	 	<![CDATA[insert into T_PRJT_CREDITBUYFACTORY 
+			(
+			CREDIT_ID,
+			FACTORYNAME,
+			THINGKIND,
+			MONTHINGOPRICE,
+			PERCENTGRAVE,
+			PAYCONDITIONS,
+			ALLBUYREMARK,
+			STATUS,
+			CREATE_USER_ID,
+			MODIFY_USER_ID,
+			CREATE_DATE,
+			MODIFY_DATE,
+			BUY_LINK_MAN,
+			BUY_LINK_MAN_PHONE
+      		)
+			values
+			(
+			#credit_id#,
+			#BUYFACTORYNAME#,
+			#BUYTHINGKIND#,
+			#BUYMONTHINGOPRICE#,
+			#BUYPERCENTGRAVE#,
+			#BUYPAYCONDITIONS#,
+			#ALLBUYREMARK#,
+			0,
+			#s_employeeId#,
+			#s_employeeId#,
+			getdate(),
+			getdate(),
+			#BUY_LINK_MAN#,
+			#BUY_LINK_MAN_PHONE#
+		)]]>
+	 </insert>
+	 
+	   <select id="getcreditPriorBuyFactorys" parameterClass="map" resultClass="hashmap">
+	 	select * from T_PRJT_CREDITBUYFACTORY where credit_id=#credit_id# and status=0;
+	 </select>
+	 
+	 <delete id="deleteCreditPriorBuyFactorys" parameterClass="map">
+	 	delete from T_PRJT_CREDITBUYFACTORY where credit_id=#credit_id#
+	 </delete>
+	  <!-- gouhuochangfang -->
+	  
+	   <!-- xiaohuochangfang -->
+	 
+	  <insert id="createCreditPriorCellFactorys" parameterClass="map">
+	 	<![CDATA[insert into T_PRJT_CREDITCELLFACTORY 
+			(
+			CREDIT_ID,
+			FACTORYNAME,
+			FACTORYADDR,
+			THINGKIND,
+			MONTHINGOPRICE,
+			PERCENTGRAVE,
+			PAYCONDITIONS,
+			STATUS,
+			CREATE_USER_ID,
+			MODIFY_USER_ID,
+			CREATE_DATE,
+			MODIFY_DATE,
+			ALLCELLREMARK_ID
+      		)
+			values
+			(
+			#credit_id#,
+			#CELLFACTORYNAME#,
+			#CELLFACTORYADDR#,
+			#CELLTHINGKIND#,
+			#CELLMONTHINGOPRICE#,
+			#CELLPERCENTGRAVE#,
+			#CELLPAYCONDITIONS#,
+			0,
+			#s_employeeId#,
+			#s_employeeId#,
+			getdate(),
+			getdate(),
+			#ALLCELLREMARK_ID#
+		)]]>
+	 </insert>
+	 
+	   <select id="getcreditPriorCellFactorys" parameterClass="map" resultClass="hashmap">
+	 	select * from T_PRJT_CREDITCELLFACTORY where credit_id=#credit_id# and status=0;
+	 </select>
+	 
+	 <delete id="deleteCreditPriorCellFactorys" parameterClass="map">
+	 	delete from T_PRJT_CREDITCELLFACTORY where credit_id=#credit_id#
+	 </delete>
+	 <!-- xiaohuochangfang -->
+	 
+	 <!-- xiaohuochangfangzongbeizhu -->
+	 
+	 <insert id="createCreditPriorALLCellFacRemark" parameterClass="map">
+	 	<![CDATA[insert into T_PRJT_CREDITCELLFACALLREMARK 
+			(
+			CREDIT_ID,
+			ALLCELLREMARK,
+			INPERCENTGRAVE,
+			OUTPERCENTGRAVE,
+			STATUS,
+			CREATE_USER_ID,
+			MODIFY_USER_ID,
+			CREATE_DATE,
+			MODIFY_DATE
+      		)
+			values
+			(
+			#credit_id#,
+			#ALLCELLREMARK#,
+			#INPERCENTGRAVE#,
+			#OUTPERCENTGRAVE#,
+			0,
+			#s_employeeId#,
+			#s_employeeId#,
+			getdate(),
+			getdate()
+		)]]>
+		<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS id
+		</selectKey> 
+	 </insert> 
+	 
+	  <select id="getcreditPriorALLCellFacRemark" parameterClass="map" resultClass="hashmap">
+	 	select * from T_PRJT_CREDITCELLFACALLREMARK where credit_id=#credit_id# and status=0;
+	 </select>
+	 
+	 <delete id="deleteCreditPriorALLCellFacRemark" parameterClass="map">
+	 	delete from T_PRJT_CREDITCELLFACALLREMARK where credit_id=#credit_id#
+	 </delete>
+	 <!-- xiaohuochangfangzongbeizhu -->
+	 
+	 
+	 <!-- yinhangduizhangdan -->
+	 
+	  <insert id="createCreditPriorBankCheckInfo" parameterClass="map">
+	 	<![CDATA[insert into T_PRJT_CREDITBANKCHECKBILL 
+			(
+			CREDIT_ID,
+			CHECKMONTH,
+			LASTSUM,
+			MONTHINCOME,
+			MONTHCOST,
+			THISSUM,
+			MONEYFLOWIN,
+			STATUS,
+			CREATE_USER_ID,
+			MODIFY_USER_ID,
+			CREATE_DATE,
+			MODIFY_DATE,
+			CHECKBANKINFO_ID
+      		)
+			values
+			(
+			#credit_id#,
+			#CHECKMONTH#,
+			#LASTSUM#,
+			#MONTHINCOME#,
+			#MONTHCOST#,
+			#THISSUM#,
+			#MONEYFLOWIN#,
+			0,
+			#s_employeeId#,
+			#s_employeeId#,
+			getdate(),
+			getdate(),
+			#CHECKBANKINFO_ID#
+		)]]>
+	 </insert>
+	 
+	   <select id="getcreditPriorBankCheckInfo" parameterClass="map" resultClass="hashmap">
+	 	select * from T_PRJT_CREDITBANKCHECKBILL where credit_id=#credit_id# and status=0;
+	 </select>
+	 
+	 <delete id="deleteCreditPriorBankCheckInfo" parameterClass="map">
+	 	delete from T_PRJT_CREDITBANKCHECKBILL where credit_id=#credit_id#
+	 </delete>
+	 <!-- yinhangduizhangdan -->
+	 
+	  <!-- yinhangduizhangdan zongbeizhu -->
+	 
+	 <insert id="createCreditPriorALLBankCheckBillRemark" parameterClass="map">
+	 	<![CDATA[insert into T_PRJT_CREDITBANKCHECKINFO 
+			(
+			CREDIT_ID,
+			BANKCUSTNAME,
+			BANKCUSTCODE,
+			BANKBRANCH,
+			BANKNAME,
+			STATUS,
+			CREATE_USER_ID,
+			MODIFY_USER_ID,
+			CREATE_DATE,
+			MODIFY_DATE
+      		)
+			values
+			(
+			#credit_id#,
+			#BANKCUSTNAME#,
+			#BANKCUSTCODE#,
+			#BANKBRANCH#,
+			#BANKNAME#,
+			0,
+			#s_employeeId#,
+			#s_employeeId#,
+			getdate(),
+			getdate()
+		)]]>
+		<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS id
+		</selectKey> 
+	 </insert> 
+	 
+	  <select id="getcreditPriorALLBankCheckBillRemark" parameterClass="map" resultClass="hashmap">
+	 	select * from T_PRJT_CREDITBANKCHECKINFO where credit_id=#credit_id# and status=0;
+	 </select>
+	 
+	 <delete id="deleteCreditPriorALLBankCheckBillRemark" parameterClass="map">
+	 	delete from T_PRJT_CREDITBANKCHECKINFO where credit_id=#credit_id#
+	 </delete>
+	 <!-- yinhangduizhangdan zongbeizhu -->
+	 
+	  <!-- yinhangduizhangdan -->
+	 
+	  <insert id="createCreditPriorBankCheckBillSix" parameterClass="map">
+	 	<![CDATA[insert into T_PRJT_CREDITBANKCHECKSIXBILL 
+			(
+			CREDIT_ID,
+			BANKCUSTNAME,
+			BANKCUSTCODE,
+			BANKBRANCH,
+			BANKNAME,
+			CHECKMONTHONE,
+			CHECKMONTHTWO,
+			CHECKMONTHTHREE,
+			CHECKMONTHFOUR,
+			CHECKMONTHFINE,
+			CHECKMONTHSIX,
+			LASTSUMONE,
+			LASTSUMTWO,
+			LASTSUMTHREE,
+			LASTSUMFOUR,
+			LASTSUMFINE,
+			LASTSUMSIX,
+			MONTHINCOMEONE,
+			MONTHINCOMETWO,
+			MONTHINCOMETHREE,
+			MONTHINCOMEFOUR,
+			MONTHINCOMEFINE,
+			MONTHINCOMESIX,			
+			MONTHCOSTONE,
+			MONTHCOSTTWO,
+			MONTHCOSTTHREE,
+			MONTHCOSTFOUR,
+			MONTHCOSTFINE,
+			MONTHCOSTSIX,
+			THISSUMONE,
+			THISSUMTWO,
+			THISSUMOTHREE,
+			THISSUMFOUR,
+			THISSUMFINE,
+			THISSUMSIX,
+			MONEYFLOWINONE,
+			MONEYFLOWINTWO,
+			MONEYFLOWINTHREE,
+			MONEYFLOWIFOUR,
+			MONEYFLOWINFINE,
+			MONEYFLOWINSIX,
+			STATUS,
+			CREATE_USER_ID,
+			MODIFY_USER_ID,
+			CREATE_DATE,
+			MODIFY_DATE,
+			REMARK
+      		)
+			values
+			(
+			#credit_id#,
+			#BANKCUSTNAME#,
+			#BANKCUSTCODE#,
+			#BANKBRANCH#,
+			#BANKNAME#,
+			#CHECKMONTHONE#,
+			#CHECKMONTHTWO#,
+			#CHECKMONTHTHREE#,
+			#CHECKMONTHFOUR#,
+			#CHECKMONTHFIVE#,
+			#CHECKMONTHSIX#,
+			#LASTSUMONE#,
+			#LASTSUMTWO#,
+			#LASTSUMTHREE#,
+			#LASTSUMFOUR#,
+			#LASTSUMFIVE#,
+			#LASTSUMSIX#,
+			#MONTHINCOMEONE#,
+			#MONTHINCOMETWO#,
+			#MONTHINCOMETHREE#,
+			#MONTHINCOMEFOUR#,
+			#MONTHINCOMEFIVE#,
+			#MONTHINCOMESIX#,
+			#MONTHCOSTONE#,
+			#MONTHCOSTTWO#,
+			#MONTHCOSTTHREE#,
+			#MONTHCOSTFOUR#,
+			#MONTHCOSTFIVE#,
+			#MONTHCOSTSIX#,
+			#THISSUMONE#,
+			#THISSUMTWO#,
+			#THISSUMTHREE#,
+			#THISSUMFOUR#,
+			#THISSUMFIVE#,
+			#THISSUMSIX#,
+			#MONEYFLOWINONE#,
+			#MONEYFLOWINTWO#,
+			#MONEYFLOWINTHREE#,
+			#MONEYFLOWINFOUR#,
+			#MONEYFLOWINFIVE#,
+			#MONEYFLOWINSIX#,
+			0,
+			#s_employeeId#,
+			#s_employeeId#,
+			getdate(),
+			getdate(),
+			#REMARK#
+		)]]>
+	 </insert>
+	 
+	   <select id="getcreditPriorBankCheckBillSix" parameterClass="map" resultClass="hashmap">
+	 	select * from T_PRJT_CREDITBANKCHECKSIXBILL where credit_id=#credit_id# and status=0;
+	 </select>
+	 
+	 <delete id="deleteCreditPriorBankCheckBillSix" parameterClass="map">
+	 	delete from T_PRJT_CREDITBANKCHECKSIXBILL where credit_id=#credit_id#
+	 </delete>
+	 <!-- yinhangduizhangdan -->
+	 
+	 <!-- 主要往来客户 -->
+	 <delete id="deleteCreditPriorCCALLRemarks" parameterClass="map">
+	 	delete from T_PRJT_CREDITCCALLREMARK where credit_id=#credit_id#
+	 </delete>
+	
+	 <insert id="createCreditPriorCCALLRemarks" parameterClass="map">
+	 	<![CDATA[insert into T_PRJT_CREDITCCALLREMARK 
+			(
+			CREDIT_ID,
+			ALLREMARK,
+			STATUS,
+			CREATE_ID,
+			CREATE_DATE
+      		)
+			values
+			(
+			#credit_id#,
+			#CC_REMARK#,
+			0,
+			#s_employeeId#,
+			getdate()
+		)]]>
+		<selectKey resultClass="int" keyProperty="id" >
+			SELECT @@IDENTITY AS id
+		</selectKey> 
+	 </insert> 
+	
+	 <delete id="deleteCreditPriorCC" parameterClass="map">
+	 	delete from T_PRJT_CREDITCC where credit_id=#credit_id#
+	 </delete>
+	
+		<insert id="createCreditPriorCC" parameterClass="map">
+	 	<![CDATA[insert into T_PRJT_CREDITCC 
+			(
+			CREDIT_ID,
+			CC_NAME,
+			CC_ADDRESS,
+			CC_TYPE,
+			CC_MONEY,
+			CC_PERCENT,
+			CC_CONDITION,
+			STATUS,
+			CREATE_ID,
+			CREATE_DATE,
+			ALLREMARK_ID,
+			CC_LINK_MAN,
+			LINK_MAN_PHONE
+      		)
+			values
+			(
+			#credit_id#,
+			#CC_NAME#,
+			#CC_ADDRESS#,
+			#CC_TYPE#,
+			#CC_MONEY#,
+			#CC_PERCENT#,
+			#CC_CONDITION#,
+			0,
+			#s_employeeId#,
+			getdate(),
+			#ALLREMARK_ID#,
+			#CC_LINK_MAN#,
+			#LINK_MAN_PHONE#
+		)]]>
+	 </insert>
+	<select id="queryCCByCreditId" parameterClass="map" resultClass="hashmap">
+		select * from T_PRJT_CREDITCC where credit_id=#credit_id#
+	</select>
+	<select id="queryCCRemarkByCreditId"  parameterClass="map" resultClass="hashmap">
+		select * from T_PRJT_CREDITCCALLREMARK where credit_id=#credit_id#
+	</select>
+	
+	<insert id="insertCropImg" parameterClass="map">
+		insert into T_PRJT_CREDIT_CORPIMG (
+		   CREDIT_ID
+		  ,STATUS
+		  ,FILE_TYPE
+		  ,FILE_NAME_STR
+		  ,FILE_PATH
+		) VALUES (
+		   #credit_id#
+		  ,0
+		  ,#file_type#
+		  ,#file_name#
+		  ,#file_path#
+		)
+	</insert>
+	
+	<select id="getCorpImg" parameterClass="map" resultClass="hashmap">
+		select * from T_PRJT_CREDIT_CORPIMG
+		where CREDIT_ID = #credit_id#
+		and status = 0
+	</select>
+	
+	<update id="updateCropImg" parameterClass="map">
+		update T_PRJT_CREDIT_CORPIMG set STATUS = -1
+		where ID = #img_id#
+	</update>
+	
+	<!-- 通过credit_id删除进货厂商照会记录 -->
+	<delete id="deleteStockCompany" parameterClass="map">
+		DELETE FROM T_STOCK_COMPANY WHERE CREDIT_ID=#credit_id#
+	</delete>
+	
+	<insert id="insertStockCompany" parameterClass="map">
+		INSERT INTO T_STOCK_COMPANY
+		(STOCK_BASE_DATE,STOCK_COMPANY,STOCK_PHONE,STOCK_LINK_MAN,STOCK_MEET_DATE,STOCK_PRODUCTION,
+		 STOCK_PERIOD,STOCK_MONEY,STOCK_CONDITION,STOCK_CONTENT,CREDTE_BY,CREATE_ON,CREDIT_ID)
+		VALUES
+		(#STOCK_BASE_DATE#,#STOCK_COMPANY#,#STOCK_PHONE#,#STOCK_LINK_MAN#,#STOCK_MEET_DATE#,#STOCK_PRODUCTION#,
+		 #STOCK_PERIOD#,#STOCK_MONEY#,#STOCK_CONDITION#,#STOCK_CONTENT#,#CREDTE_BY#,GETDATE(),#CREDIT_ID#)
+	</insert>
+	
+	<select id="getStockCompany" resultClass="hashmap">
+		SELECT CASE WHEN CONVERT(DATE,STOCK_BASE_DATE)=CONVERT(DATE,'1900-1-1')
+		 			THEN NULL
+		 			ELSE CONVERT(DATE,STOCK_BASE_DATE)
+		 			 END STOCK_BASE_DATE,
+			   STOCK_COMPANY,STOCK_PHONE,STOCK_LINK_MAN,
+			   CASE WHEN CONVERT(DATE,STOCK_MEET_DATE)=CONVERT(DATE,'1900-1-1')
+		 			THEN NULL
+		 			ELSE CONVERT(DATE,STOCK_MEET_DATE)
+		 			 END STOCK_MEET_DATE,
+			   STOCK_PRODUCTION,
+		 	   STOCK_PERIOD,STOCK_MONEY,STOCK_CONDITION,
+		 	   STOCK_CONTENT,CREDTE_BY,CREATE_ON,CREDIT_ID
+		  FROM T_STOCK_COMPANY
+		 WHERE CREDIT_ID=#credit_id#
+	</select>
+	
+	
+	<select id="getAllForMDFCreditIDList" resultClass="hashmap">
+		SELECT * 
+		  FROM valueAdded where status=1
+	</select>
+	<update id="updateValueAddTax" parameterClass="map">	
+		update valueAdded
+		set TOTAL_VALUEADDED_TAX=#TOTAL_VALUEADDED_TAX#
+		where credit_id=#credit_id#
+	</update>
+</sqlMap>

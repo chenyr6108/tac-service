@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="riskLevel">
+ 	<select id="queryRiskLevAllInfo_count" parameterClass="map" resultClass="java.lang.Integer">
+ 		<![CDATA[
+ 		select count(1) from t_prjt_risklevel t where t.status = 0
+ 		]]>
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				(t.rank like '%$content$%' 
+				or t.LEVEL_PRICE_LOW like '%$content$%'
+				or t.LEVEL_PRICE_UPPER like '%$content$%' ) 
+				]]>
+			</isNotEmpty>
+		</dynamic>	 
+ 	</select>
+ 	<select id="queryRiskLevAllInfo" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+			select t.prrl_id,
+			       t.rank,
+			       t.LEVEL_PRICE_LOW,
+			       t.GRANT_PRICE_LOW,
+			       t.GRANT_PRICE_UPPER,
+			       t.remark,
+			       t.LEVEL_PRICE_UPPER
+			from t_prjt_risklevel t
+			where t.status = 0
+ 		]]>
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				(t.rank like '%$content$%' 
+				or t.LEVEL_PRICE_LOW like '%$content$%'
+				or t.LEVEL_PRICE_UPPER like '%$content$%' ) 
+				]]>
+			</isNotEmpty>
+		</dynamic>	
+		<![CDATA[
+ 		order by t.rank 
+ 		]]>
+ 	</select>
+	<insert id="createRiskLevel" parameterClass="map">
+		  <![CDATA[ 
+				insert into T_PRJT_RISKLEVEL
+				(CREATE_TIME,MODIFY_TIME,CREATE_USER_ID,MODIFY_USER_ID,RANK,LEVEL_PRICE_LOW,REMARK,LEVEL_PRICE_UPPER,GRANT_PRICE_LOW,GRANT_PRICE_UPPER)
+				values(getdate(),getdate(),#s_employeeId#,#s_employeeId#,#RANK#,#LEVEL_PRICE_LOW#,ISNULL(#REMARK#,''),#LEVEL_PRICE_UPPER#,#GRANT_PRICE_LOW#,#GRANT_PRICE_UPPER#)
+	  ]]>
+	  		<selectKey keyProperty="PRRL_ID" resultClass="java.lang.Integer">   
+      		<![CDATA[
+      			select @@IDENTITY as PRRL_ID
+      		]]>   
+		</selectKey>  
+	</insert>
+		<select id="queryByid" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select PRRL_ID,RANK,LEVEL_PRICE_LOW,REMARK,LEVEL_PRICE_UPPER,GRANT_PRICE_LOW,REMARK,GRANT_PRICE_UPPER
+			from T_PRJT_RISKLEVEL where PRRL_ID = #PRRL_ID#
+		]]>
+	</select>
+		<update id="updateRiskLevel" parameterClass="map">
+		<![CDATA[
+			update T_PRJT_RISKLEVEL 
+			set MODIFY_TIME = getdate(),
+			    MODIFY_USER_ID = #s_employeeId#,
+			    RANK = #RANK#,
+			    LEVEL_PRICE_LOW = #LEVEL_PRICE_LOW#,
+			    LEVEL_PRICE_UPPER = #LEVEL_PRICE_UPPER#,
+			    GRANT_PRICE_LOW = #GRANT_PRICE_LOW#,
+			    GRANT_PRICE_UPPER = #GRANT_PRICE_UPPER#,
+			    REMARK = #REMARK#
+			where PRRL_ID = #PRRL_ID#
+		]]>
+	</update>
+		<update id="deleteRiskLevelById" parameterClass="map">
+		<![CDATA[
+			update T_PRJT_RISKLEVEL 
+			set MODIFY_TIME = getdate(),
+			    MODIFY_USER_ID = #s_employeeId#,
+				STATUS = -2
+			where PRRL_ID = #PRRL_ID# 
+		]]>
+	</update>
+	
+</sqlMap>

@@ -1,0 +1,2638 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="kingDeerTransfer">
+	<!-- 查询当天创建的供应商信息 -->
+ 	<select id="getSupplierInfoByDay" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[ 
+			select  NAME,CODE from T_SUPL_SUPPLIER
+			where STATUS='0' 
+			and
+			convert(datetime,convert(varchar,year(convert(date,dateadd(day,-1,getDate()),23)))+'-'+convert(varchar,month(convert(date,dateadd(day,-1,getDate()),23)))+'-'+convert(varchar,day(convert(date,dateadd(day,-1,getDate()),23)))+' 22:00:00')<=CREATE_DATE 
+			and 
+			CREATE_DATE <convert(datetime,convert(varchar,year(GETDATE()))+'-'+convert(varchar,month(GETDATE()))+'-'+convert(varchar,day(GETDATE()))+' 22:00:00')
+ 		]]>
+ 	</select>
+ 	
+ 	<!-- 插入当天基础资料信息 -->
+	<insert id="createTransferBasicInfo" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlBasic(FItemClassID,Fdate,FHandle,Fnumber,Fname)
+		values(#TYPE#,GETDATE(),0,#CODE#,#NAME#)
+	</insert>
+	
+	<!-- 查询当天创建的员工信息 -->
+ 	<select id="getEmployeeInfoByDay" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+			select [NAME], CODE from T_USER_USER
+			where STATUS='0' 
+			and
+			convert(datetime,convert(varchar,year(convert(date,dateadd(day,-1,getDate()),23)))+'-'+convert(varchar,month(convert(date,dateadd(day,-1,getDate()),23)))+'-'+convert(varchar,day(convert(date,dateadd(day,-1,getDate()),23)))+' 22:00:00')<=CREATE_DATE 
+			and 
+			CREATE_DATE <convert(datetime,convert(varchar,year(GETDATE()))+'-'+convert(varchar,month(GETDATE()))+'-'+convert(varchar,day(GETDATE()))+' 22:00:00')
+		]]>
+ 	</select>
+ 	<!-- 查询当天创建的合同信息 -->
+ 	<select id="getLeaseCodeInfoByDay" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+		select  CUST_NAME NAME,LEASE_CODE CODE from T_RENT_CONTRACT
+		where STATUS='0'
+		and
+		convert(datetime,convert(varchar,year(convert(date,dateadd(day,-1,getDate()),23)))+'-'+convert(varchar,month(convert(date,dateadd(day,-1,getDate()),23)))+'-'+convert(varchar,day(convert(date,dateadd(day,-1,getDate()),23)))+' 22:00:00')<=CREATE_TIME 
+		and 
+		CREATE_TIME <convert(datetime,convert(varchar,year(GETDATE()))+'-'+convert(varchar,month(GETDATE()))+'-'+convert(varchar,day(GETDATE()))+' 22:00:00')		
+		]]> 
+ 	</select>
+ 
+  	<!-- 查询当天创建的设备客户信息 -->
+ 	<select id="getEquipmentCustByDay" parameterClass="map" resultClass="java.util.HashMap">
+ 	<![CDATA[
+	    select tcc.CUST_CODE CODE,tcc.CUST_NAME NAME from T_CUST_CUSTOMER tcc
+		  left join T_USER_USER tuu on tuu.id = tcc.CREATE_USER_ID
+		  left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+	  	left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+	    where tcc.STATUS='0'
+		and
+		convert(datetime,convert(varchar,year(convert(date,dateadd(day,-1,getDate()),23)))+'-'+convert(varchar,month(convert(date,dateadd(day,-1,getDate()),23)))+'-'+convert(varchar,day(convert(date,dateadd(day,-1,getDate()),23)))+' 22:00:00')<=tcc.CREATE_TIME 
+		and 
+		tcc.CREATE_TIME <convert(datetime,convert(varchar,year(GETDATE()))+'-'+convert(varchar,month(GETDATE()))+'-'+convert(varchar,day(GETDATE()))+' 22:00:00')	
+	    and t9.DECP_ID not in(15,16,18)
+	    ]]> 
+ 	</select>	
+ 	
+ 	  	<!-- 查询当天创建的重车客户信息 -->
+ 	<select id="getCarCustByDay" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+	    select tcc.CUST_CODE CODE,tcc.CUST_NAME NAME from T_CUST_CUSTOMER tcc
+		  left join T_USER_USER tuu on tuu.id = tcc.CREATE_USER_ID
+		  left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+	  	left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+	    where tcc.STATUS='0'
+		and
+		convert(datetime,convert(varchar,year(convert(date,dateadd(day,-1,getDate()),23)))+'-'+convert(varchar,month(convert(date,dateadd(day,-1,getDate()),23)))+'-'+convert(varchar,day(convert(date,dateadd(day,-1,getDate()),23)))+' 22:00:00')<=tcc.CREATE_TIME 
+		and 
+		tcc.CREATE_TIME <convert(datetime,convert(varchar,year(GETDATE()))+'-'+convert(varchar,month(GETDATE()))+'-'+convert(varchar,day(GETDATE()))+' 22:00:00')	
+	    and t9.DECP_ID in(15,16)
+	    ]]>
+ 	</select>
+ 	
+ 	<!-- *****************************************************************************************天书之前的抓取SQL -->
+ 	 <!-- 当月来款设备租金 2012-9以后案件 -->
+ 	<select id="getEquiRentPriceAfter9" parameterClass="map" resultClass="java.util.HashMap">
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM ='租金'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.FINANCECONTRACT_DATE>'2012-09-30'
+		and tpc.PRODUCTION_TYPE='1'
+		and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		union all
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM ='租金'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.FINANCECONTRACT_DATE IS NULL
+		and tpc.PRODUCTION_TYPE='1'
+		and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate())
+		union all
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),SUM(REAL_PRICE))REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM in('结清本金','结清利息')
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.FINANCECONTRACT_DATE>'2012-09-30'
+		and tpc.PRODUCTION_TYPE='1'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		group by ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE
+ 	</select>
+ 	
+ 	 	 <!-- 当月来款设备租金 2012-9之前案件 -->
+ 	<select id="getEquiRentPriceBefore9" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+			left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+			where ddr.FICB_ITEM ='租金'
+			and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+			and tpc.FINANCECONTRACT_DATE<'2012-10-01'
+			and tpc.PRODUCTION_TYPE='1'
+		]]>
+			 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		<![CDATA[
+			union all
+			select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),SUM(REAL_PRICE))REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+			left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+			where ddr.FICB_ITEM in('结清本金','结清利息')
+			and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+			and tpc.FINANCECONTRACT_DATE<'2012-10-01'
+			and tpc.PRODUCTION_TYPE='1'
+		]]>
+			 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		<![CDATA[
+			group by ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE
+		]]>
+ 	</select>
+ 	
+ 	 	 <!-- 当月来款重车租金 2012-9以后案件 -->
+ 	<select id="getCarRentPriceAfter9" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM ='租金'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.FINANCECONTRACT_DATE>'2012-09-30'
+		and tpc.PRODUCTION_TYPE='2'
+		]]>
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		<![CDATA[
+		union all
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),SUM(REAL_PRICE))REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM in('结清本金','结清利息')
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.FINANCECONTRACT_DATE>'2012-09-30'
+		and tpc.PRODUCTION_TYPE='2'
+		]]>
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		<![CDATA[
+		group by ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE
+		]]>
+ 	</select>
+ 	
+ 	 	 <!-- 当月来款重车租金 2012-9之前案件 -->
+ 	<select id="getCarRentPriceBefore9" parameterClass="map" resultClass="java.util.HashMap">
+ 		<![CDATA[
+			select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+			left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+			where ddr.FICB_ITEM ='租金'
+			and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+			and tpc.FINANCECONTRACT_DATE<'2012-10-01'
+			and tpc.PRODUCTION_TYPE='2'
+		]]>
+			 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		<![CDATA[
+			union all
+			select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),SUM(REAL_PRICE))REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+			left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+			where ddr.FICB_ITEM in('结清本金','结清利息')
+			and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+			and tpc.FINANCECONTRACT_DATE<'2012-10-01'
+			and tpc.PRODUCTION_TYPE='2'
+		]]>
+			 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		<![CDATA[
+			group by ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE
+		]]>
+ 	</select>
+ 	
+ 	<!-- 设备增值税 -->
+	<select id="getEquiValueAddedTax" parameterClass="map" resultClass="java.util.HashMap"> 	
+	 	select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM ='增值税'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.PRODUCTION_TYPE='1'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	
+	 <!-- 重车增值税 -->
+	<select id="getCarValueAddedTax" parameterClass="map" resultClass="java.util.HashMap"> 	
+	 	select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM ='增值税'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.PRODUCTION_TYPE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>	 
+	 	
+	<!-- 保存当月来款设备租金  -->
+	<insert id="createEquiRentPrice" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecCashHook(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FRentAmount,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#)
+	</insert>
+		<!-- 保存当月来款增值税  -->
+	<insert id="createValueAddedTax" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecCashHook(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FAddedTax,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#)
+	</insert>
+	
+	<!-- 设备管理费收入来源承租人 -->
+	<select id="getEquiManageFeeCust" parameterClass="map" resultClass="java.util.HashMap">	
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,tfcb.SUPL_CODE,tss.NAME SUPPL_NAME,t9.DECP_NAME_CN+'业务员' NAME,t9.DECP_NAME_CN CODE,t9.DECP_NAME_CN,t9.ALIAS,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		left join T_PRJT_CREDIT_FEELIST tpcf on tpc.ID=tpcf.credit_id and tpcf.CREATE_SHOW_NAME=ddr.FICB_ITEM
+		left join T_FINA_COLLECTIONBILL tfcb on tfcb.FICB_ID=ddr.FICB_ID
+		left join T_SUPL_SUPPLIER tss on tss.CODE=tfcb.SUPL_CODE
+		left join T_USER_USER tuu on tuu.ID=tpc.SENSOR_ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where ddr.FICB_ITEM like '管理费收入%'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.PRODUCTION_TYPE='1'
+		and tpcf.SOURCE_CODE='1'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	<!-- 设备管理费收入来源供应商 -->
+	<select id="getEquiManageFeeSuppl" parameterClass="map" resultClass="java.util.HashMap">	
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,tfcb.SUPL_CODE,tss.NAME SUPPL_NAME,t9.DECP_NAME_CN+'业务员' NAME,t9.DECP_NAME_CN CODE,t9.DECP_NAME_CN,t9.ALIAS,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		left join T_PRJT_CREDIT_FEELIST tpcf on tpc.ID=tpcf.credit_id and tpcf.CREATE_SHOW_NAME=ddr.FICB_ITEM
+		left join T_FINA_COLLECTIONBILL tfcb on tfcb.FICB_ID=ddr.FICB_ID
+		left join T_SUPL_SUPPLIER tss on tss.CODE=tfcb.SUPL_CODE
+		left join T_USER_USER tuu on tuu.ID=tpc.SENSOR_ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where ddr.FICB_ITEM like '管理费收入%'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.PRODUCTION_TYPE='1'
+		and tpcf.SOURCE_CODE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>	
+	
+		<!-- 重车管理费收入来源供应商 -->
+	<select id="getCarManageFee" parameterClass="map" resultClass="java.util.HashMap">	
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,tfcb.SUPL_CODE,tss.NAME SUPPL_NAME,t9.DECP_NAME_CN+'业务员' NAME,t9.DECP_NAME_CN CODE,t9.DECP_NAME_CN,t9.ALIAS,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		left join T_PRJT_CREDIT_FEELIST tpcf on tpc.ID=tpcf.credit_id and tpcf.CREATE_SHOW_NAME=ddr.FICB_ITEM
+		left join T_FINA_COLLECTIONBILL tfcb on tfcb.FICB_ID=ddr.FICB_ID
+		left join T_SUPL_SUPPLIER tss on tss.CODE=tfcb.SUPL_CODE
+		left join T_USER_USER tuu on tuu.ID=tpc.SENSOR_ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where ddr.FICB_ITEM like '管理费收入%'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.PRODUCTION_TYPE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>	
+	
+			<!-- 保存当月来款管理费  -->
+	<insert id="createManageFee" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecCashHook(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FRecManage,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#)
+	</insert>
+	
+		<!-- 重车家访费收入 -->
+	<select id="getCarVisitFee" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,tfcb.SUPL_CODE,tss.NAME SUPPL_NAME,t9.DECP_NAME_CN+'业务员' NAME,t9.DECP_NAME_CN CODE,t9.DECP_NAME_CN,t9.ALIAS,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		left join T_PRJT_CREDIT_FEELIST tpcf on tpc.ID=tpcf.credit_id and tpcf.CREATE_SHOW_NAME=ddr.FICB_ITEM
+		left join T_FINA_COLLECTIONBILL tfcb on tfcb.FICB_ID=ddr.FICB_ID
+		left join T_SUPL_SUPPLIER tss on tss.CODE=tfcb.SUPL_CODE
+		left join T_USER_USER tuu on tuu.ID=tpc.SENSOR_ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where ddr.FICB_ITEM = '家訪費收入'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.PRODUCTION_TYPE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>	
+				<!-- 保存当月重车家访  -->
+	<insert id="createVisitFee" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecCashHook(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FrecVisit,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#)
+	</insert>
+	
+		<!-- 重车保险费押金 -->
+	<select id="getCarInsureFee" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,tfcb.SUPL_CODE,tss.NAME SUPPL_NAME,t9.DECP_NAME_CN+'业务员' NAME,t9.DECP_NAME_CN CODE,t9.DECP_NAME_CN,t9.ALIAS,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		left join T_PRJT_CREDIT_FEELIST tpcf on tpc.ID=tpcf.credit_id and tpcf.CREATE_SHOW_NAME=ddr.FICB_ITEM
+		left join T_FINA_COLLECTIONBILL tfcb on tfcb.FICB_ID=ddr.FICB_ID
+		left join T_SUPL_SUPPLIER tss on tss.CODE=tfcb.SUPL_CODE
+		left join T_USER_USER tuu on tuu.ID=tpc.SENSOR_ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where ddr.FICB_ITEM = '保险费押金收入'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.PRODUCTION_TYPE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	
+	<!-- 保存当月重车押金  -->
+	<insert id="createInsureFee" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecCashHook(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,Fdeposit,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#)
+	</insert>
+
+		<!-- 设备保证金B -->
+	<select id="getEquiDepositB" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM = '保证金B'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.PRODUCTION_TYPE='1'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+			<!-- 重车保证金B -->
+	<select id="getCarDepositB" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM = '保证金B'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.PRODUCTION_TYPE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	
+			<!-- 设备保证金C -->
+	<select id="getEquiDepositC" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM = '保证金C'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.PRODUCTION_TYPE='1'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+			<!-- 重车保证金C -->
+	<select id="getCarDepositC" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM = '保证金C'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		and tpc.PRODUCTION_TYPE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	<!-- 保存当月保证金B  -->
+	<insert id="createDepositB" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecCashHook(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FFundB,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#)
+	</insert>		
+	<!-- 保存当月保证金C  -->
+	<insert id="createDepositC" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecCashHook(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FFundC,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#)
+	</insert>
+		<!-- 保证金税金 -->
+	<select id="getDepositTax" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,tfcb.SUPL_CODE,tss.NAME SUPPL_NAME,t9.DECP_NAME_CN+'业务员' NAME,t9.DECP_NAME_CN CODE,t9.DECP_NAME_CN,t9.ALIAS,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		left join T_PRJT_CREDIT_FEELIST tpcf on tpc.ID=tpcf.credit_id and tpcf.CREATE_SHOW_NAME=ddr.FICB_ITEM
+		left join T_FINA_COLLECTIONBILL tfcb on tfcb.FICB_ID=ddr.FICB_ID
+		left join T_SUPL_SUPPLIER tss on tss.CODE=tfcb.SUPL_CODE
+		left join T_USER_USER tuu on tuu.ID=tpc.SENSOR_ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where ddr.FICB_ITEM = '税金'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>	
+	
+	<insert id="createDepositTax" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecCashHook(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,Ftax,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#)
+	</insert>
+		<!-- 保证金税金 -->
+	<select id="getDeposit" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,tfcb.SUPL_CODE,tss.NAME SUPPL_NAME,t9.DECP_NAME_CN+'业务员' NAME,t9.DECP_NAME_CN CODE,t9.DECP_NAME_CN,t9.ALIAS,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		left join T_PRJT_CREDIT_FEELIST tpcf on tpc.ID=tpcf.credit_id and tpcf.CREATE_SHOW_NAME=ddr.FICB_ITEM
+		left join T_FINA_COLLECTIONBILL tfcb on tfcb.FICB_ID=ddr.FICB_ID
+		left join T_SUPL_SUPPLIER tss on tss.CODE=tfcb.SUPL_CODE
+		left join T_USER_USER tuu on tuu.ID=tpc.SENSOR_ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where ddr.FICB_ITEM = '保证金'
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>	
+	
+	<insert id="createDeposit" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecCashHook(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,Ffunc,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#)
+	</insert>
+	
+	<!-- 留购款/罚息 -->
+	<select id="getDunPrice" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM in('结清罚息','租金罚息') 
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	
+	<insert id="createDunPrice" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecCashHook(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FRentInterest,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#)
+	</insert>
+		
+		<!-- 留购款/罚息 -->
+	<select id="getStayPrice" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM in('结清留购价','设备留购价') 
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	
+	<insert id="createStayPrice" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecCashHook(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FAssetPrice,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#)
+	</insert>	
+	<!-- 收当月不明款 -->
+	<select id="getCurrentUnknownSection" parameterClass="map" resultClass="java.util.HashMap">	
+	    select INCOME_MONEY as REAL_PRICE,'0000' as LEASE_CODE,OPPOSING_DATE from T_FINA_INCOME 
+    	where DECOMPOSE_STATUS='2'
+    	and year(OPPOSING_DATE)=YEAR(GETDATE()) and month(OPPOSING_DATE)=month(GETDATE()) 
+	</select>
+	<!-- 保存当月不明款 -->
+	<insert id="createCurrentUnknownSection" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecCashHook(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FPreAmount,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#)
+	</insert>	
+	<!-- 法务费用 -->
+	<select id="getCurrentLawFee" parameterClass="map" resultClass="java.util.HashMap">	
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,'004.002' as DEPT_NO, '法务科' as DEPT_NAME,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where (ddr.FICB_ITEM in(select FLAG from T_DATA_DICTIONARY where TYPE = '法务费用' and STATUS='0')
+		or ddr.FICB_ITEM='结清法务费用')
+		and year(ddr.OPPOSING_DATE)=YEAR(GETDATE()) and month(ddr.OPPOSING_DATE)=month(GETDATE())
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	<!-- 保存当月法务费用 -->
+	<insert id="createCurrentLawFee" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecCashHook(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FLawAmount,FDeptNo,FDeptName,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#DEPT_NO#,#DEPT_NAME#,#BANK_CODE#)
+	</insert>
+
+
+<!-- 非当月来款销账  	-->
+ 	 <!-- 非当月来款设备租金 2012-9以后案件 -->
+ 	<select id="getLastMonthEquiRentPriceAfter9" parameterClass="map" resultClass="java.util.HashMap">
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM ='租金'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.FINANCECONTRACT_DATE>'2012-09-30'
+		and tpc.PRODUCTION_TYPE='1'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		UNION ALL
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM ='租金'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.FINANCECONTRACT_DATE IS NULL
+		and tpc.PRODUCTION_TYPE='1'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		union all
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),SUM(REAL_PRICE))REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM in('结清本金','结清利息')
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.FINANCECONTRACT_DATE>'2012-09-30'
+		and tpc.PRODUCTION_TYPE='1'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		group by ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE
+ 	</select>
+ 	
+ 	 	 <!-- 非当月来款设备租金 2012-9之前案件 -->
+ 	<select id="getLastMonthEquiRentPriceBefore9" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+			left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+			where ddr.FICB_ITEM ='租金'
+			and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+			and tpc.FINANCECONTRACT_DATE<'2012-10-01'
+			and tpc.PRODUCTION_TYPE='1'
+		]]>
+			 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		<![CDATA[
+			union all
+			select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),SUM(REAL_PRICE))REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+			left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+			where ddr.FICB_ITEM in('结清本金','结清利息')
+			and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+			and tpc.FINANCECONTRACT_DATE<'2012-10-01'
+			and tpc.PRODUCTION_TYPE='1'
+		]]>
+			 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		<![CDATA[
+			group by ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE
+		]]>
+ 	</select>
+ 	
+ 	 	 <!-- 非当月来款重车租金 2012-9以后案件 -->
+ 	<select id="getLastMonthCarRentPriceAfter9" parameterClass="map" resultClass="java.util.HashMap">
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM ='租金'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.FINANCECONTRACT_DATE>'2012-09-30'
+		and tpc.PRODUCTION_TYPE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		union all
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),SUM(REAL_PRICE))REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM in('结清本金','结清利息')
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.FINANCECONTRACT_DATE>'2012-09-30'
+		and tpc.PRODUCTION_TYPE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		group by ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE
+ 	</select>
+ 	
+ 	 	 <!-- 非当月来款重车租金 2012-9之前案件 -->
+ 	<select id="getLastMonthCarRentPriceBefore9" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+			left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+			where ddr.FICB_ITEM ='租金'
+			and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+			and tpc.FINANCECONTRACT_DATE<'2012-10-01'
+			and tpc.PRODUCTION_TYPE='2'
+		]]>
+			 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		<![CDATA[	
+			union all
+			select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),SUM(REAL_PRICE))REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+			left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+			where ddr.FICB_ITEM in('结清本金','结清利息')
+			and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+			and tpc.FINANCECONTRACT_DATE<'2012-10-01'
+			and tpc.PRODUCTION_TYPE='2'
+		]]>
+			 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+		<![CDATA[
+			group by ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE
+		]]>
+ 	</select>
+ 	
+ 	<!-- 非当月来款设备增值税 -->
+	<select id="getLastMonthEquiValueAddedTax" parameterClass="map" resultClass="java.util.HashMap"> 	
+	 	select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM ='增值税'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.PRODUCTION_TYPE='1'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	
+	 <!-- 非当月来款重车增值税 -->
+	<select id="getLastMonthCarValueAddedTax" parameterClass="map" resultClass="java.util.HashMap"> 	
+	 	select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM ='增值税'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.PRODUCTION_TYPE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>	 
+	 	
+	<!-- 保存当月来款设备租金  -->
+	<insert id="createLastMonthEquiRentPrice" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecUnknown(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FRentAmount,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#)
+	</insert>
+		<!-- 保存当月来款增值税  -->
+	<insert id="createLastMonthValueAddedTax" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecUnknown(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FAddedTax,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#)
+	</insert>
+	
+	<!-- 非当月来款设备管理费收入来源承租人 -->
+	<select id="getLastMonthEquiManageFeeCust" parameterClass="map" resultClass="java.util.HashMap">	
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,tfcb.SUPL_CODE,tss.NAME SUPPL_NAME,t9.DECP_NAME_CN+'业务员' NAME,t9.DECP_NAME_CN CODE,t9.DECP_NAME_CN,t9.ALIAS,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		left join T_PRJT_CREDIT_FEELIST tpcf on tpc.ID=tpcf.credit_id and tpcf.CREATE_SHOW_NAME=ddr.FICB_ITEM
+		left join T_FINA_COLLECTIONBILL tfcb on tfcb.FICB_ID=ddr.FICB_ID
+		left join T_SUPL_SUPPLIER tss on tss.CODE=tfcb.SUPL_CODE
+		left join T_USER_USER tuu on tuu.ID=tpc.SENSOR_ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where ddr.FICB_ITEM like '管理费收入%'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.PRODUCTION_TYPE='1'
+		and tpcf.SOURCE_CODE='1'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	<!-- 非当月来款设备管理费收入来源供应商 -->
+	<select id="getLastMonthEquiManageFeeSuppl" parameterClass="map" resultClass="java.util.HashMap">	
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,tfcb.SUPL_CODE,tss.NAME SUPPL_NAME,t9.DECP_NAME_CN+'业务员' NAME,t9.DECP_NAME_CN CODE,t9.DECP_NAME_CN,t9.ALIAS,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		left join T_PRJT_CREDIT_FEELIST tpcf on tpc.ID=tpcf.credit_id and tpcf.CREATE_SHOW_NAME=ddr.FICB_ITEM
+		left join T_FINA_COLLECTIONBILL tfcb on tfcb.FICB_ID=ddr.FICB_ID
+		left join T_SUPL_SUPPLIER tss on tss.CODE=tfcb.SUPL_CODE
+		left join T_USER_USER tuu on tuu.ID=tpc.SENSOR_ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where ddr.FICB_ITEM like '管理费收入%'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.PRODUCTION_TYPE='1'
+		and tpcf.SOURCE_CODE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>	
+	
+		<!-- 非当月来款重车管理费收入来源供应商 -->
+	<select id="getLastMonthCarManageFee" parameterClass="map" resultClass="java.util.HashMap">	
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,tfcb.SUPL_CODE,tss.NAME SUPPL_NAME,t9.DECP_NAME_CN+'业务员' NAME,t9.DECP_NAME_CN CODE,t9.DECP_NAME_CN,t9.ALIAS,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		left join T_PRJT_CREDIT_FEELIST tpcf on tpc.ID=tpcf.credit_id and tpcf.CREATE_SHOW_NAME=ddr.FICB_ITEM
+		left join T_FINA_COLLECTIONBILL tfcb on tfcb.FICB_ID=ddr.FICB_ID
+		left join T_SUPL_SUPPLIER tss on tss.CODE=tfcb.SUPL_CODE
+		left join T_USER_USER tuu on tuu.ID=tpc.SENSOR_ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where ddr.FICB_ITEM like '管理费收入%'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.PRODUCTION_TYPE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>	
+	
+			<!-- 保存当月来款管理费  -->
+	<insert id="createLastMonthManageFee" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecUnknown(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FRecManage,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#)
+	</insert>
+	
+		<!-- 非当月来款重车家访费收入 -->
+	<select id="getLastMonthCarVisitFee" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,tfcb.SUPL_CODE,tss.NAME SUPPL_NAME,t9.DECP_NAME_CN+'业务员' NAME,t9.DECP_NAME_CN CODE,t9.DECP_NAME_CN,t9.ALIAS,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		left join T_PRJT_CREDIT_FEELIST tpcf on tpc.ID=tpcf.credit_id and tpcf.CREATE_SHOW_NAME=ddr.FICB_ITEM
+		left join T_FINA_COLLECTIONBILL tfcb on tfcb.FICB_ID=ddr.FICB_ID
+		left join T_SUPL_SUPPLIER tss on tss.CODE=tfcb.SUPL_CODE
+		left join T_USER_USER tuu on tuu.ID=tpc.SENSOR_ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where ddr.FICB_ITEM = '家訪費收入'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.PRODUCTION_TYPE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>	
+				<!-- 非当月来款保存当月重车家访  -->
+	<insert id="createLastMonthVisitFee" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecUnknown(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FrecVisit,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#)
+	</insert>
+	
+		<!-- 重车保险费押金 -->
+	<select id="getLastMonthCarInsureFee" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,tfcb.SUPL_CODE,tss.NAME SUPPL_NAME,t9.DECP_NAME_CN+'业务员' NAME,t9.DECP_NAME_CN CODE,t9.DECP_NAME_CN,t9.ALIAS,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		left join T_PRJT_CREDIT_FEELIST tpcf on tpc.ID=tpcf.credit_id and tpcf.CREATE_SHOW_NAME=ddr.FICB_ITEM
+		left join T_FINA_COLLECTIONBILL tfcb on tfcb.FICB_ID=ddr.FICB_ID
+		left join T_SUPL_SUPPLIER tss on tss.CODE=tfcb.SUPL_CODE
+		left join T_USER_USER tuu on tuu.ID=tpc.SENSOR_ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where ddr.FICB_ITEM = '保险费押金收入'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.PRODUCTION_TYPE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	
+	<!-- 保存当月重车押金  -->
+	<insert id="createLastMonthInsureFee" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecUnknown(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,Fdeposit,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#)
+	</insert>
+
+		<!-- 设备保证金B -->
+	<select id="getLastMonthEquiDepositB" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM = '保证金B'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.PRODUCTION_TYPE='1'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+			<!-- 重车保证金B -->
+	<select id="getLastMonthCarDepositB" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM = '保证金B'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.PRODUCTION_TYPE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	
+			<!-- 设备保证金C -->
+	<select id="getLastMonthEquiDepositC" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM = '保证金C'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.PRODUCTION_TYPE='1'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+			<!-- 重车保证金C -->
+	<select id="getLastMonthCarDepositC" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM = '保证金C'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		and tpc.PRODUCTION_TYPE='2'
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	<!-- 保存当月保证金B  -->
+	<insert id="createLastMonthDepositB" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecUnknown(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FFundB,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#)
+	</insert>		
+	<!-- 保存当月保证金C  -->
+	<insert id="createLastMonthDepositC" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecUnknown(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FFundC,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#)
+	</insert>
+		<!-- 保证金税金 -->
+	<select id="getLastMonthDepositTax" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,tfcb.SUPL_CODE,tss.NAME SUPPL_NAME,t9.DECP_NAME_CN+'业务员' NAME,t9.DECP_NAME_CN CODE,t9.DECP_NAME_CN,t9.ALIAS,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		left join T_PRJT_CREDIT_FEELIST tpcf on tpc.ID=tpcf.credit_id and tpcf.CREATE_SHOW_NAME=ddr.FICB_ITEM
+		left join T_FINA_COLLECTIONBILL tfcb on tfcb.FICB_ID=ddr.FICB_ID
+		left join T_SUPL_SUPPLIER tss on tss.CODE=tfcb.SUPL_CODE
+		left join T_USER_USER tuu on tuu.ID=tpc.SENSOR_ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where ddr.FICB_ITEM = '税金'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>	
+	
+	<insert id="createLastMonthDepositTax" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecUnknown(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,Ftax,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#)
+	</insert>
+		<!-- 保证金税金 -->
+	<select id="getLastMonthDeposit" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,tfcb.SUPL_CODE,tss.NAME SUPPL_NAME,t9.DECP_NAME_CN+'业务员' NAME,t9.DECP_NAME_CN CODE,t9.DECP_NAME_CN,t9.ALIAS,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		left join T_PRJT_CREDIT_FEELIST tpcf on tpc.ID=tpcf.credit_id and tpcf.CREATE_SHOW_NAME=ddr.FICB_ITEM
+		left join T_FINA_COLLECTIONBILL tfcb on tfcb.FICB_ID=ddr.FICB_ID
+		left join T_SUPL_SUPPLIER tss on tss.CODE=tfcb.SUPL_CODE
+		left join T_USER_USER tuu on tuu.ID=tpc.SENSOR_ID
+		left join T_DEPT_DEPARTMENT dept on dept.ID = tuu.DEPT_ID and dept.STATUS = 0
+		left join T_DEPT_COMPANY t9 on dept.DECP_ID = t9.DECP_ID and t9.STATUS = 0
+		where ddr.FICB_ITEM = '保证金'
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>	
+	
+	<insert id="createLastMonthDeposit" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecUnknown(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,Ffunc,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#)
+	</insert>
+	
+	<!-- 留购款/罚息 -->
+	<select id="getLastMonthDunPrice" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM in('结清罚息','租金罚息') 
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	
+	<insert id="createLastMonthDunPrice" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecUnknown(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FRentInterest,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#)
+	</insert>
+		
+		<!-- 留购款/罚息 -->
+	<select id="getLastMonthStayPrice" parameterClass="map" resultClass="java.util.HashMap">		
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where ddr.FICB_ITEM in('结清留购价','设备留购价') 
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	
+	<insert id="createLastMonthStayPrice" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecUnknown(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FAssetPrice,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#)
+	</insert>	
+	
+	<!-- 法务费用 -->
+	<select id="getLastMonthLawFee" parameterClass="map" resultClass="java.util.HashMap">	
+		select ddr.CUST_CODE,ddr.CUST_NAME,ddr.FIIN_ID FICB_ID,convert(decimal(18,2),ddr.REAL_PRICE)REAL_PRICE,ddr.LEASE_CODE,'004.002' as DEPT_NO, '法务科' as DEPT_NAME,ddr.BANK_CODE,ddr.OPPOSING_DATE from DAILY_DECOMPOSE_REPORT ddr
+		left join t_prjt_credit tpc on tpc.LEASE_CODE=ddr.LEASE_CODE
+		where (ddr.FICB_ITEM in(select FLAG from T_DATA_DICTIONARY where TYPE = '法务费用' and STATUS='0')
+		or ddr.FICB_ITEM='结清法务费用')
+		and (year(ddr.OPPOSING_DATE) != year(getDate()) or (year(ddr.OPPOSING_DATE)=year(getDate()) and month(ddr.OPPOSING_DATE)!= month(getDate()) ) )
+		 and year(ddr.CREATE_TIME)=year(getDate()) and month(ddr.CREATE_TIME)=month(getDate()) and day(ddr.CREATE_TIME)=day(getDate()) 
+	</select>
+	<!-- 保存当月法务费用 -->
+	<insert id="createLastMonthLawFee" parameterClass="map">
+		insert into kingDeer_srv_lnk.k303001.dbo.zlRecUnknown(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FLawAmount,FDeptNo,FDeptName,FBankBillNo)
+		values(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#DEPT_NO#,#DEPT_NAME#,#BANK_CODE#)
+	</insert>
+	<!-- *****************************************************************************************天书之前的抓取SQL -->
+ 
+ 
+ 
+ 
+ 	<insert id="insertLog">
+ 		INSERT INTO T_KINGDEER_LOG
+ 		(LOG_CONTENT,FINANCE_TYPE,KINGDEER_TYPE,CREATE_DATE)
+ 		VALUES
+ 		(#logContent#,#financeType#,#type#,GETDATE())
+ 	</insert>
+ 	<!-- *****************************************************************************************按照会记需求,完全和销帐日报表匹配的抓取SQL add by ShenQi-->
+ 	<!-- 销帐日报表来源(现金销帐)   -->
+ 	<select id="getDailyDepositTax" resultClass="java.util.HashMap"><!-- 保证金税金 -->
+	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,CONVERT(DECIMAL(18,2),
+    		   DDR.REAL_PRICE) REAL_PRICE,DDR.LEASE_CODE,TFCB.SUPL_CODE,TSS.NAME SUPPL_NAME,
+    		   CMPY.DECP_NAME_CN+'业务员' NAME,CMPY.DECP_NAME_CN CODE,CMPY.DECP_NAME_CN,
+	           CMPY.ALIAS,DDR.BANK_CODE,DDR.OPPOSING_DATE,'13' TYPE <!-- 类型=13,是金蝶中定义好的 每日来款的保证金税金类型 -->
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE AND TPC.STATUS=0
+	 LEFT JOIN T_FINA_COLLECTIONBILL TFCB ON TFCB.FICB_ID=DDR.FICB_ID
+	 LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.CODE=TFCB.SUPL_CODE AND TSS.STATUS=0
+	 LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	 LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	 LEFT JOIN T_DEPT_COMPANY CMPY ON DEPT.DECP_ID=CMPY.DECP_ID AND CMPY.STATUS=0
+	     WHERE DDR.FINANCE_TYPE=0 <!-- 0代表销帐日报表的现金销帐 -->
+	       AND DDR.FICB_ITEM='税金'
+	       AND (CONVERT(DATE,TPC.FINANCECONTRACT_DATE)>CONVERT(DATE,'2012-9-30') OR TPC.FINANCECONTRACT_DATE IS NULL)
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+ 	</select>
+ 	<select id="getDailyDepositTaxNew" resultClass="java.util.HashMap"><!-- 对应的新版 -->
+ 		 SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,DDR.DECOMPOSE_PRICE REAL_PRICE,
+                DDR.LEASE_CODE,O.SUPL_CODE,O.SUPPL_NAME,CMPY.DECP_NAME_CN+'业务员' NAME,
+                CMPY.DECP_NAME_CN CODE,CMPY.DECP_NAME_CN,CMPY.ALIAS,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'13' TYPE
+           FROM T_DECOMPOSE_DAILY_REPORT DDR
+      LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TRC.STATUS=0 AND DDR.RECP_ID=TRC.RECP_ID
+      LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.STATUS=0 AND TRC.RECT_ID=TRCT.RECT_ID
+      LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TRCT.PRCD_ID=TPC.ID
+      LEFT JOIN (SELECT T1.ID,MAX(T4.CODE) SUPL_CODE,MAX(T4.NAME) SUPPL_NAME
+                   FROM T_PRJT_CREDIT T1
+              LEFT JOIN T_PRJT_CREDITEQUIPMENT T2 ON T2.EQMT_STATUS=0 AND T1.ID=T2.CREDIT_ID
+              LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.STATUS=0 AND T3.SUEQ_ID=T2.SUEQ_ID
+              LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.STATUS=0 AND T3.SUPPLIER_ID=T4.ID
+                  WHERE T1.STATUS=0
+               GROUP BY T1.ID
+                 HAVING MAX(T4.CODE) IS NOT NULL) O ON TPC.ID=O.ID
+      LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	  LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	  LEFT JOIN T_DEPT_COMPANY CMPY ON DEPT.DECP_ID=CMPY.DECP_ID AND CMPY.STATUS=0
+          WHERE DDR.REPORT_TYPE=0 <!-- 0代表销帐日报表的现金销帐 -->
+            AND DDR.BILL_CODE='TAX'
+            AND (CONVERT(DATE,TPC.FINANCECONTRACT_DATE)>CONVERT(DATE,'2012-9-30') OR TPC.FINANCECONTRACT_DATE IS NULL)
+	        AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	        AND TPC.COMPANY_CODE=1
+ 	</select>
+ 	<insert id="insertDailyDepositTax">
+ 		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecCashHook
+ 		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,Ftax,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+ 	</insert>
+ 	
+ 	<select id="getDailyLawFee" resultClass="java.util.HashMap">
+	      SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,'18' TYPE,<!-- 类型=18,是金蝶中定义好的 每日来款的法务类型 -->
+	             CONVERT(DECIMAL(18,2),DDR.REAL_PRICE)REAL_PRICE,DDR.LEASE_CODE,
+	             '004.002' AS DEPT_NO, '法务科' AS DEPT_NAME,DDR.BANK_CODE,DDR.OPPOSING_DATE
+	        FROM DAILY_DECOMPOSE_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		   WHERE (DDR.FICB_ITEM IN(SELECT FLAG FROM T_DATA_DICTIONARY WHERE TYPE='法务费用' AND STATUS='0')
+	           	 OR DDR.FICB_ITEM='结清法务费用')
+	         AND DDR.FINANCE_TYPE=0
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+ 	</select>
+ 	<select id="getDailyLawFeeNew" resultClass="java.util.HashMap">
+ 		   SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,'18' TYPE, 
+                  DDR.DECOMPOSE_PRICE REAL_PRICE,DDR.LEASE_CODE,
+                  '004.002' AS DEPT_NO, '法务科' AS DEPT_NAME,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE
+             FROM T_DECOMPOSE_DAILY_REPORT DDR
+        LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+            WHERE (DDR.BILL_CODE IN (SELECT UPPER(CODE) FROM T_DATA_DICTIONARY WHERE TYPE='法务费用' AND STATUS='0')
+    	          OR DDR.BILL_CODE='SETTLEMENT_LAW_FEE')
+    	      AND DDR.REPORT_TYPE=0
+    	      AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+    	      AND TPC.COMPANY_CODE=1
+ 	</select>
+ 	<insert id="insertDailyLawFee">
+ 		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecCashHook
+ 		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FLawAmount,FDeptNo,FDeptName,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#DEPT_NO#,#DEPT_NAME#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+ 	</insert>
+ 	
+ 	<select id="getDailyMotorDeposit" resultClass="java.util.HashMap">
+	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE)REAL_PRICE,
+	           DDR.LEASE_CODE,TFCB.SUPL_CODE,TSS.NAME SUPPL_NAME,'9' TYPE,<!-- 类型=9,是金蝶中定义好的 每日来款的重车保险费押金类型 -->
+	           TDC.DECP_NAME_CN+'业务员' NAME,TDC.DECP_NAME_CN CODE,
+	           TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.OPPOSING_DATE 
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE		
+	 LEFT JOIN T_FINA_COLLECTIONBILL TFCB ON TFCB.FICB_ID=DDR.FICB_ID
+	 LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.CODE=TFCB.SUPL_CODE AND TSS.STATUS=0
+	 LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	 LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	 LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+		 WHERE (DDR.FICB_ITEM='保险费押金收入' OR DDR.FICB_ITEM='保险费押金代收款')
+	       AND DDR.FINANCE_TYPE=0
+		   AND TPC.PRODUCTION_TYPE='2'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+           AND EXISTS
+               (SELECT 1 
+	              FROM T_SUPL_SUPPLIER T1 
+	         LEFT JOIN T_SUPL_EQUIPMENT T2 ON T2.STATUS=0 AND T2.SUPPLIER_ID=T1.ID
+	         LEFT JOIN T_PRJT_CREDITEQUIPMENT T3 ON T3.EQMT_STATUS=0 AND T2.SUEQ_ID=T3.SUEQ_ID
+	             WHERE T1.STATUS=0 
+	               AND T1.ID=TSS.ID 
+	               AND T3.CREDIT_ID=TPC.ID)
+ 	</select>
+ 	<select id="getDailyMotorDepositNew" resultClass="java.util.HashMap">
+         SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,DDR.DECOMPOSE_PRICE REAL_PRICE,
+                DDR.LEASE_CODE,O.SUPL_CODE,O.SUPPL_NAME,CMPY.DECP_NAME_CN+'业务员' NAME,
+                CMPY.DECP_NAME_CN CODE,CMPY.DECP_NAME_CN,CMPY.ALIAS,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'9' TYPE
+           FROM T_DECOMPOSE_DAILY_REPORT DDR
+      LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TRC.STATUS=0 AND DDR.RECP_ID=TRC.RECP_ID
+      LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.STATUS=0 AND TRC.RECT_ID=TRCT.RECT_ID
+      LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TRCT.PRCD_ID=TPC.ID
+      LEFT JOIN (SELECT T1.ID,MAX(T4.CODE) SUPL_CODE,MAX(T4.NAME) SUPPL_NAME
+                   FROM T_PRJT_CREDIT T1
+              LEFT JOIN T_PRJT_CREDITEQUIPMENT T2 ON T2.EQMT_STATUS=0 AND T1.ID=T2.CREDIT_ID
+              LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.STATUS=0 AND T3.SUEQ_ID=T2.SUEQ_ID
+              LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.STATUS=0 AND T3.SUPPLIER_ID=T4.ID
+                  WHERE T1.STATUS=0
+               GROUP BY T1.ID
+                 HAVING MAX(T4.CODE) IS NOT NULL) O ON TPC.ID=O.ID
+      LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	  LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	  LEFT JOIN T_DEPT_COMPANY CMPY ON DEPT.DECP_ID=CMPY.DECP_ID AND CMPY.STATUS=0
+	      WHERE DDR.REPORT_TYPE=0
+	        AND DDR.BILL_CODE='INSURANCE_DEPUTY_FEE'
+	        AND TPC.PRODUCTION_TYPE='2'
+	        AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	        AND TPC.COMPANY_CODE=1
+ 	</select>
+ 	
+ 	<insert id="insertDailyMotorDeposit">
+ 		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecCashHook
+ 		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,Fdeposit,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+ 	</insert>
+ 	
+ 	<select id="getDailyEquManageFeeByCustomer" resultClass="java.util.HashMap">
+       SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+              CONVERT(DECIMAL(18,2),DDR.REAL_PRICE)REAL_PRICE,
+              DDR.LEASE_CODE,TFCB.SUPL_CODE,TSS.NAME SUPPL_NAME,'5' TYPE,<!-- 类型=5,是金蝶中定义好的 每日来款的设备管理费来源于客户类型 -->
+              TDC.DECP_NAME_CN+'业务员' NAME,TDC.DECP_NAME_CN CODE,
+              TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.OPPOSING_DATE
+         FROM DAILY_DECOMPOSE_REPORT DDR
+	LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	LEFT JOIN T_PRJT_CREDIT_FEELIST TPCF ON TPC.ID=TPCF.CREDIT_ID AND TPCF.CREATE_SHOW_NAME=DDR.FICB_ITEM
+	LEFT JOIN T_FINA_COLLECTIONBILL TFCB ON TFCB.FICB_ID=DDR.FICB_ID
+	LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.CODE=TFCB.SUPL_CODE AND TSS.STATUS=0
+	LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+	    WHERE DDR.FICB_ITEM LIKE '管理费收入%'
+       	  AND DDR.FINANCE_TYPE=0
+      	  AND TPC.PRODUCTION_TYPE='1'
+      	  AND TPCF.SOURCE_CODE='1'
+      	  AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())	
+	</select>
+	<select id="getDailyEquManageFeeByCustomerNew" resultClass="java.util.HashMap">
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+                 DDR.DECOMPOSE_PRICE REAL_PRICE,DDR.LEASE_CODE,O.SUPL_CODE,
+                 O.SUPPL_NAME,'5' TYPE,
+                 TDC.DECP_NAME_CN+'业务员' NAME,TDC.DECP_NAME_CN CODE,
+                 TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE
+            FROM T_DECOMPOSE_DAILY_REPORT DDR
+       LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+       LEFT JOIN T_PRJT_CREDIT_FEELIST TPCF ON TPC.ID=TPCF.CREDIT_ID AND UPPER(TPCF.CREATE_FILED_NAME)=DDR.BILL_CODE
+       LEFT JOIN (SELECT T1.ID,MAX(T4.CODE) SUPL_CODE,MAX(T4.NAME) SUPPL_NAME
+                    FROM T_PRJT_CREDIT T1
+               LEFT JOIN T_PRJT_CREDITEQUIPMENT T2 ON T2.EQMT_STATUS=0 AND T1.ID=T2.CREDIT_ID
+               LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.STATUS=0 AND T3.SUEQ_ID=T2.SUEQ_ID
+               LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.STATUS=0 AND T3.SUPPLIER_ID=T4.ID
+                   WHERE T1.STATUS=0
+                GROUP BY T1.ID
+                  HAVING MAX(T4.CODE) IS NOT NULL) O ON TPC.ID=O.ID
+       LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	   LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+           WHERE DDR.BILL_CODE LIKE '%MANAGE_FEE%'
+             AND DDR.REPORT_TYPE=0
+             AND TPC.PRODUCTION_TYPE='1'
+             AND TPCF.SOURCE_CODE='1'
+             AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+             AND TPC.COMPANY_CODE=1
+	</select>
+	
+	<select id="getDailyEquManageFeeBySupplier" resultClass="java.util.HashMap">
+        SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,'6' TYPE,<!-- 类型=6,是金蝶中定义好的 每日来款的设备管理费来源于供应商类型 -->
+               CONVERT(DECIMAL(18,2),DDR.REAL_PRICE)REAL_PRICE,DDR.LEASE_CODE,
+               TFCB.SUPL_CODE,TSS.NAME SUPPL_NAME,TDC.DECP_NAME_CN+'业务员' NAME,
+               TDC.DECP_NAME_CN CODE,TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.OPPOSING_DATE 
+          FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	 LEFT JOIN T_PRJT_CREDIT_FEELIST TPCF ON TPC.ID=TPCF.CREDIT_ID AND TPCF.CREATE_SHOW_NAME=DDR.FICB_ITEM
+	 LEFT JOIN T_FINA_COLLECTIONBILL TFCB ON TFCB.FICB_ID=DDR.FICB_ID
+	 LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.CODE=TFCB.SUPL_CODE AND TSS.STATUS=0
+	 LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	 LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	 LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+	     WHERE DDR.FICB_ITEM LIKE '管理费收入%'
+           AND DDR.FINANCE_TYPE=0
+   		   AND TPC.PRODUCTION_TYPE='1'
+   		   AND TPCF.SOURCE_CODE='2'
+           AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	</select>
+	<select id="getDailyEquManageFeeBySupplierNew" resultClass="java.util.HashMap">
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+                 DDR.DECOMPOSE_PRICE REAL_PRICE,DDR.LEASE_CODE,O.SUPL_CODE,
+                 O.SUPPL_NAME,'6' TYPE,
+                 TDC.DECP_NAME_CN+'业务员' NAME,TDC.DECP_NAME_CN CODE,
+                 TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE
+            FROM T_DECOMPOSE_DAILY_REPORT DDR
+       LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+       LEFT JOIN T_PRJT_CREDIT_FEELIST TPCF ON TPC.ID=TPCF.CREDIT_ID AND UPPER(TPCF.CREATE_FILED_NAME)=DDR.BILL_CODE
+       LEFT JOIN (SELECT T1.ID,MAX(T4.CODE) SUPL_CODE,MAX(T4.NAME) SUPPL_NAME
+                    FROM T_PRJT_CREDIT T1
+               LEFT JOIN T_PRJT_CREDITEQUIPMENT T2 ON T2.EQMT_STATUS=0 AND T1.ID=T2.CREDIT_ID
+               LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.STATUS=0 AND T3.SUEQ_ID=T2.SUEQ_ID
+               LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.STATUS=0 AND T3.SUPPLIER_ID=T4.ID
+                   WHERE T1.STATUS=0
+                GROUP BY T1.ID
+                  HAVING MAX(T4.CODE) IS NOT NULL) O ON TPC.ID=O.ID
+       LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	   LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+           WHERE DDR.BILL_CODE LIKE '%MANAGE_FEE%'
+             AND DDR.REPORT_TYPE=0
+             AND TPC.PRODUCTION_TYPE='1'
+             AND TPCF.SOURCE_CODE='2'
+             AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+             AND TPC.COMPANY_CODE=1
+	</select>
+	
+	<select id="getDailyMotorManageFee" resultClass="java.util.HashMap">
+       SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,'7' TYPE,<!-- 类型=7,是金蝶中定义好的 每日来款的重车管理费类型 -->
+              CONVERT(DECIMAL(18,2),DDR.REAL_PRICE)REAL_PRICE,DDR.LEASE_CODE,
+              TFCB.SUPL_CODE,TSS.NAME SUPPL_NAME,TDC.DECP_NAME_CN+'业务员' NAME,
+              TDC.DECP_NAME_CN CODE,TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.OPPOSING_DATE 
+         FROM DAILY_DECOMPOSE_REPORT DDR
+	LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE		
+	LEFT JOIN T_FINA_COLLECTIONBILL TFCB ON TFCB.FICB_ID=DDR.FICB_ID
+	LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.CODE=TFCB.SUPL_CODE AND TSS.STATUS=0
+	LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+	    WHERE DDR.FICB_ITEM LIKE '管理费收入%'
+          AND DDR.FINANCE_TYPE=0
+   		  AND TPC.PRODUCTION_TYPE='2'
+          AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+          AND EXISTS
+		          (SELECT 1 
+		              FROM T_SUPL_SUPPLIER T1 
+		         LEFT JOIN T_SUPL_EQUIPMENT T2 ON T2.STATUS=0 AND T2.SUPPLIER_ID=T1.ID
+		         LEFT JOIN T_PRJT_CREDITEQUIPMENT T3 ON T3.EQMT_STATUS=0  AND T2.SUEQ_ID=T3.SUEQ_ID
+		             WHERE T1.STATUS=0 
+		               AND T1.ID=TSS.ID 
+		               AND T3.CREDIT_ID=TPC.ID)
+	</select>
+	<select id="getDailyMotorManageFeeNew" resultClass="java.util.HashMap">
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+                 DDR.DECOMPOSE_PRICE REAL_PRICE,DDR.LEASE_CODE,O.SUPL_CODE,
+                 O.SUPPL_NAME,'7' TYPE,
+                 TDC.DECP_NAME_CN+'业务员' NAME,TDC.DECP_NAME_CN CODE,
+                 TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE
+            FROM T_DECOMPOSE_DAILY_REPORT DDR
+       LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+       LEFT JOIN (SELECT T1.ID,MAX(T4.CODE) SUPL_CODE,MAX(T4.NAME) SUPPL_NAME
+                    FROM T_PRJT_CREDIT T1
+               LEFT JOIN T_PRJT_CREDITEQUIPMENT T2 ON T2.EQMT_STATUS=0 AND T1.ID=T2.CREDIT_ID
+               LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.STATUS=0 AND T3.SUEQ_ID=T2.SUEQ_ID
+               LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.STATUS=0 AND T3.SUPPLIER_ID=T4.ID
+                   WHERE T1.STATUS=0
+                GROUP BY T1.ID
+                  HAVING MAX(T4.CODE) IS NOT NULL) O ON TPC.ID=O.ID
+       LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	   LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+           WHERE DDR.BILL_CODE LIKE '%MANAGE_FEE%'
+             AND DDR.REPORT_TYPE=0
+             AND TPC.PRODUCTION_TYPE='2'
+             AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+             AND TPC.COMPANY_CODE=1
+	</select>
+	
+	<insert id="insertDailyManageFee">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecCashHook
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FRecManage,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getDailyAddedTax" resultClass="java.util.HashMap">
+       SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+               CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+               DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'3' TYPE <!-- 类型=3,是金蝶中定义好的 每日来款的设备租金 增值税类型 -->
+         FROM DAILY_DECOMPOSE_REPORT DDR
+    LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+     	WHERE DDR.FICB_ITEM='增值税'
+          AND DDR.FINANCE_TYPE=0
+     	  AND TPC.PRODUCTION_TYPE='1'
+          AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+           UNION ALL
+       SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+              CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+              DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'4' TYPE <!-- 类型=4,是金蝶中定义好的 每日来款的重车租金 增值税类型 -->
+         FROM DAILY_DECOMPOSE_REPORT DDR
+    LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+   		WHERE DDR.FICB_ITEM='增值税'
+   		  AND DDR.FINANCE_TYPE=0
+   		  AND TPC.PRODUCTION_TYPE='2'
+          AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	</select>
+	<select id="getDailyAddedTaxNew" resultClass="java.util.HashMap">
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+                 DDR.DECOMPOSE_PRICE REAL_PRICE,
+                 DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'3' TYPE
+            FROM T_DECOMPOSE_DAILY_REPORT DDR
+       LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+           WHERE DDR.BILL_CODE='VALUE_ADD_TAX'
+             AND DDR.REPORT_TYPE=0
+     	     AND TPC.PRODUCTION_TYPE='1'
+             AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+             UNION ALL
+          SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+                 DDR.DECOMPOSE_PRICE REAL_PRICE,
+                 DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'4' TYPE
+            FROM T_DECOMPOSE_DAILY_REPORT DDR
+       LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+           WHERE DDR.BILL_CODE='VALUE_ADD_TAX'
+             AND DDR.REPORT_TYPE=0
+     	     AND TPC.PRODUCTION_TYPE='2'
+             AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+             AND TPC.COMPANY_CODE=1
+	</select>
+	
+	<insert id="insertDailyAddedTax">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecCashHook
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FAddedTax,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getDailyDunTax" resultClass="java.util.HashMap">
+	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'16' TYPE <!-- 类型=16,是金蝶中定义好的 每日来款的罚息类型 -->
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.FICB_ITEM IN ('结清罚息','租金罚息') 
+		   AND DDR.FINANCE_TYPE=0
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	</select>
+	<select id="getDailyDunTaxNew" resultClass="java.util.HashMap">
+          SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+                 DDR.DECOMPOSE_PRICE REAL_PRICE,
+                 DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'16' TYPE
+            FROM T_DECOMPOSE_DAILY_REPORT DDR
+       LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+           WHERE (DDR.BILL_CODE='RENT_FINE' OR DDR.BILL_CODE='SETTLEMENT_RENT_FINE')
+             AND DDR.REPORT_TYPE=0
+             AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+             AND TPC.COMPANY_CODE=1
+	</select>
+	
+	<insert id="insertDailyDunTax">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecCashHook
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FRentInterest,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getDailyStayPrice" resultClass="java.util.HashMap">
+        SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+               CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+               DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'15' TYPE <!-- 类型=15,是金蝶中定义好的 每日来款的留购款类型 -->
+          FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	     WHERE DDR.FICB_ITEM IN ('结清留购价','设备留购价')
+           AND DDR.FINANCE_TYPE=0
+           AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())	
+	</select>
+	<select id="getDailyStayPriceNew" resultClass="java.util.HashMap">
+        SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+               DDR.DECOMPOSE_PRICE REAL_PRICE,
+               DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'15' TYPE
+          FROM T_DECOMPOSE_DAILY_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	     WHERE (DDR.BILL_CODE='STAY_BUY_PRICE' OR DDR.BILL_CODE='SETTLEMENT_STAY_PRICE')
+           AND DDR.REPORT_TYPE=0
+           AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+           AND TPC.COMPANY_CODE=1
+	</select>
+	
+	<insert id="insertDailyStayPrice">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecCashHook
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FAssetPrice,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getDailyRentPrice" resultClass="java.util.HashMap">
+	      SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	             CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'1' TYPE <!-- 类型=1,是金蝶中定义好的 每日来款的设备租金,设备结清本金利息类型2012-10-1之前 -->
+	        FROM DAILY_DECOMPOSE_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		   WHERE DDR.FICB_ITEM='租金'
+	         AND DDR.FINANCE_TYPE=0
+		     AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+		     AND TPC.PRODUCTION_TYPE='1'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+				    UNION ALL
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	             CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'1' TYPE
+	        FROM DAILY_DECOMPOSE_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	       WHERE DDR.FICB_ITEM IN ('结清本金','结清利息')
+	         AND DDR.FINANCE_TYPE=0
+	     	 AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+	     	 AND TPC.PRODUCTION_TYPE='1'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	          UNION ALL
+	      SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	             CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'2' TYPE <!-- 类型=2,是金蝶中定义好的 每日来款的重车租金,重车结清本金利息类型2012-10-1之前 -->
+	        FROM DAILY_DECOMPOSE_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		   WHERE DDR.FICB_ITEM='租金'
+	         AND DDR.FINANCE_TYPE=0
+		     AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+		     AND TPC.PRODUCTION_TYPE='2'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+				    UNION ALL
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	             CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'2' TYPE
+	        FROM DAILY_DECOMPOSE_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	       WHERE DDR.FICB_ITEM IN ('结清本金','结清利息')
+	         AND DDR.FINANCE_TYPE=0
+	     	 AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+	     	 AND TPC.PRODUCTION_TYPE='2'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	          UNION ALL
+	      SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	             CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'3' TYPE <!-- 类型=3,是金蝶中定义好的 每日来款的设备租金,设备结清本金利息类型2012-10-1之后 -->
+	        FROM DAILY_DECOMPOSE_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	       WHERE DDR.FICB_ITEM='租金'
+	         AND DDR.FINANCE_TYPE=0
+	   		 AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+	   		 AND TPC.PRODUCTION_TYPE='1'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'3' TYPE
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   	 WHERE DDR.FICB_ITEM='租金'
+	       AND DDR.FINANCE_TYPE=0
+		   AND (TPC.FINANCECONTRACT_DATE IS NULL 
+	         	OR TPC.FINANCECONTRACT_DATE='' 
+	         	OR CONVERT(DATE,TPC.FINANCECONTRACT_DATE)=CONVERT(DATE,'1900-1-1'))
+		   AND TPC.PRODUCTION_TYPE='1'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'3' TYPE
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.FICB_ITEM IN ('结清本金','结清利息')
+	       AND DDR.FINANCE_TYPE=0
+		   AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+		   AND TPC.PRODUCTION_TYPE='1'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       UNION ALL
+ 	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+               CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+               DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'4' TYPE <!-- 类型=4,是金蝶中定义好的 每日来款的重车租金,重车结清本金利息类型2012-10-1之后 -->
+          FROM DAILY_DECOMPOSE_REPORT DDR
+     LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+         WHERE DDR.FICB_ITEM='租金'
+           AND DDR.FINANCE_TYPE=0
+   		   AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+   		   AND TPC.PRODUCTION_TYPE='2'
+           AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'4' TYPE
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   	 WHERE DDR.FICB_ITEM='租金'
+	       AND DDR.FINANCE_TYPE=0
+		   AND (TPC.FINANCECONTRACT_DATE IS NULL 
+	         	OR TPC.FINANCECONTRACT_DATE='' 
+	         	OR CONVERT(DATE,TPC.FINANCECONTRACT_DATE)=CONVERT(DATE,'1900-1-1'))
+		   AND TPC.PRODUCTION_TYPE='2'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'4' TYPE
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.FICB_ITEM IN ('结清本金','结清利息')
+	       AND DDR.FINANCE_TYPE=0
+		   AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+		   AND TPC.PRODUCTION_TYPE='2'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	</select>
+	<select id="getDailyRentPriceNew" resultClass="java.util.HashMap">
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	             DDR.DECOMPOSE_PRICE REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'1' TYPE 
+	        FROM T_DECOMPOSE_DAILY_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		   WHERE DDR.BILL_CODE='RENT'
+	         AND DDR.REPORT_TYPE=0
+		     AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+		     AND TPC.PRODUCTION_TYPE='1'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	         AND TPC.COMPANY_CODE=1
+				    UNION ALL
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	             DDR.DECOMPOSE_PRICE REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'1' TYPE
+	        FROM T_DECOMPOSE_DAILY_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	       WHERE DDR.BILL_CODE IN ('SETTLEMENT_OWN_PRICE','SETTLEMENT_REN_PRICE')
+	         AND DDR.REPORT_TYPE=0
+	     	 AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+	     	 AND TPC.PRODUCTION_TYPE='1'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	         AND TPC.COMPANY_CODE=1
+	          UNION ALL
+	      SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	             DDR.DECOMPOSE_PRICE REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'2' TYPE 
+	        FROM T_DECOMPOSE_DAILY_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		   WHERE DDR.BILL_CODE='RENT'
+	         AND DDR.REPORT_TYPE=0
+		     AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+		     AND TPC.PRODUCTION_TYPE='2'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	         AND TPC.COMPANY_CODE=1
+				    UNION ALL
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	             DDR.DECOMPOSE_PRICE REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'2' TYPE
+	        FROM T_DECOMPOSE_DAILY_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	       WHERE DDR.BILL_CODE IN ('SETTLEMENT_OWN_PRICE','SETTLEMENT_REN_PRICE')
+	         AND DDR.REPORT_TYPE=0
+	     	 AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+	     	 AND TPC.PRODUCTION_TYPE='2'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	         AND TPC.COMPANY_CODE=1
+	          UNION ALL
+	      SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	             DDR.DECOMPOSE_PRICE REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'3' TYPE 
+	        FROM T_DECOMPOSE_DAILY_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	       WHERE DDR.BILL_CODE='RENT'
+	         AND DDR.REPORT_TYPE=0
+	   		 AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+	   		 AND TPC.PRODUCTION_TYPE='1'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	         AND TPC.COMPANY_CODE=1
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	           DDR.DECOMPOSE_PRICE REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'3' TYPE
+	      FROM T_DECOMPOSE_DAILY_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   	 WHERE DDR.BILL_CODE='RENT'
+	       AND DDR.REPORT_TYPE=0
+		   AND (TPC.FINANCECONTRACT_DATE IS NULL 
+	         	OR TPC.FINANCECONTRACT_DATE='' 
+	         	OR CONVERT(DATE,TPC.FINANCECONTRACT_DATE)=CONVERT(DATE,'1900-1-1'))
+		   AND TPC.PRODUCTION_TYPE='1'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       AND TPC.COMPANY_CODE=1
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	           DDR.DECOMPOSE_PRICE REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'3' TYPE
+	      FROM T_DECOMPOSE_DAILY_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.BILL_CODE IN ('SETTLEMENT_OWN_PRICE','SETTLEMENT_REN_PRICE')
+	       AND DDR.REPORT_TYPE=0
+		   AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+		   AND TPC.PRODUCTION_TYPE='1'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       AND TPC.COMPANY_CODE=1
+	       UNION ALL
+ 	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+               DDR.DECOMPOSE_PRICE REAL_PRICE,
+               DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'4' TYPE 
+          FROM T_DECOMPOSE_DAILY_REPORT DDR
+     LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+         WHERE DDR.BILL_CODE='RENT'
+           AND DDR.REPORT_TYPE=0
+   		   AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+   		   AND TPC.PRODUCTION_TYPE='2'
+           AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+           AND TPC.COMPANY_CODE=1
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	           DDR.DECOMPOSE_PRICE REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'4' TYPE
+	      FROM T_DECOMPOSE_DAILY_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   	 WHERE DDR.BILL_CODE='RENT'
+	       AND DDR.REPORT_TYPE=0
+		   AND (TPC.FINANCECONTRACT_DATE IS NULL 
+	         	OR TPC.FINANCECONTRACT_DATE='' 
+	         	OR CONVERT(DATE,TPC.FINANCECONTRACT_DATE)=CONVERT(DATE,'1900-1-1'))
+		   AND TPC.PRODUCTION_TYPE='2'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       AND TPC.COMPANY_CODE=1
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	           DDR.DECOMPOSE_PRICE REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'4' TYPE
+	      FROM T_DECOMPOSE_DAILY_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.BILL_CODE IN ('SETTLEMENT_OWN_PRICE','SETTLEMENT_REN_PRICE')
+	       AND DDR.REPORT_TYPE=0
+		   AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+		   AND TPC.PRODUCTION_TYPE='2'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       AND TPC.COMPANY_CODE=1
+	</select>
+	
+	<insert id="insertDailyRentPrice">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecCashHook
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FRentAmount,FBankBillNo,FCreateDate)
+		VALUES(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getDailyDepositB" resultClass="java.util.HashMap">
+	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'10' TYPE <!-- 类型=10,是金蝶中定义好的 每日来款的设备期末保证金BC类型 -->
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.FICB_ITEM='保证金B'
+	       AND DDR.FINANCE_TYPE=0
+    	   AND TPC.PRODUCTION_TYPE='1'
+    	   AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       UNION ALL
+	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'11' TYPE <!-- 类型=11,是金蝶中定义好的 每日来款的重车期末保证金BC类型 -->
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.FICB_ITEM='保证金B'
+	       AND DDR.FINANCE_TYPE=0
+		   AND TPC.PRODUCTION_TYPE='2'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	</select>
+	<select id="getDailyDepositBNew" resultClass="java.util.HashMap">
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	           DDR.DECOMPOSE_PRICE REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'10' TYPE
+	      FROM T_DECOMPOSE_DAILY_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.BILL_CODE='DEPOSIT_B'
+	       AND DDR.REPORT_TYPE=0
+    	   AND TPC.PRODUCTION_TYPE='1'
+    	   AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+    	   AND TPC.COMPANY_CODE=1
+	       UNION ALL
+	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	           DDR.DECOMPOSE_PRICE REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'11' TYPE
+	      FROM T_DECOMPOSE_DAILY_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.BILL_CODE='DEPOSIT_B'
+	       AND DDR.REPORT_TYPE=0
+		   AND TPC.PRODUCTION_TYPE='2'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       AND TPC.COMPANY_CODE=1
+	</select>
+	
+	<insert id="insertDailyDepositB">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecCashHook
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FFundB,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	<select id="getDailyDepositC" resultClass="java.util.HashMap">
+      SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+             CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'10' TYPE
+        FROM DAILY_DECOMPOSE_REPORT DDR
+   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   WHERE DDR.FICB_ITEM='保证金C'
+      	 AND DDR.FINANCE_TYPE=0
+   		 AND TPC.PRODUCTION_TYPE='1'
+      	 AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+         UNION ALL
+     SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+            CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+            DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'11' TYPE
+       FROM DAILY_DECOMPOSE_REPORT DDR
+  LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+      WHERE DDR.FICB_ITEM='保证金C'
+        AND DDR.FINANCE_TYPE=0
+     	AND TPC.PRODUCTION_TYPE='2'
+        AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	</select>
+	<select id="getDailyDepositCNew" resultClass="java.util.HashMap">
+	  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+             DDR.DECOMPOSE_PRICE REAL_PRICE,
+             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'10' TYPE
+        FROM T_DECOMPOSE_DAILY_REPORT DDR
+   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   WHERE DDR.BILL_CODE='DEPOSIT_C'
+      	 AND DDR.REPORT_TYPE=0
+   		 AND TPC.PRODUCTION_TYPE='1'
+      	 AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+      	 AND TPC.COMPANY_CODE=1
+         UNION ALL
+     SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+            DDR.DECOMPOSE_PRICE REAL_PRICE,
+            DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'11' TYPE
+       FROM T_DECOMPOSE_DAILY_REPORT DDR
+  LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+      WHERE DDR.BILL_CODE='DEPOSIT_C'
+        AND DDR.REPORT_TYPE=0
+     	AND TPC.PRODUCTION_TYPE='2'
+        AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+        AND TPC.COMPANY_CODE=1
+	</select>
+	
+	<insert id="insertDailyDepositC">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecCashHook
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FFundC,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	<select id="getDailyDeposit" resultClass="java.util.HashMap">
+           SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+                  CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+                  DDR.LEASE_CODE,TFCB.SUPL_CODE,TSS.NAME SUPPL_NAME,
+                  TDC.DECP_NAME_CN+'业务员' NAME,TDC.DECP_NAME_CN CODE,
+                  TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.OPPOSING_DATE,'13' TYPE <!-- 类型=13,是金蝶中定义好的 每日来款的代收供应商保证金类型 -->
+             FROM DAILY_DECOMPOSE_REPORT DDR
+   		LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+   		LEFT JOIN T_FINA_COLLECTIONBILL TFCB ON TFCB.FICB_ID=DDR.FICB_ID
+   		LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.CODE=TFCB.SUPL_CODE AND TSS.STATUS=0
+   		LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+   		LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+   		LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+   		    WHERE DDR.FICB_ITEM='保证金'
+              AND DDR.FINANCE_TYPE=0
+              AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	</select>
+	<select id="getDailyDepositNew" resultClass="java.util.HashMap">
+		   SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+                  DDR.DECOMPOSE_PRICE REAL_PRICE,
+                  DDR.LEASE_CODE,O.SUPL_CODE,O.SUPPL_NAME,
+                  TDC.DECP_NAME_CN+'业务员' NAME,TDC.DECP_NAME_CN CODE,
+                  TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'13' TYPE
+             FROM T_DECOMPOSE_DAILY_REPORT DDR
+   		LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+   		LEFT JOIN (SELECT T1.ID,MAX(T4.CODE) SUPL_CODE,MAX(T4.NAME) SUPPL_NAME
+                    FROM T_PRJT_CREDIT T1
+               LEFT JOIN T_PRJT_CREDITEQUIPMENT T2 ON T2.EQMT_STATUS=0 AND T1.ID=T2.CREDIT_ID
+               LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.STATUS=0 AND T3.SUEQ_ID=T2.SUEQ_ID
+               LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.STATUS=0 AND T3.SUPPLIER_ID=T4.ID
+                   WHERE T1.STATUS=0
+                GROUP BY T1.ID
+                  HAVING MAX(T4.CODE) IS NOT NULL) O ON TPC.ID=O.ID
+   		LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+   		LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+   		LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+   		    WHERE DDR.BILL_CODE='DEPOSIT_A'
+              AND DDR.REPORT_TYPE=0
+              AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+              AND TPC.COMPANY_CODE=1
+	</select>
+	
+	<insert id="insertDailyDeposit">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecCashHook
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,Ffunc,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo,FCreateDate)
+		VALUES(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getDailyMotorVisitFee" resultClass="java.util.HashMap">
+          SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+                 CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+                 DDR.LEASE_CODE,TFCB.SUPL_CODE,TSS.NAME SUPPL_NAME,
+                 T9.DECP_NAME_CN+'业务员' NAME,T9.DECP_NAME_CN CODE,
+                 T9.DECP_NAME_CN,T9.ALIAS,DDR.BANK_CODE,DDR.OPPOSING_DATE,'8' TYPE <!-- 类型=8,是金蝶中定义好的 每日来款的重车家访费类型 -->
+            FROM DAILY_DECOMPOSE_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   LEFT JOIN T_FINA_COLLECTIONBILL TFCB ON TFCB.FICB_ID=DDR.FICB_ID
+	   LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.CODE=TFCB.SUPL_CODE AND TSS.STATUS=0
+	   LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	   LEFT JOIN T_DEPT_COMPANY T9 ON DEPT.DECP_ID=T9.DECP_ID AND T9.STATUS=0
+	       WHERE DDR.FICB_ITEM='家訪費收入'
+             AND DDR.FINANCE_TYPE=0
+	         AND TPC.PRODUCTION_TYPE='2'
+             AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+             AND EXISTS
+               (SELECT 1 
+	              FROM T_SUPL_SUPPLIER T1 
+	         LEFT JOIN T_SUPL_EQUIPMENT T2 ON T2.STATUS=0 AND T2.SUPPLIER_ID=T1.ID
+	         LEFT JOIN T_PRJT_CREDITEQUIPMENT T3 ON T3.EQMT_STATUS=0  AND T2.SUEQ_ID=T3.SUEQ_ID
+	             WHERE T1.STATUS=0 
+	               AND T1.ID=TSS.ID 
+	               AND T3.CREDIT_ID=TPC.ID)
+	</select>
+	<select id="getDailyMotorVisitFeeNew" resultClass="java.util.HashMap">
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+                 DDR.DECOMPOSE_PRICE REAL_PRICE,
+                 DDR.LEASE_CODE,O.SUPL_CODE,O.SUPPL_NAME,
+                 T9.DECP_NAME_CN+'业务员' NAME,T9.DECP_NAME_CN CODE,
+                 T9.DECP_NAME_CN,T9.ALIAS,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'8' TYPE
+            FROM T_DECOMPOSE_DAILY_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   LEFT JOIN (SELECT T1.ID,MAX(T4.CODE) SUPL_CODE,MAX(T4.NAME) SUPPL_NAME
+                    FROM T_PRJT_CREDIT T1
+               LEFT JOIN T_PRJT_CREDITEQUIPMENT T2 ON T2.EQMT_STATUS=0 AND T1.ID=T2.CREDIT_ID
+               LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.STATUS=0 AND T3.SUEQ_ID=T2.SUEQ_ID
+               LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.STATUS=0 AND T3.SUPPLIER_ID=T4.ID
+                   WHERE T1.STATUS=0
+                GROUP BY T1.ID
+                  HAVING MAX(T4.CODE) IS NOT NULL) O ON TPC.ID=O.ID
+	   LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	   LEFT JOIN T_DEPT_COMPANY T9 ON DEPT.DECP_ID=T9.DECP_ID AND T9.STATUS=0
+	       WHERE DDR.BILL_CODE='HOME_FEE'
+             AND DDR.REPORT_TYPE=0
+	         AND TPC.PRODUCTION_TYPE='2'
+             AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+             AND TPC.COMPANY_CODE=1
+	</select>
+	
+	<insert id="insertDailyMotorVisitFee">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecCashHook
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FrecVisit,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<!-- 销帐日报表来源(暂收款销帐)   -->
+ 	<select id="getUnknownDepositTax" resultClass="java.util.HashMap"><!-- 保证金税金 -->
+	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,CONVERT(DECIMAL(18,2),
+    		   DDR.REAL_PRICE) REAL_PRICE,DDR.LEASE_CODE,TFCB.SUPL_CODE,TSS.NAME SUPPL_NAME,
+    		   CMPY.DECP_NAME_CN+'业务员' NAME,CMPY.DECP_NAME_CN CODE,CMPY.DECP_NAME_CN,
+	           CMPY.ALIAS,DDR.BANK_CODE,DDR.OPPOSING_DATE,'13' TYPE <!-- 类型=13,是金蝶中定义好的 暂收来款的保证金税金类型 -->
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE AND TPC.STATUS=0
+	 LEFT JOIN T_FINA_COLLECTIONBILL TFCB ON TFCB.FICB_ID=DDR.FICB_ID
+	 LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.CODE=TFCB.SUPL_CODE AND TSS.STATUS=0
+	 LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	 LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	 LEFT JOIN T_DEPT_COMPANY CMPY ON DEPT.DECP_ID=CMPY.DECP_ID AND CMPY.STATUS=0
+	     WHERE DDR.FINANCE_TYPE=1 <!-- 1代表销帐日报表的暂收款销帐 -->
+	       AND DDR.FICB_ITEM='税金'
+	       AND (CONVERT(DATE,TPC.FINANCECONTRACT_DATE)>CONVERT(DATE,'2012-9-30') OR TPC.FINANCECONTRACT_DATE IS NULL)
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+ 	</select>
+ 	<select id="getUnknownDepositTaxNew" resultClass="java.util.HashMap">
+ 		 SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,DDR.DECOMPOSE_PRICE REAL_PRICE,
+                DDR.LEASE_CODE,O.SUPL_CODE,O.SUPPL_NAME,CMPY.DECP_NAME_CN+'业务员' NAME,
+                CMPY.DECP_NAME_CN CODE,CMPY.DECP_NAME_CN,CMPY.ALIAS,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'13' TYPE
+           FROM T_DECOMPOSE_DAILY_REPORT DDR
+      LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TRC.STATUS=0 AND DDR.RECP_ID=TRC.RECP_ID
+      LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.STATUS=0 AND TRC.RECT_ID=TRCT.RECT_ID
+      LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TRCT.PRCD_ID=TPC.ID
+      LEFT JOIN (SELECT T1.ID,MAX(T4.CODE) SUPL_CODE,MAX(T4.NAME) SUPPL_NAME
+                   FROM T_PRJT_CREDIT T1
+              LEFT JOIN T_PRJT_CREDITEQUIPMENT T2 ON T2.EQMT_STATUS=0 AND T1.ID=T2.CREDIT_ID
+              LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.STATUS=0 AND T3.SUEQ_ID=T2.SUEQ_ID
+              LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.STATUS=0 AND T3.SUPPLIER_ID=T4.ID
+                  WHERE T1.STATUS=0
+               GROUP BY T1.ID
+                 HAVING MAX(T4.CODE) IS NOT NULL) O ON TPC.ID=O.ID
+      LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	  LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	  LEFT JOIN T_DEPT_COMPANY CMPY ON DEPT.DECP_ID=CMPY.DECP_ID AND CMPY.STATUS=0
+          WHERE DDR.REPORT_TYPE=1
+            AND DDR.BILL_CODE='TAX'
+            AND (CONVERT(DATE,TPC.FINANCECONTRACT_DATE)>CONVERT(DATE,'2012-9-30') OR TPC.FINANCECONTRACT_DATE IS NULL)
+	        AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	        AND TPC.COMPANY_CODE=1
+ 	</select>
+ 	
+ 	<insert id="insertUnknownDepositTax">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecUnknown
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,Ftax,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getUnknownDunTax" resultClass="java.util.HashMap">
+	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'15' TYPE <!-- 类型=15,是金蝶中定义好的 暂收来款的罚息类型 -->
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.FICB_ITEM IN ('结清罚息','租金罚息','罚息','结清违约金') 
+		   AND DDR.FINANCE_TYPE=1
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	</select>
+	<select id="getUnknownDunTaxNew" resultClass="java.util.HashMap">
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	           DDR.DECOMPOSE_PRICE REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'15' TYPE <!-- 类型=15,是金蝶中定义好的 暂收来款的罚息类型 -->
+	      FROM T_DECOMPOSE_DAILY_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.BILL_CODE IN ('RENT_FINE','SETTLEMENT_RENT_FINE') 
+		   AND DDR.REPORT_TYPE=1
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       AND TPC.COMPANY_CODE=1
+	</select>
+	<insert id="insertUnknownDunTax">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecUnknown
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FRentInterest,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getUnknownLawFee" resultClass="java.util.HashMap">
+	      SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,'16' TYPE,<!-- 类型=16,是金蝶中定义好的 暂收来款的法务类型 -->
+	             CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,DDR.LEASE_CODE,
+	             '004.002' AS DEPT_NO, '法务科' AS DEPT_NAME,DDR.BANK_CODE,DDR.OPPOSING_DATE
+	        FROM DAILY_DECOMPOSE_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		   WHERE (DDR.FICB_ITEM IN(SELECT FLAG FROM T_DATA_DICTIONARY WHERE TYPE='法务费用' AND STATUS='0')
+	           	 OR DDR.FICB_ITEM='结清法务费用')
+	         AND DDR.FINANCE_TYPE=1
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+ 	</select>
+ 	<select id="getUnknownLawFeeNew" resultClass="java.util.HashMap">
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,'16' TYPE,<!-- 类型=16,是金蝶中定义好的 暂收来款的法务类型 -->
+	             DDR.DECOMPOSE_PRICE REAL_PRICE,DDR.LEASE_CODE,
+	             '004.002' AS DEPT_NO, '法务科' AS DEPT_NAME,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE
+	        FROM T_DECOMPOSE_DAILY_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		   WHERE (DDR.BILL_CODE IN (SELECT UPPER(CODE) FROM T_DATA_DICTIONARY WHERE TYPE='法务费用' AND STATUS='0')
+    	          OR DDR.BILL_CODE='SETTLEMENT_LAW_FEE')
+	         AND DDR.REPORT_TYPE=1
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	         AND TPC.COMPANY_CODE=1
+ 	</select>
+	<insert id="insertUnknownLawFee">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecUnknown
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FLawAmount,FDeptNo,FDeptName,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#DEPT_NO#,#DEPT_NAME#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getUnknownMotorDeposit" resultClass="java.util.HashMap">
+	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE)REAL_PRICE,
+	           DDR.LEASE_CODE,TFCB.SUPL_CODE,TSS.NAME SUPPL_NAME,'9' TYPE,<!-- 类型=9,是金蝶中定义好的 暂收来款的重车保险费押金类型 -->
+	           TDC.DECP_NAME_CN+'业务员' NAME,TDC.DECP_NAME_CN CODE,
+	           TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.OPPOSING_DATE 
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE		
+	 LEFT JOIN T_FINA_COLLECTIONBILL TFCB ON TFCB.FICB_ID=DDR.FICB_ID
+	 LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.CODE=TFCB.SUPL_CODE AND TSS.STATUS=0
+	 LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	 LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	 LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+		 WHERE (DDR.FICB_ITEM='保险费押金收入' OR DDR.FICB_ITEM='保险费押金代收款' OR DDR.FICB_ITEM='保险费押金')
+	       AND DDR.FINANCE_TYPE=1
+		   AND TPC.PRODUCTION_TYPE='2'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       AND EXISTS
+               (SELECT 1 
+	              FROM T_SUPL_SUPPLIER T1 
+	         LEFT JOIN T_SUPL_EQUIPMENT T2 ON T2.STATUS=0 AND T2.SUPPLIER_ID=T1.ID
+	         LEFT JOIN T_PRJT_CREDITEQUIPMENT T3 ON T3.EQMT_STATUS=0 AND T2.SUEQ_ID=T3.SUEQ_ID
+	             WHERE T1.STATUS=0 
+	               AND T1.ID=TSS.ID 
+	               AND T3.CREDIT_ID=TPC.ID)
+ 	</select>
+ 	<select id="getUnknownMotorDepositNew" resultClass="java.util.HashMap">
+ 		 SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,DDR.DECOMPOSE_PRICE REAL_PRICE,
+                DDR.LEASE_CODE,O.SUPL_CODE,O.SUPPL_NAME,CMPY.DECP_NAME_CN+'业务员' NAME,
+                CMPY.DECP_NAME_CN CODE,CMPY.DECP_NAME_CN,CMPY.ALIAS,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'9' TYPE
+           FROM T_DECOMPOSE_DAILY_REPORT DDR
+      LEFT JOIN T_RENT_COLLECTIONPLAN TRC ON TRC.STATUS=0 AND DDR.RECP_ID=TRC.RECP_ID
+      LEFT JOIN T_RENT_CONTRACT TRCT ON TRCT.STATUS=0 AND TRC.RECT_ID=TRCT.RECT_ID
+      LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TRCT.PRCD_ID=TPC.ID
+      LEFT JOIN (SELECT T1.ID,MAX(T4.CODE) SUPL_CODE,MAX(T4.NAME) SUPPL_NAME
+                   FROM T_PRJT_CREDIT T1
+              LEFT JOIN T_PRJT_CREDITEQUIPMENT T2 ON T2.EQMT_STATUS=0 AND T1.ID=T2.CREDIT_ID
+              LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.STATUS=0 AND T3.SUEQ_ID=T2.SUEQ_ID
+              LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.STATUS=0 AND T3.SUPPLIER_ID=T4.ID
+                  WHERE T1.STATUS=0
+               GROUP BY T1.ID
+                 HAVING MAX(T4.CODE) IS NOT NULL) O ON TPC.ID=O.ID
+      LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	  LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	  LEFT JOIN T_DEPT_COMPANY CMPY ON DEPT.DECP_ID=CMPY.DECP_ID AND CMPY.STATUS=0
+	      WHERE DDR.REPORT_TYPE=1
+	        AND DDR.BILL_CODE='INSURANCE_DEPUTY_FEE'
+	        AND TPC.PRODUCTION_TYPE='2'
+	        AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	        AND TPC.COMPANY_CODE=1
+ 	</select>
+ 	<insert id="insertUnknownMotorDeposit">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecUnknown
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,Fdeposit,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getUnknownEquManageFeeByCustomer" resultClass="java.util.HashMap">
+       SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+              CONVERT(DECIMAL(18,2),DDR.REAL_PRICE)REAL_PRICE,
+              DDR.LEASE_CODE,TFCB.SUPL_CODE,TSS.NAME SUPPL_NAME,'5' TYPE,<!-- 类型=5,是金蝶中定义好的 暂收来款的设备管理费来源于客户类型 -->
+              TDC.DECP_NAME_CN+'业务员' NAME,TDC.DECP_NAME_CN CODE,
+              TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.OPPOSING_DATE
+         FROM DAILY_DECOMPOSE_REPORT DDR
+	LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	LEFT JOIN T_PRJT_CREDIT_FEELIST TPCF ON TPC.ID=TPCF.CREDIT_ID AND TPCF.CREATE_SHOW_NAME=DDR.FICB_ITEM
+	LEFT JOIN T_FINA_COLLECTIONBILL TFCB ON TFCB.FICB_ID=DDR.FICB_ID
+	LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.CODE=TFCB.SUPL_CODE AND TSS.STATUS=0
+	LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+	    WHERE DDR.FICB_ITEM LIKE '管理费收入%'
+       	  AND DDR.FINANCE_TYPE=1
+      	  AND TPC.PRODUCTION_TYPE='1'
+      	  AND TPCF.SOURCE_CODE='1'
+      	  AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())	
+	</select>
+	<select id="getUnknownEquManageFeeByCustomerNew" resultClass="java.util.HashMap">
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+                 DDR.DECOMPOSE_PRICE REAL_PRICE,DDR.LEASE_CODE,O.SUPL_CODE,
+                 O.SUPPL_NAME,'5' TYPE,
+                 TDC.DECP_NAME_CN+'业务员' NAME,TDC.DECP_NAME_CN CODE,
+                 TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE
+            FROM T_DECOMPOSE_DAILY_REPORT DDR
+       LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+       LEFT JOIN T_PRJT_CREDIT_FEELIST TPCF ON TPC.ID=TPCF.CREDIT_ID AND UPPER(TPCF.CREATE_FILED_NAME)=DDR.BILL_CODE
+       LEFT JOIN (SELECT T1.ID,MAX(T4.CODE) SUPL_CODE,MAX(T4.NAME) SUPPL_NAME
+                    FROM T_PRJT_CREDIT T1
+               LEFT JOIN T_PRJT_CREDITEQUIPMENT T2 ON T2.EQMT_STATUS=0 AND T1.ID=T2.CREDIT_ID
+               LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.STATUS=0 AND T3.SUEQ_ID=T2.SUEQ_ID
+               LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.STATUS=0 AND T3.SUPPLIER_ID=T4.ID
+                   WHERE T1.STATUS=0
+                GROUP BY T1.ID
+                  HAVING MAX(T4.CODE) IS NOT NULL) O ON TPC.ID=O.ID
+       LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	   LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+           WHERE DDR.BILL_CODE LIKE '%MANAGE_FEE%'
+             AND DDR.REPORT_TYPE=1
+             AND TPC.PRODUCTION_TYPE='1'
+             AND TPCF.SOURCE_CODE='1'
+             AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+             AND TPC.COMPANY_CODE=1
+	</select>
+	<select id="getUnknownEquManageFeeBySupplier" resultClass="java.util.HashMap">
+        SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,'6' TYPE,<!-- 类型=6,是金蝶中定义好的 暂收来款的设备管理费来源于供应商类型 -->
+               CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,DDR.LEASE_CODE,
+               TFCB.SUPL_CODE,TSS.NAME SUPPL_NAME,TDC.DECP_NAME_CN+'业务员' NAME,
+               TDC.DECP_NAME_CN CODE,TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.OPPOSING_DATE 
+          FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	 LEFT JOIN T_PRJT_CREDIT_FEELIST TPCF ON TPC.ID=TPCF.CREDIT_ID AND TPCF.CREATE_SHOW_NAME=DDR.FICB_ITEM
+	 LEFT JOIN T_FINA_COLLECTIONBILL TFCB ON TFCB.FICB_ID=DDR.FICB_ID
+	 LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.CODE=TFCB.SUPL_CODE AND TSS.STATUS=0
+	 LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	 LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	 LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+	     WHERE DDR.FICB_ITEM LIKE '管理费收入%'
+           AND DDR.FINANCE_TYPE=1
+   		   AND TPC.PRODUCTION_TYPE='1'
+   		   AND TPCF.SOURCE_CODE='2'
+           AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	</select>
+	<select id="getUnknownEquManageFeeBySupplierNew" resultClass="java.util.HashMap">
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+                 DDR.DECOMPOSE_PRICE REAL_PRICE,DDR.LEASE_CODE,O.SUPL_CODE,
+                 O.SUPPL_NAME,'6' TYPE,
+                 TDC.DECP_NAME_CN+'业务员' NAME,TDC.DECP_NAME_CN CODE,
+                 TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE
+            FROM T_DECOMPOSE_DAILY_REPORT DDR
+       LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+       LEFT JOIN T_PRJT_CREDIT_FEELIST TPCF ON TPC.ID=TPCF.CREDIT_ID AND UPPER(TPCF.CREATE_FILED_NAME)=DDR.BILL_CODE
+       LEFT JOIN (SELECT T1.ID,MAX(T4.CODE) SUPL_CODE,MAX(T4.NAME) SUPPL_NAME
+                    FROM T_PRJT_CREDIT T1
+               LEFT JOIN T_PRJT_CREDITEQUIPMENT T2 ON T2.EQMT_STATUS=0 AND T1.ID=T2.CREDIT_ID
+               LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.STATUS=0 AND T3.SUEQ_ID=T2.SUEQ_ID
+               LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.STATUS=0 AND T3.SUPPLIER_ID=T4.ID
+                   WHERE T1.STATUS=0
+                GROUP BY T1.ID
+                  HAVING MAX(T4.CODE) IS NOT NULL) O ON TPC.ID=O.ID
+       LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	   LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+           WHERE DDR.BILL_CODE LIKE '%MANAGE_FEE%'
+             AND DDR.REPORT_TYPE=1
+             AND TPC.PRODUCTION_TYPE='1'
+             AND TPCF.SOURCE_CODE='2'
+             AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+             AND TPC.COMPANY_CODE=1
+	</select>
+	
+	<select id="getUnknownMotorManageFee" resultClass="java.util.HashMap">
+       SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,'7' TYPE,<!-- 类型=7,是金蝶中定义好的 暂收来款的重车管理费类型 -->
+              CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,DDR.LEASE_CODE,
+              TFCB.SUPL_CODE,TSS.NAME SUPPL_NAME,TDC.DECP_NAME_CN+'业务员' NAME,
+              TDC.DECP_NAME_CN CODE,TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.OPPOSING_DATE 
+         FROM DAILY_DECOMPOSE_REPORT DDR
+	LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE		
+	LEFT JOIN T_FINA_COLLECTIONBILL TFCB ON TFCB.FICB_ID=DDR.FICB_ID
+	LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.CODE=TFCB.SUPL_CODE AND TSS.STATUS=0
+	LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+	    WHERE DDR.FICB_ITEM LIKE '管理费收入%'
+          AND DDR.FINANCE_TYPE=1
+   		  AND TPC.PRODUCTION_TYPE='2'
+          AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+          AND EXISTS
+		           (SELECT 1 
+		              FROM T_SUPL_SUPPLIER T1 
+		         LEFT JOIN T_SUPL_EQUIPMENT T2 ON T2.STATUS=0 AND T2.SUPPLIER_ID=T1.ID
+		         LEFT JOIN T_PRJT_CREDITEQUIPMENT T3 ON T3.EQMT_STATUS=0  AND T2.SUEQ_ID=T3.SUEQ_ID
+		             WHERE T1.STATUS=0 
+		               AND T1.ID=TSS.ID 
+		               AND T3.CREDIT_ID=TPC.ID)
+	</select>
+	<select id="getUnknownMotorManageFeeNew" resultClass="java.util.HashMap">
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+                 DDR.DECOMPOSE_PRICE REAL_PRICE,DDR.LEASE_CODE,O.SUPL_CODE,
+                 O.SUPPL_NAME,'7' TYPE,
+                 TDC.DECP_NAME_CN+'业务员' NAME,TDC.DECP_NAME_CN CODE,
+                 TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE
+            FROM T_DECOMPOSE_DAILY_REPORT DDR
+       LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+       LEFT JOIN (SELECT T1.ID,MAX(T4.CODE) SUPL_CODE,MAX(T4.NAME) SUPPL_NAME
+                    FROM T_PRJT_CREDIT T1
+               LEFT JOIN T_PRJT_CREDITEQUIPMENT T2 ON T2.EQMT_STATUS=0 AND T1.ID=T2.CREDIT_ID
+               LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.STATUS=0 AND T3.SUEQ_ID=T2.SUEQ_ID
+               LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.STATUS=0 AND T3.SUPPLIER_ID=T4.ID
+                   WHERE T1.STATUS=0
+                GROUP BY T1.ID
+                  HAVING MAX(T4.CODE) IS NOT NULL) O ON TPC.ID=O.ID
+       LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	   LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+           WHERE DDR.BILL_CODE LIKE '%MANAGE_FEE%'
+             AND DDR.REPORT_TYPE=1
+             AND TPC.PRODUCTION_TYPE='2'
+             AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+             AND TPC.COMPANY_CODE=1
+	</select>
+	<insert id="insertUnknownManageFee">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecUnknown
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FRecManage,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getUnknownAddedTax" resultClass="java.util.HashMap">
+       SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+               CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+               DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'3' TYPE <!-- 类型=3,是金蝶中定义好的 暂收来款的设备租金 增值税类型 -->
+         FROM DAILY_DECOMPOSE_REPORT DDR
+    LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+     	WHERE DDR.FICB_ITEM='增值税'
+          AND DDR.FINANCE_TYPE=1
+     	  AND TPC.PRODUCTION_TYPE='1'
+          AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+           UNION ALL
+       SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+              CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+              DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'4' TYPE <!-- 类型=4,是金蝶中定义好的 暂收来款的重车租金 增值税类型 -->
+         FROM DAILY_DECOMPOSE_REPORT DDR
+    LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+   		WHERE DDR.FICB_ITEM='增值税'
+   		  AND DDR.FINANCE_TYPE=1
+   		  AND TPC.PRODUCTION_TYPE='2'
+          AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	</select>
+	<select id="getUnknownAddedTaxNew" resultClass="java.util.HashMap">
+	   SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+              DDR.DECOMPOSE_PRICE REAL_PRICE,
+              DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'3' TYPE <!-- 类型=3,是金蝶中定义好的 暂收来款的设备租金 增值税类型 -->
+         FROM T_DECOMPOSE_DAILY_REPORT DDR
+    LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+     	WHERE DDR.BILL_CODE='VALUE_ADD_TAX'
+          AND DDR.REPORT_TYPE=1
+     	  AND TPC.PRODUCTION_TYPE='1'
+          AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+          AND TPC.COMPANY_CODE=1
+           UNION ALL
+       SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+              DDR.DECOMPOSE_PRICE REAL_PRICE,
+              DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'4' TYPE <!-- 类型=4,是金蝶中定义好的 暂收来款的重车租金 增值税类型 -->
+         FROM T_DECOMPOSE_DAILY_REPORT DDR
+    LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+   		WHERE DDR.BILL_CODE='VALUE_ADD_TAX'
+   		  AND DDR.REPORT_TYPE=1
+   		  AND TPC.PRODUCTION_TYPE='2'
+          AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+          AND TPC.COMPANY_CODE=1
+	</select>
+	<insert id="insertUnknownAddedTax">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecUnknown
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FAddedTax,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getUnknownStayPrice" resultClass="java.util.HashMap">
+        SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+               CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+               DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'14' TYPE <!-- 类型=14,是金蝶中定义好的 暂收来款的留购款类型 -->
+          FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	     WHERE DDR.FICB_ITEM IN ('结清留购价','设备留购价')
+           AND DDR.FINANCE_TYPE=1
+           AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())	
+	</select>
+	<select id="getUnknownStayPriceNew" resultClass="java.util.HashMap">
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+               DDR.DECOMPOSE_PRICE REAL_PRICE,
+               DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'14' TYPE <!-- 类型=14,是金蝶中定义好的 暂收来款的留购款类型 -->
+          FROM T_DECOMPOSE_DAILY_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	     WHERE DDR.BILL_CODE IN ('STAY_BUY_PRICE','SETTLEMENT_STAY_PRICE')
+           AND DDR.REPORT_TYPE=1
+           AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+           AND TPC.COMPANY_CODE=1
+	</select>
+	<insert id="insertUnknownStayPrice">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecUnknown
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FAssetPrice,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getUnknownRentPrice" resultClass="java.util.HashMap">
+	      SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	             CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'1' TYPE <!-- 类型=1,是金蝶中定义好的 暂收来款的设备租金,设备结清本金利息类型2012-10-1之前 -->
+	        FROM DAILY_DECOMPOSE_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		   WHERE DDR.FICB_ITEM='租金'
+	         AND DDR.FINANCE_TYPE=1
+		     AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+		     AND TPC.PRODUCTION_TYPE='1'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+				    UNION ALL
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	             CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'1' TYPE
+	        FROM DAILY_DECOMPOSE_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	       WHERE DDR.FICB_ITEM IN ('结清本金','结清利息')
+	         AND DDR.FINANCE_TYPE=1
+	     	 AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+	     	 AND TPC.PRODUCTION_TYPE='1'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	          UNION ALL
+	      SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	             CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'2' TYPE <!-- 类型=2,是金蝶中定义好的 暂收来款的重车租金,重车结清本金利息类型2012-10-1之前 -->
+	        FROM DAILY_DECOMPOSE_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		   WHERE DDR.FICB_ITEM='租金'
+	         AND DDR.FINANCE_TYPE=1
+		     AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+		     AND TPC.PRODUCTION_TYPE='2'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+				    UNION ALL
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	             CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'2' TYPE
+	        FROM DAILY_DECOMPOSE_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	       WHERE DDR.FICB_ITEM IN ('结清本金','结清利息')
+	         AND DDR.FINANCE_TYPE=1
+	     	 AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+	     	 AND TPC.PRODUCTION_TYPE='2'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	          UNION ALL
+	      SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	             CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'3' TYPE <!-- 类型=3,是金蝶中定义好的 暂收来款的设备租金,设备结清本金利息类型2012-10-1之后 -->
+	        FROM DAILY_DECOMPOSE_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	       WHERE DDR.FICB_ITEM='租金'
+	         AND DDR.FINANCE_TYPE=1
+	   		 AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+	   		 AND TPC.PRODUCTION_TYPE='1'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'3' TYPE
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   	 WHERE DDR.FICB_ITEM='租金'
+	       AND DDR.FINANCE_TYPE=1
+		   AND (TPC.FINANCECONTRACT_DATE IS NULL 
+	         	OR TPC.FINANCECONTRACT_DATE='' 
+	         	OR CONVERT(DATE,TPC.FINANCECONTRACT_DATE)=CONVERT(DATE,'1900-1-1'))
+		   AND TPC.PRODUCTION_TYPE='1'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'3' TYPE
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.FICB_ITEM IN ('结清本金','结清利息')
+	       AND DDR.FINANCE_TYPE=1
+		   AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+		   AND TPC.PRODUCTION_TYPE='1'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       UNION ALL
+ 	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+               CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+               DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'4' TYPE <!-- 类型=4,是金蝶中定义好的 暂收来款的重车租金,重车结清本金利息类型2012-10-1之后 -->
+          FROM DAILY_DECOMPOSE_REPORT DDR
+     LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+         WHERE DDR.FICB_ITEM='租金'
+           AND DDR.FINANCE_TYPE=1
+   		   AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+   		   AND TPC.PRODUCTION_TYPE='2'
+           AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'4' TYPE
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   	 WHERE DDR.FICB_ITEM='租金'
+	       AND DDR.FINANCE_TYPE=1
+		   AND (TPC.FINANCECONTRACT_DATE IS NULL 
+	         	OR TPC.FINANCECONTRACT_DATE='' 
+	         	OR CONVERT(DATE,TPC.FINANCECONTRACT_DATE)=CONVERT(DATE,'1900-1-1'))
+		   AND TPC.PRODUCTION_TYPE='2'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'4' TYPE
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.FICB_ITEM IN ('结清本金','结清利息')
+	       AND DDR.FINANCE_TYPE=1
+		   AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+		   AND TPC.PRODUCTION_TYPE='2'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	</select>
+	<select id="getUnknownRentPriceNew" resultClass="java.util.HashMap">
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	             DDR.DECOMPOSE_PRICE REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'1' TYPE <!-- 类型=1,是金蝶中定义好的 暂收来款的设备租金,设备结清本金利息类型2012-10-1之前 -->
+	        FROM T_DECOMPOSE_DAILY_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		   WHERE DDR.BILL_CODE='RENT'
+	         AND DDR.REPORT_TYPE=1
+		     AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+		     AND TPC.PRODUCTION_TYPE='1'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	         AND TPC.COMPANY_CODE=1
+				    UNION ALL
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	             DDR.DECOMPOSE_PRICE REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'1' TYPE
+	        FROM T_DECOMPOSE_DAILY_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	       WHERE DDR.BILL_CODE IN ('SETTLEMENT_OWN_PRICE','SETTLEMENT_REN_PRICE')
+	         AND DDR.REPORT_TYPE=1
+	     	 AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+	     	 AND TPC.PRODUCTION_TYPE='1'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	         AND TPC.COMPANY_CODE=1
+	          UNION ALL
+	      SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	             DDR.DECOMPOSE_PRICE REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'2' TYPE <!-- 类型=2,是金蝶中定义好的 暂收来款的重车租金,重车结清本金利息类型2012-10-1之前 -->
+	        FROM T_DECOMPOSE_DAILY_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		   WHERE DDR.BILL_CODE='RENT'
+	         AND DDR.REPORT_TYPE=1
+		     AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+		     AND TPC.PRODUCTION_TYPE='2'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	         AND TPC.COMPANY_CODE=1
+				    UNION ALL
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	             DDR.DECOMPOSE_PRICE REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'2' TYPE
+	        FROM T_DECOMPOSE_DAILY_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	       WHERE DDR.BILL_CODE IN ('SETTLEMENT_OWN_PRICE','SETTLEMENT_REN_PRICE')
+	         AND DDR.REPORT_TYPE=1
+	     	 AND TPC.FINANCECONTRACT_DATE&lt;'2012-10-01'
+	     	 AND TPC.PRODUCTION_TYPE='2'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	         AND TPC.COMPANY_CODE=1
+	          UNION ALL
+	      SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	             DDR.DECOMPOSE_PRICE REAL_PRICE,
+	             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'3' TYPE <!-- 类型=3,是金蝶中定义好的 暂收来款的设备租金,设备结清本金利息类型2012-10-1之后 -->
+	        FROM T_DECOMPOSE_DAILY_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	       WHERE DDR.BILL_CODE='RENT'
+	         AND DDR.REPORT_TYPE=1
+	   		 AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+	   		 AND TPC.PRODUCTION_TYPE='1'
+	         AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	         AND TPC.COMPANY_CODE=1
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	           DDR.DECOMPOSE_PRICE REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'3' TYPE
+	      FROM T_DECOMPOSE_DAILY_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   	 WHERE DDR.BILL_CODE='RENT'
+	       AND DDR.REPORT_TYPE=1
+		   AND (TPC.FINANCECONTRACT_DATE IS NULL 
+	         	OR TPC.FINANCECONTRACT_DATE='' 
+	         	OR CONVERT(DATE,TPC.FINANCECONTRACT_DATE)=CONVERT(DATE,'1900-1-1'))
+		   AND TPC.PRODUCTION_TYPE='1'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       AND TPC.COMPANY_CODE=1
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	           DDR.DECOMPOSE_PRICE REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'3' TYPE
+	      FROM T_DECOMPOSE_DAILY_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.BILL_CODE IN ('SETTLEMENT_OWN_PRICE','SETTLEMENT_REN_PRICE')
+	       AND DDR.REPORT_TYPE=1
+		   AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+		   AND TPC.PRODUCTION_TYPE='1'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       AND TPC.COMPANY_CODE=1
+	       UNION ALL
+ 	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+               DDR.DECOMPOSE_PRICE REAL_PRICE,
+               DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'4' TYPE <!-- 类型=4,是金蝶中定义好的 暂收来款的重车租金,重车结清本金利息类型2012-10-1之后 -->
+          FROM T_DECOMPOSE_DAILY_REPORT DDR
+     LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+         WHERE DDR.BILL_CODE='RENT'
+           AND DDR.REPORT_TYPE=1
+   		   AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+   		   AND TPC.PRODUCTION_TYPE='2'
+           AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+           AND TPC.COMPANY_CODE=1
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	           DDR.DECOMPOSE_PRICE REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'4' TYPE
+	      FROM T_DECOMPOSE_DAILY_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   	 WHERE DDR.BILL_CODE='RENT'
+	       AND DDR.REPORT_TYPE=1
+		   AND (TPC.FINANCECONTRACT_DATE IS NULL 
+	         	OR TPC.FINANCECONTRACT_DATE='' 
+	         	OR CONVERT(DATE,TPC.FINANCECONTRACT_DATE)=CONVERT(DATE,'1900-1-1'))
+		   AND TPC.PRODUCTION_TYPE='2'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       AND TPC.COMPANY_CODE=1
+			      UNION ALL
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	           DDR.DECOMPOSE_PRICE REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'4' TYPE
+	      FROM T_DECOMPOSE_DAILY_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.BILL_CODE IN ('SETTLEMENT_OWN_PRICE','SETTLEMENT_REN_PRICE')
+	       AND DDR.REPORT_TYPE=1
+		   AND TPC.FINANCECONTRACT_DATE>'2012-09-30'
+		   AND TPC.PRODUCTION_TYPE='2'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       AND TPC.COMPANY_CODE=1
+	</select>
+	<insert id="insertUnknownRentPrice">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecUnknown
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FRentAmount,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getUnknownDepositB" resultClass="java.util.HashMap">
+	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'10' TYPE <!-- 类型=10,是金蝶中定义好的 每日来款的设备期末保证金BC类型 -->
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.FICB_ITEM='保证金B'
+	       AND DDR.FINANCE_TYPE=1
+    	   AND TPC.PRODUCTION_TYPE='1'
+    	   AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       UNION ALL
+	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+	           CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'11' TYPE <!-- 类型=11,是金蝶中定义好的 每日来款的重车期末保证金BC类型 -->
+	      FROM DAILY_DECOMPOSE_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.FICB_ITEM='保证金B'
+	       AND DDR.FINANCE_TYPE=1
+		   AND TPC.PRODUCTION_TYPE='2'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	</select>
+	<select id="getUnknownDepositBNew" resultClass="java.util.HashMap">
+		SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	           DDR.DECOMPOSE_PRICE REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'10' TYPE <!-- 类型=10,是金蝶中定义好的 每日来款的设备期末保证金BC类型 -->
+	      FROM T_DECOMPOSE_DAILY_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.BILL_CODE='DEPOSIT_B'
+	       AND DDR.REPORT_TYPE=1
+    	   AND TPC.PRODUCTION_TYPE='1'
+    	   AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+    	   AND TPC.COMPANY_CODE=1
+	       UNION ALL
+	    SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+	           DDR.DECOMPOSE_PRICE REAL_PRICE,
+	           DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'11' TYPE <!-- 类型=11,是金蝶中定义好的 每日来款的重车期末保证金BC类型 -->
+	      FROM T_DECOMPOSE_DAILY_REPORT DDR
+	 LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+		 WHERE DDR.BILL_CODE='DEPOSIT_B'
+	       AND DDR.REPORT_TYPE=1
+		   AND TPC.PRODUCTION_TYPE='2'
+	       AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	       AND TPC.COMPANY_CODE=1
+	</select>
+	
+	<insert id="insertUnknownDepositB">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecUnknown
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FFundB,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	<select id="getUnknownDepositC" resultClass="java.util.HashMap">
+      SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+             CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'10' TYPE
+        FROM DAILY_DECOMPOSE_REPORT DDR
+   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   WHERE DDR.FICB_ITEM='保证金C'
+      	 AND DDR.FINANCE_TYPE=1
+   		 AND TPC.PRODUCTION_TYPE='1'
+      	 AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+         UNION ALL
+     SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+            CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+            DDR.LEASE_CODE,DDR.BANK_CODE,DDR.OPPOSING_DATE,'11' TYPE
+       FROM DAILY_DECOMPOSE_REPORT DDR
+  LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+      WHERE DDR.FICB_ITEM='保证金C'
+        AND DDR.FINANCE_TYPE=1
+     	AND TPC.PRODUCTION_TYPE='2'
+        AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	</select>
+	<select id="getUnknownDepositCNew" resultClass="java.util.HashMap">
+	  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+             DDR.DECOMPOSE_PRICE REAL_PRICE,
+             DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'10' TYPE
+        FROM T_DECOMPOSE_DAILY_REPORT DDR
+   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   WHERE DDR.BILL_CODE='DEPOSIT_C'
+      	 AND DDR.REPORT_TYPE=1
+   		 AND TPC.PRODUCTION_TYPE='1'
+      	 AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+      	 AND TPC.COMPANY_CODE=1
+         UNION ALL
+     SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+            DDR.DECOMPOSE_PRICE REAL_PRICE,
+            DDR.LEASE_CODE,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'11' TYPE
+       FROM T_DECOMPOSE_DAILY_REPORT DDR
+  LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+      WHERE DDR.BILL_CODE='DEPOSIT_C'
+        AND DDR.REPORT_TYPE=1
+     	AND TPC.PRODUCTION_TYPE='2'
+        AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+        AND TPC.COMPANY_CODE=1
+	</select>
+	<insert id="insertUnknownDepositC">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecUnknown
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FFundC,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getUnknownDeposit" resultClass="java.util.HashMap">
+           SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+                  CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+                  DDR.LEASE_CODE,TFCB.SUPL_CODE,TSS.NAME SUPPL_NAME,
+                  TDC.DECP_NAME_CN+'业务员' NAME,TDC.DECP_NAME_CN CODE,
+                  TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.OPPOSING_DATE,'13' TYPE <!-- 类型=13,是金蝶中定义好的 暂收来款的代收供应商保证金类型 -->
+             FROM DAILY_DECOMPOSE_REPORT DDR
+   		LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+   		LEFT JOIN T_FINA_COLLECTIONBILL TFCB ON TFCB.FICB_ID=DDR.FICB_ID
+   		LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.CODE=TFCB.SUPL_CODE AND TSS.STATUS=0
+   		LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+   		LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+   		LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+   		    WHERE DDR.FICB_ITEM='保证金'
+              AND DDR.FINANCE_TYPE=1
+              AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+	</select>
+	<select id="getUnknownDepositNew" resultClass="java.util.HashMap">
+		   SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+                  DDR.DECOMPOSE_PRICE REAL_PRICE,
+                  DDR.LEASE_CODE,O.SUPL_CODE,O.SUPPL_NAME,
+                  TDC.DECP_NAME_CN+'业务员' NAME,TDC.DECP_NAME_CN CODE,
+                  TDC.DECP_NAME_CN,TDC.ALIAS,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'13' TYPE
+             FROM T_DECOMPOSE_DAILY_REPORT DDR
+   		LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+   		LEFT JOIN (SELECT T1.ID,MAX(T4.CODE) SUPL_CODE,MAX(T4.NAME) SUPPL_NAME
+                    FROM T_PRJT_CREDIT T1
+               LEFT JOIN T_PRJT_CREDITEQUIPMENT T2 ON T2.EQMT_STATUS=0 AND T1.ID=T2.CREDIT_ID
+               LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.STATUS=0 AND T3.SUEQ_ID=T2.SUEQ_ID
+               LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.STATUS=0 AND T3.SUPPLIER_ID=T4.ID
+                   WHERE T1.STATUS=0
+                GROUP BY T1.ID
+                  HAVING MAX(T4.CODE) IS NOT NULL) O ON TPC.ID=O.ID
+   		LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+   		LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+   		LEFT JOIN T_DEPT_COMPANY TDC ON DEPT.DECP_ID=TDC.DECP_ID AND TDC.STATUS=0
+   		    WHERE DDR.BILL_CODE='DEPOSIT_A'
+              AND DDR.REPORT_TYPE=1
+              AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+              AND TPC.COMPANY_CODE=1
+	</select>
+	
+	<insert id="insertUnknownDeposit">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecUnknown
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FFundB,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="getUnknownMotorVisitFee" resultClass="java.util.HashMap">
+          SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.FIIN_ID FICB_ID,
+                 CONVERT(DECIMAL(18,2),DDR.REAL_PRICE) REAL_PRICE,
+                 DDR.LEASE_CODE,TFCB.SUPL_CODE,TSS.NAME SUPPL_NAME,
+                 T9.DECP_NAME_CN+'业务员' NAME,T9.DECP_NAME_CN CODE,
+                 T9.DECP_NAME_CN,T9.ALIAS,DDR.BANK_CODE,DDR.OPPOSING_DATE,'8' TYPE <!-- 类型=8,是金蝶中定义好的 暂收来款的重车家访费类型 -->
+            FROM DAILY_DECOMPOSE_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   LEFT JOIN T_FINA_COLLECTIONBILL TFCB ON TFCB.FICB_ID=DDR.FICB_ID
+	   LEFT JOIN T_SUPL_SUPPLIER TSS ON TSS.CODE=TFCB.SUPL_CODE AND TSS.STATUS=0
+	   LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	   LEFT JOIN T_DEPT_COMPANY T9 ON DEPT.DECP_ID=T9.DECP_ID AND T9.STATUS=0
+	       WHERE DDR.FICB_ITEM='家訪費收入'
+             AND DDR.FINANCE_TYPE=1
+	         AND TPC.PRODUCTION_TYPE='2'
+             AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+             AND EXISTS
+               (SELECT 1 
+	              FROM T_SUPL_SUPPLIER T1 
+	         LEFT JOIN T_SUPL_EQUIPMENT T2 ON T2.STATUS=0 AND T2.SUPPLIER_ID=T1.ID
+	         LEFT JOIN T_PRJT_CREDITEQUIPMENT T3 ON T3.EQMT_STATUS=0  AND T2.SUEQ_ID=T3.SUEQ_ID
+	             WHERE T1.STATUS=0 
+	               AND T1.ID=TSS.ID 
+	               AND T3.CREDIT_ID=TPC.ID)
+	</select>
+	<select id="getUnknownMotorVisitFeeNew" resultClass="java.util.HashMap">
+		  SELECT DDR.CUST_CODE,DDR.CUST_NAME,DDR.INCOME_ID FICB_ID,
+                 DDR.DECOMPOSE_PRICE REAL_PRICE,
+                 DDR.LEASE_CODE,O.SUPL_CODE,O.SUPPL_NAME,
+                 T9.DECP_NAME_CN+'业务员' NAME,T9.DECP_NAME_CN CODE,
+                 T9.DECP_NAME_CN,T9.ALIAS,DDR.BANK_CODE,DDR.INCOME_DATE OPPOSING_DATE,'8' TYPE
+            FROM T_DECOMPOSE_DAILY_REPORT DDR
+	   LEFT JOIN T_PRJT_CREDIT TPC ON TPC.LEASE_CODE=DDR.LEASE_CODE
+	   LEFT JOIN (SELECT T1.ID,MAX(T4.CODE) SUPL_CODE,MAX(T4.NAME) SUPPL_NAME
+                    FROM T_PRJT_CREDIT T1
+               LEFT JOIN T_PRJT_CREDITEQUIPMENT T2 ON T2.EQMT_STATUS=0 AND T1.ID=T2.CREDIT_ID
+               LEFT JOIN T_SUPL_EQUIPMENT T3 ON T3.STATUS=0 AND T3.SUEQ_ID=T2.SUEQ_ID
+               LEFT JOIN T_SUPL_SUPPLIER T4 ON T4.STATUS=0 AND T3.SUPPLIER_ID=T4.ID
+                   WHERE T1.STATUS=0
+                GROUP BY T1.ID
+                  HAVING MAX(T4.CODE) IS NOT NULL) O ON TPC.ID=O.ID
+	   LEFT JOIN T_USER_USER TUU ON TUU.ID=TPC.SENSOR_ID
+	   LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID=TUU.DEPT_ID AND DEPT.STATUS=0
+	   LEFT JOIN T_DEPT_COMPANY T9 ON DEPT.DECP_ID=T9.DECP_ID AND T9.STATUS=0
+	       WHERE DDR.BILL_CODE='HOME_FEE'
+             AND DDR.REPORT_TYPE=1
+	         AND TPC.PRODUCTION_TYPE='2'
+             AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,GETDATE())
+             AND TPC.COMPANY_CODE=1
+	</select>
+	<insert id="insertUnknownMotorVisitFee">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecUnknown
+		(FBillID,Fdate,FHandle,FCustNo,FCustName,FContractNo,FHandleType,FrecVisit,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#CUST_CODE#,#CUST_NAME#,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#SUPL_CODE#,#SUPPL_NAME#,#CODE#,#NAME#,#ALIAS#,#DECP_NAME_CN#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<!-- 获得上月不明款 -->
+	<select id="getLastMonthUnknownMoney" resultClass="java.util.HashMap">
+       SELECT DDR.OPPOSING_DATE,'0000' AS LEASE_CODE,
+              DDR.INCOME_MONEY+DDR.CURRENT_NEW-DDR.CURRENT_REDUCE REAL_PRICE,
+              O.BANK_CODE,DDR.FIIN_ID FICB_ID,'17' TYPE
+         FROM DAILY_DYNAMICDECOMPOSE_REPORT DDR
+    LEFT JOIN (SELECT DISTINCT BANK_CODE,BANK_NAME FROM DAILY_DECOMPOSE_REPORT WHERE BANK_CODE IS NOT NULL) O ON O.BANK_NAME=DDR.BANK_NAME
+		WHERE CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,#endTime1#) <!-- CONVERT(DATE,GETDATE()) --> 
+          AND DDR.INCOME_MONEY+DDR.CURRENT_NEW-DDR.CURRENT_REDUCE!=0 
+          AND CONVERT(DATE,DDR.OPPOSING_DATE) BETWEEN CONVERT(DATE,#startTime#) AND CONVERT(DATE,#endTime#)<!-- MONTH(DATEADD(MM,-1,GETDATE())) -->
+          <!-- AND YEAR(DDR.OPPOSING_DATE)=#year# --><!-- YEAR(DATEADD(MM,-1,GETDATE())) -->
+	</select>
+	<select id="getLastMonthUnknownMoneyNew" resultClass="java.util.HashMap">
+		SELECT DDR.INCOME_DATE OPPOSING_DATE,'0000' AS LEASE_CODE,
+			   DDR.FINAL_BALANCE+DDR.CURRENT_INCREASE-DDR.CURRENT_REDUCE REAL_PRICE,
+			   DDR.BANK_CODE,DDR.INCOME_ID FICB_ID,'17' TYPE
+		  FROM T_DECOMPOSE_DYNAMIC_DAILY_REPORT DDR
+		 WHERE DDR.FINANCE_DATE=#runTime#
+		   AND DDR.FINAL_BALANCE+DDR.CURRENT_INCREASE-DDR.CURRENT_REDUCE!=0
+		   AND CONVERT(DATE,DDR.INCOME_DATE) BETWEEN CONVERT(DATE,#startTime#) AND CONVERT(DATE,#endTime#)
+		   AND CONVERT(DATE,DDR.CREATE_TIME)=CONVERT(DATE,(SELECT MAX(CREATE_TIME) FROM T_DECOMPOSE_DYNAMIC_DAILY_REPORT WHERE FINANCE_DATE=#runTime#))
+	</select>
+	<!-- 保存上月不明款 -->
+	<insert id="insertLastMonthUnknownMoney" parameterClass="map">
+		INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecCashHook
+		(FBillID,Fdate,FHandle,FCustNo,FHandleType,FPreAmount,FBankBillNo,FCreateDate)
+		VALUES
+		(#FICB_ID#,#OPPOSING_DATE#,0,#LEASE_CODE#,#TYPE#,#REAL_PRICE#,#BANK_CODE#,CONVERT(DATE,GETDATE()))
+	</insert>
+	
+	<select id="isFirstWorkingDay" resultClass="java.lang.Integer">
+		SELECT COUNT(1) 
+		  FROM T_DAY_TYPE 
+	     WHERE CONVERT(DATE,[DATE])=CONVERT(DATE,GETDATE())
+		   AND CONVERT(DATE,[DATE])=
+				(SELECT TOP 1 CONVERT(DATE,[DATE]) FROM T_DAY_TYPE 
+				       WHERE YEAR([DATE])=YEAR(GETDATE()) 
+				         AND MONTH([DATE])=MONTH(GETDATE())
+				         AND DAY_TYPE='WD'
+				    ORDER BY CONVERT(DATE,[DATE]))
+	</select>
+	
+	<!-- 把当月暂收款移动到 当月现金来款表中 -->
+	<select id="getCurrentUnknownData" resultClass="java.util.HashMap">
+		  SELECT * 
+	        FROM kingDeer_srv_lnk.k303001.dbo.zlRecUnknown 
+	       WHERE MONTH(FDate)=MONTH(GETDATE())
+	         AND MONTH(FCreateDATE)=MONTH(GETDATE())
+	         AND YEAR(FDate)=YEAR(GETDATE())
+	         AND YEAR(FCreateDATE)=YEAR(GETDATE())
+	         AND DAY(FCreateDATE)!=1
+	         UNION ALL
+	      SELECT * 
+	        FROM kingDeer_srv_lnk.k303001.dbo.zlRecUnknown 
+	       WHERE MONTH(FDate)=MONTH(GETDATE()-1)
+	         AND DAY(FCreateDATE)=1
+	         AND YEAR(FDate)=YEAR(GETDATE()-1)
+	         AND YEAR(FCreateDATE)=YEAR(GETDATE())
+	</select>
+	
+	<select id="getCurrentUnknownData1" resultClass="java.util.HashMap">
+		  SELECT * 
+	        FROM kingDeer_srv_lnk.k303001.dbo.zlRecUnknown 
+	       WHERE CONVERT(DATE,FDate) BETWEEN CONVERT(DATE,#BEGINTIME1#) AND CONVERT(DATE,#ENDTIME1#)
+	         AND CONVERT(DATE,FCreateDATE) BETWEEN CONVERT(DATE,#BEGINTIME#) AND CONVERT(DATE,#ENDTIME#)
+	</select>
+	
+	<select id="getCurrentUnknownData2" resultClass="java.util.HashMap">
+		  SELECT * 
+	        FROM kingDeer_srv_lnk.k303001.dbo.zlRecUnknown 
+	       WHERE CONVERT(DATE,FDate) BETWEEN CONVERT(DATE,#BEGINTIME#) AND CONVERT(DATE,#ENDTIME#)
+	         AND CONVERT(DATE,FCreateDATE)=CONVERT(DATE,#RUNTIME#)
+	</select>
+	<select id="getTodayIsStartTime" resultClass="java.util.HashMap">
+			 SELECT YEAR,MONTH,BEGINTIME,ENDTIME FROM T_REPORT_DATE
+			  WHERE STATUS=0
+			    AND YEAR=(SELECT CASE WHEN MONTH=1 THEN YEAR-1 ELSE YEAR END YEAR
+			                FROM T_REPORT_DATE 
+			               WHERE STATUS=0 
+			                 AND CONVERT(DATE,BEGINTIME)=CONVERT(DATE,GETDATE()))
+			    AND MONTH=(SELECT CASE WHEN MONTH=1 THEN 12 ELSE MONTH-1 END MONTH
+			                 FROM T_REPORT_DATE 
+			                WHERE STATUS=0 
+			                  AND CONVERT(DATE,BEGINTIME)=CONVERT(DATE,GETDATE()))
+	</select>
+	
+	<select id="getDatePeriod" resultClass="java.util.HashMap">
+		SELECT YEAR,MONTH,BEGINTIME,ENDTIME 
+     	  FROM T_REPORT_DATE 
+   		 WHERE STATUS=0 
+           AND CONVERT(DATE,GETDATE()) BETWEEN CONVERT(DATE,BEGINTIME) AND CONVERT(DATE,ENDTIME)
+	</select>
+	
+	<insert id="insertCurrentUnknownData">
+		  INSERT INTO kingDeer_srv_lnk.k303001.dbo.zlRecCashHook
+		  (FBillID,FDate,FVoucherID,FHandle,FResult,FActNo,FCustNo,FCustName,FContractNo,FSupplierNo,FSupplierName,FEmpNo,FEmpName,FAreaNo,FAreaName,FDeptNo,FDeptName,FHandleType,FRentAmount,FAddedTax,FRecManage,FRecVisit,FFundB,FFundC,FDeposit,FFunc,FTax,FAssetPrice,FRentInterest,FBankBillNo,FLawAmount,FPreAmount,FCreateDate)
+		  VALUES
+		  (#FBILLID#,#FDATE#,#FVOUCHERID#,#FHANDLE#,'转移',#FACTNO#,#FCUSTNO#,#FCUSTNAME#,#FCONTRACTNO#,#FSUPPLIERNO#,#FSUPPLIERNAME#,#FEMPNO#,#FEMPNAME#,#FAREANO#,#FAREANAME#,#FDEPTNO#,#FDEPTNAME#,#FHANDLETYPE#,#FRENTAMOUNT#,#FADDEDTAX#,#FRECMANAGE#,#FRECVISIT#,#FFUNDB#,#FFUNDC#,#FDEPOSIT#,#FFUNC#,#FTAX#,#FASSETPRICE#,#FRENTINTEREST#,#FBANKBILLNO#,#FLAWAMOUNT#,#FPREAMOUNT#,#FCREATEDATE#)
+	</insert>
+	<delete id="deleteCurrentUnknownData">
+		  DELETE FROM kingDeer_srv_lnk.k303001.dbo.zlRecUnknown
+		  		WHERE FID=#FID#
+	</delete>
+ </sqlMap>

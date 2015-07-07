@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="equipmentManager">
+	 <!-- 
+	 查询所有设备   分页  
+	 -->
+ 	<select id="queryEquipmentManagerAll_count" parameterClass="map" resultClass="int">
+ 		<![CDATA[
+	 		select count(1) cnt
+			  from T_RENT_CONTRACT t1
+			  left join T_RENT_COLLECTIONPLAN t2 on t1.RECT_ID = t2.RECT_ID
+			  left join T_RENT_CONTRACTDETAIL t3 on t1.RECT_ID = t3.RECT_ID
+			  left join T_EQMT_EQUIPMENT t4 on t3.EQMT_ID = t4.EQMT_ID
+			 where t1.STATUS = 0
+ 		]]>
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				(t1.CUST_NAME like '%$content$%' 
+				or t1.LEASE_CODE like '%$content$%' 
+				or t2.RECP_CODE like '%$content$%')
+				]]>
+			</isNotEmpty>
+		</dynamic>	
+ 	</select>
+	<select id="queryEquipmentManagerAll" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+	 		select t1.RECT_ID,
+	 			   t3.RECD_ID,
+	 			   t1.RECT_STATUS,
+			       t1.CUST_NAME,
+			       t1.LEASE_CODE,
+			       t2.RECP_CODE,
+			       t4.THING_KIND,
+			       t4.THING_NAME,
+			       t4.MODEL_SPEC,
+			       t4.BRAND,
+			       t4.UNIT_PRICE
+			  from T_RENT_CONTRACT t1
+			  left join T_RENT_COLLECTIONPLAN t2 on t1.RECT_ID = t2.RECT_ID
+			  left join T_RENT_CONTRACTDETAIL t3 on t1.RECT_ID = t3.RECT_ID
+			  left join T_EQMT_EQUIPMENT t4 on t3.EQMT_ID = t4.EQMT_ID
+			 where t1.STATUS = 0
+ 		]]>
+ 		<dynamic prepend="and">
+	 		<isNotEmpty prepend="and" property="content">
+	 			<![CDATA[
+				(t1.CUST_NAME like '%$content$%' 
+				or t1.LEASE_CODE like '%$content$%' 
+				or t2.RECP_CODE like '%$content$%')
+				]]>
+			</isNotEmpty>
+		</dynamic>	
+		<![CDATA[
+ 			order by t1.RECT_ID desc
+ 		]]>
+	</select>
+	<!-- 
+	根据ID查询合同
+	 -->
+	<select id="getContractByid" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t1.CUST_NAME,
+			       t1.CORP_ORAGNIZATION_CODE,
+			       t1.CORP_REGISTE_ADDRESS,
+			       t1.CUST_PHONE,
+			       t1.LEASE_CODE,
+			       t3.RECP_CODE,
+			       t4.THING_NAME
+			  from  T_RENT_CONTRACT t1
+			  left join T_RENT_CONTRACTDETAIL t2 on t1.RECT_ID = t2.RECT_ID
+			  left join T_RENT_COLLECTIONPLAN t3 on t1.RECT_ID = t3.RECT_ID
+			  left join T_EQMT_EQUIPMENT t4 on t2.EQMT_ID = t4.EQMT_ID
+			 where t2.RECD_ID = #recd_id#
+			   and t1.status = 0
+ 		]]>
+	</select>
+	<!-- 
+	查询巡视记录明细
+	 -->
+	<select id="getTourLoginfo" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t1.TRTL_ID,
+			       t1.TOUCH_OBJ,
+			       t1.TARGET_PLACE,
+			       t1.BUSINESS_ISOPEN,
+			       t1.TARGET_SEE,
+			       t1.ASPECT_TARGET,
+			       t1.TARGET_OPERATE,
+			       t1.USE_RATE,
+			       t1.PROGRAM_OVER,
+			       t1.VISIT_USER,
+			       t1.VISIT_DATE,
+			       t1.REMARK
+			  from T_RENT_TOURLOGINFO t1
+			 where t1.status = 0 and recd_id=#recd_id#
+ 		]]>
+	</select>
+	<!-- 
+	查询设备维护记录
+	 -->
+	<select id="getEquipmentMaintainLog" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select t1.EMML_ID,
+			       t1.LEASE_CODE,
+			       t1.RECP_CODE,
+			       t1.EQUIPMENT_NAME,
+			       t1.EQUIPMENT_OPERATE,
+			       t1.SAFETY_STATUS,
+			       t1.LAST_DATE,
+			       t1.MAINTAIN_CLASS,
+			       t1.REMARK
+			  from T_RENT_EQUIPMENTMAINTAINLOG t1
+			 where t1.status = 0 and recd_id=#recd_id#
+ 		]]>
+	</select>
+	<!-- 
+	添加巡视记录明细表 
+	-->
+	<insert id="createTourloginfo" parameterClass="map">
+		<![CDATA[ 
+			INSERT INTO T_RENT_TOURLOGINFO
+			           (RECD_ID
+			           ,TOUCH_OBJ
+			           ,TARGET_PLACE
+			           ,BUSINESS_ISOPEN
+			           ,TARGET_SEE
+			           ,ASPECT_TARGET
+			           ,TARGET_OPERATE
+			           ,USE_RATE
+			           ,PROGRAM_OVER
+			           ,VISIT_USER
+			           ,VISIT_DATE
+			           ,CREATE_ID
+			           ,MODIFY_ID
+			           ,STATUS
+			           ,CREATE_DATE
+			           ,MODIFY_DATE
+			           ,REMARK)
+			     VALUES
+			           (#RECD_ID#
+			           ,#TOUCH_OBJ#
+			           ,#TARGET_PLACE#
+			           ,#BUSINESS_ISOPEN#
+			           ,#TARGET_SEE#
+			           ,#ASPECT_TARGET#
+			           ,#TARGET_OPERATE#
+			           ,#USE_RATE#
+			           ,#PROGRAM_OVER#
+			           ,#VISIT_USER#
+			           ,#VISIT_DATE#
+			           ,#s_employeeId#
+			           ,#s_employeeId#
+			           ,0
+			           ,getdate()
+			           ,getdate()
+			           ,#REMARK#)
+	  	]]>
+	</insert>
+	<!-- 
+	添加设备维护记录
+	-->
+	<insert id="createEquipmentmaintainlog" parameterClass="map">
+		<![CDATA[ 
+			INSERT INTO T_RENT_EQUIPMENTMAINTAINLOG
+			           (RECD_ID
+			           ,LEASE_CODE
+			           ,RECP_CODE
+			           ,EQUIPMENT_NAME
+			           ,EQUIPMENT_OPERATE
+			           ,SAFETY_STATUS
+			           ,LAST_DATE
+			           ,MAINTAIN_CLASS
+			           ,CREATE_ID
+			           ,MODIFY_ID
+			           ,STATUS
+			           ,CREATE_DATE
+			           ,MODIFY_DATE
+			           ,REMARK)
+			     VALUES
+			           (#RECD_ID#
+			           ,#LEASE_CODE#
+			           ,#ECP_CODE#
+			           ,#EQUIPMENT_NAME#
+			           ,#EQUIPMENT_OPERATE#
+			           ,#SAFETY_STATUS#
+			           ,#LAST_DATE#
+			           ,#MAINTAIN_CLASS#
+			           ,#s_employeeId#
+			           ,#s_employeeId#
+			           ,0
+			           ,getdate()
+			           ,getdate()
+			           ,#REMARK#)
+	  	]]>
+	</insert>
+	<!-- 
+	删除记录明细表 (合同详细ID)
+	-->
+	 <delete id="delTourloginfoByRecdid" parameterClass="map">
+	 	<![CDATA[ 
+		 	delete from T_RENT_TOURLOGINFO where RECD_ID=#RECD_ID# 
+	 	]]>
+	 </delete>
+	<!-- 
+	删除设备维护记录表 (合同详细ID)
+	-->
+	 <delete id="delEquipmentmaintainlogByRecdid" parameterClass="map">
+	 	<![CDATA[ 
+		 	delete from T_RENT_EQUIPMENTMAINTAINLOG where RECD_ID=#RECD_ID# 
+	 	]]>
+	 </delete>
+</sqlMap>

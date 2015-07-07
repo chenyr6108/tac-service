@@ -1,0 +1,1061 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+ "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="leaseUtil">
+
+	<select id="getCreateDate" parameterClass="map" resultClass="java.sql.Date">
+		select CREATE_DATE from T_PRJT_CREDIT
+		where ID = #creditId#
+	</select>
+	
+	<select id="getFirstCommitTime" parameterClass="map" resultClass="java.sql.Date">
+		select top 1 COMMIT_TIME 
+		from T_PRJT_RISK_CONTROL
+		where CREDIT_ID = #creditId#
+		order by COMMIT_TIME
+	</select>
+
+	<select id="getCompanyCodeByCreditId" parameterClass="map" resultClass="int">    
+	    select COMPANY_CODE from T_PRJT_CREDIT where ID = #creditId#
+	</select>
+	<select id="getRunCodeByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select top 1 CREDIT_RUNCODE 
+		from T_PRJT_CREDIT
+		where ID = #creditId#
+	</select>
+	
+	<select id="getGroupInsideByCreditId" parameterClass="map" resultClass="java.lang.Integer">
+	    select group_inside from T_PRJT_CREDIT where ID = #creditId#
+	</select>
+	
+	
+	<select id="getFirstPeriodPayDateByCreditId" parameterClass="map" resultClass="java.util.Date">
+	    select cd.PAY_DATE
+		from T_RENT_CONTRACT rc
+		left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID and cp.STATUS = 0
+		left join T_RENT_COLLECTIONDETAIL cd on cd.RECP_ID = cp.RECP_ID and cd.STATUS = 0
+		where rc.STATUS = 0 and cd.PERIOD_NUM =1		
+		and rc.PRCD_ID =  #creditId#
+	</select>
+	
+	<select id="getLastPeriodPayDateByCreditId" parameterClass="map" resultClass="java.util.Date">
+	    select cd.PAY_DATE
+		from T_RENT_CONTRACT rc
+		left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID and cp.STATUS = 0
+		left join T_RENT_COLLECTIONDETAIL cd on cd.RECP_ID = cp.RECP_ID and cd.STATUS = 0
+		where rc.STATUS = 0 and cd.PERIOD_NUM = (select lease_term from T_PRJT_CREDITSCHEME where status =0 and credit_id = #creditId#)		
+		and rc.PRCD_ID = #creditId#
+	</select>
+	
+		
+	<select id="getCreditIdByRunCode" parameterClass="map" resultClass="java.lang.String">
+		select top 1 ID 
+		from T_PRJT_CREDIT
+		where CREDIT_RUNCODE = #runCode#
+	</select>
+	
+	<select id="getPayWayByCreditId" parameterClass="map" resultClass="java.lang.Integer">
+	    
+	    select pay_way from T_PRJT_CREDITSCHEME where CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getCreditIdByLeaseCode" parameterClass="map" resultClass="java.lang.String">
+		select top 1 ID 
+		from T_PRJT_CREDIT
+		where LEASE_CODE = #leaseCode#
+	</select>
+	
+	<select id="getBankChargeByCreditId" parameterClass="map" resultClass="java.lang.Double">
+	    SELECT ISNULL(OUT_PAY,0) FROM T_PRJT_CREDITSCHEME where CREDIT_ID = #creditId#
+	</select>
+	<select id="getCreditIdByRiskId" parameterClass="map" resultClass="java.lang.String">
+		select CREDIT_ID from T_PRJT_RISK_CONTROL
+		where PRC_ID = #riskId#
+	</select>
+	
+	<select id="getSuplNameByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select top 1 pe.BRAND 
+		from T_PRJT_CREDITEQUIPMENT pe
+		where CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getSuplIdByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select top 1 t.ID from T_PRJT_CREDITEQUIPMENT e   
+	  left join T_SUPL_EQUIPMENT s on e.SUEQ_ID = s.SUEQ_ID
+	  left join T_SUPL_SUPPLIER t on t.ID = s.SUPPLIER_ID
+	  where CREDIT_ID = #creditId#
+	</select>
+
+	<select id="getCustNameByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select top 1 CUST_NAME from T_CUST_CUSTOMER
+		where CUST_ID in (
+		  select pc.CUST_ID from T_PRJT_CREDIT pc
+		  where pc.ID = #creditId#
+		)
+	</select>
+	<select id="getProductionTypeByCreditId" parameterClass="map" resultClass="java.lang.Integer">
+	    select production_type from t_prjt_credit where id =#creditId#   
+	</select>
+	<select id="getCustIdByCreditId" parameterClass="map" resultClass="java.lang.String">
+			select pc.CUST_ID from T_PRJT_CREDIT pc
+		  where pc.ID = #creditId#
+	</select>
+	
+	<select id="getFinancecontractDate" parameterClass="map" resultClass="java.sql.Date">
+		select FINANCECONTRACT_DATE
+		from T_PRJT_CREDIT
+		where ID = #creditId#
+	</select>
+	
+	<select id="getTaxPlanCodeByCreditId" parameterClass="map" resultClass="java.lang.String">
+	    select TAX_PLAN_CODE from T_PRJT_CREDITSCHEME where STATUS = 0  and credit_id = #creditId#
+	    
+	</select>
+	<select id="getLeaseCodeByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select LEASE_CODE from T_PRJT_CREDIT
+		where ID = #creditId#
+	</select>
+	
+	<select id="getDecpNameByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select dc.DECP_NAME_CN 
+		from T_PRJT_CREDIT pc
+		left join t_user_user u on pc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY dc on dp.DECP_ID = dc.DECP_ID
+		where pc.ID = #creditId#
+	</select>
+	<select id = "getImportEqipByCreditId" parameterClass="map" resultClass="java.lang.Integer">
+	    select IS_IMPORT_EQIP from T_PRJT_CREDITSCHEME where STATUS = 0  and credit_id = #creditId#
+	    
+	</select>
+	<select id="getDecpIdByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select dc.DECP_ID 
+		from T_PRJT_CREDIT pc
+		left join t_user_user u on pc.SENSOR_ID = u.ID
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		left join T_DEPT_COMPANY dc on dp.DECP_ID = dc.DECP_ID
+		where pc.ID = #creditId#
+	</select>
+	
+	<select id="getServiceUserIdByCreditId" parameterClass="map" resultClass="java.lang.String">
+	 	select PROCESSER_ID from t_prjt_credit where ID= #creditId#
+	</select>
+	
+	<select id="getLockCodeByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select max(lock_code) as lock_code FROM T_PRJT_CREDITEQUIPMENT 
+		where credit_id =#creditId#
+	</select>
+	
+
+	<select id="getCreditMemoByCreditId" parameterClass="map" resultClass="com.brick.base.to.BaseTo">
+		select top 10 u.name as create_by, 
+			cm.CREATE_DATE as create_date, 
+			cm.MEMO_CONTENT as content
+		from T_PRJT_CREDIT_MEMO cm
+		left join T_USER_USER u on cm.create_by = u.id
+		where CREDIT_ID = #creditId#
+		order by CREATE_DATE desc
+	</select>
+	
+	<select id="getBankNameByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select top 1 BANK_NAME from T_PRJT_CREDITCORPBANKACCOUNT where STATUS =0 and CREDIT_ID =#creditId#
+	</select>
+	<select id="getBankAccountByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select top 1 BANK_ACCOUNT from T_PRJT_CREDITCORPBANKACCOUNT where STATUS =0 and CREDIT_ID =#creditId#
+	</select>
+	
+	<select id="getEmailByUserId" parameterClass="map" resultClass="java.lang.String">
+		select EMAIL from T_USER_USER
+		where ID = #userId#
+	</select>
+	
+	<select id="getMobileByUserId" parameterClass="map" resultClass="java.lang.String">
+		select MOBILE from T_USER_USER
+		where ID = #userId#
+	</select>
+	
+	<select id="getUpUserByUserId" parameterClass="map" resultClass="java.lang.String">
+		select upper_user from T_USER_USER
+		where ID = #userId#
+	</select>
+	
+	<select id="getSensorIdByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select SENSOR_ID from T_PRJT_CREDIT
+		where ID = #creditId#
+	</select>
+	
+	<select id="getOrgSensorIdByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select ORG_SENSOR_ID from T_PRJT_CREDIT
+		where ID = #creditId#
+	</select>
+	
+	<select id="getContractTypeByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select CONTRACT_TYPE from T_PRJT_CREDIT
+		where ID = #creditId#
+	</select>
+	
+	<select id="getContractTypeDescByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select (select top 1 FLAG from T_DATA_DICTIONARY
+			where [TYPE] = '融资租赁合同类型'
+			and CODE = pc.CONTRACT_TYPE
+			) as CONTRACT_TYPE 
+		from T_PRJT_CREDIT pc
+		where ID = #creditId#
+	</select>
+	
+	<select id="getUserNameByUserId" parameterClass="map" resultClass="java.lang.String">
+		select name from t_user_user where ID = #userId#
+	</select>
+	
+	<select id="getPayMoneyByCreditId" parameterClass="map" resultClass="java.math.BigDecimal">
+		select isnull(LEASE_TOPRIC, 0) - isnull(PLEDGE_ENTER_MCTOAG, 0) - isnull(PLEDGE_ENTER_AG, 0)
+		from T_PRJT_CREDITSCHEME
+		where CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getRealPayMoneyByCreditId" parameterClass="map" resultClass="java.lang.Double">
+		select sum(p.PAY_MONEY) as PAY_MONEY
+		from T_SUPL_PLAYDETIL p
+		where p.STATUS = 0 
+		and p.BACKSTATE = 0
+		and p.STATE = 3
+		and p.CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getRealPayMoneyInAuthByCreditId" parameterClass="map" resultClass="java.lang.Double">
+		select sum(p.PAY_MONEY) as PAY_MONEY
+		from T_SUPL_PLAYDETIL p
+		where p.STATUS = 0 
+		and p.BACKSTATE = 0
+		and p.STATE in (0,1)
+		and p.CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getTotalPriceByCreditId" parameterClass="map" resultClass="java.math.BigDecimal">
+		select LEASE_TOPRIC
+		from T_PRJT_CREDITSCHEME
+		where CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getTotalContractPriceByCreditId" parameterClass="map" resultClass="java.math.BigDecimal">
+		SELECT ISNULL(
+		(SELECT TOP 1 LEASE_TOPRIC FROM T_RENT_CONTRACT WHERE PRCD_ID = #creditId#),
+		(select TOP 1 LEASE_TOPRIC from T_PRJT_CREDITSCHEME where CREDIT_ID = #creditId#)
+		) AS LEASE_TOPRIC
+	</select>
+	
+	<select id="getPledgePriceByCreditId" parameterClass="map" resultClass="java.math.BigDecimal">
+		select PLEDGE_PRICE
+		from T_PRJT_CREDITSCHEME
+		where CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getPledgePriceForAvgByCreditId" parameterClass="map" resultClass="java.math.BigDecimal">
+		select isnull(PLEDGE_AVE_PRICE, 0)
+		from T_PRJT_CREDITSCHEME
+		where CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getPledgePriceForLastByCreditId" parameterClass="map" resultClass="java.math.BigDecimal">
+		select isnull(PLEDGE_LAST_PRICE, 0)
+		from T_PRJT_CREDITSCHEME
+		where CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getPledgePeriodForLastByCreditId" parameterClass="map" resultClass="java.lang.Integer">
+		select isnull(PLEDGE_LAST_PERIOD, 0)
+		from T_PRJT_CREDITSCHEME
+		where CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getPledgePriceForBackByCreditId" parameterClass="map" resultClass="java.math.BigDecimal">
+		select isnull(PLEDGE_BACK_PRICE, 0)
+		from T_PRJT_CREDITSCHEME
+		where CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getPledgePriceFor2SuplByCreditId" parameterClass="map" resultClass="java.math.BigDecimal">
+		select PLEDGE_ENTER_AG
+		from T_PRJT_CREDITSCHEME
+		where CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getPledgePriceForOur2SuplByCreditId" parameterClass="map" resultClass="java.math.BigDecimal">
+		select PLEDGE_ENTER_MCTOAG
+		from T_PRJT_CREDITSCHEME
+		where CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getEqupmentAddressByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select EQUPMENT_ADDRESS from T_PRJT_CREDITSCHEME
+		where CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getCompanyAddressByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select REGISTERED_OFFICE_ADDRESS
+		from T_PRJT_CREDITCUSTOMERCORP
+		where CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getPeriodsByCreditId" parameterClass="map" resultClass="java.math.BigDecimal">
+		select LEASE_TERM from T_PRJT_CREDITSCHEME
+		where CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getManufacturerByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select top 1 pt.Manufacturer 
+		from T_PRJT_CREDITEQUIPMENT pe
+		left join T_SUPL_EQUIPMENT se on pe.SUEQ_ID = se.SUEQ_ID
+		left join T_PRDC_PRODUCT pd on se.PRODUCT_ID = pd.ID
+		left join T_PRDC_KIND pk on pd.KIND_ID = pk.ID
+		left join T_PRDC_TYPE pt on pk.[TYPE_ID] = pt.ID
+		where pe.CREDIT_ID = #creditId#
+	</select>
+	
+	<select  id="getDecpNameByUserId" parameterClass="map" resultClass="java.lang.String">
+		select c.DECP_NAME_CN from T_USER_USER u 
+		left join T_DEPT_DEPARTMENT d on u.DEPT_ID = d.ID
+		left join T_DEPT_COMPANY c on d.DECP_ID = c.DECP_ID
+		where u.id = #userId#
+	</select>
+	
+	<select  id="getDecpIdByUserId" parameterClass="map" resultClass="java.lang.String">
+		select c.DECP_ID from T_USER_USER u 
+		left join T_DEPT_DEPARTMENT d on u.DEPT_ID = d.ID
+		left join T_DEPT_COMPANY c on d.DECP_ID = c.DECP_ID
+		where u.id = #userId#
+	</select>
+	
+	<select id="getUserStatusByUserId" parameterClass="map"  resultClass="int">
+		select STATUS from T_USER_USER where ID = #userId#
+	</select>
+	
+	<select id="getLinkManInfoBySupplierId" parameterClass="map"  resultClass="com.brick.base.to.LinkManTo">
+		select link_name,link_mobile,link_phone,link_work_address 
+		from T_SUPPL_LINKMAN 
+		where   status = 0 and SUPPL_ID = #suppl_id#
+		<isNotEmpty prepend="and" property="link_type">
+			LINK_TYPE = #link_type#
+		</isNotEmpty>
+		order by LINK_TYPE asc
+	</select>
+	
+	<select id="getLinkManInfoByCustId" parameterClass="map"  resultClass="com.brick.base.to.LinkManTo">
+		select link_name,link_mobile,link_phone,link_work_address,LINK_RELATION2CUST as link_relation  from T_CUST_LINKMAN 
+		where status= 0  and CUST_ID = #cust_id#
+		<isNotEmpty prepend="and" property="link_type">
+			LINK_TYPE = #link_type#
+		</isNotEmpty>
+		order by LINK_TYPE asc
+	</select>
+	
+	
+	<select id="getCustNameByCustId" parameterClass="map" resultClass="java.lang.String">
+		select CUST_NAME FROM T_CUST_CUSTOMER  WHERE CUST_ID = #cust_id#
+	</select>
+	
+	<select id="getNatuIdCardByCustId" parameterClass="map" resultClass="java.lang.String">
+		select NATU_IDCARD FROM T_CUST_CUSTOMER  WHERE CUST_ID = #cust_id#
+	</select>
+	
+	<select id="getNatuIdCardTypeByCustName" parameterClass="map" resultClass="java.lang.Integer">
+	    select ID_CARD_TYPE from T_PRJT_NATUNAL where natu_name = #custName#
+	</select>
+	
+	<select id="getCustVirtualCodeById" parameterClass="map" resultClass="java.lang.String">
+		select VIRTUAL_CODE FROM T_CUST_CUSTOMER  WHERE CUST_ID = #cust_id#
+	</select>
+	
+	<select id="getCustCodeById" parameterClass="map" resultClass="java.lang.String">
+		select CUST_CODE FROM T_CUST_CUSTOMER  WHERE CUST_ID = #cust_id#
+	</select>
+	
+	<select id="getNatuAddressByCustId" parameterClass="map" resultClass="java.lang.String">
+		select NATU_HOME_ADDRESS FROM T_CUST_CUSTOMER  WHERE CUST_ID = #cust_id#
+	</select>
+	
+	<select id="getNatuMobileByCustId" parameterClass="map" resultClass="java.lang.String">
+		select NATU_MOBILE FROM T_CUST_CUSTOMER  WHERE CUST_ID = #cust_id#
+	</select>
+	
+	<select id="getNatuZipByCustId" parameterClass="map" resultClass="java.lang.String">
+		select NATU_ZIP FROM T_CUST_CUSTOMER  WHERE CUST_ID = #cust_id#
+	</select>
+	
+	<select id="getNatuMateNameByCustId" parameterClass="map" resultClass="java.lang.String">
+		select NATU_MATE_NAME from T_CUST_CUSTOMER where CUST_ID = #cust_id#
+	</select>
+	
+	<select id="getNatuMateMobiledByCustId" parameterClass="map" resultClass="java.lang.String">
+		select NATU_MATE_MOBILE from T_CUST_CUSTOMER where CUST_ID = #cust_id#
+	</select>
+	
+	<select id="getNatuMateIdCardByCustId" parameterClass="map" resultClass="java.lang.String">
+		select NATU_MATE_IDCARD from T_CUST_CUSTOMER where CUST_ID = #cust_id#
+	</select>
+	
+	<select id="getSuppLevelBySupplierId" parameterClass="map" resultClass="java.lang.String">
+		select SUPP_LEVEL from T_SUPL_SUPPLIER where ID = #suppl_id#
+	</select>
+	
+	<select id="getAllContractType" resultClass="com.brick.base.to.SelectionTo">
+		select 
+		CODE as option_value
+		, FLAG as display_name
+		from T_DATA_DICTIONARY
+		where [TYPE] = '融资租赁合同类型'
+	</select>
+	
+	<select id="getExistingContractType" resultClass="com.brick.base.to.SelectionTo">
+		select 
+		CODE as option_value
+		, FLAG as display_name
+		from T_DATA_DICTIONARY
+		where [TYPE] = '融资租赁合同类型'
+		and STATUS = 0
+	</select>
+	
+	<select id="getProductionType" resultClass="com.brick.base.to.SelectionTo">
+		select 
+		CODE as option_value
+		, FLAG as display_name
+		from T_DATA_DICTIONARY
+		where [TYPE] = '产品类别'
+		and STATUS = 0
+	</select>
+	
+	<select id="getProductionTypeByRectId" resultClass="int" parameterClass="map">
+		select p.PRODUCTION_TYPE from t_rent_contract t
+		inner join T_PRJT_CREDIT p on p.ID = t.PRCD_ID and p.STATUS = 0
+		where t.rect_id = #rectId#
+	</select>
+	
+	<select id="getCreditIdByRectId" resultClass="int" parameterClass="map">
+	    select prcd_id from t_rent_contract where rect_id = #rectId#
+	    
+	</select>
+	
+	<select id="getSuppOpenAccountBankBySupplierId" parameterClass="map" resultClass="java.lang.String">
+		select OPEN_ACCOUNT_BANK from T_SUPL_SUPPLIER where ID = #suppl_id#
+	</select>
+	
+	<select id="getSuppBankAccountBySupplierId" parameterClass="map" resultClass="java.lang.String">
+		select BANK_ACCOUNT from T_SUPL_SUPPLIER where ID = #suppl_id#
+	</select>
+	
+	<select id="getSuplJointCreditBySuplId" parameterClass="map" resultClass="com.brick.base.to.CreditLineTO">
+		select top 1 CUGP_STATUS as status
+		,isnull(LIEN_GRANT_PRICE, 0) as line
+		,LIEN_START_DATE as startDate
+		,LIEN_END_DATE as endDate
+		,isnull(LIEN_REPEAT_CREDIT,0) as repeatFlag
+		,isnull(LIEN_HAS, 'N') as hasLine
+		,'连保' as lineName
+		from T_PRODUCT_GRANTPLAN
+		where STATUS = 0
+		and PRODUCT_ID = #supl_id#
+		order by PDGP_ID desc
+	</select>
+	
+	<select id="getSuplBuyBackCreditBySuplId" parameterClass="map" resultClass="com.brick.base.to.CreditLineTO">
+		select top 1 CUGP_STATUS as status
+		,isnull(REPURCH_GRANT_PRICE, 0) as line
+		,REPURCH_START_DATE as startDate
+		,REPURCH_END_DATE as endDate
+		,isnull(REPURCH_REPEAT_CREDIT,0) as repeatFlag
+		,isnull(REPURCH_HAS, 'N') as hasLine
+		,'回购' as lineName
+		from T_PRODUCT_GRANTPLAN
+		where STATUS = 0
+		and PRODUCT_ID = #supl_id#
+		order by PDGP_ID desc
+	</select>
+	
+	<select id="getSuplPayBeforeCreditBySuplId" parameterClass="map" resultClass="com.brick.base.to.CreditLineTO">
+		select top 1 CUGP_STATUS as status
+		,isnull(ADVANCEMACHINE_GRANT_PRICE, 0) as line
+		,ADVANCE_START_DATE as startDate
+		,ADVANCE_END_DATE as endDate
+		,isnull(ADVANCE_MACHINEREPEAT_CREDIT,0) as repeatFlag
+		,isnull(ADVANCEMACHINE_HAS, 'N') as hasLine
+		,'交机前拨款' as lineName
+		from T_PRODUCT_GRANTPLAN
+		where STATUS = 0
+		and PRODUCT_ID = #supl_id#
+		order by PDGP_ID desc
+	</select>
+	
+	<select id="getInvoiceLineForSupl" parameterClass="map" resultClass="com.brick.base.to.CreditLineTO">
+		select top 1 CUGP_STATUS as status
+		,isnull(VOICE_CREDIT, 0) as line
+		,VOICE_START_DATE as startDate
+		,VOICE_END_DATE as endDate
+		,isnull(VOICE_CONTINUE,0) as repeatFlag
+		,isnull(VOICE_HAS, 'N') as hasLine
+		,'发票待补次数' as lineName
+		from T_PRODUCT_GRANTPLAN
+		where STATUS = 0
+		and PRODUCT_ID = #supl_id#
+		order by PDGP_ID desc
+	</select>
+	
+	<!-- 集团授信 -->
+	<select id="getSuplJointCreditByGroup" parameterClass="map" resultClass="com.brick.base.to.CreditLineTO">
+		select top 1 STATUS as status
+		,isnull([UNION], 0) as line
+		,FROM_DATE as startDate
+		,TO_DATE as endDate
+		,case when UNION_LOOP_FLAG = 'Y' then 1
+		 else 0 end as repeatFlag
+		,UNION_LAST as lastLine
+		,isnull(UNION_HAS, 'N') as hasLine
+		from T_SUPL_GROUP_CREDIT_AMOUNT
+		where STATUS = 0
+		and SUPL_GROUP_CODE = #group_code#
+		order by CREATE_ON desc
+	</select>
+	
+	<select id="getSuplBuyBackCreditByGroup" parameterClass="map" resultClass="com.brick.base.to.CreditLineTO">
+		select top 1 STATUS as status
+		,isnull(BUY_BACK, 0) as line
+		,BUY_BACK_START_DATE as startDate
+		,BUY_BACK_END_DATE as endDate
+		,case when BUY_BACK_LOOP_FLAG = 'Y' then 1
+		 else 0 end as repeatFlag
+		,BUY_BUCK_LAST as lastLine
+		,isnull(BUY_BACK_HAS, 'N') as hasLine
+		from T_SUPL_GROUP_CREDIT_AMOUNT
+		where STATUS = 0
+		and SUPL_GROUP_CODE = #group_code#
+		order by CREATE_ON desc
+	</select>
+	
+	<select id="getSuplPayBeforeCreditByGroup" parameterClass="map" resultClass="com.brick.base.to.CreditLineTO">
+		select top 1 STATUS as status
+		,isnull(PAY_BEFORE, 0) as line
+		,PAY_BEFORE_START_DATE as startDate
+		,PAY_BEFORE_END_DATE as endDate
+		,case when PAY_BEFORE_LOOP_FLAG = 'Y' then 1
+		 else 0 end as repeatFlag
+		,PAY_BEFORE_LAST as lastLine
+		,isnull(PAY_BEFORE_HAS, 'N') as hasLine
+		from T_SUPL_GROUP_CREDIT_AMOUNT
+		where STATUS = 0
+		and SUPL_GROUP_CODE = #group_code#
+		order by CREATE_ON desc
+	</select>
+	
+	<select id="getInvoiceLineForGroup" parameterClass="map" resultClass="com.brick.base.to.CreditLineTO">
+		select top 1 STATUS as status
+		,isnull(INVOICE, 0) as line
+		,INVOICE_START_DATE as startDate
+		,INVOICE_END_DATE as endDate
+		,case when INVOICE_LOOP_FLAG = 'Y' then 1
+		 else 0 end as repeatFlag
+		,INVOICE_LAST as lastLine
+		,isnull(INVOICE_HAS, 'N') as hasLine
+		from T_SUPL_GROUP_CREDIT_AMOUNT
+		where STATUS = 0
+		and SUPL_GROUP_CODE = #group_code#
+		order by CREATE_ON desc
+	</select>
+	
+	<select id="getSuplByGroup" parameterClass="map" resultClass="java.lang.String">
+		select supl_id from T_SUPL_SUPPLIER_GROUP_MAP
+		where SUPL_GROUP_CODE = #group_code#
+		and STATUS = 0
+	</select>
+	
+	<select id="getUsedCreditBySupl" parameterClass="map" resultClass="java.lang.String">
+		select  pc.ID
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		where pc.STATUS = 0
+		and exists(
+		  select 0
+		  from T_PRJT_CREDITEQUIPMENT pe
+		  left join T_SUPL_EQUIPMENT se on pe.SUEQ_ID = se.SUEQ_ID
+		  where se.SUPPLIER_ID = #supl_id#
+		  and pe.CREDIT_ID = pc.ID
+		)
+		and exists(
+		  select 0 from T_PRJT_RISK_CONTROL rc
+		  where rc.STATE = 1 and rc.STATUS = 0
+		  and rc.CREDIT_ID = pc.ID
+		)
+		<isEqual property="credit_line_type" compareValue="1">
+			and ps.SUPL_TRUE = 1
+		</isEqual>
+		<isEqual property="credit_line_type" compareValue="2">
+			and ps.SUPL_TRUE in (2,3)
+		</isEqual>
+	</select>
+	
+	<select id="getUsedLineBySuplForPayBefore" parameterClass="map" resultClass="java.math.BigDecimal">
+		select  isnull(convert(money, sum(pca.APPRORIATEMON)), 0) as 'pay_money'
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		left join T_SUPL_PLAYDETIL pay on pay.CREDIT_ID = pc.ID
+		left join T_PRJT_CREDITAPPROPIATE pca on pca.CREDIT_ID = pc.ID
+		where pc.STATUS = 0
+		and pay.STATUS = 0
+		and pay.BACKSTATE = 0
+		and pay.STATE = 3
+		and exists(
+		  select 0
+		  from T_PRJT_CREDITEQUIPMENT pe
+		  left join T_SUPL_EQUIPMENT se on pe.SUEQ_ID = se.SUEQ_ID
+		  where se.SUPPLIER_ID = #supl_id#
+		  and pe.CREDIT_ID = pc.ID
+		)
+		and exists(
+		  select 0 from T_PRJT_RISK_CONTROL rc
+		  where rc.STATE = 1 and rc.STATUS = 0
+		  and rc.CREDIT_ID = pc.ID
+		)
+		and pca.STATUS = 0
+		and pca.[TYPE] = 0
+	</select>
+	
+	<select id="getReusedLineBySupl" parameterClass="map" resultClass="java.math.BigDecimal">
+		select  isnull(sum(pay.PAY_MONEY), 0) as 'pay_money'
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		left join T_SUPL_PLAYDETIL pay on pay.CREDIT_ID = pc.ID
+		where pc.STATUS = 0
+		and pay.STATUS = 0
+		and pay.BACKSTATE = 0
+		and pay.STATE = 3
+		and exists(
+		  select 0
+		  from T_PRJT_CREDITEQUIPMENT pe
+		  left join T_SUPL_EQUIPMENT se on pe.SUEQ_ID = se.SUEQ_ID
+		  where se.SUPPLIER_ID = #supl_id#
+		  and pe.CREDIT_ID = pc.ID
+		)
+		and pc.FINANCECONTRACT_DATE is not null
+		<isEqual property="credit_line_type" compareValue="1">
+			and ps.SUPL_TRUE = 1
+		</isEqual>
+		<isEqual property="credit_line_type" compareValue="2">
+			and ps.SUPL_TRUE in (2,3)
+		</isEqual>
+	</select>
+	
+	<select id="getCreditIdBySuplIdForPayBefore" parameterClass="map" resultClass="java.lang.String">
+		select pc.ID 
+		from T_PRJT_CREDIT pc
+		where pc.ID in (
+		select pe.CREDIT_ID 
+		from T_PRJT_CREDITEQUIPMENT pe
+		left join T_SUPL_EQUIPMENT se on pe.SUEQ_ID = se.SUEQ_ID
+		left join T_SUPL_SUPPLIER ss on se.SUPPLIER_ID = ss.ID
+		where ss.ID = #suplId#
+		)
+		and pc.STATUS = 0
+		and exists(
+		  select 0 from T_PRJT_RISK_CONTROL r
+		  where STATE = 1 and STATUS = 0
+		  and r.CREDIT_ID = pc.ID
+		)
+		and exists (
+		  select 0 from T_PRJT_CREDITAPPROPIATE ca
+		  where ca.STATUS = 0
+		  and ca.[TYPE] = 0
+		  and ca.CREDIT_ID = pc.ID
+		)
+	</select>
+	
+	<select id="getReusedCreditBySuplForPayBefore" parameterClass="map" resultClass="java.lang.String">
+		select pc.ID 
+		from T_PRJT_CREDIT pc
+		where pc.ID in (
+		select pe.CREDIT_ID 
+		from T_PRJT_CREDITEQUIPMENT pe
+		left join T_SUPL_EQUIPMENT se on pe.SUEQ_ID = se.SUEQ_ID
+		left join T_SUPL_SUPPLIER ss on se.SUPPLIER_ID = ss.ID
+		where ss.ID = #suplId#
+		)
+		and pc.STATUS = 0
+		and exists(
+		  select 0 from T_PRJT_RISK_CONTROL r
+		  where STATE = 1 and STATUS = 0
+		  and r.CREDIT_ID = pc.ID
+		)
+		and exists (
+		  select 0 from T_PRJT_CREDITAPPROPIATE ca
+		  where ca.STATUS = 0
+		  and ca.[TYPE] = 0
+		  and ca.CREDIT_ID = pc.ID
+		)
+		and not exists(
+		  select 0
+		  from T_RENT_FILEDETAIL fd
+		  left join T_RENT_FILE f on fd.REFI_ID = f.REFI_ID
+		  where fd.PRCD_ID = pc.ID
+		  and fd.FILE_TYPE = 3
+		  and fd.IS_ALREADY = 0
+		  and fd.ISSURE_REASON not like '%借出%'
+		  and fd.STATUS = 0
+		  and (f.[FILE_NAME] like '%发票%'
+		    or f.[FILE_NAME] like '%照片%'
+		    or f.[FILE_NAME] like '%相片%')
+		)
+	</select>
+	
+	<select id="getSuplGroupCodeBySuplId" parameterClass="map" resultClass="java.lang.String">
+		select top 1 SUPL_GROUP_CODE
+		from T_SUPL_SUPPLIER_GROUP_MAP
+		where STATUS = 0
+		and SUPL_ID = #supl_id#
+	</select>
+	
+	<select id="getSpecialCodeByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select top 1 CREDIT_SPECIAL_CODE from T_PRJT_CREDIT
+		where ID = #creditId#
+	</select>
+	
+	<select id="getLeaseCodeByRectId" parameterClass="map" resultClass="java.lang.String">
+		SELECT LEASE_CODE FROM T_RENT_CONTRACT WHERE RECT_ID=#rectId#
+	</select>
+	
+	<select id="getScoreCardByContractType" parameterClass="map" resultClass="java.lang.String">
+		select top 1 SCORE_CARD from T_PRJT_RISK_SCORE_CARD
+		where CONTRACT_TYPE = #contractType#
+		AND STATUS = 0
+	</select>
+	
+	<select id="hasPayBefore" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0)
+		from T_PRJT_CREDITAPPROPIATE
+		where [TYPE] = 0
+		and CREDIT_ID = #creditId#
+		and PAYPERCENT > 0
+		and STATUS = 0
+	</select>
+	
+	<select id="getPayBeforeMoney" parameterClass="map" resultClass="java.math.BigDecimal">
+		select top 1 convert(decimal(20,2), APPRORIATEMON)
+		from T_PRJT_CREDITAPPROPIATE
+		where [TYPE] = 0
+		and CREDIT_ID = #creditId#
+		and PAYPERCENT > 0
+		and STATUS = 0
+	</select>
+
+	
+	<select id="getRemainingPrincipal" parameterClass="map" resultClass="java.math.BigDecimal">
+		<![CDATA[
+		select SUM(loss_own_price) loss_ren_price from(
+		  select 
+		  	case when convert(decimal,isnull(recd.REDUCE_OWN_PRICE, 0)) >= convert(decimal,isnull(recd.REN_PRICE, 0))
+		    then isnull(recd.IRR_MONTH_PRICE, 0) - (isnull(recd.REDUCE_OWN_PRICE, 0)-isnull(recd.VALUE_ADDED_TAX, 0))
+		    else isnull(recd.IRR_MONTH_PRICE, 0) - isnull(recd.REN_PRICE, 0) end as loss_own_price
+		  from T_RENT_COLLECTIONDETAIL recd
+		  where recd.status = 0
+		  and recd.RECP_ID = #recpId#
+		  and (recd.REDUCE_OWN_PRICE is null or recd.REDUCE_OWN_PRICE < (recd.IRR_MONTH_PRICE+isnull(recd.VALUE_ADDED_TAX, 0)))
+		) t
+		]]>
+	</select>
+	
+	<select id="getRectIdByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select top 1 RECT_ID from T_RENT_CONTRACT
+		where PRCD_ID = #creditId#
+		and STATUS = 0
+	</select>
+	
+	<select id="getRecpIdByCreditId" parameterClass="map" resultClass="java.lang.String">
+		select top 1 cp.RECP_ID from T_RENT_COLLECTIONPLAN cp
+		where cp.RECT_ID in (
+		  select top 1 RECT_ID from T_RENT_CONTRACT
+		  where PRCD_ID = #creditId#
+		  and STATUS = 0
+		) and cp.STATUS = 0
+	</select>
+	
+	<select id="getRecpIdByRectId" parameterClass="map" resultClass="java.lang.String">
+		select top 1 cp.RECP_ID from T_RENT_COLLECTIONPLAN cp
+		where cp.RECT_ID = #rectId# 
+		and cp.STATUS = 0
+	</select>
+	
+	<select id="getCreditIdBySuplId" parameterClass="map" resultClass="java.lang.String">
+		select pc.ID 
+		from T_PRJT_CREDIT pc
+		where pc.ID in (
+		select pe.CREDIT_ID 
+		from T_PRJT_CREDITEQUIPMENT pe
+		left join T_SUPL_EQUIPMENT se on pe.SUEQ_ID = se.SUEQ_ID
+		left join T_SUPL_SUPPLIER ss on se.SUPPLIER_ID = ss.ID
+		where ss.ID = #suplId#
+		)
+		and pc.STATUS = 0
+		and exists(
+		  select 0 from T_PRJT_RISK_CONTROL r
+		  where STATE = 1 and STATUS = 0
+		  and r.CREDIT_ID = pc.ID
+		)
+	</select>
+	
+	<select id="getCreditIdByCustId" parameterClass="map" resultClass="java.lang.String">
+		select pc.ID 
+		from T_PRJT_CREDIT pc
+		where pc.CUST_ID = #custId#
+		and pc.STATUS = 0
+		and exists(
+		  select 0 from T_PRJT_RISK_CONTROL r
+		  where STATE = 1 and STATUS = 0
+		  and r.CREDIT_ID = pc.ID
+		)
+	</select>
+	
+	<select id="getCreditIdByGuarantor" parameterClass="map" resultClass="java.lang.String">
+		select pc.ID 
+		from T_PRJT_CREDIT pc
+		where pc.STATUS = 0
+		and exists(
+		  select 0 from T_PRJT_RISK_CONTROL r
+		  where STATE = 1 and STATUS = 0
+		  and r.CREDIT_ID = pc.ID
+		)
+		and (
+		exists(
+		  select * from T_PRJT_VOUCHCUSTOMERCORP vc
+		  where vc.ORGANIZATION_CODE_CERTIFICATE = #guarantor#
+		  and vc.STATUS = 0
+		  and vc.PRCD_ID = pc.ID
+		)
+		or exists(
+		  select * from T_PRJT_CREDITVOUCHNATU vu
+		  where vu.NATU_IDCARD = #guarantor#
+		  and vu.STATUS = 0
+		  and vu.PRCD_ID = pc.ID
+		)
+		)
+	</select>
+	
+	<select id="getGuarByCreditId" parameterClass="map" resultClass="hashMap">
+		select distinct NATU_IDCARD as ID
+		,CUST_NAME as NAME
+		from T_PRJT_CREDITVOUCHNATU
+		where STATUS = 0
+		and CUST_NAME is not null
+		and CUST_NAME != ''
+		and PRCD_ID = #credit_id#
+		union
+		select distinct ORGANIZATION_CODE_CERTIFICATE as ID
+		,CORP_NAME_CN as NAME
+		from T_PRJT_VOUCHCUSTOMERCORP
+		where STATUS = 0
+		and CORP_NAME_CN is not null
+		and CORP_NAME_CN != ''
+		and PRCD_ID = #credit_id#
+	</select>
+	
+	<select id="getPayCountByCreditId" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0) from T_SUPL_PLAYDETIL
+		where CREDIT_ID = #creditId#
+		and STATE = 3
+	</select>
+	
+	<select id="getCreditNatuByName" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0)
+		from t_prjt_creditvouchnatu
+		where PRCD_ID = #credit_id#
+		and CUST_NAME = #natu_name#
+	</select>
+	
+	<select id="getRemainingMoneyByIncomeId" parameterClass="map" resultClass="java.math.BigDecimal">
+		SELECT (T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)+ISNULL(O2.RECORD_MONEY,0)) 
+		FROM T_RENT_INCOME T1 
+		LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+		  FROM T_RENT_RECORD T2 
+		  WHERE T2.STATUS=0
+		<![CDATA[  AND T2.RECORD_MONEY<0 ]]>
+		  AND (T2.RECORD_STATUS=0 OR T2.RECORD_STATUS=1)  
+		  GROUP BY T2.INCOME_ID) O1 ON T1.INCOME_ID=O1.INCOME_ID
+		LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+		  FROM T_RENT_RECORD T2 
+		  WHERE T2.STATUS=0
+		  AND T2.RECORD_MONEY>0 
+		  AND T2.RECORD_STATUS=1  
+		  GROUP BY T2.INCOME_ID) O2 ON T1.INCOME_ID=O2.INCOME_ID
+		WHERE T1.INCOME_ID = #incomeId#
+	</select>
+	
+	<select id="getRealRemainingMoneyByIncomeId" parameterClass="map" resultClass="java.math.BigDecimal">
+		SELECT (T1.INCOME_MONEY+ISNULL(O1.RECORD_MONEY,0)) 
+		FROM T_RENT_INCOME T1 
+		LEFT JOIN (SELECT SUM(T2.RECORD_MONEY) RECORD_MONEY,T2.INCOME_ID 
+		  FROM T_RENT_RECORD T2 
+		  WHERE T2.STATUS=0
+		  AND T2.RECORD_STATUS=1
+		  GROUP BY T2.INCOME_ID) O1 ON T1.INCOME_ID=O1.INCOME_ID
+		WHERE T1.INCOME_ID = #incomeId#
+	</select>
+	
+	<select id="getInvalidCredit" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0)
+		from T_PRJT_CREDIT apc 
+		left join (
+		  select arc.CREDIT_ID, max(arc.FINISH_TIME) as FINISH_TIME
+		  from T_PRJT_RISK_CONTROL arc
+		  where arc.STATUS = 0
+		  and arc.STATE = 1
+		  group by arc.CREDIT_ID
+		) v on v.CREDIT_ID = apc.ID
+		where datediff(day, convert(date, v.FINISH_TIME), getdate()) > apc.VALID_DAY
+		and apc.STATUS = 0
+		and apc.FINANCECONTRACT_DATE is null
+		and apc.ID = #creditId#
+	</select>
+	
+	<select id="getRemainingRental" parameterClass="map" resultClass="java.math.BigDecimal">
+		select sum(cd.IRR_MONTH_PRICE - isnull(cd.REDUCE_OWN_PRICE,0) - isnull(cd.REDUCE_ADDED_TAX_PRICE,0))
+		from T_RENT_CONTRACT rc
+		left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+		left join T_RENT_COLLECTIONDETAIL cd on cd.RECP_ID = cp.RECP_ID
+		where rc.STATUS = 0
+		and cp.STATUS = 0
+		and cd.STATUS = 0
+		and rc.PRCD_ID = #creditId#
+	</select>
+	
+	<select id="getTotalRental" parameterClass="map" resultClass="java.math.BigDecimal">
+		select top 1 isnull(si.MONTH_PRICE,pcd.MONTH_PRICE) as MONTH_PRICE
+		from T_PRJT_CREDIT pc
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		left join T_CUST_CUSTOMER cu on pc.CUST_ID = cu.CUST_ID
+		left join (
+		  select pcsi.PRCS_ID
+		  , sum((IRR_MONTH_PRICE_END - IRR_MONTH_PRICE_START + 1) * IRR_MONTH_PRICE) as MONTH_PRICE
+		  from T_PRJT_CREDITSCHEMEIRR pcsi
+		  where pcsi.STATUS = 0
+		  and pcsi.PRCI_STATUS = 0
+		  group by pcsi.PRCS_ID
+		)si on si.PRCS_ID = ps.PRCS_ID
+		left join (
+		  select max(rc.PRCD_ID) as credit_id
+		  , sum(cd.IRR_MONTH_PRICE) as MONTH_PRICE
+		  from T_RENT_CONTRACT rc
+		  left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+		  left join T_RENT_COLLECTIONDETAIL cd on cd.RECP_ID = cp.RECP_ID
+		  where rc.STATUS = 0
+		  and cp.STATUS = 0
+		  and cd.STATUS = 0
+		  group by cp.RECP_ID
+		) pcd on pcd.credit_id = pc.ID
+		where pc.STATUS = 0
+		and pc.ID = #creditId#
+	</select>
+	
+	<select id="getRemainingPeriodNum" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0)
+		from T_RENT_CONTRACT rc
+		left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+		left join T_RENT_COLLECTIONDETAIL cd on cd.RECP_ID = cp.RECP_ID
+		where rc.STATUS = 0
+		and cp.STATUS = 0
+		and cd.STATUS = 0
+		and rc.PRCD_ID = #creditId#
+		and cd.IRR_MONTH_PRICE - isnull(cd.REDUCE_OWN_PRICE,0) - isnull(cd.REDUCE_ADDED_TAX_PRICE,0) > 0
+	</select>
+	
+	<select id="getValidProjectBySuplId" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0) 
+		from T_PRJT_CREDIT pc
+		left join T_RENT_CONTRACT rc on rc.PRCD_ID = pc.ID
+		left join T_RENT_COLLECTIONPLAN cp on cp.RECT_ID = rc.RECT_ID
+		where pc.STATUS = 0
+		and exists (
+		  select pe.CREDIT_ID 
+		  from T_PRJT_CREDITEQUIPMENT pe
+		  left join T_SUPL_EQUIPMENT se on pe.SUEQ_ID = se.SUEQ_ID
+		  where se.SUPPLIER_ID = #suplId#
+		  and pe.CREDIT_ID = pc.ID
+		) and pc.FINANCECONTRACT_DATE is not null
+		and rc.STATUS = 0
+		and cp.STATUS = 0
+		and cp.RECP_STATUS = 0
+	</select>
+	
+	<select id="getCreditIdByPayId" parameterClass="map" resultClass="java.lang.Integer">
+	    select credit_id from T_SUPL_PLAYDETIL  where ID = #payId#    
+	</select>
+	
+	<select id="getInvoiceUsedLine" parameterClass="map" resultClass="java.lang.Double">
+	    select count(0) from (
+			select pinvo.ID
+			from T_PRJT_INVOICE pinvo
+			left join T_PRJT_CREDITEQUIPMENT pe on pe.CREDIT_ID = pinvo.CREDIT_ID
+			left join T_SUPL_EQUIPMENT se on se.SUEQ_ID = pe.SUEQ_ID
+			where se.SUPPLIER_ID = #supl_id#
+			and pinvo.STATUS = 0
+			group by pinvo.ID
+		) t
+	</select>
+	
+	<select id="getInvoiceReusedLine" parameterClass="map" resultClass="java.lang.Double">
+	    select count(0) from (
+			select pinvo.ID
+			from T_PRJT_INVOICE pinvo
+			left join T_PRJT_CREDITEQUIPMENT pe on pe.CREDIT_ID = pinvo.CREDIT_ID
+			left join T_SUPL_EQUIPMENT se on se.SUEQ_ID = pe.SUEQ_ID
+			where se.SUPPLIER_ID = #supl_id#
+			and pinvo.STATUS = 0
+			and pinvo.INVOICE_STATUS = 1
+			group by pinvo.ID
+		) t
+	</select>
+	
+
+	<select id="getRectIdByRecpId" parameterClass="map" resultClass="java.lang.String">
+	    select rect_id from T_RENT_COLLECTIONPLAN where RECP_ID = #recpId#    
+	</select>
+
+	<update id="updateCompanyCode" parameterClass="map">
+		update T_PRJT_CREDIT
+		set COMPANY_CODE = #companyCode#
+		where ID = #creditId#
+	</update>
+
+	
+	<select id="getCompanyCodeByPayId" parameterClass="map" resultClass="java.lang.Integer">
+		select COMPANY_CODE from T_SUPL_PLAYDETIL
+		where ID = #payId#
+	</select>
+	
+	<select id="getTRByCreditId" parameterClass="map" resultClass="java.lang.Double">
+		select isnull(TR_IRR_RATE, 0)
+		from T_PRJT_CREDITSCHEME
+		where STATUS = 0
+		and CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getLeaseRzeByCreditId" parameterClass="map" resultClass="java.lang.Double">
+		select isnull(LEASE_RZE, 0)
+		from T_PRJT_CREDITSCHEME
+		where STATUS = 0
+		and CREDIT_ID = #creditId#
+	</select>
+	
+	<select id="getAssistantByDecp" parameterClass="map" resultClass="java.lang.String">
+		select u.ID
+		from T_USER_USER u
+		left join T_DEPT_DEPARTMENT dp on u.DEPT_ID = dp.ID
+		where u.STATUS = 0
+		and u.[JOB] = '8'
+		and dp.DECP_ID = #decpId#
+	</select>
+	
+	<select id="getScoreByCreditId" parameterClass="map" resultClass="java.lang.Integer">
+		select top 1 SCORE 
+		From T_PRJT_RISK_CONTROL
+		where CREDIT_ID = #creditId#
+		and STATUS = 0
+		and STATE = 1
+	</select>
+	
+</sqlMap>

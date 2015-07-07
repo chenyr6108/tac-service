@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="shopping">
+	
+	<select id="getShoppingCartByUserId" parameterClass="com.brick.support.shopping.to.ShoppingCartTO" resultClass="com.brick.support.shopping.to.ShoppingCartTO">
+		select top 1 ID as id
+		, [USER_ID] as user_id
+		, ITEMS as items
+		, ITEM_TYPE as item_type
+		, STATUS as status
+		from T_PAY_CART
+		where [USER_ID] = #user_id#
+		and ITEM_TYPE = #item_type#
+		and STATUS = 0
+	</select>
+	
+	<update id="updateCart" parameterClass="com.brick.support.shopping.to.ShoppingCartTO">
+		update T_PAY_CART
+		set ITEMS = #items#
+		where [USER_ID] = #user_id#
+		and STATUS = 0
+	</update>
+	
+	<insert id="insertCart" parameterClass="com.brick.support.shopping.to.ShoppingCartTO">
+		insert into T_PAY_CART (
+		   [USER_ID]
+		  ,ITEMS
+		  ,ITEM_TYPE
+		  ,STATUS
+		) VALUES (
+		   #user_id#
+		  ,#items#
+		  ,#item_type#
+		  ,0
+		)
+	</insert>
+	
+	<select id="getPayOrderCodeByCode" parameterClass="com.brick.support.shopping.to.PayOrderTO" resultClass="java.lang.String">
+		select top 1 ORDER_CODE 
+		from T_PAY_ORDER
+		where ORDER_CODE like '$order_code$%'
+		order by CREATE_DATE desc
+	</select>
+	
+	<insert id="insertPayOrder" parameterClass="com.brick.support.shopping.to.PayOrderTO">
+		insert into T_PAY_ORDER (
+		   CREATE_DATE
+		  ,MODIFY_DATE
+		  ,CREATE_BY
+		  ,MODIFY_BY
+		  ,STATUS
+		  ,ORDER_TYPE
+		  ,ORDER_CODE
+		  ,ORDER_MONEY
+		) VALUES (
+		   getdate()
+		  ,getdate()
+		  ,#create_by#
+		  ,#create_by#
+		  ,#status#
+		  ,#order_type#
+		  ,#order_code#
+		  ,#order_money#
+		)
+		<selectKey resultClass="java.lang.String" keyProperty="id">
+			<![CDATA[	select @@IDENTITY as id  ]]>
+		</selectKey>
+	</insert>
+	
+	<insert id="insertPayOrderList" parameterClass="com.brick.support.shopping.to.PayOrderListTO">
+		insert into T_PAY_ORDER_LIST (
+		   ORDER_ID
+		  ,ITEM_ID
+		  ,ITEM_TYPE
+		  ,STATUS
+		  ,CREATE_DATE
+		  ,CREATE_BY
+		) VALUES (
+		   #order_id#
+		  ,#item_id#
+		  ,#item_type#
+		  ,#status#
+		  ,getdate()
+		  ,#create_by#
+		)
+	</insert>
+	
+	<update id="updatePayOrderLink" parameterClass="com.brick.support.shopping.to.PayOrderTO">
+		update T_PAY_ORDER set ORDER_LINK = #order_link#
+		where ID = #id#
+	</update>
+	
+</sqlMap>

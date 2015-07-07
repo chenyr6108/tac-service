@@ -1,0 +1,598 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="payMoney">
+	<!--  query -->
+	<select id="queryPayMoney_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ select COUNT(1) from (
+					select  	T1.ID,
+							T1.CREDIT_ID,
+							T2.LEASE_CODE,
+							T1.PAY_MONEY,
+							T3.CUST_NAME,
+							T4.NAME AREA,
+							T5.NAME CLERK_NAME,
+							T6.NAME SENSOR_NAME,
+							T1.BACKCOMP BRAND,
+							T9.LESSOR_TIME,
+							T1.STATE,
+							T1.DEPARTMENTSTATUS,
+							t1.EXAMSTATUS,
+							t1.FINANCIALSTATUS,
+							t1.MANAGER,
+							t1.BACKTYPE,
+							t1.BACKSTATE,t1.EXPECTEDDATE,
+							T1.PAY_DATE,
+							T2.CREDIT_RUNCODE CREDIT_RUNCODE
+							FROM T_SUPL_PLAYDETIL T1
+							LEFT JOIN T_PRJT_CREDIT T2 ON T1.CREDIT_ID = T2.ID
+							LEFT JOIN T_CUST_CUSTOMER T3 ON T2.CUST_ID = T3.CUST_ID
+							LEFT JOIN T_AREA T4 ON T2.PROVINCE_ID = T4.ID
+							LEFT JOIN T_USER_USER T5 ON T2.CLERK_ID = T5.ID
+							LEFT JOIN T_USER_USER T6 ON T2.SENSOR_ID = T6.ID
+							LEFT JOIN T_PRJT_CREDITEQUIPMENT T8 ON T2.ID = T8.CREDIT_ID
+							LEFT JOIN T_RENT_CONTRACT T9 ON T9.PRCD_ID = T2.ID
+							where  t1.STATE in (1,3,4) and T1.DEPARTMENTSTATUS='1'
+							and t1.EXAMSTATUS='1'
+							and t1.FINANCIALSTATUS='1'
+							and t1.MANAGER='1'
+							and T1.BACKSTATE = #BACKSTATE#
+							
+			]]>
+			<!--<isEqual prepend="and" property="p_usernode" compareValue="1">
+		  	 	<![CDATA[ T1.sensor_id = #s_employeeId# ]]>
+		  	</isEqual>-->
+		  	
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(T2.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' OR T3.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+				  OR T5.NAME LIKE '%$QSEARCH_VALUE$%' OR T6.NAME LIKE '%$QSEARCH_VALUE$%' OR T9.LEASE_CODE LIKE '%$QSEARCH_VALUE$%')
+				  ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+			<!-- 实际支付日页面拿的是PAY_DATE 所以此处写错 add by ShenQi -->
+				 <!-- T1.EXPECTEDDATE&gt;=cast(#QSTART_DATE# as datetime) --> 
+				 CONVERT(date,T1.PAY_DATE)&gt;=CONVERT(date,#QSTART_DATE#)
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+				 <!-- T1.EXPECTEDDATE&lt;=cast(#QEND_DATE# as datetime) -->
+				 CONVERT(date,T1.PAY_DATE)&lt;=CONVERT(date,#QSTART_DATE#)
+			</isNotEmpty>
+			<isNotEmpty prepend="" property="QSELECT_STATUS">
+				<isNotEqual prepend="" property="QSELECT_STATUS" compareValue="-2">
+					<isEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ T9.RECT_STATUS is null ]]>
+					</isEqual>
+					<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ T9.RECT_STATUS = #QSELECT_STATUS# ]]>
+					</isNotEqual>
+				</isNotEqual>
+			</isNotEmpty>
+			<isNotEmpty property="RENTSTAUTS">
+		  	<isNotEqual prepend="and" property="RENTSTAUTS" compareValue="-3">
+		  		 T9.status=#RENTSTAUTS#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+			
+		<![CDATA[
+		  GROUP BY 
+							T1.ID,
+							T1.CREDIT_ID,
+							T2.LEASE_CODE,
+							T1.PAY_MONEY,
+							T3.CUST_NAME,
+							T4.NAME,
+							T5.NAME,
+							T6.NAME,
+							T9.LESSOR_TIME,
+							T1.STATE,
+							T1.DEPARTMENTSTATUS,
+							t1.EXAMSTATUS,
+							t1.FINANCIALSTATUS,
+							t1.MANAGER,
+							t1.BACKTYPE,
+							t1.BACKSTATE,
+							t1.EXPECTEDDATE,
+							T1.PAY_DATE,
+							T2.CREDIT_RUNCODE,T1.BACKCOMP
+		) t
+			 ]]>
+	</select>
+	<select id="queryPayMoney" parameterClass="map" resultClass="java.util.HashMap">
+	<!-- 
+		<![CDATA[ select  	T1.ID,
+							T1.CREDIT_ID,
+							T2.LEASE_CODE,
+							T1.PAY_MONEY,
+							T3.CUST_NAME,
+							T4.NAME AREA,
+							T5.NAME CLERK_NAME,
+							T6.NAME SENSOR_NAME,
+							max(T8.BRAND) BRAND,
+							T2.LESSOR_TIME,
+							T1.STATE,
+							T1.DEPARTMENTSTATUS,
+							t1.EXAMSTATUS,
+							t1.FINANCIALSTATUS,
+							t1.MANAGER,
+							t1.BACKTYPE,
+							t1.BACKSTATE,t1.EXPECTEDDATE,
+							T1.PAY_DATE
+							FROM T_SUPL_PLAYDETIL T1
+							LEFT JOIN T_RENT_CONTRACT T2 ON T1.RECT_ID = T2.RECT_ID
+							LEFT JOIN T_CUST_CUSTOMER T3 ON T2.CUST_ID = T3.CUST_ID
+							LEFT JOIN T_AREA T4 ON T2.PROVINCE_ID = T4.ID
+							LEFT JOIN T_USER_USER T5 ON T2.CLERK_ID = T5.ID
+							LEFT JOIN T_USER_USER T6 ON T2.SENSOR_ID = T6.ID
+							LEFT JOIN T_PRJT_CREDITEQUIPMENT T8 ON (
+							select T7.ID from T_PRJT_CREDIT T7 WHERE T2.LEASE_CODE = T7.LEASE_CODE) = T8.CREDIT_ID
+							where  t1.STATE in (1,3,4) and T1.DEPARTMENTSTATUS='1'
+							and t1.EXAMSTATUS='1'
+							and t1.FINANCIALSTATUS='1'
+							and t1.MANAGER='1'
+							and T1.BACKSTATE = #BACKSTATE# 
+			]]>
+			-->
+			<![CDATA[
+				select  	T1.ID,
+							T1.CREDIT_ID,
+							T2.LEASE_CODE,
+							T1.PAY_MONEY,
+							T3.CUST_NAME,
+							T4.NAME AREA,
+							T5.NAME CLERK_NAME,
+							T6.NAME SENSOR_NAME,
+							T1.BACKCOMP BRAND,
+							T9.LESSOR_TIME,
+							T1.STATE,
+							T1.DEPARTMENTSTATUS,
+							t1.EXAMSTATUS,
+							t1.FINANCIALSTATUS,
+							t1.MANAGER,
+							t1.BACKTYPE,
+							t1.BACKSTATE,t1.EXPECTEDDATE,
+							T1.PAY_DATE,
+							T2.CREDIT_RUNCODE CREDIT_RUNCODE,t1.FSS_ID
+							FROM T_SUPL_PLAYDETIL T1
+							LEFT JOIN T_PRJT_CREDIT T2 ON T1.CREDIT_ID = T2.ID
+							LEFT JOIN T_CUST_CUSTOMER T3 ON T2.CUST_ID = T3.CUST_ID
+							LEFT JOIN T_AREA T4 ON T2.PROVINCE_ID = T4.ID
+							LEFT JOIN T_USER_USER T6 ON T2.SENSOR_ID = T6.ID
+							LEFT JOIN T_USER_USER T5 ON T6.upper_user = T5.ID
+							LEFT JOIN T_PRJT_CREDITEQUIPMENT T8 ON T2.ID = T8.CREDIT_ID
+							LEFT JOIN T_RENT_CONTRACT T9 ON T9.PRCD_ID = T2.ID
+							where  t1.STATE in (1,3,4) and T1.DEPARTMENTSTATUS='1'
+							and t1.EXAMSTATUS='1'
+							and t1.FINANCIALSTATUS='1'
+							and t1.MANAGER='1'
+							and T1.BACKSTATE = #BACKSTATE#
+			]]>
+			<isNotEmpty prepend="and" property="companyCode">
+  					T2.company_code = #companyCode#
+			</isNotEmpty>
+			<isEqual property="PAY_ORDER" compareValue="1">
+					AND T1.PAY_ORDER=1
+			</isEqual>
+			<isNotEqual property="PAY_ORDER" compareValue="1">
+				<isEqual property="PAY_ORDER" compareValue="0">
+				
+				</isEqual>
+				<isNotEqual property="PAY_ORDER" compareValue="0">
+					AND (T1.PAY_ORDER!=1 OR T1.PAY_ORDER IS NULL)
+				</isNotEqual>
+			</isNotEqual>
+		  	<isNotEmpty prepend="and" property="PLAYDETIL_STATE">
+		  			t1.STATE = #PLAYDETIL_STATE#
+		  	</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSEARCH_VALUE">
+				<![CDATA[
+					(T2.LEASE_CODE LIKE '%$QSEARCH_VALUE$%' OR T3.CUST_NAME LIKE '%$QSEARCH_VALUE$%'
+				  OR T5.NAME LIKE '%$QSEARCH_VALUE$%' OR T6.NAME LIKE '%$QSEARCH_VALUE$%' OR T9.LEASE_CODE LIKE '%$QSEARCH_VALUE$%'
+				  or T2.CREDIT_RUNCODE LIKE '%$QSEARCH_VALUE$%')
+				  ]]>
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QSTART_DATE">
+				 CONVERT(date,T1.PAY_DATE) &gt;= CONVERT(date,#QSTART_DATE#)
+			</isNotEmpty>
+			<isNotEmpty prepend="and" property="QEND_DATE">
+				 CONVERT(date,T1.PAY_DATE) &lt;= CONVERT(date,#QEND_DATE#) 
+			</isNotEmpty>
+			<isNotEmpty prepend="" property="QSELECT_STATUS">
+				<isNotEqual prepend="" property="QSELECT_STATUS" compareValue="-2">
+					<isEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t9.RECT_STATUS is null ]]>
+					</isEqual>
+					<isNotEqual prepend="and" property="QSELECT_STATUS" compareValue="-1">
+						<![CDATA[ t9.RECT_STATUS = #QSELECT_STATUS# ]]>
+					</isNotEqual>
+				</isNotEqual>
+			</isNotEmpty>
+			<isNotEmpty property="RENTSTAUTS">
+		  	<isNotEqual prepend="and" property="RENTSTAUTS" compareValue="-3">
+		  		 t9.status=#RENTSTAUTS#
+		  	</isNotEqual> 
+		  	</isNotEmpty>
+		  	<!-- 
+		  	<![CDATA[ 
+		  	GROUP BY 
+							T1.ID,
+							T1.RECT_ID,
+							T2.LEASE_CODE,
+							T1.PAY_MONEY,
+							T3.CUST_NAME,
+							T4.NAME,
+							T5.NAME,
+							T6.NAME,
+							T2.LESSOR_TIME,
+							T1.STATE,
+							T1.DEPARTMENTSTATUS,
+							t1.EXAMSTATUS,
+							t1.FINANCIALSTATUS,
+							t1.MANAGER,
+							t1.BACKTYPE,
+							t1.BACKSTATE,
+							t1.EXPECTEDDATE,
+							T1.PAY_DATE
+							order by T1.STATE,T1.PAY_DATE desc,T1.ID desc
+		]]>
+		 -->
+		 <![CDATA[
+							GROUP BY 
+							T1.ID,
+							T1.CREDIT_ID,
+							T2.LEASE_CODE,
+							T1.PAY_MONEY,
+							T3.CUST_NAME,
+							T4.NAME,
+							T5.NAME,
+							T6.NAME,
+							T9.LESSOR_TIME,
+							T1.STATE,
+							T1.DEPARTMENTSTATUS,
+							t1.EXAMSTATUS,
+							t1.FINANCIALSTATUS,
+							t1.MANAGER,
+							t1.BACKTYPE,
+							t1.BACKSTATE,
+							t1.EXPECTEDDATE,
+							T1.PAY_DATE,
+							T2.CREDIT_RUNCODE,t1.FSS_ID,T1.BACKCOMP
+		 ]]>
+	</select>
+	
+	<select id="queryPayMoneyByInsurance_count" parameterClass="map" resultClass="java.lang.Integer">
+		<![CDATA[ select  	count(*)
+							FROM T_SUPL_PLAYDETIL T1
+							where T1.STATUS = null or T1.STATUS = 0 and t1.STATE in (1,3,4) and T1.DEPARTMENTSTATUS='1'
+							and t1.EXAMSTATUS='1'
+							and t1.FINANCIALSTATUS='1'
+							and t1.MANAGER='1'
+							and T1.BACKSTATE = #BACKSTATE# 
+			]]>
+		  
+	</select>
+	
+	
+	<select id="queryPayMoneyByInsurance" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[ select  	t1.*
+							FROM T_SUPL_PLAYDETIL T1
+							
+							where T1.STATUS = null or T1.STATUS = 0 and t1.STATE in (1,3,4) and T1.DEPARTMENTSTATUS='1'
+							and t1.EXAMSTATUS='1'
+							and t1.FINANCIALSTATUS='1'
+							and t1.MANAGER='1'
+							and T1.BACKSTATE = #BACKSTATE# 
+			]]>
+	</select>
+	
+	
+	<select id="payMoneyManager" parameterClass="map" resultClass="java.util.HashMap">
+	<!-- 
+		<![CDATA[
+			select top 1 t.RECT_ID,t.LEASE_CODE,t1.CUST_NAME,T3.START_DATE,T3.LEASE_TOPRIC,T3.LEASE_TOPRIC LEASE_TOPRIC1,T3.PLEDGE_REALPRIC,T3.PLEDGE_AVE_PRICE
+,T3.PLEDGE_BACK_PRICE,T3.PLEDGE_LAST_PRICE,T3.PLEDGE_ENTER_CMRATE,T3.PLEDGE_ENTER_MCTOAG,T3.PLEDGE_ENTER_CMPRICE, T3.PLEDGE_ENTER_AGRATE,T3.PLEDGE_ENTER_AG,T3.PLEDGE_ENTER_MCTOAGRATE,t6.NAME,getDate() as time,T8.ID,T8.APPLICATION_DATE,
+T8.BANK_ACCOUNT,T8.BANK_NAME,T8.PAY_DATE,T8.PAY_MONEY,T8.PAY_WAY,T8.PAYCOUNT,T8.PAYED,T8.BACKSTATE,T9.FLAG,T10.NAME USERNAME,t8.BACKCOMP,t8.EXPECTEDDATE,t8.STATE
+from T_RENT_CONTRACT t 
+LEFT JOIN T_CUST_CUSTOMER T1 ON T.CUST_ID = T1.CUST_ID
+LEFT JOIN T_PRJT_CREDIT T2 ON t.PRCD_ID=T2.ID
+LEFT JOIN t_prjt_creditscheme T3 ON T3.CREDIT_ID=T2.ID
+LEFT JOIN T_PRJT_CREDITEQUIPMENT T4 ON T2.ID = T4.CREDIT_ID
+left join T_SUPL_EQUIPMENT t5 on t4.sueq_id=t5.sueq_id
+left join T_SUPL_SUPPLIER t6 on t5.supplier_id=t6.id
+LEFT JOIN T_SUPL_SUPPLIERBANKACCOUNT T7 ON  T7.SUPL_ID=t6.ID
+LEFT JOIN T_SUPL_PLAYDETIL T8 ON  T8.RECT_ID=t.RECT_ID
+LEFT JOIN T_DATA_DICTIONARY T9 ON  T8.PAY_WAY=T9.DATA_ID
+LEFT JOIN T_USER_USER T10 ON T10.ID=T8.MODIFY_ID
+where t.STATUS='0' and T3.STATUS='0' and t.RECT_ID=#RECT_ID# and T8.ID=#payMoneyId#
+group by t.LEASE_CODE,t1.CUST_NAME,T3.START_DATE,T3.LEASE_TOPRIC,T3.PLEDGE_REALPRIC,T3.PLEDGE_AVE_PRICE
+,T3.PLEDGE_BACK_PRICE,T3.PLEDGE_LAST_PRICE,T3.PLEDGE_ENTER_CMRATE,T3.PLEDGE_ENTER_MCTOAG,T3.PLEDGE_ENTER_CMPRICE, T3.PLEDGE_ENTER_AGRATE,T3.PLEDGE_ENTER_AG,T3.PLEDGE_ENTER_MCTOAGRATE,t6.NAME,t.RECT_ID,T8.ID,T8.APPLICATION_DATE,
+T8.BANK_ACCOUNT,T8.BANK_NAME,T8.PAY_DATE,T8.PAY_MONEY,T8.PAY_WAY,T8.PAYCOUNT,T8.PAYED,T8.BACKSTATE,T9.FLAG,T10.NAME,t8.BACKCOMP,t8.EXPECTEDDATE,t8.STATE
+		]]>
+		-->
+		<![CDATA[
+			select top 1 t.ID CREDIT_ID,t.LEASE_CODE,t1.CUST_NAME,T3.START_DATE,T3.LEASE_TOPRIC,T3.LEASE_TOPRIC LEASE_TOPRIC1,T3.PLEDGE_REALPRIC,T3.PLEDGE_AVE_PRICE
+,T3.PLEDGE_BACK_PRICE,T3.PLEDGE_LAST_PRICE,T3.PLEDGE_ENTER_CMRATE,T3.PLEDGE_ENTER_MCTOAG,T3.PLEDGE_ENTER_CMPRICE, T3.PLEDGE_ENTER_AGRATE,T3.PLEDGE_ENTER_AG,T3.PLEDGE_ENTER_MCTOAGRATE,t6.NAME,getDate() as time,T8.ID,T8.APPLICATION_DATE,
+T8.BANK_ACCOUNT,T8.BANK_NAME,T8.PAY_DATE,T8.PAY_MONEY,T8.PAY_WAY,T8.PAYCOUNT,T8.PAYED,T8.BACKSTATE,T9.FLAG,T10.NAME USERNAME,t8.BACKCOMP,t8.EXPECTEDDATE,t8.STATE,T.FINANCECONTRACT_DATE,t.LESSOR_TIME
+from T_PRJT_CREDIT t 
+LEFT JOIN T_CUST_CUSTOMER T1 ON T.CUST_ID = T1.CUST_ID
+LEFT JOIN T_RENT_CONTRACT T2 ON t.ID=T2.PRCD_ID
+LEFT JOIN t_prjt_creditscheme T3 ON T3.CREDIT_ID=T.ID
+LEFT JOIN T_PRJT_CREDITEQUIPMENT T4 ON T.ID = T4.CREDIT_ID
+left join T_SUPL_EQUIPMENT t5 on t4.sueq_id=t5.sueq_id
+left join T_SUPL_SUPPLIER t6 on t5.supplier_id=t6.id
+LEFT JOIN T_SUPL_SUPPLIERBANKACCOUNT T7 ON  T7.SUPL_ID=t6.ID
+LEFT JOIN T_SUPL_PLAYDETIL T8 ON  T8.CREDIT_ID=t.ID
+LEFT JOIN T_DATA_DICTIONARY T9 ON  T8.PAY_WAY=T9.CODE AND T9.type=#dataType# AND T9.STATUS = 0
+LEFT JOIN T_USER_USER T10 ON T10.ID=T8.MODIFY_ID
+where t.STATUS='0' and T3.STATUS='0' and t.ID=#CREDIT_ID# and T8.ID=#payMoneyId#
+group by t.LEASE_CODE,t1.CUST_NAME,T3.START_DATE,T3.LEASE_TOPRIC,T3.PLEDGE_REALPRIC,T3.PLEDGE_AVE_PRICE
+,T3.PLEDGE_BACK_PRICE,T3.PLEDGE_LAST_PRICE,T3.PLEDGE_ENTER_CMRATE,T3.PLEDGE_ENTER_MCTOAG,T3.PLEDGE_ENTER_CMPRICE, T3.PLEDGE_ENTER_AGRATE,T3.PLEDGE_ENTER_AG,T3.PLEDGE_ENTER_MCTOAGRATE,t6.NAME,t.ID,T8.ID,T8.APPLICATION_DATE,
+T8.BANK_ACCOUNT,T8.BANK_NAME,T8.PAY_DATE,T8.PAY_MONEY,T8.PAY_WAY,T8.PAYCOUNT,T8.PAYED,T8.BACKSTATE,T9.FLAG,T10.NAME,t8.BACKCOMP,t8.EXPECTEDDATE,t8.STATE,T.FINANCECONTRACT_DATE,t.LESSOR_TIME
+		]]>
+	</select>
+	
+	<!-- 查看 -->
+	<select id="payMoneyManagerInsurance" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select getDate() as time,T8.ID,T8.APPLICATION_DATE,
+T8.BANK_ACCOUNT,T8.BANK_NAME,T8.PAY_DATE,T8.PAY_MONEY,T8.PAY_WAY,T8.PAYCOUNT,T8.PAYED,t8.BACKCOMP,t8.EXPECTEDDATE,t1.FLAG
+from  T_SUPL_PLAYDETIL T8 
+left join T_DATA_DICTIONARY t1 on t1.DATA_ID=T8.PAY_WAY
+where T8.STATUS=0 and T8.ID=#payMoneyId#
+group by T8.ID,T8.APPLICATION_DATE,
+T8.BANK_ACCOUNT,T8.BANK_NAME,T8.PAY_DATE,T8.PAY_MONEY,T8.PAY_WAY,T8.PAYCOUNT,T8.PAYED,t8.BACKCOMP,t8.EXPECTEDDATE,t1.FLAG
+		]]>
+	</select>
+	
+	<!-- 导出 -->
+	<select id="payMoneyManagerInsurancePdf" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select getDate() as time,T8.ID,T8.APPLICATION_DATE,
+T8.BANK_ACCOUNT,T8.BANK_NAME,T8.PAY_DATE,T8.PAY_MONEY,T8.PAY_WAY,T8.PAYCOUNT,T8.PAYED,t8.BACKCOMP,t8.EXPECTEDDATE,T8.BACKSTATE,t1.FLAG
+from  T_SUPL_PLAYDETIL T8 
+left join T_DATA_DICTIONARY t1 on t1.DATA_ID=T8.PAY_WAY
+where T8.ID=#payMoneyId#
+group by T8.ID,T8.APPLICATION_DATE,
+T8.BANK_ACCOUNT,T8.BANK_NAME,T8.PAY_DATE,T8.PAY_MONEY,T8.PAY_WAY,T8.PAYCOUNT,T8.PAYED,t8.BACKCOMP,t8.EXPECTEDDATE,T8.BACKSTATE,t1.FLAG
+		]]>
+	</select>
+	
+	<!-- 导出设备清单 -->
+	<!--  Marked by Michael 2011 12/14 For 客服导出设备明细时，By保单号跑出设备汇总表，跑出总金额
+	<select id="expExcelEqmts" parameterClass="map" resultClass="java.util.HashMap">
+		select 
+			T2.INSU_START_DATE,
+			T2.INSU_END_DATE,
+			T4.LEASE_CODE,
+			T4.CUST_NAME,
+			T2.INSU_PRICE,
+			T2.INCU_CODE,
+			T5.THING_NAME,
+			T5.AMOUNT,T5.UNIT,
+			T6.RATE,
+			T5.UNIT_PRICE,
+			ISNULL(T5.AMOUNT,0)*ISNULL(T5.UNIT_PRICE,0)*ISNULL(T6.RATE,0)/1000 UNIT_INSU_PRICE
+		from T_PAY_INC_JOIN T1
+		LEFT JOIN T_INSU_INSURANCELIST T2 ON T1.INCID=T2.INCU_ID
+		LEFT JOIN T_INSU_EMPT2INSULIST T3 ON T3.INSU_ID=T1.INCID
+		LEFT JOIN T_RENT_CONTRACTDETAIL T5 ON T5.EQMT_ID=T3.EQMT_ID
+		LEFT JOIN T_RENT_CONTRACT T4 ON T4.RECT_ID=T5.RECT_ID
+		LEFT JOIN T_INSU_COMPANY T6 ON T6.INCP_ID=T2.INCP_ID
+		WHERE T1.PAYMONEYID=#payMoneyId#
+	</select>
+	-->
+	<!-- Add By Michael 2011 12/14 
+	For 客服导出设备明细时，By保单号跑出设备汇总表，跑出总金额
+	 -->
+	<select id="expExcelEqmts" parameterClass="map" resultClass="java.util.HashMap">
+		select T2.INSU_START_DATE,T2.INSU_END_DATE,T2.INCU_CODE,t7.LEASE_CODE,t7.CUST_NAME,t2.INSU_RATE,t2.INSU_PRICE,t2.INSU_PRICE_TOTAL 
+		,tttt.thing_name,tttt.num
+		from 
+		T_PAY_INC_JOIN t1
+		left join	
+		T_INSU_INSURANCELIST t2 on 	T1.INCID=T2.INCU_ID
+		LEFT JOIN 
+		(select INSU_ID,thing_name,COUNT(*) num from	
+		(select 	INSU_ID,thing_name=stuff((select ',' + [THING_NAME] from	
+		(select t222.THING_name,t111.INSU_ID from 
+						  T_INSU_EMPT2INSULIST t111
+						  left join 
+						  T_RENT_CONTRACTDETAIL t222
+						  on t111.EQMT_ID=t222.EQMT_ID 
+		) tt	
+		where tt.INSU_ID =	ttt.INSU_ID for xml path('')) , 1 , 1 , '')
+		from (select t222.THING_name,t111.INSU_ID from 
+						  T_INSU_EMPT2INSULIST t111
+						  left join 
+						  T_RENT_CONTRACTDETAIL t222
+						  on t111.EQMT_ID=t222.EQMT_ID 
+				) ttt
+		)ttt group by INSU_ID,thing_name) tttt
+		on tttt.INSU_ID=T1.INCID
+		LEFT JOIN T_INSU_COMPANY T6 ON T6.INCP_ID=T2.INCP_ID
+		left join T_RENT_CONTRACT t7 on t7.RECT_ID=t2.RECT_ID and t7.status=0
+		WHERE T1.PAYMONEYID=#payMoneyId#
+	</select>
+	
+	<!-- 通过 -->
+	<update id="payMoneyPass" parameterClass="map"><!-- pay_date需要是当前日期 modify by Shen Qi -->
+		<![CDATA[
+			update T_SUPL_PLAYDETIL 
+			   set STATE = 3,MODIFY_ID=#s_employeeId#,MODIFY_DATE=getDate(),pay_Date=getDate(),company_pay_date=getDate()
+			 where ID = #ID#
+			 ]]>
+	</update>
+		<!-- 通过 （乘用车委贷税费方案）-->
+	<update id="payMoneyPassForCar" parameterClass="map"><!-- pay_date需要是当前日期 modify by Shen Qi -->
+		<![CDATA[
+			update T_SUPL_PLAYDETIL 
+			   set STATE = 3,MODIFY_ID=#s_employeeId#,MODIFY_DATE=getDate(),company_pay_date=getDate()
+			 where ID = #ID#
+			 ]]>
+	</update>
+	<!-- 通过 -->
+	<update id="payMoneyBack" parameterClass="map">
+		<![CDATA[
+			update T_SUPL_PLAYDETIL 
+			   set STATE = 4,STATUS=1,MODIFY_ID=#s_employeeId#,MODIFY_DATE=getDate(),pay_Date=convert(datetime,convert(varchar,(#pay_Date#),23))
+			 where ID = #ID#
+			 ]]>
+	</update>
+	
+	<!-- 查找出合同号，承租人，主管电话，用于发送短信 -->
+	<select id="codeAndNameMobile" parameterClass="map" resultClass="java.util.HashMap">
+	<!-- 
+		<![CDATA[
+			select trc.LEASE_CODE,trc.CUST_NAME,tuu.MOBILE,trc.PRCD_ID from T_RENT_CONTRACT trc 
+					left join T_USER_USER tuu on tuu.ID = trc.CLERK_ID
+					where trc.RECT_ID = #rect_id#
+		]]>
+		-->
+		<![CDATA[
+		select	trc.LEASE_CODE,
+				T1.CUST_NAME,
+				tuu.MOBILE,
+				trc.ID CREDIT_ID 
+		from T_PRJT_CREDIT trc 
+			left join T_USER_USER tuu on tuu.ID = trc.CLERK_ID
+			LEFT JOIN T_CUST_CUSTOMER T1 ON T1.CUST_ID = trc.CUST_ID
+		where trc.ID = #CREDIT_ID#
+		]]>
+	</select>
+	
+	<!-- 查找出被拨款人电话号码用于发送短信 -->
+	<select id="userAndNameMobile" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select NAME,MOBILE from T_USER_USER where NAME=#bankComp# and STATUS=0
+		]]>
+	</select>
+	<!-- 取得上级领导手机号根据报告id -->
+	<select id="getUpNameMobile" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			SELECT O.* FROM (
+					SELECT 
+				T1.EMAIL ,(SELECT TT.EMAIL FROM t_user_user TT WHERE TT.STATUS = 0 AND TT.ID = T1.upper_user) as UPPER_EMAIL,
+				T1.MOBILE,(SELECT TT.MOBILE FROM t_user_user TT WHERE TT.STATUS = 0 AND TT.ID = T1.upper_user) as UPPER_MOBILE
+				,DECP.DECP_ID
+			FROM
+				T_PRJT_CREDIT T
+				LEFT JOIN T_USER_USER T1 ON T1.ID = T.SENSOR_ID AND T1.STATUS = 0
+				LEFT JOIN T_DEPT_DEPARTMENT DEPT ON DEPT.ID = T1.DEPT_ID
+  				LEFT JOIN T_DEPT_COMPANY DECP ON DECP.DECP_ID = DEPT.DECP_ID
+			WHERE 
+				T.STATUS = 0 
+				AND T.ID = #credit_id#
+        ) O
+        WHERE O.EMAIL IS NOT NULL
+          AND O.UPPER_EMAIL IS NOT NULL
+          AND O.MOBILE IS NOT NULL
+          AND O.UPPER_MOBILE IS NOT NULL
+          AND O.DECP_ID IS NOT NULL
+		]]>
+	</select>
+	<update id="updateCreditFinanceContractDate" parameterClass="map" >
+		<![CDATA[
+			UPDATE T_PRJT_CREDIT SET FINANCECONTRACT_DATE = getDate() WHERE ID = #CREDIT_ID#
+		]]> 
+	</update>
+	
+	<update id="updateCreditForOrg" parameterClass="map">
+		update T_PRJT_CREDIT 
+		set ORG_SENSOR_ID = #orgSensorId#
+		, ORG_UP_USER = #orgUpId#
+		, ORG_DECP_ID = #orgDecpId#
+		where ID = #CREDIT_ID# 
+	</update>
+	
+	<update id="updateContractForOrg" parameterClass="map">
+		update T_RENT_CONTRACT 
+		set ORG_SENSOR_ID = #orgSensorId#
+		, ORG_UP_USER = #orgUpId#
+		, ORG_DECP_ID = #orgDecpId#
+		where LEASE_CODE in (select c.LEASE_CODE from T_PRJT_CREDIT c
+		where c.id = #CREDIT_ID#)
+	</update>
+	
+	<select id="countPayOrder" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+	        SELECT TSPL.ID,TSPL.CREDIT_ID,TPC.CREDIT_RUNCODE
+	          FROM T_SUPL_PLAYDETIL TSPL
+	     LEFT JOIN T_PRJT_CREDIT TPC ON TPC.STATUS=0 AND TPC.ID=TSPL.CREDIT_ID
+	         WHERE TSPL.STATUS=0
+	           AND TSPL.BACKSTATE=0
+	           AND TSPL.DEPARTMENTSTATUS=1
+	           AND TSPL.EXAMSTATUS=1
+	           AND TSPL.FINANCIALSTATUS=1
+	           AND TSPL.MANAGER=1
+	           AND TSPL.STATE=3
+	           AND TSPL.CREDIT_ID=#CREDIT_ID#
+	      ORDER BY CONVERT(DATE,TSPL.PAY_DATE)
+	</select>
+	
+	<update id="updatePayOrder">
+		 UPDATE T_SUPL_PLAYDETIL SET PAY_ORDER=#NUMBER# WHERE ID=#ID#
+	</update>
+	
+	<!-- 取得退款的申请人及上级主管 -->
+	<select id="getReturnMoneyEmail" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select tuu.EMAIL,upper_user.EMAIL UPPER_EMAIL from T_INCOME_RETURN  tir 
+			left join T_USER_USER tuu on tir.CREATE_BY=tuu.ID
+			left join T_USER_USER upper_user on tuu.upper_user = upper_user.ID
+			where tir.ID = #RETURN_PAY_ID#
+		]]>
+	</select>	
+	
+	<!-- 取得手续费的申请人及上级主管 -->
+	<select id="getHandlingChargeEmail" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+			select tuu.EMAIL,upper_user.EMAIL UPPER_EMAIL 
+			from T_PAY_ORDER  po 
+			left join T_USER_USER tuu on po.CREATE_BY=tuu.ID
+			left join T_USER_USER upper_user on tuu.upper_user = upper_user.ID
+			where po.ID = #PO_ID#
+		]]>
+	</select>	
+	
+		<!-- 取得服务课人员据报告id -->
+	<select id="getProjectServicer" parameterClass="map" resultClass="java.util.HashMap" >
+		select t.ID ,u.NAME,u.EMAIL
+		from t_prjt_credit  t
+		left join T_USER_USER u on t.PROCESSER_ID = u.id WHERE t.ID= #credit_id#
+	</select>
+	
+	<select id="getAssistantMail" parameterClass="map" resultClass="java.lang.String">
+		select EMAIL from T_USER_USER u
+		where STATUS = 0
+		and (
+		  (
+		    [JOB] = '8'
+				and u.DEPT_ID in (
+				  select uc.DEPT_ID from T_USER_USER u
+				  left join T_USER_USER2COMPANY uc on uc.[USER_ID] = u.ID
+				  where u.ID in (
+				    select SENSOR_ID from T_PRJT_CREDIT
+				    where CUST_ID in (
+				      select CUST_ID from T_CUST_CUSTOMER
+				      where CUST_NAME in (
+				        select BACKCOMP from T_SUPL_PLAYDETIL
+				        where ID = #ID#
+				      )
+				    )
+				  )
+				)
+		  )
+		  or u.ID in (
+		    select SENSOR_ID from T_PRJT_CREDIT
+			    where CUST_ID in (
+			      select CUST_ID from T_CUST_CUSTOMER
+			      where CUST_NAME in (
+			        select BACKCOMP from T_SUPL_PLAYDETIL
+			        where ID = #ID#
+			      )
+			    )
+		  )
+		)
+	</select>
+	
+</sqlMap>

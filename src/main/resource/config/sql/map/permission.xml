@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="permission">
+
+
+
+	<select id="getAllResource_count" parameterClass="map"
+		resultClass="int">
+		SELECT COUNT(FPR1.ID) CNT
+        FROM fil_permission_resource fpr1
+		  left join fil_permission_resource fpr2 on fpr1.parent_id = fpr2.id
+		 where (fpr1.name like '%$content$%' or fpr1.layout like '%$content$%' or fpr2.name like '%$content$%')
+		  and fpr1.status = 0
+		  <dynamic prepend="and">
+		   	<isEqual compareValue="1" property="searchType">
+		   		(fpr1.parent_id is null or fpr1.parent_id=0)
+		   	</isEqual>
+		   		<isEqual compareValue="2" property="searchType">
+		   		(fpr1.parent_id is not null and fpr1.parent_id!=0)
+		   	</isEqual>
+		   </dynamic>
+	</select>
+
+	<select id="getAllResource" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT FPR2.NAME AS PARENT_NAME,
+	       FPR1.ID,
+	       FPR1.NAME,
+	       FPR1.LAYOUT,
+	       ISNULL(FPR1.PARENT_ID, 0) PARENT_ID,
+       FPR1.LEVEL_NUM,fpr1.PERMISSION_CODE
+		  FROM fil_permission_resource fpr1
+		  left join fil_permission_resource fpr2 on fpr1.parent_id = fpr2.id
+		 where (fpr1.name like '%$content$%' or fpr1.layout like '%$content$%' or fpr2.name like '%$content$%')
+		   and fpr1.status = 0
+		 <dynamic prepend="and">
+		   	<isEqual compareValue="1" property="searchType">
+		   		(fpr1.parent_id is null or fpr1.parent_id=0)
+		   	</isEqual>
+		   		<isEqual compareValue="2" property="searchType">
+		   		(fpr1.parent_id is not null and fpr1.parent_id!=0)
+		   	</isEqual>
+		   </dynamic>
+		 order by fpr2.name asc,fpr1.level_num desc
+
+	</select>
+	
+	<!-- 查询 资源-角色 对照 -->
+	<select id="getAllRes2Rol" parameterClass="map"
+		resultClass="java.util.HashMap">
+		select RESOURCE_ID, ROLE_ID,
+		(select min(CREATE_DATE) from FIL_PERMISSION_RESOURCE2ROLE where STATUS = 0) as MODIFY_DATE
+		from FIL_PERMISSION_RESOURCE2ROLE
+		where STATUS = 0
+	</select>
+	
+	<select id="getRes2RolMinModifyDate" resultClass="java.util.Date">
+		select min(CREATE_DATE) from FIL_PERMISSION_RESOURCE2ROLE
+		where STATUS = 0
+	</select>
+	
+	<!-- 查询所有资源 -->
+	<select id="getAllRes" parameterClass="map" resultClass="java.util.HashMap">
+		select * from (
+		select r1.NAME as PARENT_NAME,r.NAME, r.ID, r.LEVEL_NUM, r1.LEVEL_NUM as p_l
+		from FIL_PERMISSION_RESOURCE r
+		left join FIL_PERMISSION_RESOURCE r1 on r.PARENT_ID = r1.ID
+		where r.STATUS = 0 and r1.STATUS = 0 
+		and r.PARENT_ID is not null and r.PARENT_ID != 0
+		union all
+		select pr.NAME, '', pr.ID, -100, pr.LEVEL_NUM from FIL_PERMISSION_RESOURCE pr
+		where pr.STATUS = 0 and (pr.PARENT_ID = 0 or pr.PARENT_ID is null)
+		)t
+		order by t.p_l, t.LEVEL_NUM
+	</select>
+	<!-- 查询所有拥有用户的角色 -->
+	<select id="getAllRol" parameterClass="map"
+		resultClass="java.util.HashMap">
+		select ro.ID, ro.NAME FROM FIL_PERMISSION_ROLE ro
+		where STATUS = 0
+	</select>
+	<!-- 查询所有用户 -->
+	<select id="getAllUser" parameterClass="map" resultClass="java.util.HashMap">
+		select id, NAME from T_USER_USER
+		where STATUS = 0
+		and NAME not like '%$db$%'
+		and NAME not like '%$cs$%'
+		and NAME not like '%$xt$%'
+		order by NAME
+	</select>
+	<!-- 查询 用户-角色 对照 -->
+	<select id="getAllUser2Rol" parameterClass="map"
+		resultClass="java.util.HashMap">
+		select EMPLOYEE_ID, ROLE_ID,
+		(select min(CREATE_DATE) from T_USER_USER2ROLE where STATUS = 0) as MODIFY_DATE
+		from T_USER_USER2ROLE
+		where STATUS = 0
+	</select>
+	
+	<select id="getUser2RolMinModifyDate" resultClass="java.util.Date">
+		select min(CREATE_DATE) from T_USER_USER2ROLE
+		where STATUS = 0
+	</select>
+	
+	<!-- 更新权限。用户-角色 -->
+	<!-- 1. 删除旧权限 -->
+	<delete id="deleteAllUser2Rol">
+		delete from T_USER_USER2ROLE
+	</delete>
+	<insert id="addUser2Rol">
+		insert into T_USER_USER2ROLE
+		(EMPLOYEE_ID, ROLE_ID, STATUS, CREATE_DATE)
+		values (#EMPLOYEE_ID#, #ROLE_ID#, 0, getdate());
+	</insert>
+	
+	<!-- 更新权限。资源-角色 -->
+	<!-- 1. 删除旧权限 -->
+	<delete id="deleteAllRes2Rol">
+		delete from FIL_PERMISSION_RESOURCE2ROLE
+	</delete>
+	<insert id="addRes2Rol">
+		insert into FIL_PERMISSION_RESOURCE2ROLE
+		(RESOURCE_ID, ROLE_ID, STATUS, CREATE_DATE)
+		values (#RESOURCE_ID#, #ROLE_ID#, 0, getdate());
+	</insert>
+	
+	<select id="getEmployee_id" resultClass="java.lang.String" parameterClass="map">
+		select name from T_USER_USER
+		where ID = #select_id#
+	</select>
+	<select id="getRole_id" resultClass="java.lang.String" parameterClass="map">
+		select name from FIL_PERMISSION_ROLE
+		where ID = #select_id#
+	</select>
+	<select id="getResource_id" resultClass="java.lang.String" parameterClass="map">
+		select name from FIL_PERMISSION_RESOURCE
+		where ID = #select_id#
+	</select>
+	
+	<select id="getRes2Rol2User_count" parameterClass="map"
+		resultClass="int">
+		SELECT COUNT(0) CNT
+		FROM FIL_PERMISSION_RESOURCE RE
+		LEFT JOIN 
+		(SELECT RE.NAME AS RESNAME,RO.NAME AS ROLENAME,RR.ROLE_ID ,RR.RESOURCE_ID
+		FROM FIL_PERMISSION_RESOURCE2ROLE RR
+		LEFT JOIN FIL_PERMISSION_RESOURCE RE
+		ON RR.RESOURCE_ID = RE.ID
+		LEFT JOIN FIL_PERMISSION_ROLE RO
+		ON RR.ROLE_ID = RO.ID
+		WHERE RR.STATUS = 0
+		AND RE.STATUS = 0
+		AND RO.STATUS = 0
+		) AS TR
+		ON RE.ID = TR.RESOURCE_ID
+		LEFT JOIN 
+		(SELECT UR.EMPLOYEE_ID, U.NAME AS USERNAME, UR.ROLE_ID FROM T_USER_USER2ROLE UR
+		LEFT JOIN T_USER_USER U
+		ON UR.EMPLOYEE_ID = U.ID
+		WHERE UR.STATUS = 0
+		AND U.STATUS = 0
+		) AS TU
+		ON TR.ROLE_ID = TU.ROLE_ID
+		WHERE RE.STATUS = 0
+		<isNotEmpty prepend="and" property="username">
+			TU.USERNAME LIKE '%$username$%'
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="rolename">
+			TR.ROLENAME LIKE '%$rolename$%'
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="resname">
+			TR.RESNAME LIKE '%$resname$%'
+		</isNotEmpty>
+
+	</select>
+	
+	<select id="getRes2Rol2User" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT ISNULL(TU.USERNAME,'') AS USERNAME,TR.ROLENAME,TR.RESNAME  
+		FROM FIL_PERMISSION_RESOURCE RE
+		LEFT JOIN 
+		(SELECT RE.NAME AS RESNAME,RO.NAME AS ROLENAME,RR.ROLE_ID ,RR.RESOURCE_ID
+		FROM FIL_PERMISSION_RESOURCE2ROLE RR
+		LEFT JOIN FIL_PERMISSION_RESOURCE RE
+		ON RR.RESOURCE_ID = RE.ID
+		LEFT JOIN FIL_PERMISSION_ROLE RO
+		ON RR.ROLE_ID = RO.ID
+		WHERE RR.STATUS = 0
+		AND RE.STATUS = 0
+		AND RO.STATUS = 0
+		) AS TR
+		ON RE.ID = TR.RESOURCE_ID
+		LEFT JOIN 
+		(SELECT UR.EMPLOYEE_ID, U.NAME AS USERNAME, UR.ROLE_ID FROM T_USER_USER2ROLE UR
+		LEFT JOIN T_USER_USER U
+		ON UR.EMPLOYEE_ID = U.ID
+		WHERE UR.STATUS = 0
+		AND U.STATUS = 0
+		) AS TU
+		ON TR.ROLE_ID = TU.ROLE_ID
+		WHERE RE.STATUS = 0
+		<isNotEmpty prepend="and" property="username">
+			TU.USERNAME LIKE '%$username$%'
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="rolename">
+			TR.ROLENAME LIKE '%$rolename$%'
+		</isNotEmpty>
+		<isNotEmpty prepend="and" property="resname">
+			TR.RESNAME LIKE '%$resname$%'
+		</isNotEmpty>
+		ORDER BY $sortorder$ $ordertype$
+	</select>
+	
+	<select id="getSecondResources" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT ID,CONVERT(varchar,LEVEL_NUM)+'_'+CONVERT(varchar,NAME) NAME from fil_permission_resource where (parent_id is null or parent_id=0) and status=0 order by level_num
+	</select>
+
+	<statement id="create" parameterClass="map"
+		resultClass="java.util.HashMap">
+		insert into
+		fil_permission_resource(name,layout,memo,parent_id,status,create_date,modify_date,level_num,PERMISSION_CODE)
+		values(#name#,#layout#,#memo#,#parent_id#,0,getdate(),getdate(),#levelNum#,#code#)
+	</statement>
+
+	<statement id="invalid" parameterClass="map"
+		resultClass="java.util.HashMap">
+		update fil_permission_resource set status=1,modify_date=getdate()
+		where id=#id#
+	</statement>
+	
+	<delete id="deleteRes2Rol" parameterClass="map">
+		delete from FIL_PERMISSION_RESOURCE2ROLE
+		where RESOURCE_ID = #id#
+	</delete>
+
+	<select id="getResourceById" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT ID,NAME,PERMISSION_CODE,ISNULL(LAYOUT,'') LAYOUT,ISNULL(PARENT_ID,0)
+		PARENT_ID,MEMO,LEVEL_NUM from fil_permission_resource where id=#id#
+	</select>
+
+	<select id="getResourceByParentId" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT ID,NAME,ISNULL(LAYOUT,'') LAYOUT,ISNULL(PARENT_ID,0)
+		PARENT_ID,MEMO from fil_permission_resource where parent_id=#id#
+		and status=0
+	</select>
+
+	<statement id="update" parameterClass="map"
+		resultClass="java.util.HashMap">
+		update fil_permission_resource set
+		name=#name#,layout=#layout#,memo=#memo#,parent_id=#parent_id#,modify_date=getdate(),level_num=#levelNum#,PERMISSION_CODE=#code#
+		where id=#id#
+	</statement>
+
+	<!-- 根据角色ID，获取所有该角色未包含的资源个数 -->
+	<select id="getAllResousesNoForDeploy_count" parameterClass="map"
+		resultClass="int">
+		SELECT COUNT(FPR.ID) CNT
+		  from fil_permission_resource fpr
+		  left join (select *
+		               from fil_permission_resource2role
+		              where status = 0
+		                and role_id = #id#) fpr2r on fpr.id = fpr2r.resource_id
+		 where fpr.status = 0
+		   and fpr2r.role_id is null
+		<isNotEmpty prepend="and" property="content">
+			(fpr.name like '%$content$%' or fpr.layout like
+			'%$content$%')
+		</isNotEmpty>
+	</select>
+
+
+	<!-- 根据角色ID，获取所有该角色未包含的资源 -->
+	<select id="getAllResousesNoForDeploy" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT FPR.ID ID,
+       FPR.NAME NAME,
+       FPR.LAYOUT LAYOUT,
+       ISNULL(FPR.PARENT_ID, 0) PARENT_ID
+		  from fil_permission_resource fpr
+		  left join (select *
+		               from fil_permission_resource2role
+		              where status = 0
+		                and role_id = #id#) fpr2r on fpr.id = fpr2r.resource_id
+		 where fpr.status = 0
+		   and fpr2r.role_id is null
+		<isNotEmpty prepend="and" property="content">
+			(fpr.name like '%$content$%' or fpr.layout like
+			'%$content$%')
+		</isNotEmpty>
+		order by fpr.id desc
+	</select>
+
+	<!-- 根据角色ID，获取所有该角色已包含的资源 个数-->
+	<select id="getAllResousesForDeploy_count" parameterClass="map"
+		resultClass="int">
+		SELECT COUNT(FPR.ID) CNT from fil_permission_resource fpr left
+		join fil_permission_resource2role fpr2r on
+		fpr.id=fpr2r.resource_id where fpr.status = 0 and fpr2r.status=0
+		and fpr2r.role_id = #id#
+		<isNotEmpty prepend="and" property="content">
+			(fpr.name like '%$content$%' or fpr.layout like
+			'%$content$%')
+		</isNotEmpty>
+	</select>
+
+
+	<!-- 根据角色ID，获取所有该角色已包含的资源 -->
+	<select id="getAllResousesForDeploy" parameterClass="map"
+		resultClass="java.util.HashMap">
+		SELECT FPR.ID ID,FPR.NAME NAME,FPR.LAYOUT,fpr.LEVEL_NUM LEVEL_NUM,
+		LAYOUT,ISNULL(FPR.PARENT_ID,0) PARENT_ID from
+		fil_permission_resource fpr left join
+		fil_permission_resource2role fpr2r on fpr.id=fpr2r.resource_id
+		where fpr.status = 0 and fpr2r.status=0 and fpr2r.role_id = #id#
+		<isNotEmpty prepend="and" property="content">
+			(fpr.name like '%$content$%' or fpr.layout like
+			'%$content$%')
+		</isNotEmpty>
+		order by fpr.id desc
+	</select>
+	
+	<select id="checkAccessForRes" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0) from FIL_PERMISSION_RESOURCE2ROLE rr
+		where RESOURCE_ID = #res_id#
+		and exists(
+		  select ID from T_USER_USER2ROLE ur
+		  where ur.EMPLOYEE_ID = #s_employeeId#
+		  and ur.ROLE_ID = rr.ROLE_ID
+		)
+	</select>
+	
+	<select id="checkAccessForResByCode" parameterClass="com.brick.base.to.BaseTo" resultClass="java.lang.Integer">
+		select count(0) from FIL_PERMISSION_RESOURCE2ROLE rr
+		where RESOURCE_ID in (
+	      select ID from FIL_PERMISSION_RESOURCE
+	      where PERMISSION_CODE = #resource_code#
+	    )
+		and exists(
+		  select ID from T_USER_USER2ROLE ur
+		  where ur.EMPLOYEE_ID = #modify_by#
+		  and ur.ROLE_ID = rr.ROLE_ID
+		)
+	</select>
+	
+	<select id="getPermissionGroup" resultClass="com.brick.desk.to.DeskTO">
+		SELECT ID id,CODE code,NAME name
+		  FROM T_DESK_PERMISSION_GROUP
+		 WHERE STATUS=0
+	</select>
+	
+	<select id="checkIsExist" resultClass="java.lang.Integer">
+		SELECT COUNT(1) FROM T_DESK_PERMISSION_GROUP WHERE STATUS=0 AND CODE=#GROUP_CODE#
+	</select>
+	<insert id="insertPermissionGroup">
+		INSERT INTO T_DESK_PERMISSION_GROUP
+		(NAME,CODE,STATUS,LAST_UPDATED_BY)
+		VALUES
+		(#GROUP_NAME#,#GROUP_CODE#,0,#s_employeeId#)
+	</insert>
+	
+	<select id="getPermissionMap" resultClass="com.brick.desk.to.DeskTO">
+		SELECT DESK_CODE code FROM T_DESK_PERMISSION_MAP WHERE STATUS=0 AND GROUP_CODE=#id2#
+	</select>
+	
+	<update id="deletePermissionMap">
+		UPDATE T_DESK_PERMISSION_MAP SET STATUS=-1 WHERE GROUP_CODE=#id2#
+	</update>
+	<insert id="savePermissionMap">
+		INSERT INTO T_DESK_PERMISSION_MAP
+		(GROUP_CODE,DESK_CODE,STATUS)
+		VALUES
+		(#id2#,#auth#,0)
+	</insert>
+	
+	<update id="deletePermissionUser">
+		UPDATE T_DESK_USER_MAP SET STATUS=-1 WHERE GROUP_CODE=#id3#
+	</update>
+	
+	<insert id="savePermissionUser">
+		INSERT INTO T_DESK_USER_MAP
+		(GROUP_CODE,USER_ID,STATUS)
+		VALUES
+		(#id3#,#userId#,0)
+	</insert>
+	
+	<update id="deletePermissionGroup">
+		UPDATE T_DESK_PERMISSION_GROUP SET STATUS=-1 WHERE ID=#id#
+	</update>
+	
+	<select id="getPermissionList" resultClass="com.brick.desk.to.DeskTO">
+	    SELECT T.CODE code,T2.FLAG auth 
+	      FROM T_DESK_PERMISSION_GROUP T
+	 LEFT JOIN T_DESK_PERMISSION_MAP T1 ON T.CODE=T1.GROUP_CODE AND T1.STATUS=0
+	 LEFT JOIN T_DATA_DICTIONARY T2 ON T2.CODE=T1.DESK_CODE AND T2.STATUS=0 AND T2.[TYPE]=#type#
+	     WHERE T.STATUS=0
+	</select>
+	
+	<select id="getUserList" resultClass="com.brick.desk.to.DeskTO">
+		SELECT T.CODE code,T2.NAME userName
+		  FROM T_DESK_PERMISSION_GROUP T
+	 LEFT JOIN T_DESK_USER_MAP T1 ON T1.STATUS=0 AND T.CODE=T1.GROUP_CODE
+	 LEFT JOIN T_USER_USER T2 ON T2.STATUS=0 AND T2.ID=T1.USER_ID
+	     WHERE T.STATUS=0
+	       AND T2.[NAME] IS NOT NULL
+	</select>
+	
+	<select id="getPermissionUserList" resultClass="java.util.HashMap">
+		SELECT T2.ID,T2.NAME
+		  FROM T_DESK_USER_MAP T
+	 LEFT JOIN T_USER_USER T2 ON T.USER_ID=T2.ID AND T2.STATUS=0
+	     WHERE T.GROUP_CODE=#id3#
+	       AND T.STATUS=0
+	</select>
+	
+	<select id="getWelcomeDesk" resultClass="java.util.HashMap">
+		  SELECT T.CODE,T.FLAG
+		    FROM T_DATA_DICTIONARY T
+		   WHERE T.[TYPE]=#dataType#
+		     AND T.STATUS=0
+	</select>
+</sqlMap>

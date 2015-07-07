@@ -1,0 +1,1155 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="beforeMakeContract">
+	
+	<select id="selectnewCreditInfo" parameterClass="map" resultClass="hashmap">
+	select tpc.id credit_id, 
+           tpc.type   credit_type, 
+           tpc.CUST_ID CUST_ID,
+           tpc.credit_code CREDIT_CODE,
+           CONVERT(varchar,tpc.COMMIT_WIND_DATE,23) COMMIT_WIND_DATE,
+            tuu.NAME YINGYENAME,
+           tdc.DECP_NAME_CN DECP_NAME_CN,
+           tcc.CORP_ORAGNIZATION_CODE CORP_ORAGNIZATION_CODE,
+
+		   tpcct.LEGAL_PERSON LEGAL_PERSON,
+		   tpcct.BUSINESS_LICENCE_CODE BUSINESS_LICENCE_CODE,
+		   tpcct.ORGANIZATION_CODE_CERTIFICATE ORGCODE,
+		   tpcct.TAX_REGISTRATION_NUMBER TAX_REGISTRATION_NUMBER
+         
+		  from t_prjt_credit tpc
+		  left join t_cust_customer tcc on tpc.cust_id = tcc.cust_id
+		  left join t_user_user tuu on tuu.id = tpc.sensor_id
+		  left join t_dept_company tdc on tdc.decp_id = tpc.decp_id
+      	  left join t_area taa on taa.id = tpc.city_id
+		  left join t_prjt_creditcustomercorp tpccmp on tpccmp.credit_id=tpc.id
+		  left join t_prjt_natunal tpnl on tpnl.credit_id=tpc.id
+		  left join T_PRJT_CREDITCUSTOMERCORP tpcct on tpcct.CREDIT_ID = tpc.ID
+		 where tpc.id =#credit_id#  and tpc.status=0
+	</select>
+	
+	<!-- CHAXUNBAOGAOJIBIE 	-->
+	<select id="selectRankLevel" parameterClass="map" resultClass="hashmap">
+		select RANK from T_PRJT_RISKLEVEL where LEVEL_PRICE_UPPER>=#lease_rze# and #lease_rze# >LEVEL_PRICE_LOW  and status=0
+	</select>
+	<select id="selectranklevel_byshijibenjin" parameterClass="map" resultClass="hashmap">
+		select MIN(RANK) RANK from T_PRJT_RISKLEVEL where GRANT_PRICE_UPPER>=#cust_shijibenji#   and status=0
+	</select>
+
+	<!-- CHAXUN KEHU EDU -->
+	<select id="selectCustomerEdu" parameterClass="map" resultClass="hashmap">
+		SELECT  TCC.CUST_ID,
+				sum(TCP.GRANT_PRICE) GRANT_PRICE,
+				sum(TCP.LAST_PRICE)LAST_PRICE
+		FROM T_PRJT_CREDIT TPC		
+		LEFT JOIN T_CUST_CUSTOMER  TCC
+		ON TCC.CUST_ID=TPC.CUST_ID
+		LEFT JOIN T_CUST_GRANTPLAN TCP ON TCP.CUST_ID = TCC.CUST_ID
+		WHERE TPC.ID=#credit_id# AND TCC.STATUS = 0 AND (TCP.STATUS IS NULL OR TCP.STATUS=0)
+		group by  TCC.CUST_ID 
+	</select>
+	
+	<select id="selectApplyIds" parameterClass="map" resultClass="hashmap">
+		select t4.ID,t4.NAME
+		from T_PRJT_CREDIT t1
+		left join T_PRJT_CREDITEQUIPMENT t2 on t2.CREDIT_ID = t1.ID
+		left join T_SUPL_EQUIPMENT t3 on t3.SUEQ_ID=t2.SUEQ_ID
+		left join T_SUPL_SUPPLIER t4 on t4.ID=t3.SUPPLIER_ID
+		where t1.ID=#credit_id# and t4.STATUS = 0
+	</select>
+	<!-- CHAXUN gongyingshang EDU -->
+	<select id="selectApplyEdu" parameterClass="map" resultClass="hashmap">
+		select t1.ID,count(t2.SUEQ_ID) counti,t3.SUPPLIER_ID,t4.NAME,t4.SUPP_TYPE,t4.SUPP_LEVEL,
+				t4.ORGANIZATION_CERTIFICATE,sum(t6.UNION_GRANT_PRICE) UNION_GRANT_PRICE,
+				sum(t5.LAST_PRICE) LAST_PRICE,
+				t5.GRANT_PRICE,
+				t4.BUSINESS_LICENCE,
+				(SELECT MAX(SUPL_TRUE) FROM T_PRJT_CREDITSCHEME WHERE CREDIT_ID = #credit_id# AND STATUS = 0) SUPL_TRUE
+		from T_PRJT_CREDIT t1
+				left join T_PRJT_CREDITEQUIPMENT t2 on t2.CREDIT_ID = t1.ID
+				left join T_SUPL_EQUIPMENT t3 on t3.SUEQ_ID=t2.SUEQ_ID
+				left join T_SUPL_SUPPLIER t4 on t4.ID=t3.SUPPLIER_ID
+				LEFT JOIN T_PRODUCT_GRANTPLAN t5 ON t5.PRODUCT_ID = t4.ID
+				left join (select trur.PRODUCT_ID,sum(trur.UNION_GRANT_PRICE) UNION_GRANT_PRICE
+				 			from T_PRODUCT_UNIONGRANTPLAN trur
+				 			where trur.STATUS = 0
+				 			group by trur.PRODUCT_ID) t6 on t6.PRODUCT_ID = t4.id 
+		where t1.ID=#credit_id# and t4.STATUS = 0 AND (t5.STATUS IS NULL OR t5.STATUS=0)
+		group by t1.ID,t3.SUPPLIER_ID,t4.NAME,t4.ORGANIZATION_CERTIFICATE,t4.BUSINESS_LICENCE,t4.SUPP_TYPE,t5.GRANT_PRICE,t4.SUPP_LEVEL
+	</select>
+	<!-- 查询制造商 -->
+	<select id="selectManufacturers" parameterClass="map" resultClass="hashmap">
+		select			
+				T9.Manufacturer,
+				(SELECT MAX(SUPL_TRUE) FROM T_PRJT_CREDITSCHEME WHERE CREDIT_ID = #credit_id# AND STATUS = 0) SUPL_TRUE
+		from T_PRJT_CREDIT t1
+				left join T_PRJT_CREDITEQUIPMENT t2 on t2.CREDIT_ID = t1.ID
+				left join T_SUPL_EQUIPMENT t3 on t3.SUEQ_ID=t2.SUEQ_ID
+				left join T_SUPL_SUPPLIER t4 on t4.ID=t3.SUPPLIER_ID
+				LEFT JOIN T_PRODUCT_GRANTPLAN t5 ON t5.PRODUCT_ID = t4.ID
+				left join (select trur.PRODUCT_ID,sum(trur.UNION_GRANT_PRICE) UNION_GRANT_PRICE
+				 			from T_PRODUCT_UNIONGRANTPLAN trur
+				 			where trur.STATUS = 0
+				 			group by trur.PRODUCT_ID) t6 on t6.PRODUCT_ID = t4.id 
+				LEFT JOIN T_PRDC_PRODUCT T7 ON T7.ID = t3.PRODUCT_ID 
+				LEFT JOIN T_PRDC_KIND T8 ON T8.ID = T7.KIND_ID 
+				LEFT JOIN T_PRDC_TYPE T9 ON T9.ID = T8.TYPE_ID
+		where t1.ID=#credit_id# and t4.STATUS = 0 AND (t5.STATUS IS NULL OR t5.STATUS=0)
+		group by T9.Manufacturer
+	</select>
+	
+	<!-- BOKUANFANGSHI -->
+	<select id="selectReportBoKuan" parameterClass="map" resultClass="hashmap">
+		select	top 1 t1.PAY_WAY PAYWAY ,
+				t1.PAY_MONEY PAY_MONEY 
+				from T_SUPL_PLAYDETIL t1
+		left join T_PRJT_CREDIT t3 on t3.ID=t1.CREDIT_ID
+		where t1.STATUS = 0 and t3.ID=#credit_id# order by t1.PAY_DATE desc
+	</select>
+	
+	<!-- CHAXUN DANBAOREN -->
+	<select id="selectDanbaos" parameterClass="map" resultClass="hashmap">
+	<!-- 
+		select t1.PJCCC_ID ID,t1.CORP_NAME_CN NAME,t1.ORGANIZATION_CODE_CERTIFICATE CODE,t1.ISTYPE ISTYPE,0 state from T_PRJT_VOUCHCUSTOMERCORP t1
+		where t1.PRCD_ID=#credit_id#
+		union 
+		select t2.PRON_ID ID,t2.CUST_NAME NAME,t2.NATU_IDCARD CODE,t2.ISTYPE ISTYPE,1 state from T_PRJT_CREDITVOUCHNATU t2
+		where t2.PRCD_ID= #credit_id#
+		-->
+		<![CDATA[
+		select t1.PJCCC_ID ID,t1.CORP_NAME_CN NAME,t1.ORGANIZATION_CODE_CERTIFICATE CODE,t1.ISTYPE ISTYPE,0 state,99 zhengjianType 
+		, null as VERIFY_RESULT , null as IMG
+		from T_PRJT_VOUCHCUSTOMERCORP t1
+		where t1.PRCD_ID=#credit_id#
+		and t1.STATUS = 0
+		union 
+		select t2.PRON_ID ID,t2.CUST_NAME NAME,t2.NATU_IDCARD CODE,t2.ISTYPE ISTYPE,1 state,
+			flagPermit zhengjianType
+		, tiv.RESULT as VERIFY_RESULT, tiv.IMG as IMG
+		from T_PRJT_CREDITVOUCHNATU t2
+		left join (
+		  select [NAME], CODE
+		  , max(RESULT) as RESULT
+		  , max(IMG) as IMG
+		  from T_IDCARD_VERIFY iv
+		  where iv.STATUS = 0
+		  group by [NAME], CODE
+		)tiv on tiv.[NAME] = t2.CUST_NAME and tiv.CODE = t2.NATU_IDCARD
+		where t2.PRCD_ID= #credit_id#
+		and t2.STATUS = 0
+		]]>
+	</select>
+	
+	
+	<update id="updateCorpByIsType" parameterClass="map">
+		<![CDATA[
+			update T_PRJT_VOUCHCUSTOMERCORP set ISTYPE=#istype# where PJCCC_ID=#istypeId#
+		]]>
+	</update>
+	
+	
+	<update id="updateNatuByIsType" parameterClass="map">
+		<![CDATA[
+			update T_PRJT_CREDITVOUCHNATU set ISTYPE=#istype# where PRON_ID=#istypeId#
+		]]>
+	</update>
+	
+	<!-- CHAXUN baogaodetonghe -->
+	<select id="selectCreditContract" parameterClass="map" resultClass="hashmap">
+		select  t1.RECP_ID RECP_ID 
+			  	from T_RENT_COLLECTIONPLAN t1
+				left join T_RENT_CONTRACT t2 on t2.RECT_ID=t1.RECT_ID
+				left join T_PRJT_CREDIT t3 on t3.ID=t2.PRCD_ID
+				where t3.ID=#credit_id#
+	</select>
+	<select id="selectCreditContracts" parameterClass="map" resultClass="hashmap">
+		select  t2.RECT_ID FROM
+				T_RENT_CONTRACT t2
+				left join T_PRJT_CREDIT t3 on t3.ID=t2.PRCD_ID
+				where t3.ID=#credit_id# and t2.STATUS=0
+	</select>
+	
+	<select id="selectCreditRiskControlPass" parameterClass="map" resultClass="hashmap">
+		select  ID FROM T_PRJT_CREDIT where ID=#credit_id# and STATUS=0 and WIND_STATE=1
+	</select>
+	
+		<!-- 报告钱数详细 -->
+	<select id="selectCreditShemaDetail" parameterClass="map" resultClass="hashmap">
+		select * from T_PRJT_CREDITSCHEME t1 where t1.CREDIT_ID=#credit_id# and t1.STATUS=0 
+	</select>
+	
+	
+	<select id="selectRankEdu" parameterClass="map" resultClass="hashmap">
+		select SUM(t1.LEASE_RZE) SUMLEASE_RZE from T_PRJT_CREDITSCHEME t1
+		left join T_PRJT_CREDIT t2 on t2.ID=t1.CREDIT_ID
+		where t2.WIND_STATE=1 and t1.STATUS=0 and t2.CUST_ID=#cust_id# 
+	</select>
+	<select id="selectRankEdu_new" parameterClass="map" resultClass="hashmap">
+		select SUM(t1.LEASE_RZE) SUMLEASE_RZE from  T_RENT_CONTRACTSCHEMA t1
+		left join T_RENT_CONTRACT t2 on t2.RECT_ID=t1.RECT_ID
+		where t2.STATUS=0 and t1.STATUS=0 and t2.CUST_ID=#cust_id#
+	</select>
+	
+	<select id="selectRankEduBenan" parameterClass="map" resultClass="hashmap">
+		select * from  T_PRJT_CREDITSCHEME t1
+		left join T_PRJT_CREDIT t2 on t2.ID=t1.CREDIT_ID
+		where t2.WIND_STATE=1 and t2.CUST_ID=#cust_id# and t2.ID=#credit_id#
+	</select>
+			<!-- 客户归户信息 -->
+	<select id="selectCustGuihu" parameterClass="map" resultClass="hashmap">
+		 select 
+	DISTINCT t8.CUST_ID ID,t8.CUST_NAME NAME,t9.counti COUNTS,t111.SUMLEASE_TOPRIC SUMLEASE_TOPRIC,t10.SHENGYUZUJIN,t10.SHIJISHENGYUZUJIN,t10.SUMLASTPRICE,tnew.GRANT_PRICE,tnew.LAST_PRICE
+	from T_CUST_CUSTOMER t8
+	left join (select t1.CUST_ID,COUNT(t2.RECT_ID) counti
+				from T_CUST_CUSTOMER t1
+				left join T_RENT_CONTRACT t2
+				on t1.CUST_ID=t2.CUST_ID
+				where t2.STATUS=0 and t1.STATUS=0
+				group by t1.CUST_ID
+				) t9 
+	on t9.CUST_ID=t8.CUST_ID
+	left join (select t211.CUST_ID,COUNT(t211.RECT_ID) CONTRACTCOUNT,SUM(t211.LEASE_TOPRIC) SUMLEASE_TOPRIC
+				from  (
+						select t21.CUST_ID,t22.RECT_ID,t22.LEASE_TOPRIC
+						from T_CUST_CUSTOMER t21
+						left join T_RENT_CONTRACT t22
+						on t22.CUST_ID=t21.CUST_ID
+						where t21.STATUS=0 and t22.STATUS=0
+						) t211
+				group by t211.CUST_ID
+	) t111 on t111.CUST_ID=t8.CUST_ID
+	left join (select  t33.CUST_ID,SUM(t6.LASTPRICE) SUMLASTPRICE, SUM(t6.SHENGYUZUJIN) SHENGYUZUJIN,SUM(t6.SHIJISHENGYUZUJIN) SHIJISHENGYUZUJIN
+				from 
+					(
+					select t31.CUST_ID,t32.RECT_ID,t32.LEASE_TOPRIC
+					from T_CUST_CUSTOMER t31
+					left join T_RENT_CONTRACT t32
+					on t32.CUST_ID=t31.CUST_ID
+					where t31.STATUS=0 and t32.STATUS=0
+					) t33 				 
+				left join (select t11.RECT_ID, MAX(t11.LAST_PRICE) LASTPRICE,COUNT(t11.PERIOD_NUM) WEIJIAOQISHU,SUM(t11.MONTH_PRICE) SHENGYUZUJIN,SUM(t11.IRR_MONTH_PRICE) SHIJISHENGYUZUJIN from
+							(select distinct t3.RECP_ID,t3.RECT_ID, t3.PERIOD_NUM,t3.MONTH_PRICE,t3.IRR_MONTH_PRICE,t3.LAST_PRICE from
+								(select t2.RECT_ID,t2.STATUS, t2.RECP_ID, t1.PERIOD_NUM,t1.MONTH_PRICE,t1.IRR_MONTH_PRICE,t1.LAST_PRICE from T_RENT_COLLECTIONDETAIL t1
+								left join T_RENT_COLLECTIONPLAN t2
+								on t2.RECP_ID=t1.RECP_ID
+								where t1.STATUS=0 and  t2.STATUS=0 and t2.VERSION_CODE=(select max(version_code) from t_rent_collectionplan where t2.recp_code=recp_code)
+								) t3
+							where  t3.PERIOD_NUM not in (select t44.RECD_PERIOD from T_FINA_COLLECTIONBILL t44 left join T_RENT_COLLECTIONPLAN t5 on t5.RECP_ID=t44.RECP_ID and t5.RECT_ID=t3.RECT_ID where t44.STATUS=0 and t5.STATUS=0 and t5.VERSION_CODE=(select max(version_code) from t_rent_collectionplan where t5.recp_code=recp_code))
+						) t11 
+						group by t11.RECT_ID) t6 
+				on t6.RECT_ID=t33.RECT_ID 
+		group by t33.CUST_ID) t10 on t10.CUST_ID=t8.CUST_ID
+	left join (SELECT  TCC.CUST_ID,
+				TCP.GRANT_PRICE,
+				TCP.LAST_PRICE		
+		 	FROM T_CUST_CUSTOMER  TCC
+		 	LEFT JOIN T_CUST_GRANTPLAN TCP ON TCP.CUST_ID = TCC.CUST_ID
+		 		WHERE TCC.STATUS = 0 AND (TCP.STATUS IS NULL OR TCP.STATUS=0)) tnew
+on tnew.CUST_ID=t8.CUST_ID
+where t8.CUST_ID=#cust_id# and t8.STATUS=0
+	</select>
+	
+	<select id="selectSumIrrMonthPrice" parameterClass="map" resultClass="hashmap">
+		select SUM(ZUJINSHENGYU) ZUJINSHENGYU from(	
+			select t11.sumrentmoney-ISNULL(t12.paiedmoney,0) ZUJINSHENGYU from (
+				select t.CUST_ID, t1.RECT_ID,t2.RECS_ID, sum(t2.IRR_MONTH_PRICE*(t2.IRR_MONTH_PRICE_END-t2.IRR_MONTH_PRICE_START+1)) sumrentmoney from T_RENT_CONTRACT t
+				left join T_RENT_CONTRACTSCHEMA t1 on t1.RECT_ID=t.RECT_ID
+				left join T_RENT_CONTRACTSCHEMAIRR t2 on t2.RECS_ID=t1.RECS_ID where t.CUST_ID=#cust_id# and t.STATUS=0
+				group by t.CUST_ID,t1.RECT_ID,t2.RECS_ID) t11
+				left join (
+				select t.CUST_ID,t.RECT_ID,t1.RECP_ID, SUM(t2.IRR_MONTH_PRICE) paiedmoney from T_RENT_CONTRACT t
+				left join T_RENT_COLLECTIONPLAN t1 on t1.RECT_ID=t.RECT_ID
+				left join T_RENT_COLLECTIONDETAIL t2 on t2.RECP_ID=t1.RECP_ID
+				where t.CUST_ID=#cust_id# and t.STATUS=0 and ISNULL(t2.REDUCE_OWN_PRICE,0)+ISNULL(t2.REDUCE_LOSS_PRICE,0)+ISNULL(t2.REDUCE_OTHER_PRICE,0)+ISNULL(t2.REDUCE_REN_PRICE,0)>0
+				group by t.CUST_ID,t.RECT_ID,t1.RECP_ID) t12
+				on t11.CUST_ID=t12.CUST_ID and t11.RECT_ID=t12.RECT_ID
+		) t111
+	</select>
+	
+	<select id="selectSumRealOwnPrice" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+		select CUST_ID,SUM(NOPAYREAL_OWN_PRICE) NOPAYREAL_OWN_PRICE from(
+			select CUST_ID,RECT_ID,RECP_ID,ZULINQISU,WEIHUANQISHU, sum(NOPAYREAL_OWN_PRICE) NOPAYREAL_OWN_PRICE from (
+			select t.CUST_ID,t.RECT_ID,t2.RECP_ID, min(t2.REAL_OWN_PRICE) REAL_OWN_PRICE,
+			t3.LEASE_PERIOD*t3.LEASE_TERM ZULINQISU,COUNT(t2.PERIOD_NUM) WEIHUANQISHU,
+			(case when t3.LEASE_PERIOD*t3.LEASE_TERM=COUNT(t2.PERIOD_NUM) then 0
+	 			when t2.RECP_ID is not null and  t3.LEASE_PERIOD*t3.LEASE_TERM>COUNT(t2.PERIOD_NUM) and COUNT(t2.PERIOD_NUM)>0  then min(REAL_OWN_PRICE)
+	 			when t2.RECP_ID is null then t3.LEASE_RZE+t3.HEAD_HIRE+t3.PLEDGE_LAST_PRICE+t3.PLEDGE_BACK_PRICE
+			end) as NOPAYREAL_OWN_PRICE
+			from T_RENT_CONTRACT t
+			left join T_RENT_COLLECTIONPLAN t1 on t1.RECT_ID=t.RECT_ID
+			left join T_RENT_COLLECTIONDETAIL t2 on t2.RECP_ID=t1.RECP_ID and ISNULL(t2.REDUCE_OWN_PRICE,0)+ISNULL(t2.REDUCE_LOSS_PRICE,0)+ISNULL(t2.REDUCE_OTHER_PRICE,0)+ISNULL(t2.REDUCE_REN_PRICE,0)>0
+			left join T_RENT_CONTRACTSCHEMA t3 on t3.RECT_ID=t.RECT_ID
+			where t.CUST_ID=#cust_id# and t.STATUS=0 
+			group by t.CUST_ID,t.RECT_ID,t2.RECP_ID,t3.LEASE_PERIOD*t3.LEASE_TERM,t3.LEASE_RZE,t3.HEAD_HIRE,t3.PLEDGE_LAST_PRICE,t3.PLEDGE_BACK_PRICE ) t11
+			group by CUST_ID,RECT_ID,RECP_ID,ZULINQISU,WEIHUANQISHU) t12
+			group by CUST_ID
+		]]>
+	</select>
+	
+		<select id="selectApplyRealLastPrice" parameterClass="map" resultClass="double">
+		<![CDATA[
+		select REALLAST_PRICE from (
+			select t112.*,t211.GRANT_PRICE-isnull(t112.SUMSHOUXINJIANSHAOE,0) REALLAST_PRICE from 
+			(select * from T_PRODUCT_GRANTPLAN where PRODUCT_ID=#applyId#)  t211 left join 
+			
+			(
+				select COUNT(RECT_ID) RENTNUM,cast(SUM(SHOUXINJIANSHAOE) as int) SUMSHOUXINJIANSHAOE,NAME,ID APPLYID from (
+					select *, NOPAYREAL_OWN_PRICE*SHEBEIPERCENT SHOUXINJIANSHAOE from (
+						select 
+ 						t.RECT_ID,t1.RECP_ID RECP_IDPLAN,t2.RECP_ID,t4.SUMAMOUNT,t7.ID,t7.NAME,t4.EQMT_ID,t4.UNIT_PRICE,t4.SUMAMOUNT*t4.UNIT_PRICE SHEBEISUM,(t4.SUMAMOUNT*t4.UNIT_PRICE)/t3.LEASE_TOPRIC SHEBEIPERCENT,t8.REPEAT_CREDIT,t3.SUPL_TRUE,
+						(case when t3.SUPL_TRUE!=4 and t3.LEASE_PERIOD*t3.LEASE_TERM=COUNT(t2.PERIOD_NUM) and t8.REPEAT_CREDIT=1 then 0
+	 							when t3.SUPL_TRUE!=4 and t2.RECP_ID is not null and  t3.LEASE_PERIOD*t3.LEASE_TERM>COUNT(t2.PERIOD_NUM) and COUNT(t2.PERIOD_NUM)>0 and t8.REPEAT_CREDIT=1  then min(REAL_OWN_PRICE)
+	 							when t3.SUPL_TRUE!=4 and t2.RECP_ID is null then t3.LEASE_RZE+t3.HEAD_HIRE+t3.PLEDGE_LAST_PRICE+t3.PLEDGE_BACK_PRICE
+	 							when t3.SUPL_TRUE!=4 and t8.REPEAT_CREDIT=0 then t3.LEASE_RZE+t3.HEAD_HIRE+t3.PLEDGE_LAST_PRICE+t3.PLEDGE_BACK_PRICE
+								when t3.SUPL_TRUE=4 then 0
+						end) as NOPAYREAL_OWN_PRICE
+					from T_RENT_CONTRACT t
+					left join T_RENT_COLLECTIONPLAN t1 on t1.RECT_ID=t.RECT_ID
+					left join T_RENT_COLLECTIONDETAIL t2 on t2.RECP_ID=t1.RECP_ID and ISNULL(t2.REDUCE_LOSS_PRICE,0)+ISNULL(t2.REDUCE_OTHER_PRICE,0)+ISNULL(t2.REDUCE_OWN_PRICE,0)+ISNULL(t2.REDUCE_REN_PRICE,0)>0
+					left join T_RENT_CONTRACTSCHEMA t3 on t3.RECT_ID=t.RECT_ID
+					left join (select SUM(AMOUNT) SUMAMOUNT,UNIT_PRICE,EQMT_ID,RECT_ID,STATUS from T_RENT_CONTRACTDETAIL group by UNIT_PRICE,EQMT_ID,RECT_ID,STATUS) t4 on t4.RECT_ID=t.RECT_ID and t4.STATUS=0
+					left join T_EQMT_EQUIPMENT t5 on t5.EQMT_ID=t4.EQMT_ID
+					left join T_SUPL_EQUIPMENT t6 on t6.SUEQ_ID=t5.SUEQ_ID
+					left join T_SUPL_SUPPLIER t7 on t7.ID=t6.SUPPLIER_ID
+					left join T_PRODUCT_GRANTPLAN t8 on t8.PRODUCT_ID=t7.ID
+					where t7.ID=#applyId# and t.STATUS=0
+					group by t.RECT_ID,t1.RECP_ID,t2.RECP_ID,t4.SUMAMOUNT,t7.ID,t7.NAME,t4.EQMT_ID,t4.UNIT_PRICE, t3.LEASE_PERIOD,t3.LEASE_TERM,t3.LEASE_RZE,t3.HEAD_HIRE,t3.PLEDGE_LAST_PRICE,t3.PLEDGE_BACK_PRICE,t3.LEASE_TOPRIC,t8.REPEAT_CREDIT,t3.SUPL_TRUE
+					) t11 ) t111 group by NAME,ID
+			) t112
+			on t211.PRODUCT_ID=t112.APPLYID
+			) t122
+		]]>
+	</select>
+	
+	<select id="selectApplyRealLastPrice_HeZhun" parameterClass="map" resultClass="double">
+		<![CDATA[
+		select REALLAST_PRICE from (
+			select t112.*,t211.GRANT_PRICE-isnull(t112.SUMSHOUXINJIANSHAOE,0) REALLAST_PRICE from 
+			(select * from T_PRODUCT_GRANTPLAN where PRODUCT_ID=#applyId#)  t211 left join 
+			
+			(
+				select cast(SUM(SHOUXINJIANSHAOE) as int) SUMSHOUXINJIANSHAOE,ID APPLYID from (
+					select *, NOPAYREAL_OWN_PRICE*SHEBEIPERCENT SHOUXINJIANSHAOE from (
+						select 
+ 						tpc.ID CREDIT_ID,t.RECT_ID,t1.RECP_ID RECP_IDPLAN,t2.RECP_ID,t4.SUMAMOUNT,tssp.ID,t7.NAME,t4.EQMT_ID,t4.UNIT_PRICE,t4.SUMAMOUNT*t4.UNIT_PRICE SHEBEISUM,
+ 						(case when t.RECT_ID is null then  (trcq.SUMAMOUNT*trcq.UNIT_PRICE)/tpcs.LEASE_TOPRIC
+ 								when t.RECT_ID is not null then (t4.SUMAMOUNT*t4.UNIT_PRICE)/t3.LEASE_TOPRIC
+ 						end) SHEBEIPERCENT,t8.REPEAT_CREDIT,t3.SUPL_TRUE,
+						(case	when t.RECT_ID is null then (tpcs.LEASE_TOPRIC-tpcs.PLEDGE_ENTER_AG-tpcs.PLEDGE_ENTER_MCTOAG)*((trcq.UNIT_PRICE*trcq.SUMAMOUNT)/tpcs.LEASE_TOPRIC)
+								when t.RECT_ID is not null and t3.LEASE_PERIOD*t3.LEASE_TERM=COUNT(t2.PERIOD_NUM) and t8.REPEAT_CREDIT=1 then 0
+	 							when t.RECT_ID is not null and t2.RECP_ID is not null and  t3.LEASE_PERIOD*t3.LEASE_TERM>COUNT(t2.PERIOD_NUM) and COUNT(t2.PERIOD_NUM)>0 and t8.REPEAT_CREDIT=1  then min(REAL_OWN_PRICE)
+	 							when t.RECT_ID is not null and t2.RECP_ID is null then t3.LEASE_RZE+t3.HEAD_HIRE+t3.PLEDGE_LAST_PRICE+t3.PLEDGE_BACK_PRICE
+	 							when t.RECT_ID is not null and t8.REPEAT_CREDIT=0 then t3.LEASE_RZE+t3.HEAD_HIRE+t3.PLEDGE_LAST_PRICE+t3.PLEDGE_BACK_PRICE
+								when t.RECT_ID is not null then 0
+						end) as NOPAYREAL_OWN_PRICE
+					from T_PRJT_CREDIT tpc 
+					left join T_PRJT_CREDITSCHEME tpcs on tpcs.CREDIT_ID=tpc.ID and tpcs.STATUS=0
+					left join (select SUM(AMOUNT) SUMAMOUNT,UNIT_PRICE,SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by UNIT_PRICE,SUEQ_ID,CREDIT_ID ) trcq on trcq.CREDIT_ID=tpc.ID
+					LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+					LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+					left join T_RENT_CONTRACT t on t.PRCD_ID=tpc.ID and t.STATUS=0
+					left join T_RENT_COLLECTIONPLAN t1 on t1.RECT_ID=t.RECT_ID
+					left join T_RENT_COLLECTIONDETAIL t2 on t2.RECP_ID=t1.RECP_ID and ISNULL(t2.REDUCE_LOSS_PRICE,0)+ISNULL(t2.REDUCE_OTHER_PRICE,0)+ISNULL(t2.REDUCE_OWN_PRICE,0)+ISNULL(t2.REDUCE_REN_PRICE,0)>0
+					left join T_RENT_CONTRACTSCHEMA t3 on t3.RECT_ID=t.RECT_ID
+					left join (select SUM(AMOUNT) SUMAMOUNT,UNIT_PRICE,EQMT_ID,RECT_ID,STATUS from T_RENT_CONTRACTDETAIL group by UNIT_PRICE,EQMT_ID,RECT_ID,STATUS) t4 on t4.RECT_ID=t.RECT_ID and t4.STATUS=0
+					left join T_EQMT_EQUIPMENT t5 on t5.EQMT_ID=t4.EQMT_ID
+					left join T_SUPL_EQUIPMENT t6 on t6.SUEQ_ID=t5.SUEQ_ID
+					left join T_SUPL_SUPPLIER t7 on t7.ID=t6.SUPPLIER_ID
+					left join T_PRODUCT_GRANTPLAN t8 on t8.PRODUCT_ID=t7.ID
+					where (t.RECT_ID IS NULL AND tssp.ID=#applyId# and tpc.WIND_STATE=1) OR (t.RECT_ID IS NOT NULL AND  t7.ID=#applyId#)
+					group by tpc.ID,t.RECT_ID,t1.RECP_ID,t2.RECP_ID,t4.SUMAMOUNT,tssp.ID,t7.NAME,t4.EQMT_ID,t4.UNIT_PRICE, t3.LEASE_PERIOD,t3.LEASE_TERM,t3.LEASE_RZE,t3.HEAD_HIRE,t3.PLEDGE_LAST_PRICE,t3.PLEDGE_BACK_PRICE,
+					t3.LEASE_TOPRIC,t8.REPEAT_CREDIT,t3.SUPL_TRUE,tpcs.LEASE_TOPRIC,tpcs.PLEDGE_ENTER_AG,tpcs.PLEDGE_ENTER_MCTOAG,trcq.UNIT_PRICE,trcq.SUMAMOUNT
+					) t11 ) t111 group by ID
+			) t112
+			on t211.PRODUCT_ID=t112.APPLYID
+			) t122
+		]]>
+	</select>
+	
+	<!-- Modify by michael 2012 02/07 修正归户抓取逻辑 -->
+	<select id="selectApplyAllCredit_HeZhun" parameterClass="map" resultClass="hashmap">
+	<!--
+		<![CDATA[
+				select DISTINCT
+ 						tpc.ID CREDIT_ID,tssp.ID,t.RECT_ID RECT_ID,
+ 						(trcq.SUMAMOUNT*trcq.UNIT_PRICE)/tpcs.LEASE_TOPRIC 
+ 						SHEBEIPERCENT,
+						(tpcs.LEASE_TOPRIC-tpcs.PLEDGE_ENTER_AG-tpcs.PLEDGE_ENTER_MCTOAG)*((trcq.UNIT_PRICE*trcq.SUMAMOUNT)/tpcs.LEASE_TOPRIC)
+						NOPAYREAL_OWN_PRICE
+					from T_PRJT_CREDIT tpc 
+					left join T_PRJT_CREDITSCHEME tpcs on tpcs.CREDIT_ID=tpc.ID and tpcs.STATUS=0
+					left join (select SUM(AMOUNT) SUMAMOUNT,UNIT_PRICE,SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by UNIT_PRICE,SUEQ_ID,CREDIT_ID ) trcq on trcq.CREDIT_ID=tpc.ID
+					LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+					LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+					left join T_RENT_CONTRACT t on t.PRCD_ID=tpc.ID
+					where tssp.ID=#applyId# and tpc.WIND_STATE=1 and tpcs.SUPL_TRUE!=4
+					
+		]]>
+	-->
+	<![CDATA[
+		select DISTINCT
+				tpc.ID CREDIT_ID,tssp.ID,t.RECT_ID RECT_ID
+		from T_PRJT_CREDIT tpc 
+		left join T_PRJT_CREDITSCHEME tpcs on tpcs.CREDIT_ID=tpc.ID and tpcs.STATUS=0
+		left join (select max(SUEQ_ID) SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by CREDIT_ID ) trcq on trcq.CREDIT_ID=tpc.ID
+		LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+		LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+		left join T_RENT_CONTRACT t on t.PRCD_ID=tpc.ID
+		where tssp.ID=#applyId# and tpc.WIND_STATE=1 and tpcs.SUPL_TRUE!=4	
+	]]>
+	</select>
+	
+	  <!-- Modify by Michael 2012 02/06 修改剩余本金Bug，抓净本金余额  -->
+	<select id="selectApplyContractOne_Jianshaoe" parameterClass="map" resultClass="hashmap">
+	<!--
+		<![CDATA[
+			select SUM(SHOUXINJIANSHAOE) SHOUXINJIANSHAOE from (	
+			select *, NOPAYREAL_OWN_PRICE*SHEBEIPERCENT SHOUXINJIANSHAOE from (
+						select 
+ 						t.RECT_ID,t1.RECP_ID RECP_IDPLAN,t2.RECP_ID,t4.SUMAMOUNT,t7.ID,t7.NAME,t4.EQMT_ID,t4.UNIT_PRICE,t4.SUMAMOUNT*t4.UNIT_PRICE SHEBEISUM,
+ 						(t4.SUMAMOUNT*t4.UNIT_PRICE)/t3.LEASE_TOPRIC
+ 						 SHEBEIPERCENT,t8.REPEAT_CREDIT,
+						(case	
+								when t8.REPEAT_CREDIT=0 then t3.LEASE_RZE+t3.HEAD_HIRE+t3.PLEDGE_LAST_PRICE+t3.PLEDGE_BACK_PRICE
+								when t1.RECP_ID is not null and (t1.RECP_STATUS=1 or t1.RECP_STATUS=3) and t8.REPEAT_CREDIT=1 then 0
+								when t2.RECP_ID is null then t3.LEASE_RZE+t3.HEAD_HIRE+t3.PLEDGE_LAST_PRICE+t3.PLEDGE_BACK_PRICE
+								when t3.LEASE_PERIOD*t3.LEASE_TERM=COUNT(t2.PERIOD_NUM) and t8.REPEAT_CREDIT=1 then 0
+	 							when t2.RECP_ID is not null and  t3.LEASE_PERIOD*t3.LEASE_TERM>COUNT(t2.PERIOD_NUM) and COUNT(t2.PERIOD_NUM)>0 and t8.REPEAT_CREDIT=1  then min(t2.REAL_OWN_PRICE)								
+								else 0
+						end) as NOPAYREAL_OWN_PRICE
+					from T_RENT_CONTRACT t
+					left join T_RENT_COLLECTIONPLAN t1 on t1.RECT_ID=t.RECT_ID
+					left join T_RENT_COLLECTIONDETAIL t2 on t2.RECP_ID=t1.RECP_ID and ISNULL(t2.REDUCE_LOSS_PRICE,0)+ISNULL(t2.REDUCE_OTHER_PRICE,0)+ISNULL(t2.REDUCE_OWN_PRICE,0)+ISNULL(t2.REDUCE_REN_PRICE,0)>0
+					left join T_RENT_CONTRACTSCHEMA t3 on t3.RECT_ID=t.RECT_ID
+					left join (select SUM(AMOUNT) SUMAMOUNT,UNIT_PRICE,EQMT_ID,RECT_ID,STATUS from T_RENT_CONTRACTDETAIL group by UNIT_PRICE,EQMT_ID,RECT_ID,STATUS) t4 on t4.RECT_ID=t.RECT_ID and t4.STATUS=0
+					left join T_EQMT_EQUIPMENT t5 on t5.EQMT_ID=t4.EQMT_ID
+					left join T_SUPL_EQUIPMENT t6 on t6.SUEQ_ID=t5.SUEQ_ID
+					left join T_SUPL_SUPPLIER t7 on t7.ID=t6.SUPPLIER_ID
+					left join T_PRODUCT_GRANTPLAN t8 on t8.PRODUCT_ID=t7.ID
+					where t7.ID=#ID# and t.RECT_ID=#RECT_ID# AND t.STATUS=0
+					group by t.RECT_ID,t1.RECP_ID,t2.RECP_ID,t1.RECP_STATUS,t4.SUMAMOUNT,t7.ID,t7.NAME,t4.EQMT_ID,t4.UNIT_PRICE, t3.LEASE_PERIOD,t3.LEASE_TERM,t3.LEASE_RZE,t3.HEAD_HIRE,t3.PLEDGE_LAST_PRICE,t3.PLEDGE_BACK_PRICE,
+					t3.LEASE_TOPRIC,t8.REPEAT_CREDIT
+				) t
+				)ttt	
+		]]>
+		 -->
+		 <![CDATA[
+		select tssp.ID,tssp.NAME,t.ID CREDIT_ID,t.WIND_STATE, 
+			trc.RECT_ID, 
+			trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+			(case when t.WIND_STATE!=1 then 0 
+					when t.WIND_STATE=1 and trc.RECT_ID is null then (isnull(trcp.LEASE_RZE,0))
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then (isnull(trcp.LEASE_RZE,0))
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+										WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NULL) then (isnull(trcp.LEASE_RZE,0))
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+										WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NOT NULL) then (
+									SELECT
+									(
+									SELECT
+										(case 
+										when MIN(isnull(TT.REDUCE_OWN_PRICE,0))-MIN(TT.REN_PRICE)>0 then 
+											(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end)+(min(TT.IRR_MONTH_PRICE)-min(TT.REDUCE_OWN_PRICE))
+										else
+											(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end) +(min(TT.IRR_MONTH_PRICE)-min(TT.REN_PRICE))
+										end) NET_FINANCE
+									FROM
+										T_RENT_COLLECTIONDETAIL TT 
+									WHERE
+										 TT.STATUS = 0 
+										AND TT.RECP_ID = trcd.RECP_ID
+										and ISNULL(TT.REDUCE_OWN_PRICE,0)>0)
+										)
+				end) SHOUXINJIANSHAOE
+			 from T_PRJT_CREDIT t
+			 left join (select max(SUEQ_ID) SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by CREDIT_ID ) trcq on trcq.CREDIT_ID=t.ID
+			 LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+			 LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+				left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+			left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+			left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+			where tssp.ID=#ID# and trc.RECT_ID=#RECT_ID#  and t.STATUS=0 and t.WIND_STATE=1 and (trcp.RECP_STATUS<>1 and trcp.RECP_STATUS<>3)
+			group by tssp.ID,tssp.NAME,t.ID ,t.WIND_STATE,
+			trc.RECT_ID,
+			trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS,trcp.LEASE_RZE
+		 ]]>
+	</select>
+
+	<!-- Modify by Michael 2012 02/06 修改剩余本金Bug，抓净本金余额  -->
+	<select id="selectCustSumIrrMonthAndLastPrice" parameterClass="map" resultClass="hashmap">
+	<!--
+		<![CDATA[
+				select tcustdate.GRANT_PRICE,SUM(tcustdate.REAL_OWN_PRICE) SHENGYUBENJIN,SUM(tcustdate.SHENGYUZUJIN) SHENGYUZUJIN from (
+					select t.ID ,t.WIND_STATE,tcg.GRANT_PRICE,t1.LEASE_TOPRIC-t1.PLEDGE_ENTER_AG-t1.PLEDGE_ENTER_MCTOAG CREDIT_SHENGQINGBOKUAN,t1.LEASE_RZE,t1.HEAD_HIRE,t1.PLEDGE_LAST_PRICE,t1.PLEDGE_BACK_PRICE,sum(t2.IRR_MONTH_PRICE*(t2.IRR_MONTH_PRICE_END-t2.IRR_MONTH_PRICE_START+1)) CREDITSUMMONTH_PRICE,
+					trc.RECT_ID,trcs.LEASE_TOPRIC-trcs.PLEDGE_ENTER_AG-trcs.PLEDGE_ENTER_MCTOAG RENT_SHENQINGBOKUAN,trcs.LEASE_RZE RENT_LEASE_RZE,trcs.HEAD_HIRE RENT_HEAD_HIRE,trcs.PLEDGE_BACK_PRICE RENT_PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE RENT_PLEDGE_LAST_PRICE,
+					trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+						(case when t.WIND_STATE!=1 then 0 
+							when t.WIND_STATE=1 and trc.RECT_ID is null then ISNULL(t1.LEASE_TOPRIC,0)-ISNULL(t1.PLEDGE_ENTER_AG,0)-ISNULL(t1.PLEDGE_ENTER_MCTOAG,0)
+							when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then ISNULL(trcs.LEASE_TOPRIC,0)-ISNULL(trcs.PLEDGE_ENTER_AG,0)-ISNULL(trcs.PLEDGE_ENTER_MCTOAG,0)
+							when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+							when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null then min(ISNULL(trcd.REAL_OWN_PRICE,0))
+						end) REAL_OWN_PRICE,
+						(case when t.WIND_STATE!=1 then 0
+							 when t.WIND_STATE=1 and trc.RECT_ID is null then t1.LEASE_TOPRIC
+							when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then trcs.LEASE_TOPRIC
+							when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+							when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null then sum(trcd.MONTH_PRICE)
+						end) SHENGYUZUJIN
+					 from T_PRJT_CREDIT t
+					left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID and t1.STATUS=0
+					left join T_PRJT_CREDITSCHEMEIRR t2 on t2.PRCS_ID=t1.PRCS_ID and t2.STATUS=0
+					left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+					left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID and trcs.STATUS=0
+					left join T_RENT_CONTRACTSCHEMAIRR trcsi on trcsi.RECS_ID=trcs.RECS_ID and trcsi.STATUS=0
+					left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+					left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+					left join T_CUST_GRANTPLAN tcg on tcg.CUST_ID=t.CUST_ID
+					where t.CUST_ID=#NEWCUST_ID# and t.STATUS=0 and t.WIND_STATE=1
+					group by t.ID ,t.WIND_STATE,tcg.GRANT_PRICE,t1.LEASE_TOPRIC,t1.PLEDGE_ENTER_AG,t1.PLEDGE_ENTER_MCTOAG,t1.LEASE_RZE,t1.HEAD_HIRE,t1.PLEDGE_LAST_PRICE,t1.PLEDGE_BACK_PRICE,
+					trc.RECT_ID,trcs.LEASE_TOPRIC,trcs.PLEDGE_ENTER_AG,trcs.PLEDGE_ENTER_MCTOAG,trcs.LEASE_RZE,trcs.HEAD_HIRE,trcs.PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE,
+					trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS) tcustdate
+					group by tcustdate.GRANT_PRICE			
+		]]>
+		-->
+		<![CDATA[
+			select SUM(tcustdate.REAL_OWN_PRICE) SHENGYUBENJIN from (
+			select t.ID ,t.WIND_STATE,
+			trc.RECT_ID,trcs.LEASE_TOPRIC-trcs.PLEDGE_ENTER_AG-trcs.PLEDGE_ENTER_MCTOAG RENT_SHENQINGBOKUAN,trcs.LEASE_RZE RENT_LEASE_RZE,trcs.HEAD_HIRE RENT_HEAD_HIRE,trcs.PLEDGE_BACK_PRICE RENT_PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE RENT_PLEDGE_LAST_PRICE,
+			trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+				(case when t.WIND_STATE!=1 then 0 
+					when t.WIND_STATE=1 and trc.RECT_ID is null then (isnull(trcs.LEASE_RZE,0))
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then (isnull(trcs.LEASE_RZE,0))
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+										WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NULL) then (isnull(trcs.LEASE_RZE,0))
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+										WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NOT NULL) then 
+					(
+					SELECT
+					(
+					SELECT
+						(case 
+						when MIN(isnull(TT.REDUCE_OWN_PRICE,0))-MIN(TT.REN_PRICE)>0 then 
+							(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end)+(min(TT.IRR_MONTH_PRICE)-min(TT.REDUCE_OWN_PRICE))
+						else
+							(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end) +(min(TT.IRR_MONTH_PRICE)-min(TT.REN_PRICE))
+						end) NET_FINANCE
+					FROM
+						T_RENT_COLLECTIONDETAIL TT 
+					WHERE
+						 TT.STATUS = 0 
+						AND TT.RECP_ID = trcd.RECP_ID
+						and ISNULL(TT.REDUCE_OWN_PRICE,0)>0)
+					)
+				end) REAL_OWN_PRICE
+			 from T_PRJT_CREDIT t
+			left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+			left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID and trcs.STATUS=0
+			left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+			left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+			where t.CUST_ID=#NEWCUST_ID# and t.STATUS=0 and t.WIND_STATE=1
+			group by t.ID ,t.WIND_STATE,
+			trc.RECT_ID,trcs.LEASE_TOPRIC,trcs.PLEDGE_ENTER_AG,trcs.PLEDGE_ENTER_MCTOAG,trcs.LEASE_RZE,trcs.HEAD_HIRE,trcs.PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE,
+			trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS) tcustdate	
+		]]>
+	</select>
+	
+		<select id="selectCustSumIrrMonthAndLastPrice_IrrMonthPirce" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+				select ISNULL(SUM(tcustdate.SHENGYUZUJIN),0) SHENGYUZUJIN from (
+					select t.ID ,t.WIND_STATE,
+					trc.RECT_ID,
+					trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+						(case when t.WIND_STATE!=1 then 0
+							 when t.WIND_STATE=1 and trc.RECT_ID is null then t1.LEASE_TOPRIC
+							when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then trcs.LEASE_TOPRIC
+							when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+							when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null then sum(trcd.IRR_MONTH_PRICE)
+						end) SHENGYUZUJIN
+					 from T_PRJT_CREDIT t
+					left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID and t1.STATUS=0
+					left join T_PRJT_CREDITSCHEMEIRR t2 on t2.PRCS_ID=t1.PRCS_ID and t2.STATUS=0
+					left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+					left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID and trcs.STATUS=0
+					left join T_RENT_CONTRACTSCHEMAIRR trcsi on trcsi.RECS_ID=trcs.RECS_ID and trcsi.STATUS=0
+					left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0				
+					left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)=0
+					left join T_CUST_GRANTPLAN tcg on tcg.CUST_ID=t.CUST_ID 
+					where t.CUST_ID=#NEWCUST_ID#  and t.STATUS=0 and t.WIND_STATE=1
+					group by t.ID ,t.WIND_STATE,tcg.GRANT_PRICE,t1.LEASE_TOPRIC,t1.PLEDGE_ENTER_AG,t1.PLEDGE_ENTER_MCTOAG,t1.LEASE_RZE,t1.HEAD_HIRE,t1.PLEDGE_LAST_PRICE,t1.PLEDGE_BACK_PRICE,
+					trc.RECT_ID,trcs.LEASE_TOPRIC,trcs.PLEDGE_ENTER_AG,trcs.PLEDGE_ENTER_MCTOAG,trcs.LEASE_RZE,trcs.HEAD_HIRE,trcs.PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE,
+					trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS) tcustdate
+		]]>
+	</select>
+	
+	
+		<select id="selectApplySumIrrMonthAndLastPrice" parameterClass="map" resultClass="hashmap">
+		<!-- Modify by Michael 2012 02/06 修改剩余本金Bug，抓净本金余额  -->
+		<!--
+		<![CDATA[
+		select tapplydate.ID,tapplydate.NAME,tapplydate.GRANT_PRICE,SUM(tapplydate.REAL_OWN_PRICE) SHENGYUBENJIN,SUM(tapplydate.SHENGYUZUJIN) SUMSHENGYUZUJIN from 
+				(
+				select tssp.ID,tssp.NAME,TPGP.GRANT_PRICE,t.ID CREDIT_ID,t.WIND_STATE,t1.LEASE_TOPRIC-t1.PLEDGE_ENTER_AG-t1.PLEDGE_ENTER_MCTOAG CREDIT_SHENGQINGBOKUAN,t1.LEASE_RZE,t1.HEAD_HIRE,t1.PLEDGE_LAST_PRICE,t1.PLEDGE_BACK_PRICE,sum(t2.IRR_MONTH_PRICE*(t2.IRR_MONTH_PRICE_END-t2.IRR_MONTH_PRICE_START+1)) CREDITSUMMONTH_PRICE,
+				trc.RECT_ID,trcs.LEASE_TOPRIC-trcs.PLEDGE_ENTER_AG-trcs.PLEDGE_ENTER_MCTOAG RENT_SHENQINGBOKUAN,trcs.LEASE_RZE RENT_LEASE_RZE,trcs.HEAD_HIRE RENT_HEAD_HIRE,trcs.PLEDGE_BACK_PRICE RENT_PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE RENT_PLEDGE_LAST_PRICE,
+				trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+					(case when t.WIND_STATE!=1 then 0 
+						when t.WIND_STATE=1 and trc.RECT_ID is null then (ISNULL(t1.LEASE_TOPRIC,0)-ISNULL(t1.PLEDGE_ENTER_AG,0)-ISNULL(t1.PLEDGE_ENTER_MCTOAG,0))*((ISNULL(trcq.UNIT_PRICE,0)*ISNULL(trcq.SUMAMOUNT,0))/t1.LEASE_TOPRIC)
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then (ISNULL(trcs.LEASE_TOPRIC,0)-ISNULL(trcs.PLEDGE_ENTER_AG,0)-ISNULL(trcs.PLEDGE_ENTER_MCTOAG,0))*((ISNULL(t4.UNIT_PRICE,0)*ISNULL(t4.SUMAMOUNT,0))/trcs.LEASE_TOPRIC)
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null then min(ISNULL(trcd.REAL_OWN_PRICE,0))
+					end) REAL_OWN_PRICE,
+					(case when t.WIND_STATE!=1 then 0
+						 when t.WIND_STATE=1 and trc.RECT_ID is null then sum(t2.IRR_MONTH_PRICE*(t2.IRR_MONTH_PRICE_END-t2.IRR_MONTH_PRICE_START+1))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then sum(trcsi.IRR_MONTH_PRICE*(trcsi.IRR_MONTH_PRICE_END-trcsi.IRR_MONTH_PRICE_START+1))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null then sum(trcd.MONTH_PRICE)
+					end) SHENGYUZUJIN
+				 from T_PRJT_CREDIT t
+				 left join (select SUM(AMOUNT) SUMAMOUNT,UNIT_PRICE,SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by UNIT_PRICE,SUEQ_ID,CREDIT_ID ) trcq on trcq.CREDIT_ID=t.ID
+				 LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+				 LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+				left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID and t1.STATUS=0
+				left join T_PRJT_CREDITSCHEMEIRR t2 on t2.PRCS_ID=t1.PRCS_ID and t2.STATUS=0
+				left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+				left join (select SUM(AMOUNT) SUMAMOUNT,UNIT_PRICE,EQMT_ID,RECT_ID,STATUS from T_RENT_CONTRACTDETAIL group by UNIT_PRICE,EQMT_ID,RECT_ID,STATUS) t4 on t4.RECT_ID=trc.RECT_ID and t4.STATUS=0
+				left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID and trcs.STATUS=0
+				left join T_RENT_CONTRACTSCHEMAIRR trcsi on trcsi.RECS_ID=trcs.RECS_ID and trcsi.STATUS=0
+				left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+				left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+				LEFT JOIN T_PRODUCT_GRANTPLAN TPGP ON TPGP.PRODUCT_ID=tssp.ID
+				where tssp.ID=#ID# and t.STATUS=0 and t.WIND_STATE=1
+				group by tssp.ID,tssp.NAME,TPGP.GRANT_PRICE,t.ID ,t.WIND_STATE,t1.LEASE_TOPRIC,t1.PLEDGE_ENTER_AG,t1.PLEDGE_ENTER_MCTOAG,t1.LEASE_RZE,t1.HEAD_HIRE,t1.PLEDGE_LAST_PRICE,t1.PLEDGE_BACK_PRICE,
+				trc.RECT_ID,trcs.LEASE_TOPRIC,trcs.PLEDGE_ENTER_AG,trcs.PLEDGE_ENTER_MCTOAG,trcs.LEASE_RZE,trcs.HEAD_HIRE,trcs.PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE,
+				trcp.RECP_ID,trcd.RECP_ID,trcq.UNIT_PRICE,trcq.SUMAMOUNT,t4.SUMAMOUNT,t4.UNIT_PRICE,trcp.RECP_STATUS
+				) tapplydate
+				group by tapplydate.ID,tapplydate.NAME,tapplydate.GRANT_PRICE			
+		]]>
+		 -->
+		 <![CDATA[
+select tapplydate.ID,tapplydate.NAME,SUM(tapplydate.REAL_OWN_PRICE) SHENGYUBENJIN from 
+				(
+				select tssp.ID,tssp.NAME,t.ID CREDIT_ID,t.WIND_STATE, 
+				trc.RECT_ID, 
+				trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+				(case when t.WIND_STATE!=1 then 0 
+						when t.WIND_STATE=1 and trc.RECT_ID is null then (isnull(trcp.LEASE_RZE,0))
+						when t.WIND_STATE=1 and trc.RECT_ID >0 and trcd.RECP_ID is null then (isnull(trcp.LEASE_RZE,0))
+						when t.WIND_STATE=1 and trc.RECT_ID >0 and trcd.RECP_ID >0 and ( exists
+											(SELECT TT.NET_FINANCE FROM T_RENT_COLLECTIONDETAIL TT 
+												WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID 
+												AND TT.REDUCE_OWN_PRICE>0 and TT.NET_FINANCE IS NULL) ) 
+												then (isnull(trcp.LEASE_RZE,0))
+						when t.WIND_STATE=1 and trc.RECT_ID >0 and trcd.RECP_ID >0 and trcp.RECP_STATUS<>0 then 0
+						when t.WIND_STATE=1 and trc.RECT_ID >0 and trcd.RECP_ID >0 and (exists (SELECT TT.NET_FINANCE FROM T_RENT_COLLECTIONDETAIL TT 
+											WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND TT.REDUCE_OWN_PRICE >0 and NET_FINANCE >0) ) then (
+										SELECT
+										(
+										SELECT
+											(case 
+											when MIN(isnull(TT.REDUCE_OWN_PRICE,0))-MIN(TT.REN_PRICE)>0 then 
+												(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end)+(min(TT.IRR_MONTH_PRICE)-min(TT.REDUCE_OWN_PRICE))
+											else
+												(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end) +(min(TT.IRR_MONTH_PRICE)-min(TT.REN_PRICE))
+											end) NET_FINANCE
+										FROM
+											T_RENT_COLLECTIONDETAIL TT 
+										WHERE
+											 TT.STATUS = 0 
+											AND TT.RECP_ID = trcd.RECP_ID
+											and ISNULL(TT.REDUCE_OWN_PRICE,0)>0)
+											)
+					end) REAL_OWN_PRICE
+				 from T_PRJT_CREDIT t
+				 left join (select max(SUEQ_ID) SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by CREDIT_ID ) trcq on trcq.CREDIT_ID=t.ID
+				 LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+				 LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+					left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+				left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+				left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+				where tssp.ID=#ID# and t.STATUS=0 and t.WIND_STATE=1 and trcp.RECP_STATUS =0 
+				group by tssp.ID,tssp.NAME,t.ID ,t.WIND_STATE,
+				trc.RECT_ID,
+				trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS,trcp.LEASE_RZE
+				) tapplydate
+				group by tapplydate.ID,tapplydate.NAME		 
+		 ]]>
+	</select>
+	
+	<!-- Modify by Michael 2012 02/06 修改剩余本金Bug，抓净本金余额  -->
+	<select id="selectVouchCropSumIrrMonthAndLastPrice" parameterClass="map" resultClass="hashmap">
+	<!--
+		<![CDATA[
+		select tvouchcorpdate.CORP_NAME_CN,tvouchcorpdate.ORGANIZATION_CODE_CERTIFICATE,sum(tvouchcorpdate.REAL_OWN_PRICE) SHENGYUBENJIN,SUM(tvouchcorpdate.SHENGYUZUJIN) SUMSHENGYUZUJIN from (
+				select tpvcc.CORP_NAME_CN,tpvcc.ORGANIZATION_CODE_CERTIFICATE,t.ID CREDIT_ID,t.WIND_STATE,t1.LEASE_TOPRIC-t1.PLEDGE_ENTER_AG-t1.PLEDGE_ENTER_MCTOAG CREDIT_SHENGQINGBOKUAN,t1.LEASE_RZE,t1.HEAD_HIRE,t1.PLEDGE_LAST_PRICE,t1.PLEDGE_BACK_PRICE,sum(t2.IRR_MONTH_PRICE*(t2.IRR_MONTH_PRICE_END-t2.IRR_MONTH_PRICE_START+1)) CREDITSUMMONTH_PRICE,
+				trc.RECT_ID,trcs.LEASE_TOPRIC-trcs.PLEDGE_ENTER_AG-trcs.PLEDGE_ENTER_MCTOAG RENT_SHENQINGBOKUAN,trcs.LEASE_RZE RENT_LEASE_RZE,trcs.HEAD_HIRE RENT_HEAD_HIRE,trcs.PLEDGE_BACK_PRICE RENT_PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE RENT_PLEDGE_LAST_PRICE,
+				trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+					(case when t.WIND_STATE!=1 then 0 
+						when t.WIND_STATE=1 and trc.RECT_ID is null then ISNULL(t1.LEASE_TOPRIC,0)-ISNULL(t1.PLEDGE_ENTER_AG,0)-ISNULL(t1.PLEDGE_ENTER_MCTOAG,0)
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then ISNULL(trcs.LEASE_TOPRIC,0)-ISNULL(trcs.PLEDGE_ENTER_AG,0)-ISNULL(trcs.PLEDGE_ENTER_MCTOAG,0)
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null then min(ISNULL(trcd.REAL_OWN_PRICE,0))
+					end) REAL_OWN_PRICE,
+					(case when t.WIND_STATE!=1 then 0
+						 when t.WIND_STATE=1 and trc.RECT_ID is null then sum(t2.IRR_MONTH_PRICE*(t2.IRR_MONTH_PRICE_END-t2.IRR_MONTH_PRICE_START+1))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then sum(trcsi.IRR_MONTH_PRICE*(trcsi.IRR_MONTH_PRICE_END-trcsi.IRR_MONTH_PRICE_START+1))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null then sum(trcd.MONTH_PRICE)
+					end) SHENGYUZUJIN
+				 from 
+				  T_PRJT_CREDIT t
+				left join T_PRJT_VOUCHCUSTOMERCORP tpvcc on tpvcc.PRCD_ID=t.ID
+				left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID and t1.STATUS=0
+				left join T_PRJT_CREDITSCHEMEIRR t2 on t2.PRCS_ID=t1.PRCS_ID and t2.STATUS=0
+				left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+				left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID and trcs.STATUS=0
+				left join T_RENT_CONTRACTSCHEMAIRR trcsi on trcsi.RECS_ID=trcs.RECS_ID and trcsi.STATUS=0
+				left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+				left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+				
+				where tpvcc.CORP_NAME_CN=#NAME# and tpvcc.ORGANIZATION_CODE_CERTIFICATE=#CODE# and t.STATUS=0 and t.WIND_STATE=1
+				group by tpvcc.CORP_NAME_CN,tpvcc.ORGANIZATION_CODE_CERTIFICATE,t.ID ,t.WIND_STATE,t1.LEASE_TOPRIC,t1.PLEDGE_ENTER_AG,t1.PLEDGE_ENTER_MCTOAG,t1.LEASE_RZE,t1.HEAD_HIRE,t1.PLEDGE_LAST_PRICE,t1.PLEDGE_BACK_PRICE,
+				trc.RECT_ID,trcs.LEASE_TOPRIC,trcs.PLEDGE_ENTER_AG,trcs.PLEDGE_ENTER_MCTOAG,trcs.LEASE_RZE,trcs.HEAD_HIRE,trcs.PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE,
+				trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS
+				) tvouchcorpdate
+				group by tvouchcorpdate.CORP_NAME_CN,tvouchcorpdate.ORGANIZATION_CODE_CERTIFICATE
+		]]>
+		-->
+		<![CDATA[
+		select tvouchcorpdate.CORP_NAME_CN,tvouchcorpdate.ORGANIZATION_CODE_CERTIFICATE,sum(tvouchcorpdate.REAL_OWN_PRICE) SHENGYUBENJIN from (
+				select tpvcc.CORP_NAME_CN,tpvcc.ORGANIZATION_CODE_CERTIFICATE,t.ID CREDIT_ID,t.WIND_STATE,t1.LEASE_TOPRIC-t1.PLEDGE_ENTER_AG-t1.PLEDGE_ENTER_MCTOAG CREDIT_SHENGQINGBOKUAN,t1.LEASE_RZE,t1.HEAD_HIRE,t1.PLEDGE_LAST_PRICE,t1.PLEDGE_BACK_PRICE,sum(t2.IRR_MONTH_PRICE*(t2.IRR_MONTH_PRICE_END-t2.IRR_MONTH_PRICE_START+1)) CREDITSUMMONTH_PRICE,
+				trc.RECT_ID,trcs.LEASE_TOPRIC-trcs.PLEDGE_ENTER_AG-trcs.PLEDGE_ENTER_MCTOAG RENT_SHENQINGBOKUAN,trcs.LEASE_RZE RENT_LEASE_RZE,trcs.HEAD_HIRE RENT_HEAD_HIRE,trcs.PLEDGE_BACK_PRICE RENT_PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE RENT_PLEDGE_LAST_PRICE,
+				trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+				(case when t.WIND_STATE!=1 then 0 
+						when t.WIND_STATE=1 and trc.RECT_ID is null then (isnull(t1.LEASE_RZE,0))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then (isnull(t1.LEASE_RZE,0))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+											WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NULL) then (isnull(t1.LEASE_RZE,0))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+											WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NOT NULL) then (
+										SELECT
+											(case 
+											when MIN(isnull(TT.REDUCE_OWN_PRICE,0))-MIN(TT.REN_PRICE)>0 then 
+												(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end)+(min(TT.IRR_MONTH_PRICE)-min(TT.REDUCE_OWN_PRICE))
+											else
+												(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end) +(min(TT.IRR_MONTH_PRICE)-min(TT.REN_PRICE))
+											end) NET_FINANCE
+										FROM
+											T_RENT_COLLECTIONDETAIL TT 
+										WHERE
+											 TT.STATUS = 0 
+											AND TT.RECP_ID = trcd.RECP_ID
+											and ISNULL(TT.REDUCE_OWN_PRICE,0)>0
+									)
+					end) REAL_OWN_PRICE
+				 from 
+				  T_PRJT_CREDIT t
+				left join T_PRJT_VOUCHCUSTOMERCORP tpvcc on tpvcc.PRCD_ID=t.ID
+				left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID and t1.STATUS=0
+				left join T_PRJT_CREDITSCHEMEIRR t2 on t2.PRCS_ID=t1.PRCS_ID and t2.STATUS=0
+				left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+				left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID and trcs.STATUS=0
+				left join T_RENT_CONTRACTSCHEMAIRR trcsi on trcsi.RECS_ID=trcs.RECS_ID and trcsi.STATUS=0
+				left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+				left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+				
+				where tpvcc.CORP_NAME_CN=#NAME# and tpvcc.ORGANIZATION_CODE_CERTIFICATE=#CODE# and t.STATUS=0 and t.WIND_STATE=1 and (trcp.RECP_STATUS<>1 and trcp.RECP_STATUS<>3)
+				group by tpvcc.CORP_NAME_CN,tpvcc.ORGANIZATION_CODE_CERTIFICATE,t.ID ,t.WIND_STATE,t1.LEASE_TOPRIC,t1.PLEDGE_ENTER_AG,t1.PLEDGE_ENTER_MCTOAG,t1.LEASE_RZE,t1.HEAD_HIRE,t1.PLEDGE_LAST_PRICE,t1.PLEDGE_BACK_PRICE,
+				trc.RECT_ID,trcs.LEASE_TOPRIC,trcs.PLEDGE_ENTER_AG,trcs.PLEDGE_ENTER_MCTOAG,trcs.LEASE_RZE,trcs.HEAD_HIRE,trcs.PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE,
+				trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS
+				) tvouchcorpdate
+				group by tvouchcorpdate.CORP_NAME_CN,tvouchcorpdate.ORGANIZATION_CODE_CERTIFICATE		
+		]]>
+	</select>
+	
+<!-- Modify by Michael 2012 02/06 修改剩余本金Bug，抓净本金余额  -->	
+		<select id="selectVouchNatuSumIrrMonthAndLastPrice" parameterClass="map" resultClass="hashmap">
+		<!--
+		<![CDATA[
+				select tvouchnatudate.CUST_NAME,tvouchnatudate.NATU_IDCARD,sum(tvouchnatudate.REAL_OWN_PRICE) SHENGYUBENJIN,SUM(tvouchnatudate.SHENGYUZUJIN) SUMSHENGYUZUJIN from (
+				select tpcn.CUST_NAME,tpcn.NATU_IDCARD,t.ID CREDIT_ID,t.WIND_STATE,t1.LEASE_TOPRIC-t1.PLEDGE_ENTER_AG-t1.PLEDGE_ENTER_MCTOAG CREDIT_SHENGQINGBOKUAN,t1.LEASE_RZE,t1.HEAD_HIRE,t1.PLEDGE_LAST_PRICE,t1.PLEDGE_BACK_PRICE,sum(t2.IRR_MONTH_PRICE*(t2.IRR_MONTH_PRICE_END-t2.IRR_MONTH_PRICE_START+1)) CREDITSUMMONTH_PRICE,
+				trc.RECT_ID,trcs.LEASE_TOPRIC-trcs.PLEDGE_ENTER_AG-trcs.PLEDGE_ENTER_MCTOAG RENT_SHENQINGBOKUAN,trcs.LEASE_RZE RENT_LEASE_RZE,trcs.HEAD_HIRE RENT_HEAD_HIRE,trcs.PLEDGE_BACK_PRICE RENT_PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE RENT_PLEDGE_LAST_PRICE,
+				trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+					(case when t.WIND_STATE!=1 then 0 
+						when t.WIND_STATE=1 and trc.RECT_ID is null then ISNULL(t1.LEASE_TOPRIC,0)-ISNULL(t1.PLEDGE_ENTER_AG,0)-ISNULL(t1.PLEDGE_ENTER_MCTOAG,0)
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then ISNULL(trcs.LEASE_TOPRIC,0)-ISNULL(trcs.PLEDGE_ENTER_AG,0)-ISNULL(trcs.PLEDGE_ENTER_MCTOAG,0)
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null then min(ISNULL(trcd.REAL_OWN_PRICE,0))
+					end) REAL_OWN_PRICE,
+					(case when t.WIND_STATE!=1 then 0
+						 when t.WIND_STATE=1 and trc.RECT_ID is null then sum(t2.IRR_MONTH_PRICE*(t2.IRR_MONTH_PRICE_END-t2.IRR_MONTH_PRICE_START+1))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then sum(trcsi.IRR_MONTH_PRICE*(trcsi.IRR_MONTH_PRICE_END-trcsi.IRR_MONTH_PRICE_START+1))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null then sum(trcd.MONTH_PRICE)
+					end) SHENGYUZUJIN
+				 from 
+				 T_PRJT_CREDIT t
+				left join T_PRJT_CREDITVOUCHNATU tpcn on tpcn.PRCD_ID=t.ID
+				left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID and t1.STATUS=0
+				left join T_PRJT_CREDITSCHEMEIRR t2 on t2.PRCS_ID=t1.PRCS_ID and t2.STATUS=0
+				left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+				left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID and trcs.STATUS=0
+				left join T_RENT_CONTRACTSCHEMAIRR trcsi on trcsi.RECS_ID=trcs.RECS_ID and trcsi.STATUS=0
+				left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+				left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+				
+				where tpcn.CUST_NAME=#NAME# and tpcn.NATU_IDCARD=#CODE# and t.STATUS=0 and t.WIND_STATE=1
+				group by tpcn.CUST_NAME,tpcn.NATU_IDCARD,t.ID ,t.WIND_STATE,t1.LEASE_TOPRIC,t1.PLEDGE_ENTER_AG,t1.PLEDGE_ENTER_MCTOAG,t1.LEASE_RZE,t1.HEAD_HIRE,t1.PLEDGE_LAST_PRICE,t1.PLEDGE_BACK_PRICE,
+				trc.RECT_ID,trcs.LEASE_TOPRIC,trcs.PLEDGE_ENTER_AG,trcs.PLEDGE_ENTER_MCTOAG,trcs.LEASE_RZE,trcs.HEAD_HIRE,trcs.PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE,
+				trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS
+				) tvouchnatudate
+				group by tvouchnatudate.CUST_NAME,tvouchnatudate.NATU_IDCARD
+		]]>
+		-->	
+		<![CDATA[
+				select tvouchnatudate.CUST_NAME,tvouchnatudate.NATU_IDCARD,sum(tvouchnatudate.REAL_OWN_PRICE) SHENGYUBENJIN from (
+				select tpcn.CUST_NAME,tpcn.NATU_IDCARD,t.ID CREDIT_ID,t.WIND_STATE,t1.LEASE_TOPRIC-t1.PLEDGE_ENTER_AG-t1.PLEDGE_ENTER_MCTOAG CREDIT_SHENGQINGBOKUAN,t1.LEASE_RZE,t1.HEAD_HIRE,t1.PLEDGE_LAST_PRICE,t1.PLEDGE_BACK_PRICE,sum(t2.IRR_MONTH_PRICE*(t2.IRR_MONTH_PRICE_END-t2.IRR_MONTH_PRICE_START+1)) CREDITSUMMONTH_PRICE,
+				trc.RECT_ID,trcs.LEASE_TOPRIC-trcs.PLEDGE_ENTER_AG-trcs.PLEDGE_ENTER_MCTOAG RENT_SHENQINGBOKUAN,trcs.LEASE_RZE RENT_LEASE_RZE,trcs.HEAD_HIRE RENT_HEAD_HIRE,trcs.PLEDGE_BACK_PRICE RENT_PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE RENT_PLEDGE_LAST_PRICE,
+				trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+				(case when t.WIND_STATE!=1 then 0 
+						when t.WIND_STATE=1 and trc.RECT_ID is null then (isnull(t1.LEASE_RZE,0))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then (isnull(t1.LEASE_RZE,0))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+											WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NULL) then (isnull(t1.LEASE_RZE,0))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+											WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NOT NULL) then (
+										SELECT
+											(case 
+											when MIN(isnull(TT.REDUCE_OWN_PRICE,0))-MIN(TT.REN_PRICE)>0 then 
+												(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end)+(min(TT.IRR_MONTH_PRICE)-min(TT.REDUCE_OWN_PRICE))
+											else
+												(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end) +(min(TT.IRR_MONTH_PRICE)-min(TT.REN_PRICE))
+											end) NET_FINANCE
+										FROM
+											T_RENT_COLLECTIONDETAIL TT 
+										WHERE
+											 TT.STATUS = 0 
+											AND TT.RECP_ID = trcd.RECP_ID
+											and ISNULL(TT.REDUCE_OWN_PRICE,0)>0
+									)
+					end) REAL_OWN_PRICE
+				 from 
+				 T_PRJT_CREDIT t
+				left join T_PRJT_CREDITVOUCHNATU tpcn on tpcn.PRCD_ID=t.ID
+				left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID and t1.STATUS=0
+				left join T_PRJT_CREDITSCHEMEIRR t2 on t2.PRCS_ID=t1.PRCS_ID and t2.STATUS=0
+				left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+				left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID and trcs.STATUS=0
+				left join T_RENT_CONTRACTSCHEMAIRR trcsi on trcsi.RECS_ID=trcs.RECS_ID and trcsi.STATUS=0
+				left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+				left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+				
+				where tpcn.CUST_NAME=#NAME# and tpcn.NATU_IDCARD=#CODE# and t.STATUS=0 and t.WIND_STATE=1 and (trcp.RECP_STATUS<>1 and trcp.RECP_STATUS<>3)
+				group by tpcn.CUST_NAME,tpcn.NATU_IDCARD,t.ID ,t.WIND_STATE,t1.LEASE_TOPRIC,t1.PLEDGE_ENTER_AG,t1.PLEDGE_ENTER_MCTOAG,t1.LEASE_RZE,t1.HEAD_HIRE,t1.PLEDGE_LAST_PRICE,t1.PLEDGE_BACK_PRICE,
+				trc.RECT_ID,trcs.LEASE_TOPRIC,trcs.PLEDGE_ENTER_AG,trcs.PLEDGE_ENTER_MCTOAG,trcs.LEASE_RZE,trcs.HEAD_HIRE,trcs.PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE,
+				trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS
+				) tvouchnatudate
+				group by tvouchnatudate.CUST_NAME,tvouchnatudate.NATU_IDCARD		
+		]]>
+	</select>
+	
+	<!-- Modify by Michael 2012 02/06 修改剩余本金Bug，抓净本金余额  -->	
+	<select id="selectApplySumIrrMonthAndLastPrice_THISCASE" parameterClass="map" resultClass="hashmap">
+	<!--  
+		<![CDATA[
+			select MAX(tssp.ID),MAX(tssp.NAME),SUM((t1.LEASE_TOPRIC-t1.PLEDGE_ENTER_AG-t1.PLEDGE_ENTER_MCTOAG)*((trcq.UNIT_PRICE*trcq.SUMAMOUNT)/t1.LEASE_TOPRIC)) SHENGYUBENJINYUEBENAN 
+			from T_PRJT_CREDIT t
+			left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID and t1.STATUS=0
+			left join 
+			(select tessupper.ID, tessupper.SUMAMOUNT,tessupper.UNIT_PRICE,tessupper.CREDIT_ID from (
+				select tssp.ID,tssp.NAME,trcq.CREDIT_ID, SUM(trcq.AMOUNT) SUMAMOUNT,trcq.UNIT_PRICE 
+				from T_PRJT_CREDITEQUIPMENT trcq
+				LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+				LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+				group by tssp.ID,tssp.NAME,trcq.UNIT_PRICE,trcq.CREDIT_ID)  tessupper
+			  ) trcq on trcq.CREDIT_ID=t.ID
+			LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=trcq.ID
+			where t.ID=#credit_id# and tssp.ID=#ID# and t.STATUS=0
+		]]>
+	-->
+	<![CDATA[
+		select tssp.ID,tssp.NAME,t1.LEASE_RZE SHENGYUBENJINYUEBENAN 
+		from T_PRJT_CREDIT t
+		left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID and t1.STATUS=0
+		left join 
+		(select tessupper.ID, tessupper.CREDIT_ID from (
+			select tssp.ID,tssp.NAME,trcq.CREDIT_ID 
+			from (select max(SUEQ_ID) SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by CREDIT_ID ) trcq 
+			LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+			LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+			group by tssp.ID,tssp.NAME,trcq.CREDIT_ID)  tessupper
+		  ) trcq on trcq.CREDIT_ID=t.ID
+		LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=trcq.ID
+		where t.ID=#credit_id# and tssp.ID=#ID# and t.STATUS=0			
+	]]>
+	</select>
+	<select id="selectSqboje_THISCASE" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select 
+			(case when t.WIND_STATE!=1 then t1.LEASE_TOPRIC-t1.PLEDGE_ENTER_AG-t1.PLEDGE_ENTER_MCTOAG
+			when t.WIND_STATE=1 then 0
+			when t.WIND_STATE IS null then t1.LEASE_TOPRIC-t1.PLEDGE_ENTER_AG-t1.PLEDGE_ENTER_MCTOAG
+			end) SHENQINGBOKUANJINE from T_PRJT_CREDIT t
+			left join T_PRJT_CREDITSCHEME t1 on t1.CREDIT_ID=t.ID where t.ID=#credit_id# and t.STATUS=0
+		]]>
+	</select>
+	
+	
+	<select id="selectApplyGrant_PriceById" parameterClass="map" resultClass="hashmap">
+		select MAX(t4.ID),MAX(t4.NAME),MAX(t4.SUPP_TYPE),
+				MAX(t5.GRANT_PRICE) 
+				from T_PRJT_CREDIT t1
+		left join T_PRJT_CREDITEQUIPMENT t2 on t2.CREDIT_ID = t1.ID
+		left join T_SUPL_EQUIPMENT t3 on t3.SUEQ_ID=t2.SUEQ_ID
+		left join T_SUPL_SUPPLIER t4 on t4.ID=t3.SUPPLIER_ID
+		LEFT JOIN T_PRODUCT_GRANTPLAN t5 ON t5.PRODUCT_ID = t4.ID
+		where t4.ID=#ID# and t1.ID=#credit_id# and t4.STATUS = 0 AND (t5.STATUS IS NULL OR t5.STATUS=0)
+	</select>
+	<!-- Modify by Michael 2012 08-02 增加授信总金额不为0条件 -->
+	<select id="selectApplyGrant_PriceByAPPLYId" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select
+					t5.GRANT_PRICE,LIEN_GRANT_PRICE,REPURCH_GRANT_PRICE,LIEN_REPEAT_CREDIT,REPURCH_REPEAT_CREDIT 
+				from T_PRODUCT_GRANTPLAN t5
+			where t5.PRODUCT_ID=#applyId# and t5.STATUS=0  and t5.GRANT_PRICE<>0 and CONVERT(date,t5.END_DATE,23)>=GETDATE()
+			and t5.CUGP_STATUS='0'
+		]]>
+	</select>
+	
+	<select id="selectVouchCrop_GrantPrice" parameterClass="map" resultClass="hashmap">
+		select * from T_PRODUCT_VOUCHPLAN where VOUCH_NAME=#VOUCHNAME# and VOUCH_CODE=#VOUCHCODE# and VOUCH_TYPE=1
+	</select>
+	
+	<select id="selectNatuCrop_GrantPrice" parameterClass="map" resultClass="hashmap">
+		select * from T_PRODUCT_VOUCHPLAN where VOUCH_NAME=#VOUCHNAME# and VOUCH_CODE=#VOUCHCODE# and VOUCH_TYPE=0
+	</select>
+	<select id="selectcustGrantPrice_Biaozhun" parameterClass="map" resultClass="hashmap">
+		select * from T_CUST_GRANTPLAN where CUST_ID=#NEWCUST_ID#
+	</select>
+	
+		<!-- Add by Michael 2012 08-02 查询连保授信额度授信总金额不为0条件 -->
+	<select id="selectApplyLienGrant_PriceByAPPLYId" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select
+				t5.LIEN_GRANT_PRICE,t5.LIEN_REPEAT_CREDIT 
+				from T_PRODUCT_GRANTPLAN t5
+			where t5.PRODUCT_ID=#applyId# and t5.STATUS=0  and t5.LIEN_GRANT_PRICE>0 and CONVERT(date,t5.END_DATE,23)>=GETDATE()
+			and t5.CUGP_STATUS='0'
+		]]>
+	</select>
+	
+			<!-- Add by Michael 2012 08-02 查询回购授信额度授信总金额不为0条件 -->
+	<select id="selectApplyRepurchGrant_PriceByAPPLYId" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select
+				t5.REPURCH_GRANT_PRICE,t5.REPURCH_REPEAT_CREDIT 
+				from T_PRODUCT_GRANTPLAN t5
+			where t5.PRODUCT_ID=#applyId# and t5.STATUS=0  and t5.REPURCH_GRANT_PRICE>0 and CONVERT(date,t5.END_DATE,23)>=GETDATE()
+			and t5.CUGP_STATUS='0'
+		]]>
+	</select>
+	
+		<!-- Add by michael 2012 08/03 抓取连保核准的案件 -->
+	<select id="selectApplyAllLienCredit_HeZhun" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+		select DISTINCT
+				tpc.ID CREDIT_ID,tssp.ID,t.RECT_ID RECT_ID
+		from T_PRJT_CREDIT tpc 
+		left join T_PRJT_CREDITSCHEME tpcs on tpcs.CREDIT_ID=tpc.ID and tpcs.STATUS=0
+		left join (select max(SUEQ_ID) SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by CREDIT_ID ) trcq on trcq.CREDIT_ID=tpc.ID
+		LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+		LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+		left join T_RENT_CONTRACT t on t.PRCD_ID=tpc.ID
+		where tssp.ID=#applyId# and tpc.WIND_STATE=1 and tpcs.SUPL_TRUE='1'
+	]]>
+	</select>
+
+		<!-- Add by michael 2012 08/03 抓取回购核准的案件 -->
+	<select id="selectApplyAllRepurchCredit_HeZhun" parameterClass="map" resultClass="hashmap">
+		<![CDATA[
+			select DISTINCT
+					tpc.ID CREDIT_ID,tssp.ID,t.RECT_ID RECT_ID
+			from T_PRJT_CREDIT tpc 
+			left join T_PRJT_CREDITSCHEME tpcs on tpcs.CREDIT_ID=tpc.ID and tpcs.STATUS=0
+			left join (select max(SUEQ_ID) SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by CREDIT_ID ) trcq on trcq.CREDIT_ID=tpc.ID
+			LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+			LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+			left join T_RENT_CONTRACT t on t.PRCD_ID=tpc.ID
+			where tssp.ID=#applyId# and tpc.WIND_STATE=1 and (tpcs.SUPL_TRUE='3' or tpcs.SUPL_TRUE='2')
+		]]>
+	</select>
+	<!-- Add by Michael 2012 08-03 抓取连保的 非循环授信的已用额度 -->
+	<select id="selectApplyLienContractOneNoRepeat_Jianshaoe" parameterClass="map" resultClass="hashmap">	
+		 <![CDATA[
+		select tssp.ID,tssp.NAME,t.ID CREDIT_ID,t.WIND_STATE, 
+			trc.RECT_ID, 
+			trcp.RECP_ID PLAN_RECP_ID,
+			(case when t.WIND_STATE!=1 then 0 
+				when t.WIND_STATE=1  then (isnull(trcp.LEASE_RZE,0))
+				end) SHOUXINJIANSHAOE
+			 from T_PRJT_CREDIT t
+			 left join (select max(SUEQ_ID) SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by CREDIT_ID ) trcq on trcq.CREDIT_ID=t.ID
+			 LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+			 LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+			left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+			left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+			where tssp.ID=#ID# and trc.RECT_ID=#RECT_ID#  and t.STATUS=0 and t.WIND_STATE=1 
+			and trcp.SUPL_TRUE='1'
+			group by tssp.ID,tssp.NAME,t.ID ,t.WIND_STATE,
+			trc.RECT_ID,
+			trcp.RECP_ID,trcp.RECP_STATUS,trcp.LEASE_RZE
+		 ]]>
+	</select>	
+	
+		<!-- Add by Michael 2012 08-03 抓取回购、回购含灭失的 非循环授信的已用额度 -->
+	<select id="selectApplyRepurchContractOneNoRepeat_Jianshaoe" parameterClass="map" resultClass="hashmap">	
+		 <![CDATA[
+		select tssp.ID,tssp.NAME,t.ID CREDIT_ID,t.WIND_STATE, 
+			trc.RECT_ID, 
+			trcp.RECP_ID PLAN_RECP_ID,
+			(case when t.WIND_STATE!=1 then 0 
+				when t.WIND_STATE=1  then (isnull(trcp.LEASE_RZE,0))
+				end) SHOUXINJIANSHAOE
+			 from T_PRJT_CREDIT t
+			 left join (select max(SUEQ_ID) SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by CREDIT_ID ) trcq on trcq.CREDIT_ID=t.ID
+			 LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+			 LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+				left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+			left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+			where tssp.ID=#ID# and trc.RECT_ID=#RECT_ID#  and t.STATUS=0 and t.WIND_STATE=1 
+			and (trcp.SUPL_TRUE='3' or trcp.SUPL_TRUE='2')
+			group by tssp.ID,tssp.NAME,t.ID ,t.WIND_STATE,
+			trc.RECT_ID,
+			trcp.RECP_ID,trcp.RECP_STATUS,trcp.LEASE_RZE
+		 ]]>
+	</select>
+	
+		<!-- Add by Michael 2012 08-03 抓取连保的是循环授信的已用额度 -->
+	<select id="selectApplyLienContractOneRepeat_Jianshaoe" parameterClass="map" resultClass="hashmap">	
+	 <![CDATA[
+		select tssp.ID,tssp.NAME,t.ID CREDIT_ID,t.WIND_STATE, 
+			trc.RECT_ID, 
+			trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+			(case when t.WIND_STATE!=1 then 0 
+					when t.WIND_STATE=1 and trc.RECT_ID is null then (isnull(trcp.LEASE_RZE,0))
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then (isnull(trcp.LEASE_RZE,0))
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+										WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NULL) then (isnull(trcp.LEASE_RZE,0))
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+										WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NOT NULL) then (
+									SELECT
+									(
+									SELECT
+										(case 
+										when MIN(isnull(TT.REDUCE_OWN_PRICE,0))-MIN(TT.REN_PRICE)>0 then 
+											(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end)+(min(TT.IRR_MONTH_PRICE)-min(TT.REDUCE_OWN_PRICE))
+										else
+											(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end) +(min(TT.IRR_MONTH_PRICE)-min(TT.REN_PRICE))
+										end) NET_FINANCE
+									FROM
+										T_RENT_COLLECTIONDETAIL TT 
+									WHERE
+										 TT.STATUS = 0 
+										AND TT.RECP_ID = trcd.RECP_ID
+										and ISNULL(TT.REDUCE_OWN_PRICE,0)>0)
+										)
+				end) SHOUXINJIANSHAOE
+			 from T_PRJT_CREDIT t
+			 left join (select max(SUEQ_ID) SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by CREDIT_ID ) trcq on trcq.CREDIT_ID=t.ID
+			 LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+			 LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+				left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+			left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+			left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+			where tssp.ID=#ID# and trc.RECT_ID=#RECT_ID#  and t.STATUS=0 and t.WIND_STATE=1 and (trcp.RECP_STATUS<>1 and trcp.RECP_STATUS<>3)
+			and trcp.SUPL_TRUE='1'
+			group by tssp.ID,tssp.NAME,t.ID ,t.WIND_STATE,
+			trc.RECT_ID,
+			trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS,trcp.LEASE_RZE
+		 ]]>
+	</select>
+	
+			<!-- Add by Michael 2012 08-03 抓取回购、回购含灭失的是循环授信的已用额度 -->
+	<select id="selectApplyRepurchContractOneRepeat_Jianshaoe" parameterClass="map" resultClass="hashmap">	
+	 <![CDATA[
+		select tssp.ID,tssp.NAME,t.ID CREDIT_ID,t.WIND_STATE, 
+			trc.RECT_ID, 
+			trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+			(case when t.WIND_STATE!=1 then 0 
+					when t.WIND_STATE=1 and trc.RECT_ID is null then (isnull(trcp.LEASE_RZE,0))
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then (isnull(trcp.LEASE_RZE,0))
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+										WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NULL) then (isnull(trcp.LEASE_RZE,0))
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+										WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NOT NULL) then (
+									SELECT
+									(
+									SELECT
+										(case 
+										when MIN(isnull(TT.REDUCE_OWN_PRICE,0))-MIN(TT.REN_PRICE)>0 then 
+											(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end)+(min(TT.IRR_MONTH_PRICE)-min(TT.REDUCE_OWN_PRICE))
+										else
+											(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end) +(min(TT.IRR_MONTH_PRICE)-min(TT.REN_PRICE))
+										end) NET_FINANCE
+									FROM
+										T_RENT_COLLECTIONDETAIL TT 
+									WHERE
+										 TT.STATUS = 0 
+										AND TT.RECP_ID = trcd.RECP_ID
+										and ISNULL(TT.REDUCE_OWN_PRICE,0)>0)
+										)
+				end) SHOUXINJIANSHAOE
+			 from T_PRJT_CREDIT t
+			 left join (select max(SUEQ_ID) SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by CREDIT_ID ) trcq on trcq.CREDIT_ID=t.ID
+			 LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+			 LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+				left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+			left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+			left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+			where tssp.ID=#ID# and trc.RECT_ID=#RECT_ID#  and t.STATUS=0 and t.WIND_STATE=1 and (trcp.RECP_STATUS<>1 and trcp.RECP_STATUS<>3)
+			and (trcp.SUPL_TRUE='3' or trcp.SUPL_TRUE='2')
+			group by tssp.ID,tssp.NAME,t.ID ,t.WIND_STATE,
+			trc.RECT_ID,
+			trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS,trcp.LEASE_RZE
+		 ]]>
+	</select>
+		<!-- Modify by Michael 2012 02/06 修改剩余本金Bug，抓净本金余额  -->	
+	<select id="selectApplyLienLastPriceByCreditID" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+		select tssp.ID,tssp.NAME,t1.LEASE_RZE SHENGYUBENJINYUEBENAN 
+		from T_PRJT_CREDIT t
+		left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID and t1.STATUS=0
+		left join 
+		(select tessupper.ID, tessupper.CREDIT_ID from (
+			select tssp.ID,tssp.NAME,trcq.CREDIT_ID 
+			from (select max(SUEQ_ID) SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by CREDIT_ID ) trcq 
+			LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+			LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+			group by tssp.ID,tssp.NAME,trcq.CREDIT_ID)  tessupper
+		  ) trcq on trcq.CREDIT_ID=t.ID
+		LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=trcq.ID
+		where t.ID=#credit_id# and tssp.ID=#ID# and t.STATUS=0	and t1.SUPL_TRUE='1'		
+	]]>
+	</select>
+	<select id="selectApplyRepurchLastPriceByCreditID" parameterClass="map" resultClass="hashmap">
+	<![CDATA[
+		select tssp.ID,tssp.NAME,t1.LEASE_RZE SHENGYUBENJINYUEBENAN 
+		from T_PRJT_CREDIT t
+		left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID and t1.STATUS=0
+		left join 
+		(select tessupper.ID, tessupper.CREDIT_ID from (
+			select tssp.ID,tssp.NAME,trcq.CREDIT_ID 
+			from (select max(SUEQ_ID) SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by CREDIT_ID ) trcq 
+			LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+			LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+			group by tssp.ID,tssp.NAME,trcq.CREDIT_ID)  tessupper
+		  ) trcq on trcq.CREDIT_ID=t.ID
+		LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=trcq.ID
+		where t.ID=#credit_id# and tssp.ID=#ID# and t.STATUS=0	and (t1.SUPL_TRUE='2' or t1.SUPL_TRUE='3')		
+	]]>
+	</select>
+</sqlMap>

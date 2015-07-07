@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+ "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="informationStatistics">
+
+	<resultMap id="getInfoSta" class="com.brick.information.to.InformationStatistic">
+		<result property="name" column="name" />
+		<result property="preForJan" column="preforjan" />
+		<result property="fisForJan" column="finforjan" />
+		<result property="preForFeb" column="preForFeb" />
+		<result property="fisForFeb" column="finForFeb" />
+		<result property="preForMar" column="preForMar" />
+		<result property="fisForMar" column="finForMar" />
+		<result property="preForApi" column="preForApi" />
+		<result property="fisForApi" column="finForApi" />
+		<result property="preForMay" column="preForMay" />
+		<result property="fisForMay" column="finForMay" />
+		<result property="preForJun" column="preForJun" />
+		<result property="fisForJun" column="finForJun" />
+		<result property="preForJul" column="preForJul" />
+		<result property="fisForJul" column="finForJul" />
+		<result property="preForAus" column="preForAus" />
+		<result property="fisForAus" column="finForAus" />
+		<result property="preForSep" column="preForSep" />
+		<result property="fisForSep" column="finForSep" />
+		<result property="preForOct" column="preForOct" />
+		<result property="fisForOct" column="finForOct" />
+		<result property="preForNov" column="preForNov" />
+		<result property="fisForNov" column="finForNov" />
+		<result property="preForDec" column="preForDec" />
+		<result property="fisForDec" column="finForDec" />
+	</resultMap>
+
+	<select id="getInfoStatictisList" resultMap="getInfoSta">
+		select RESPONSIBLE_USER_ID ,name,
+		sum(case when
+		datepart(month,create_time)=1 then 1 else 0 end) 'preforjan',
+		sum(case
+		when datepart(month,create_time)=1 and order_status in
+		(990)
+		then 1 else 0 end) 'finforjan',
+		sum(case when
+		datepart(month,create_time)=2 then 1 else 0 end) 'preforfeb',
+		sum(case
+		when datepart(month,create_time)=2 and order_status in
+		(990)
+		then 1 else 0 end) 'finforfeb',
+		sum(case when
+		datepart(month,create_time)=3 then 1 else 0 end) 'preformar',
+		sum(case
+		when datepart(month,create_time)=3 and order_status in
+		(990)
+		then 1 else 0 end) 'finformar',
+		sum(case when
+		datepart(month,create_time)=4 then 1 else 0 end) 'preforapi',
+		sum(case
+		when datepart(month,create_time)=4 and order_status in
+		(990)
+		then 1 else 0 end) 'finforapi',
+		sum(case when
+		datepart(month,create_time)=5 then 1 else 0 end) 'preformay',
+		sum(case
+		when datepart(month,create_time)=5 and order_status in
+		(990)
+		then 1 else 0 end) 'finformay',
+		sum(case when
+		datepart(month,create_time)=6 then 1 else 0 end) 'preforjun',
+		sum(case
+		when datepart(month,create_time)=6 and order_status in
+		(990)
+		then 1 else 0 end) 'finforjun',
+		sum(case when
+		datepart(month,create_time)=7 then 1 else 0 end) 'preforjul',
+		sum(case
+		when datepart(month,create_time)=7 and order_status in
+		(990)
+		then 1 else 0 end) 'finforjul',
+		sum(case when
+		datepart(month,create_time)=8 then 1 else 0 end) 'preforaus',
+		sum(case
+		when datepart(month,create_time)=8 and order_status in
+		(990)
+		then 1 else 0 end) 'finforaus',
+		sum(case when
+		datepart(month,create_time)=9 then 1 else 0 end) 'preforsep',
+		sum(case
+		when datepart(month,create_time)=9 and order_status in
+		(990)
+		then 1 else 0 end) 'finforsep',
+		sum(case when
+		datepart(month,create_time)=10 then 1 else 0 end) 'preforoct',
+		sum(case when datepart(month,create_time)=10 and order_status in
+		(990) then 1 else 0 end) 'finforoct',
+		sum(case when
+		datepart(month,create_time)=11 then 1 else 0 end) 'prefornov',
+		sum(case when datepart(month,create_time)=11 and order_status in
+		(990) then 1 else 0 end) 'finfornov',
+		sum(case when
+		datepart(month,create_time)=12 then 1 else 0 end) 'prefordec',
+		sum(case when datepart(month,create_time)=12 and order_status in
+		(990) then 1 else 0 end) 'finfordec'
+		from T_DEMAND_ORDER a
+		left
+		join T_USER_USER b
+		on a.RESPONSIBLE_USER_ID=b.ID
+		where
+		year(create_time)=#YEAR#
+		<isNotEmpty prepend="and" property="TYPE">
+			DEMAND_type=#TYPE#
+		</isNotEmpty>
+		and RESPONSIBLE_USER_ID is
+		not null
+		group by RESPONSIBLE_USER_ID,name
+	</select>
+
+	<select id="getAllYear" resultClass="java.lang.String">
+		select year(create_time)
+		from T_DEMAND_ORDER
+		where demand_type=1
+		group by year(create_time)
+		order
+		by year(create_time) desc
+	</select>
+
+      <!-- 抓取资讯单周报表的数据 -->
+      <select id="getAllDataOfWeek" resultClass="com.brick.information.to.InforDataOfWeek">
+        select 
+        TOTAL as total,
+        TOTAL_OF_FINISH as totalOfFinish,
+        TOTAL_FOR_WEEK as addNumOfWeek,
+        TOTAL_FINISH_FOR_WEEK as addNumOfWeek_fis,
+        CREATETIME as staticDate
+        from T_DEMAND_STATISTICS_OF_WEEK_JOBTO
+        order by convert(date,CREATETIME)
+      </select>
+      
+      <!-- 从资讯单log表抓取周报表的数据，用于跑job -->
+      <select id="getJobData" resultClass="com.brick.information.to.InforDataOfWeek" parameterClass="java.util.Map">
+         select 
+         q.ta as total,
+         r.tb as totalOfFinish,
+         e.tc as addNumOfWeek,
+         w.td as addNumOfWeek_fis
+         from
+           (
+          select 1 b, count(1) ta from T_DEMAND_ORDER a where convert(date,a.CREATE_TIME)&lt;=convert(date,getDate())
+           ) q
+         left join
+          (
+           select 1 b, count(1) tb from T_DEMAND_ORDER a 
+           where convert(date,a.LAST_OP_TIME)&lt;=convert(date,getDate()) and a.ORDER_STATUS in(990,-1,-2)
+           )r
+           on r.b = q.b
+         left join
+          (
+            select 1 b, count(1) tc from T_DEMAND_ORDER a where convert(date,a.CREATE_TIME) between 
+            convert(date,#begin#) and convert(date,getDate())
+         )e
+          on e.b = q.b
+         left join
+        (
+         select 1 b, count(1) td from T_DEMAND_ORDER a 
+         where (convert(date,a.LAST_OP_TIME) between convert(date,#begin#) and convert(date,getDate()))
+         and a.ORDER_STATUS in(990,-1,-2)
+        )w
+          on w.b = e.b
+      </select>
+      
+      <!-- 抓取上一期已经完成的总数 -->
+     <!--  <select id="getLastWeekTotal" resultClass="java.lang.Integer">
+           select TOTAL_OF_FINISH from T_DEMAND_STATISTICS_OF_WEEK_JOBTO where convert(date,createtime)=convert(date,#lastweek#)
+      </select>--> 
+      
+      <!-- 跑job -->
+      <insert id="addLog" parameterClass="com.brick.information.to.InforDataOfWeek">
+         insert into T_DEMAND_STATISTICS_OF_WEEK_JOBTO 
+         values(#id#,#total#,#totalOfFinish#,#addNumOfWeek#,#addNumOfWeek_fis#,getDate())
+      </insert>
+</sqlMap>

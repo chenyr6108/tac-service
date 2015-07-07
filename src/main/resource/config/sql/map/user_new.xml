@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="user">
+	<typeAlias alias="user" type="com.tac.user.to.UserTo"/>
+	
+	<insert id="insertUser" parameterClass="user">	
+		insert into T_USER_USER
+		(
+			name,
+			code,
+			password,
+			sex,
+			age,
+			id_card,
+			status,
+			id_card_address,
+			zip,
+			mobile,
+			telephone,
+			address,
+			email,
+			job,
+			dept_id,
+			head,
+			mate_name,
+			mate_id_card,
+			mate_telphone,
+			mate_work_unit,
+			memo,
+			last_login,
+			create_date,
+			remark1,
+			remark2,
+			remark3,
+			remark4,
+			rmate_id_card_addr,
+			mate_work_unit_address,
+			in_date,
+			out_date,
+			node,
+			upper_user,
+			first_login,
+			department
+		)
+		values(
+			#name#,
+			#code#,
+			#password#,
+			#sex#,
+			#age#,
+			#idCard#,
+			0,
+			#idCardAddress#,
+			#zip#,
+			#mobile#,
+			#telephone#,
+			#address#,
+			#email#,
+			#job#,
+			#deptId#,
+			#head#,
+			#mateName#,
+			#mateIdCard#,
+			#mateTelphone#,
+			#mateWorkUnit#,
+			#memo#,
+			#lastLogin#,
+			getDate(),
+			#remark1#,
+			#remark2#,
+			#remark3#,
+			#remark4#,
+			#rmateIdCardAddr#,
+			#mateWorkUnitAddress#,
+			#inDate#,
+			#outDate#,
+			#node#,
+			#upperUser#,
+			#firstLogin#,
+			#department#
+		)
+		<selectKey resultClass="int" keyProperty="id" >
+				SELECT @@IDENTITY AS ID
+		</selectKey>
+
+	</insert>
+	
+	<update id="updateUser" parameterClass="user">
+		update T_USER_USER 
+		set 
+			name=#name#,
+			code=#code#,
+			password=#password#,
+			sex=#sex#,
+			age=#age#,
+			id_card=#idCard#,
+			id_card_address=#idCardAddress#,
+			zip=#zip#,
+			mobile=#mobile#,
+			telephone=#telephone#,
+			address=#address#,
+			email=#email#,
+			job=#job#,
+			dept_id=#deptId#,
+			head=#head#,
+			mate_name=#mateName#,
+			mate_id_card=#mateIdCard#,
+			mate_telphone=#mateTelphone#,
+			mate_work_unit=#mateWorkUnit#,
+			memo=#memo#,
+			last_login=#lastLogin#,
+			remark1=#remark1#,
+			remark2=#remark2#,
+			remark3=#remark3#,
+			remark4=#remark4#,
+			rmate_id_card_addr=#rmateIdCardAddr#,
+			modify_date=getDate(),
+			mate_work_unit_address=#mateWorkUnitAddress#,
+			in_date=#inDate#,
+			out_date=#outDate#,
+			node=#node#,
+			upper_user=#upperUser#,
+			first_login=#firstLogin#,
+			department=#department#
+		where id = #id#
+	</update>
+	
+	<update id="deleteUser" parameterClass="map">
+		update  T_USER_USER set status = 1 
+		where id = #id#
+	</update>
+		
+	<select id="getUserById" parameterClass="map" resultClass="user">
+		select 
+			id as id,
+			name as name,
+			code as code,
+			password as password,
+			sex as sex,
+			age as age,
+			id_card as idCard,
+			status as status,
+			id_card_address as idCardAddress,
+			zip as zip,
+			mobile as mobile,
+			telephone as telephone,
+			address as address,
+			email as email,
+			job as job,
+			dept_id as deptId,
+			head as head,
+			mate_name as mateName,
+			mate_id_card as mateIdCard,
+			mate_telphone as mateTelphone,
+			mate_work_unit as mateWorkUnit,
+			memo as memo,
+			last_login as lastLogin,
+			create_date as createDate,
+			remark1 as remark1,
+			remark2 as remark2,
+			remark3 as remark3,
+			remark4 as remark4,
+			rmate_id_card_addr as rmateIdCardAddr,
+			modify_date as modifyDate,
+			mate_work_unit_address as mateWorkUnitAddress,
+			in_date as inDate,
+			out_date as outDate,
+			node as node,
+			upper_user as upperUser,
+			first_login as firstLogin,
+			department as department 
+		from T_USER_USER
+		where id = #id#
+	</select>
+	
+	<select id="getUsers" parameterClass="map" resultClass="user">
+		select 
+			id as id,
+			name as name,
+			code as code,
+			password as password,
+			sex as sex,
+			age as age,
+			id_card as idCard,
+			status as status,
+			id_card_address as idCardAddress,
+			zip as zip,
+			mobile as mobile,
+			telephone as telephone,
+			address as address,
+			email as email,
+			job as job,
+			dept_id as deptId,
+			head as head,
+			mate_name as mateName,
+			mate_id_card as mateIdCard,
+			mate_telphone as mateTelphone,
+			mate_work_unit as mateWorkUnit,
+			memo as memo,
+			last_login as lastLogin,
+			create_date as createDate,
+			remark1 as remark1,
+			remark2 as remark2,
+			remark3 as remark3,
+			remark4 as remark4,
+			rmate_id_card_addr as rmateIdCardAddr,
+			modify_date as modifyDate,
+			mate_work_unit_address as mateWorkUnitAddress,
+			in_date as inDate,
+			out_date as outDate,
+			node as node,
+			upper_user as upperUser,
+			first_login as firstLogin,
+			department as department
+		from T_USER_USER where status = 0 
+		<isNotEmpty prepend="and" property="content">
+		(		
+		name like '%$content$%'
+		or		
+		code like '%$content$%'
+		or		
+		password like '%$content$%'
+		or		
+		sex like '%$content$%'
+		or		
+		id_card like '%$content$%'
+		or		
+		id_card_address like '%$content$%'
+		or		
+		zip like '%$content$%'
+		or		
+		mobile like '%$content$%'
+		or		
+		telephone like '%$content$%'
+		or		
+		address like '%$content$%'
+		or		
+		email like '%$content$%'
+		or		
+		job like '%$content$%'
+		or		
+		head like '%$content$%'
+		or		
+		mate_name like '%$content$%'
+		or		
+		mate_id_card like '%$content$%'
+		or		
+		mate_telphone like '%$content$%'
+		or		
+		mate_work_unit like '%$content$%'
+		or		
+		memo like '%$content$%'
+		or		
+		remark1 like '%$content$%'
+		or		
+		remark2 like '%$content$%'
+		or		
+		remark3 like '%$content$%'
+		or		
+		remark4 like '%$content$%'
+		or		
+		rmate_id_card_addr like '%$content$%'
+		or		
+		mate_work_unit_address like '%$content$%'
+		or		
+		first_login like '%$content$%'		
+		)		
+		</isNotEmpty>
+	</select>
+	
+	<select id="getAllUsers" resultClass="com.brick.base.to.SelectionTo">
+	 	select [NAME] as 'display_name'
+		, id as 'option_value'
+		from T_USER_USER
+		where STATUS = 0
+		order by [NAME]
+	 </select>
+	 
+	 <select id="getUsersForAutocomplete" parameterClass="map" resultClass="com.brick.base.to.SelectionTo">
+	 	select [NAME]+'['+ EMAIL +']' as 'display_name'
+		, id as 'option_value'
+		from T_USER_USER
+		where STATUS = 0
+		and 
+		(
+		[NAME] like '%$content$%'
+		or		
+		code like '%$content$%'
+		)
+		order by [NAME]
+	 </select>
+	 
+</sqlMap>

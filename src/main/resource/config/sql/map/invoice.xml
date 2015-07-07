@@ -1,0 +1,410 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="invoice">
+
+	<select id="queryPage" parameterClass="map" resultClass="java.util.HashMap">
+		select pi.ID
+		, pc.CREDIT_RUNCODE
+		, cust.CUST_NAME
+		, max(su.[NAME]) as SUPL_NAME
+		, pi.TOTAL_MONEY as TOTAL_MONEY
+		, pi.REMANENT_MONEY as REMANENT_MONEY
+		, pi.INVOICE_STATUS as INVOICE_STATUS
+		, pc.LEASE_CODE
+		, (select
+		  count(0) 
+		  from T_INVO_INVOICE iv 
+		  where iv.INVOICE_ID = pi.ID
+		  and iv.INVOICE_TYPE = 0 
+		  and iv.STATUS >= 0 
+		) as INVOICE_COUNT
+		, (select
+		  isnull(sum(iv.INVOICE_MONEY),0)
+		  from T_INVO_INVOICE iv 
+		  where iv.INVOICE_ID = pi.ID
+		  and iv.INVOICE_TYPE = 0 
+		  and iv.STATUS >= 0 
+		) as INVOICE_MONEY
+		, (select
+		  count(0) 
+		  from T_INVO_INVOICE iv 
+		  where iv.INVOICE_ID = pi.ID
+		  and iv.INVOICE_TYPE = 1 
+		  and iv.STATUS >= 0 
+		) as INVOICE_COUNT1
+		, (select
+		  isnull(sum(iv.INVOICE_MONEY),0)
+		  from T_INVO_INVOICE iv 
+		  where iv.INVOICE_ID = pi.ID
+		  and iv.INVOICE_TYPE = 1 
+		  and iv.STATUS >= 0 
+		) as INVOICE_MONEY1
+		, (select
+		  count(0) 
+		  from T_INVO_INVOICE iv 
+		  where iv.INVOICE_ID = pi.ID
+		  and iv.INVOICE_TYPE = 1 
+		  and iv.STATUS IN (1,2) 
+		) as INVOICE_COUNT1_1
+		, (select
+		  isnull(sum(iv.INVOICE_MONEY),0)
+		  from T_INVO_INVOICE iv 
+		  where iv.INVOICE_ID = pi.ID
+		  and iv.INVOICE_TYPE = 1 
+		  and iv.STATUS IN (1,2)
+		) as INVOICE_MONEY1_1
+    	, (select
+		  count(0) 
+		  from T_INVO_INVOICE iv 
+		  where iv.INVOICE_ID = pi.ID
+		  and iv.INVOICE_TYPE = 1 
+		  and iv.STATUS IN (0,3) 
+		) as INVOICE_COUNT1_0
+		, (select
+		  isnull(sum(iv.INVOICE_MONEY),0)
+		  from T_INVO_INVOICE iv 
+		  where iv.INVOICE_ID = pi.ID
+		  and iv.INVOICE_TYPE = 1 
+		  and iv.STATUS IN (0,3) 
+		) as INVOICE_MONEY1_0
+		, (SELECT ISNULL(fd.IS_ALREADY,0) FROM T_RENT_FILEDETAIL fd LEFT JOIN T_RENT_FILE fi ON fd.REFI_ID = fi.REFI_ID
+		  WHERE fd.PRCD_ID = pi.credit_id AND fi.CONTRACT_FILE_TYPE = 1
+		) as IS_ALREADY
+		from T_PRJT_INVOICE pi
+		left join T_PRJT_CREDIT pc on pi.credit_id = pc.id
+		left join T_CUST_CUSTOMER cust on pc.CUST_ID = cust.CUST_ID
+		left join T_PRJT_CREDITEQUIPMENT ce on ce.CREDIT_ID = pc.ID
+		left join T_SUPL_EQUIPMENT ee on ee.SUEQ_ID = ce.SUEQ_ID
+		left join T_SUPL_SUPPLIER su on ee.SUPPLIER_ID = su.ID
+		where pc.STATUS = 0
+		<isNotEmpty property="invoice_id" open="and">
+			pi.ID = #invoice_id#
+		</isNotEmpty>
+		<isEmpty property="invoice_id">
+			<isNotEmpty property="invoice_status" open="and">
+				pi.INVOICE_STATUS = #invoice_status#
+			</isNotEmpty>
+			
+			<isNotEmpty property="contract_type" open="and">
+				pc.CONTRACT_TYPE = #contract_type#
+			</isNotEmpty>
+			
+			<isNotEmpty property="search_content" open="and">
+				(
+					cust.CUST_NAME like '%$search_content$%'
+					or pc.CREDIT_RUNCODE like '%$search_content$%'
+					or pc.LEASE_CODE like '%$search_content$%'
+				)
+			</isNotEmpty>
+			<isNotEmpty property="search_supl_name" open="and">
+				su.[NAME] like '%$search_supl_name$%'
+			</isNotEmpty>
+			<isNotEmpty property="prcd_id" open="and">
+				pc.ID = #prcd_id#
+			</isNotEmpty>
+		</isEmpty>
+		group by pc.ID,pi.credit_id, pc.CREDIT_RUNCODE, cust.CUST_NAME, pi.ID, pi.REMANENT_MONEY, pi.TOTAL_MONEY, pi.INVOICE_STATUS, pc.LEASE_CODE
+		having pc.ID is not null
+	</select>
+	
+	<insert id="addPrjtInvoice" parameterClass="com.brick.invoice.to.InvoiceTO">
+		insert into T_PRJT_INVOICE (
+		   CREDIT_ID
+		  ,INVOICE_STATUS
+		  ,STATUS
+		  ,TOTAL_MONEY
+		  ,REMANENT_MONEY
+		  ,CREATE_DATE
+		  ,MODIFY_DATE
+		  ,CREATE_BY
+		  ,MODIFY_BY
+		) VALUES (
+		   #credit_id#
+		  ,#invoice_status#
+		  ,#status#
+		  ,#total_money#
+		  ,#remanent_money#
+		  ,getdate()
+		  ,getdate()
+		  ,#create_by#
+		  ,#modify_by#
+		)
+	</insert>
+	
+	<insert id="addInvoice" parameterClass="com.brick.invoice.to.InvoiceTO">
+		insert into T_INVO_INVOICE (
+		   INVOICE_ID
+		  ,INVOICE_CODE
+		  ,INVOICE_MONEY
+		  ,INVOICE_TYPE
+		  ,DRAWER
+		  ,STATUS
+		  ,CREATE_DATE
+		  ,MODIFY_DATE
+		  ,CREATE_BY
+		  ,MODIFY_BY
+		) VALUES (
+		   #invoice_id#
+		  ,#invoice_code#
+		  ,#invoice_money#
+		  ,#invoice_type#
+		  ,#drawer#
+		  ,#status#
+		  ,getdate()
+		  ,getdate()
+		  ,#create_by#
+		  ,#modify_by#
+		)
+		<selectKey resultClass="java.lang.String" keyProperty="id">
+			<![CDATA[	select @@IDENTITY as id  ]]>
+		</selectKey>
+	</insert>
+	
+	<insert id="addInvoiceLog" parameterClass="com.brick.invoice.to.InvoiceTO">
+		insert into T_INVO_INVOICE_LOG (
+		   INVO_ID
+		  ,INVOICE_CODE
+		  ,INVOICE_MONEY
+		  ,INVOICE_TYPE
+		  ,DRAWER
+		  ,STATUS
+		  ,MEMO
+		  ,CREATE_DATE
+		  ,CREATE_BY
+		) VALUES (
+		   #id#
+		  ,#invoice_code#
+		  ,#invoice_money#
+		  ,#invoice_type#
+		  ,#drawer#
+		  ,#status#
+		  ,#memo#
+		  ,getdate()
+		  ,#modify_by#
+		)
+	</insert>
+	
+	<select id="getInvoiceMoneyByInvoiceId" parameterClass="com.brick.invoice.to.InvoiceTO" resultClass="java.lang.Double">
+		select
+		isnull(sum(iv.INVOICE_MONEY),0)
+		from T_INVO_INVOICE iv 
+		where iv.INVOICE_ID = #invoice_id#
+		and iv.INVOICE_TYPE = 1 
+		and iv.STATUS in (1,2) 
+	</select>
+	
+	<select id="existsInvoice" parameterClass="map" resultClass="java.lang.Integer">
+		select
+		count(iv.INVOICE_CODE)
+		from T_INVO_INVOICE iv 
+		where iv.INVOICE_CODE between '$from$' and '$to$'
+	</select>
+	
+	<select id="getTotalMoneyByInvoiceId" parameterClass="com.brick.invoice.to.InvoiceTO" resultClass="java.lang.Double">
+		select TOTAL_MONEY
+		from T_PRJT_INVOICE
+		where ID = #invoice_id#
+	</select>
+	
+	<update id="updateRemanentMoney" parameterClass="com.brick.invoice.to.InvoiceTO">
+		update T_PRJT_INVOICE
+		set REMANENT_MONEY = #remanent_money#
+		,INVOICE_STATUS = #invoice_status#
+		where ID = #invoice_id#
+	</update>
+	
+	<select id="showInvoicesDetail" parameterClass="map" resultClass="com.brick.invoice.to.InvoiceTO" >
+		select iv.ID as id
+		, INVOICE_ID as invoice_id
+		, INVOICE_CODE as invoice_code
+		, INVOICE_MONEY as invoice_money
+		, INVOICE_TYPE as invoice_type
+		, case when INVOICE_TYPE = 0 then '复印件'
+		when INVOICE_TYPE = 1 then '原件'
+		else '' end as invoice_type_desc
+		, DRAWER as drawer
+		, iv.CREATE_DATE as create_date
+		, iv.MODIFY_DATE as modify_date
+		, u.[NAME]  as modify_by
+		, iv.STATUS as status
+		, iv.MEMO as memo
+		from T_INVO_INVOICE iv
+		left join T_USER_USER u on iv.MODIFY_BY = u.ID
+		where INVOICE_ID = #invoice_id#
+	</select>
+	
+	<select id="getInvoicesById" parameterClass="com.brick.invoice.to.InvoiceTO" resultClass="com.brick.invoice.to.InvoiceTO" >
+		select iv.ID as id
+		, INVOICE_ID as invoice_id
+		, INVOICE_CODE as invoice_code
+		, INVOICE_MONEY as invoice_money
+		, INVOICE_TYPE as invoice_type
+		, case when INVOICE_TYPE = 0 then '复印件'
+		when INVOICE_TYPE = 1 then '原件'
+		else '' end as invoice_type_desc
+		, DRAWER as drawer
+		, iv.CREATE_DATE as create_date
+		, iv.MODIFY_DATE as modify_date
+		, iv.MODIFY_BY as modify_by
+		, iv.STATUS as status
+		, iv.MEMO as memo
+		from T_INVO_INVOICE iv
+		where iv.ID = #id#
+	</select>
+	
+	<select id="showInvoicesLog" parameterClass="map" resultClass="com.brick.invoice.to.InvoiceTO" >
+		select INVOICE_CODE as invoice_code
+		, INVOICE_MONEY as invoice_money
+		, case when INVOICE_TYPE = 0 then '复印件'
+		when INVOICE_TYPE = 1 then '原件'
+		else '' end as invoice_type_desc
+		, DRAWER as drawer
+		, iv.CREATE_DATE as create_date
+		, u.[NAME] as create_by
+		, iv.MEMO as memo
+		, iv.STATUS as status
+		from T_INVO_INVOICE_LOG iv
+		left join T_USER_USER u on iv.CREATE_BY = u.ID
+		where INVO_ID = #id#
+		order by iv.CREATE_DATE desc
+	</select>
+	
+	<update id="updateInvoice" parameterClass="com.brick.invoice.to.InvoiceTO">
+		update T_INVO_INVOICE
+		SET INVOICE_CODE = #invoice_code#
+		  ,INVOICE_MONEY = #invoice_money#
+		  ,INVOICE_TYPE = #invoice_type#
+		  ,DRAWER = #drawer#
+		  ,MEMO = #memo#
+		  ,STATUS = #status#
+		  ,MODIFY_DATE = getdate()
+		  ,MODIFY_BY = #modify_by#
+		WHERE ID = #id#
+	</update>
+	
+	<update id="updatePortionInvoice" parameterClass="com.brick.invoice.to.InvoiceTO">
+		update T_INVO_INVOICE
+		SET MODIFY_DATE = getdate()
+		  ,MODIFY_BY = #modify_by#
+		  <isNotEmpty property="invoice_code">
+		  	,INVOICE_CODE = #invoice_code#
+		  </isNotEmpty>
+		  <isNotEmpty property="invoice_money">
+		  	,INVOICE_MONEY = #invoice_money#
+		  </isNotEmpty>
+		  <isNotEmpty property="invoice_type">
+		  	,INVOICE_TYPE = #invoice_type#
+		  </isNotEmpty>
+		  <isNotEmpty property="drawer">
+		  	,DRAWER = #drawer#
+		  </isNotEmpty>
+		  <isNotEmpty property="memo">
+		  	,MEMO = #memo#
+		  </isNotEmpty>
+		WHERE ID = #id#
+	</update>
+	
+	<update id="updateInvoiceStatus" parameterClass="com.brick.invoice.to.InvoiceTO">
+		update T_INVO_INVOICE
+		SET STATUS = #status#
+		  ,MODIFY_DATE = getdate()
+		  ,MODIFY_BY = #modify_by#
+		WHERE ID = #id#
+	</update>
+	
+	<update id="updateInvoiceType" parameterClass="com.brick.invoice.to.InvoiceTO">
+		update T_INVO_INVOICE
+		SET INVOICE_TYPE = #invoice_type#
+		  ,MODIFY_DATE = getdate()
+		  ,MODIFY_BY = #modify_by#
+		WHERE ID = #id#
+	</update>
+	
+	<select id="hasMe" parameterClass="com.brick.invoice.to.InvoiceTO" resultClass="java.lang.Integer">
+		select count(0) from T_PRJT_INVOICE
+		where CREDIT_ID = #credit_id#
+		and STATUS = 0
+	</select>
+	
+	<select id="getInvoiceBySuplId" parameterClass="map" resultClass="java.lang.Integer">
+		select count(0)
+		from (
+		select iv.ID
+		from T_PRJT_INVOICE iv
+		left join T_PRJT_CREDIT pc on iv.CREDIT_ID = pc.ID
+		left join T_PRJT_CREDITEQUIPMENT ce on ce.CREDIT_ID = pc.ID
+		left join T_SUPL_EQUIPMENT ee on ee.SUEQ_ID = ce.SUEQ_ID
+		left join T_SUPL_SUPPLIER su on ee.SUPPLIER_ID = su.ID
+		where iv.STATUS >= 0
+		and su.ID = #supl_id#
+		<isEqual property="flag" compareValue="being">
+			and iv.INVOICE_STATUS = 0
+		</isEqual>
+		group by iv.ID
+		) t
+	</select>
+	
+	<update id="invoiceCreditMinusOne" parameterClass="map">
+		update T_PRODUCT_GRANTPLAN
+		set VOICE_LAST_CREDIT = isnull(VOICE_LAST_CREDIT, 0) - 1
+		where PRODUCT_ID = #suplId#
+	</update>
+	
+	<select id="getInvoiceById" parameterClass="com.brick.invoice.to.InvoiceTO" resultClass="com.brick.invoice.to.InvoiceTO">
+		select ID as id
+		, CREDIT_ID as credit_id
+		, INVOICE_STATUS as invoice_status
+		, STATUS as status
+		, TOTAL_MONEY as total_money
+		, REMANENT_MONEY as remanent_money
+		from T_PRJT_INVOICE
+		where ID = #invoice_id#
+	</select>
+	
+	<select id="getFileDetailIdByCreditId" parameterClass="map" resultClass="hashMap">
+		select top 1 fd.REFD_ID, fd.IS_ALREADY
+		  from T_RENT_FILEDETAIL fd
+		  left join T_RENT_FILE f on fd.REFI_ID = f.REFI_ID
+		  where fd.STATUS = 0
+		  and fd.FILE_TYPE = 3
+		  and f.CONTRACT_FILE_TYPE = 1
+		  and fd.PRCD_ID = #credit_id#
+	</select>
+	
+	<update id="updateFileDetail" parameterClass="map">
+		update T_RENT_FILEDETAIL
+		set IS_ALREADY = #flag#
+		<isEqual property="flag" compareValue="1">
+		, ISSURE_REASON = ''
+		</isEqual>
+		, IS_ALREADY_DETAIL = #flag#
+		where REFD_ID = #refd_id#
+	</update>
+	
+	<insert id="insertFileDetailLog" parameterClass="map">
+		insert into T_RENT_FILEDETAIL_LOG (
+		   REFD_ID
+		  ,IS_ALREADY
+		  ,IS_ALREADY_DETAIL
+		  ,ISSURE_REASON
+		  ,FILE_MEMO
+		  ,SALES_CREATE_ID
+		  ,SALES_CREATE_TIME
+		  ,confirm_date
+		  ,RETURN_DATE
+		) VALUES (
+		   #refd_id#
+		  ,#flag#
+		  ,#flag#
+		  ,#msg#
+		  ,#msg#
+		  ,#modify_by#
+		  ,getdate()
+		  ,getdate()
+		  ,getdate()
+		)
+	</insert>
+	
+</sqlMap>

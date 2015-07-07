@@ -1,0 +1,988 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="applyCompanyManage">
+    
+        
+    <select id="getAllSupplier" parameterClass="map" resultClass="com.brick.base.to.SelectionTo">
+	   	select 
+	   		[NAME] as 'display_name',
+	   		 id as 'option_value'    
+	    from T_SUPL_SUPPLIER 
+	    where status = 0
+	</select>
+	
+	<!--  fenye zs-->
+	<select id="findAllApplyCompany_count" parameterClass="map" resultClass="java.lang.Integer">
+
+		<![CDATA[    
+			  select  count(distinct t11.id)
+			  from
+			  (
+			  	select t1.ID,t1.name,t2.SUEQ_ID,t3.EQMT_ID
+			  	from T_SUPL_SUPPLIER t1
+			  	left join T_SUPL_EQUIPMENT t2 on t2.SUPPLIER_ID = t1.ID and t2.STATUS = 0
+			  	left join T_EQMT_EQUIPMENT t3 on t3.SUEQ_ID = t2.SUEQ_ID and t3.STATUS = 0
+			  	where t1.STATUS = 0 
+			  )t11 
+			  inner join(
+			  			select t1.RECT_ID,t2.RECD_ID,t2.EQMT_ID
+			  			from T_RENT_CONTRACT t1
+			  			left join T_RENT_CONTRACTDETAIL t2 on t2.RECT_ID = t1.RECT_ID and t2.STATUS = 0
+			  			left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=t1.RECT_ID and trcp.STATUS=0
+			  			where t1.STATUS = 0 and trcp.RECP_STATUS=0
+			  ) t22 on t22.eqmt_id = t11.eqmt_id
+		]]>		
+		<isNotEmpty prepend="and" property="searchValue" >
+			<![CDATA[ t11.NAME like '%$searchValue$%' ]]>
+		</isNotEmpty>
+	</select>
+	
+	
+		<!--  zongjieshu zs-->
+		<!-- Add by Michael 2012 02/06 正常结清与提前结清案件不算入归户中  -->
+	<select id="findAllApplyCompany" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[    
+			select x.*,tnew.GRANT_PRICE,tnew.LIEN_GRANT_PRICE,tnew.REPURCH_GRANT_PRICE,tnew.LAST_PRICE from (
+			select t.id,t.name,count(*) COUNTS,SUM(tt.LEASE_TOPRIC) SUMLEASE_TOPRIC,SUM(tt.MONTH_PRICE) sumMONTH_PRICE,
+			SUM(t6.LASTPRICE) SUMLASTPRICE, SUM(t6.SHENGYUZUJIN) SHENGYUZUJIN,SUM(t6.SHIJISHENGYUZUJIN) SHIJISHENGYUZUJIN
+			from(
+			  select distinct t11.id,t11.name,t22.rect_id
+			  from
+			  (
+			  	select t1.ID,t1.name,t2.SUEQ_ID,t3.EQMT_ID
+			  	from T_SUPL_SUPPLIER t1
+			  	left join T_SUPL_EQUIPMENT t2 on t2.SUPPLIER_ID = t1.ID and t2.STATUS = 0
+			  	left join T_EQMT_EQUIPMENT t3 on t3.SUEQ_ID = t2.SUEQ_ID and t3.STATUS = 0
+			  	where t1.STATUS = 0 
+			  )t11 
+			  inner join(
+			  			select t1.RECT_ID,t2.RECD_ID,t2.EQMT_ID
+			  			from T_RENT_CONTRACT t1
+			  			left join T_RENT_CONTRACTDETAIL t2 on t2.RECT_ID = t1.RECT_ID and t2.STATUS = 0
+			  			left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=t1.RECT_ID and trcp.STATUS=0
+			  			where t1.STATUS = 0 and trcp.RECP_STATUS=0
+			  ) t22 on t22.eqmt_id = t11.eqmt_id
+			) t
+			left join (
+			    select t1.RECT_ID,max(t1.LEASE_TOPRIC) LEASE_TOPRIC,sum(t4.MONTH_PRICE) MONTH_PRICE
+					from T_RENT_CONTRACT t1
+					left join T_RENT_COLLECTIONPLAN t3 on t3.RECT_ID = t1.RECT_ID and t3.STATUS = 0
+					LEFT JOIN T_RENT_COLLECTIONDETAIL T4 ON T4.RECP_ID=t3.RECP_ID and t4.STATUS = 0
+					where t1.STATUS = 0 and t3.RECP_STATUS= 0  and t3.STATUS =0
+					group by t1.RECT_ID
+			) tt on tt.RECT_ID = t.rect_id
+			left join (
+			 select t11.RECT_ID, MAX(t11.LAST_PRICE) LASTPRICE,COUNT(t11.PERIOD_NUM) WEIJIAOQISHU,
+							SUM(t11.MONTH_PRICE) SHENGYUZUJIN,SUM(t11.IRR_MONTH_PRICE) SHIJISHENGYUZUJIN from
+								(select distinct t3.RECP_ID,t3.RECT_ID, t3.PERIOD_NUM,t3.MONTH_PRICE,t3.IRR_MONTH_PRICE,t3.LAST_PRICE from
+									(select t2.RECT_ID,t2.STATUS, t2.RECP_ID, t1.PERIOD_NUM,t1.MONTH_PRICE,t1.IRR_MONTH_PRICE,t1.LAST_PRICE 
+										from T_RENT_COLLECTIONDETAIL t1
+										left join T_RENT_COLLECTIONPLAN t2
+										on t2.RECP_ID=t1.RECP_ID
+										where t1.STATUS=0 and  t2.STATUS=0 
+								 ) t3
+								 where   NOT EXISTS (SELECT T.PERIOD_NUM
+									    	FROM T_RENT_COLLECTIONDETAIL T
+												LEFT JOIN (SELECT RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+															    FROM T_FINA_COLLECTIONBILL t 
+																WHERE
+																	t.FICB_TYPE=0 
+																	AND t.FICB_ITEM= #C#
+																	AND T.FICB_STATE = 5 
+																	AND t.STATUS=0
+																	AND t.RECP_ID = t3.RECP_ID
+																GROUP BY  RECD_PERIOD
+															) T1 ON T1.recp_id = T.recp_id AND T1.RECD_PERIOD = T.PERIOD_NUM
+											WHERE ((T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) <= 0.005
+																				AND (T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) >= -0.005)
+																				AND T.STATUS = 0 
+																				AND T.RECP_ID = t3.RECP_ID
+																				AND T.PERIOD_NUM= t3.PERIOD_NUM
+																				)
+					 ) t11 
+				group by t11.RECT_ID) t6 on t.rect_id =t6.rect_id
+			group by t.id,t.name
+			) x 
+			left join (SELECT TSS.ID,			 	
+							TPP.GRANT_PRICE,
+							TPP.LAST_PRICE,TPP.LIEN_GRANT_PRICE,TPP.REPURCH_GRANT_PRICE
+					 	FROM T_SUPL_SUPPLIER  TSS
+					 	LEFT JOIN T_PRODUCT_GRANTPLAN TPP ON TPP.PRODUCT_ID = TSS.ID 
+					 	WHERE TSS.STATUS = 0 AND TPP.STATUS=0
+			) tnew on tnew.ID=x.ID 
+			where 1=1
+		]]>		
+		<isNotEmpty prepend="and" property="searchValue" >
+			<![CDATA[ x.NAME like '%$searchValue$%' ]]>
+		</isNotEmpty>	
+	</select>
+	
+	<select id="getApplyCompany" parameterClass="map" resultClass="java.util.HashMap">
+	    <![CDATA[
+	    select x.*,tnew.GRANT_PRICE,tnew.LIEN_GRANT_PRICE,tnew.REPURCH_GRANT_PRICE,tnew.LAST_PRICE from (
+			select t.id,t.name,count(*) COUNTS,SUM(tt.LEASE_TOPRIC) SUMLEASE_TOPRIC,SUM(tt.MONTH_PRICE) sumMONTH_PRICE,
+			SUM(t6.LASTPRICE) SUMLASTPRICE, SUM(t6.SHENGYUZUJIN) SHENGYUZUJIN,SUM(t6.SHIJISHENGYUZUJIN) SHIJISHENGYUZUJIN
+			from(
+			  select distinct t11.id,t11.name,t22.rect_id
+			  from
+			  (
+			  	select t1.ID,t1.name,t2.SUEQ_ID,t3.EQMT_ID
+			  	from T_SUPL_SUPPLIER t1
+			  	left join T_SUPL_EQUIPMENT t2 on t2.SUPPLIER_ID = t1.ID and t2.STATUS = 0
+			  	left join T_EQMT_EQUIPMENT t3 on t3.SUEQ_ID = t2.SUEQ_ID and t3.STATUS = 0
+			  	where t1.STATUS = 0 and t1.id = #id#
+			  )t11 
+			  inner join(
+			  			select t1.RECT_ID,t2.RECD_ID,t2.EQMT_ID
+			  			from T_RENT_CONTRACT t1
+			  			left join T_RENT_CONTRACTDETAIL t2 on t2.RECT_ID = t1.RECT_ID and t2.STATUS = 0
+			  			left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=t1.RECT_ID and trcp.STATUS=0
+			  			where t1.STATUS = 0 and trcp.RECP_STATUS=0
+			  ) t22 on t22.eqmt_id = t11.eqmt_id
+			) t
+			left join (
+			    select t1.RECT_ID,max(t1.LEASE_TOPRIC) LEASE_TOPRIC,sum(t4.MONTH_PRICE) MONTH_PRICE
+					from T_RENT_CONTRACT t1
+					left join T_RENT_COLLECTIONPLAN t3 on t3.RECT_ID = t1.RECT_ID and t3.STATUS = 0
+					LEFT JOIN T_RENT_COLLECTIONDETAIL T4 ON T4.RECP_ID=t3.RECP_ID and t4.STATUS = 0
+					where t1.STATUS = 0 and t3.RECP_STATUS= 0  and t3.STATUS =0
+					group by t1.RECT_ID
+			) tt on tt.RECT_ID = t.rect_id
+			left join (
+			 select t11.RECT_ID, MAX(t11.LAST_PRICE) LASTPRICE,COUNT(t11.PERIOD_NUM) WEIJIAOQISHU,
+							SUM(t11.MONTH_PRICE) SHENGYUZUJIN,SUM(t11.IRR_MONTH_PRICE) SHIJISHENGYUZUJIN from
+								(select distinct t3.RECP_ID,t3.RECT_ID, t3.PERIOD_NUM,t3.MONTH_PRICE,t3.IRR_MONTH_PRICE,t3.LAST_PRICE from
+									(select t2.RECT_ID,t2.STATUS, t2.RECP_ID, t1.PERIOD_NUM,t1.MONTH_PRICE,t1.IRR_MONTH_PRICE,t1.LAST_PRICE 
+										from T_RENT_COLLECTIONDETAIL t1
+										left join T_RENT_COLLECTIONPLAN t2
+										on t2.RECP_ID=t1.RECP_ID
+										where t1.STATUS=0 and  t2.STATUS=0 
+								 ) t3
+								 where   NOT EXISTS (SELECT T.PERIOD_NUM
+									    	FROM T_RENT_COLLECTIONDETAIL T
+												LEFT JOIN (SELECT RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+															    FROM T_FINA_COLLECTIONBILL t 
+																WHERE
+																	t.FICB_TYPE=0 
+																	AND t.FICB_ITEM= #C#
+																	AND T.FICB_STATE = 5 
+																	AND t.STATUS=0
+																	AND t.RECP_ID = t3.RECP_ID
+																GROUP BY  RECD_PERIOD
+															) T1 ON T1.recp_id = T.recp_id AND T1.RECD_PERIOD = T.PERIOD_NUM
+											WHERE ((T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) <= 0.005
+																				AND (T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) >= -0.005)
+																				AND T.STATUS = 0 
+																				AND T.RECP_ID = t3.RECP_ID
+																				AND T.PERIOD_NUM= t3.PERIOD_NUM
+																				)
+					 ) t11 
+				group by t11.RECT_ID) t6 on t.rect_id =t6.rect_id
+			group by t.id,t.name
+			) x 
+			left join (SELECT TSS.ID,			 	
+							TPP.GRANT_PRICE,
+							TPP.LAST_PRICE,TPP.LIEN_GRANT_PRICE,TPP.REPURCH_GRANT_PRICE
+					 	FROM T_SUPL_SUPPLIER  TSS
+					 	LEFT JOIN T_PRODUCT_GRANTPLAN TPP ON TPP.PRODUCT_ID = TSS.ID 
+					 	WHERE TSS.STATUS = 0 AND TPP.STATUS=0 and  TSS.id = #id#
+			) tnew on tnew.ID=x.ID 
+			where 1=1 and x.id = #id#
+	    ]]>
+	</select>
+	
+	<!--  根据单个供应商找到所有合同的id,承租人,合同号,合同总额 zs-->
+<!-- Add by Michael 2012 02/06 正常结清与提前结清案件不算入归户中  -->
+	<select id="findContractInfoBySupplierId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+    select * from (    
+      select t33.ID,t33.RECT_ID,t33.RECP_ID,t33.LEASE_TOPRIC,t33.LEASE_CODE,t33.CUST_NAME,trc.TR_IRR_RATE,t33.SUMMONTH_PRICE,trc.SUPL_TRUE,trc.LEASE_RZE,trc.LEASE_PERIOD,trc.PLEDGE_AVE_PRICE
+				from (select t11.ID,t22.RECT_ID,t22.RECP_ID,t22.EQMT_ID,t22.LEASE_TOPRIC,t22.LEASE_CODE,t22.CUST_NAME,t22.SUMMONTH_PRICE
+						from
+						(
+						select t1.ID,t2.SUEQ_ID,t3.EQMT_ID
+						from T_SUPL_SUPPLIER t1
+						left join T_SUPL_EQUIPMENT t2 on t2.SUPPLIER_ID = t1.ID and t2.STATUS = 0
+						left join T_EQMT_EQUIPMENT t3 on t3.SUEQ_ID = t2.SUEQ_ID and t3.STATUS = 0
+						where t1.STATUS = 0 
+						)t11 
+					left join(
+						select t1.RECT_ID,t2.RECD_ID,t2.RECP_ID,t2.EQMT_ID,t1.LEASE_CODE,t1.CUST_NAME,t1.LEASE_TOPRIC,SUM(T3.MONTH_PRICE) SUMMONTH_PRICE
+						from T_RENT_CONTRACT t1
+						left join T_RENT_CONTRACTDETAIL t2 on t2.RECT_ID = t1.RECT_ID and t2.STATUS = 0
+						LEFT JOIN T_RENT_COLLECTIONDETAIL T3 ON T3.RECP_ID=t2.RECP_ID
+						where t1.STATUS = 0 
+						GROUP BY t1.RECT_ID,t2.RECD_ID,t2.RECP_ID,t2.EQMT_ID,t1.LEASE_CODE,t1.CUST_NAME,t1.LEASE_TOPRIC
+					) t22 
+					on t22.eqmt_id = t11.eqmt_id				
+				) t33 
+				left join T_RENT_COLLECTIONPLAN trc
+				on trc.RECT_ID=t33.RECT_ID
+				and trc.STATUS=0 
+				WHERE t33.ID=#supplierid# and t33.RECT_ID is not null
+				group by t33.ID,t33.RECT_ID,t33.RECP_ID,t33.LEASE_CODE,t33.CUST_NAME,t33.LEASE_TOPRIC,trc.TR_IRR_RATE,t33.SUMMONTH_PRICE,trc.SUPL_TRUE,trc.LEASE_RZE,trc.LEASE_PERIOD,trc.PLEDGE_AVE_PRICE
+ union all
+ select ID,credit_id,'0' as RECP_ID,LEASE_TOPRIC,LEASE_CODE,CUST_NAME,TR_IRR_RATE,SUMMONTH_PRICE,SUPL_TRUE,LEASE_RZE,LEASE_TERM,PLEDGE_AVE_PRICE from (
+     select t11.ID,t22.credit_id,t22.SUEQ_ID,t22.LEASE_TOPRIC,t22.LEASE_CODE,t22.CUST_NAME,t22.SUMMONTH_PRICE,t22.TR_IRR_RATE,t22.SUPL_TRUE,t22.LEASE_RZE,t22.LEASE_TERM,t22.PLEDGE_AVE_PRICE
+						from
+					(
+						select t2.credit_id,t2.SUEQ_ID,t1.LEASE_CODE,tcc.CUST_NAME,t3.LEASE_TOPRIC,TTT.SUMMONTH_PRICE,t3.TR_IRR_RATE,t3.SUPL_TRUE,t3.LEASE_RZE,t3.LEASE_TERM,isnull(t3.PLEDGE_AVE_PRICE,0)PLEDGE_AVE_PRICE
+						from T_PRJT_CREDIT t1
+						left join T_PRJT_CREDITEQUIPMENT t2 on t2.CREDIT_ID = t1.ID and t2.EQMT_STATUS = 0
+            left join T_PRJT_CREDITSCHEME t3 on t1.id=t3.CREDIT_ID and t3.status='0'
+	          left join (select sum(IRR_MONTH_PRICE) SUMMONTH_PRICE,credit_id  from (
+        select tpcs.credit_id,tpcsir.IRR_MONTH_PRICE*(tpcsir.irr_month_price_end-tpcsir.irr_month_price_start+1)IRR_MONTH_PRICE  
+        from T_PRJT_CREDITSCHEME tpcs 
+        left join T_PRJT_CREDITSCHEMEIRR tpcsir on tpcs.PRCS_ID=tpcsir.PRCS_ID and tpcsir.STATUS = 0
+        )TT group by credit_id
+        ) TTT on t1.id=ttt.credit_id
+        left join T_CUST_CUSTOMER tcc on t1.CUST_ID = tcc.CUST_ID and tcc.STATUS = 0
+						where t1.STATUS = 0  and t1.WIND_STATE='1' and t1.FINANCECONTRACT_DATE is null
+						GROUP BY t2.SUEQ_ID,t2.credit_id,t1.LEASE_CODE,tcc.CUST_NAME,t3.LEASE_TOPRIC,TTT.SUMMONTH_PRICE,t3.TR_IRR_RATE,t3.SUPL_TRUE,t3.LEASE_RZE,t3.LEASE_TERM,t3.PLEDGE_AVE_PRICE
+					) t22 
+		left join t_rent_contract trct on trct.PRCD_ID=t22.credit_id
+          left join
+          	(
+						select t1.ID,t2.SUEQ_ID
+						from T_SUPL_SUPPLIER t1
+						left join T_SUPL_EQUIPMENT t2 on t2.SUPPLIER_ID = t1.ID and t2.STATUS = 0
+						where t1.STATUS = 0 
+						)t11 
+					on t22.SUEQ_ID = t11.SUEQ_ID	
+       where t11.ID=#supplierid# and  t22.credit_id is not null and trct.RECT_ID is null
+)TT3
+group by ID,credit_id,LEASE_TOPRIC,LEASE_CODE,CUST_NAME,TR_IRR_RATE,SUMMONTH_PRICE,SUPL_TRUE,LEASE_RZE,LEASE_TERM,PLEDGE_AVE_PRICE
+) TTT4
+order by SUPL_TRUE
+					]]>		
+	</select>
+
+	<!-- 根据合同的id找到没有付钱的支付表,并统计出总期数,未交期数,剩余租金,实际剩余租金 -->
+	<select id="findContractNoPayByContractId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+	select MAX(t11.LAST_PRICE) LASTPRICE,
+	case when max(t22.RECP_STATUS)='3' then 0
+	else
+	COUNT(t11.PERIOD_NUM) 
+	end 
+	WEIJIAOQISHU,SUM(t11.MONTH_PRICE) SHENGYUZUJIN,
+	    SUM(t11.IRR_MONTH_PRICE) SHIJISHENGYUZUJIN,t22.ZONGQISHU 
+	  from 
+		(			
+      SELECT distinct t.RECP_ID, LEASE_PERIOD*LEASE_TERM ZONGQISHU,RECP_STATUS
+      FROM T_RENT_COLLECTIONPLAN  t
+      left join T_RENT_COLLECTIONDETAIL t1 on t1.RECP_ID=t.RECP_ID
+      WHERE RECT_ID=#RECT_ID#) t22	  
+	  left join	  
+	  (select t3.RECP_ID, t3.PERIOD_NUM,t3.MONTH_PRICE,t3.IRR_MONTH_PRICE,t3.LAST_PRICE
+	       from (select t2.RECP_ID, t1.PERIOD_NUM,t1.MONTH_PRICE,t1.IRR_MONTH_PRICE,t1.LAST_PRICE 
+	             from T_RENT_COLLECTIONDETAIL t1
+				 left join T_RENT_COLLECTIONPLAN t2  on t2.RECP_ID=t1.RECP_ID
+				 where t2.RECT_ID=#RECT_ID# and t1.STATUS=0 and  t2.STATUS=0 
+						) t3
+			where t3.PERIOD_NUM not in (SELECT T.PERIOD_NUM
+									    	FROM T_RENT_COLLECTIONDETAIL T
+												LEFT JOIN (SELECT RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+															    FROM T_FINA_COLLECTIONBILL t 
+																WHERE
+																	t.FICB_TYPE=0 
+																	AND t.FICB_ITEM= #C#
+																	AND T.FICB_STATE = 5 
+																	AND t.STATUS=0
+																	AND t.RECP_ID = #RECP_ID#
+																GROUP BY  RECD_PERIOD
+															) T1 ON T1.recp_id = T.recp_id AND T1.RECD_PERIOD = T.PERIOD_NUM
+											WHERE ((T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) <= 0.005
+																				AND (T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) >= -0.005)
+																				AND T.STATUS = 0 
+																				AND T.RECP_ID = #RECP_ID#)
+				) t11
+			 on t11.RECP_ID=t22.RECP_ID
+			group by t22.ZONGQISHU
+		]]>		
+	</select>
+	
+	
+	<!-- 根据合同的id找到没有报告，在找到该报告的供应商保证类型 -->
+	<select id="findDicTypeContractId" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		select top 1 t.SUPL_TRUE,t3.FLAG,t1.RECT_ID from  T_RENT_CONTRACT t1 
+		left join T_RENT_COLLECTIONPLAN t on t1.rect_id=t.rect_id and t.STATUS=0
+		left join t_data_dictionary t3 on t.SUPL_TRUE=t3.CODE and t3.TYPE=#DICTYPE# and t3.STATUS=0
+		where t1.RECT_ID=#RECT_ID# and t1.STATUS=0
+		]]>		
+	</select>
+	
+		<!-- 根据合同的id找到没有报告，在找到该报告的供应商保证类型 -->
+	<select id="findDicTypeBySuplTrue" parameterClass="map" resultClass="java.util.HashMap">
+		select * from t_data_dictionary where CODE=#SUPL_TRUE# and TYPE='供应商保证' 	
+	</select>
+	
+	<!-- Modify by Michael 2012 02/06 修改剩余本金Bug，抓净本金余额  -->	
+		<select id="findShengyuBenjinContractId" parameterClass="map" resultClass="java.util.HashMap">
+		<!--
+		<![CDATA[
+		select tapplydate.RECT_ID,SUM(ISNULL(tapplydate.REAL_OWN_PRICE,0)) SHENGYUBENJIN from 
+				(
+				select 
+				trc.RECT_ID,trcs.LEASE_TOPRIC-trcs.PLEDGE_ENTER_AG-trcs.PLEDGE_ENTER_MCTOAG RENT_SHENQINGBOKUAN,trcs.LEASE_RZE RENT_LEASE_RZE,trcs.HEAD_HIRE RENT_HEAD_HIRE,trcs.PLEDGE_BACK_PRICE RENT_PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE RENT_PLEDGE_LAST_PRICE,
+				trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+					(case  
+						when trcp.RECP_ID is not null and (trcp.RECP_STATUS=1 OR trcp.RECP_STATUS=3) then 0
+						when trcd.RECP_ID is null then (ISNULL(trcs.LEASE_TOPRIC,0)-ISNULL(trcs.PLEDGE_ENTER_AG,0)-ISNULL(trcs.PLEDGE_ENTER_MCTOAG,0))*((ISNULL(t4.UNIT_PRICE,0)*ISNULL(t4.SUMAMOUNT,0))/trcs.LEASE_TOPRIC)
+						when trcd.RECP_ID is not null then min(ISNULL(trcd.REAL_OWN_PRICE,0))
+					end) REAL_OWN_PRICE
+				 from T_RENT_CONTRACT trc 
+				left join (select SUM(AMOUNT) SUMAMOUNT,UNIT_PRICE,EQMT_ID,RECT_ID,STATUS from T_RENT_CONTRACTDETAIL group by UNIT_PRICE,EQMT_ID,RECT_ID,STATUS) t4 on t4.RECT_ID=trc.RECT_ID and t4.STATUS=0
+				left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID and trcs.STATUS=0
+				left join T_RENT_CONTRACTSCHEMAIRR trcsi on trcsi.RECS_ID=trcs.RECS_ID and trcsi.STATUS=0
+				left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+				left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+				where trc.RECT_ID=#RECT_ID# and trc.STATUS=0
+				group by
+				trc.RECT_ID,trcs.LEASE_TOPRIC,trcs.PLEDGE_ENTER_AG,trcs.PLEDGE_ENTER_MCTOAG,trcs.LEASE_RZE,trcs.HEAD_HIRE,trcs.PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE,
+				trcp.RECP_ID,trcd.RECP_ID,t4.SUMAMOUNT,t4.UNIT_PRICE,trcp.RECP_STATUS
+				) tapplydate
+				group by tapplydate.RECT_ID
+		]]>	
+		 -->	
+		 <![CDATA[	
+			select tapplydate.RECT_ID,SUM(ISNULL(tapplydate.REAL_OWN_PRICE,0)) SHENGYUBENJIN from 
+				(
+				select 
+				trc.RECT_ID,trcs.LEASE_TOPRIC-trcs.PLEDGE_ENTER_AG-trcs.PLEDGE_ENTER_MCTOAG RENT_SHENQINGBOKUAN,trcs.LEASE_RZE RENT_LEASE_RZE,trcs.HEAD_HIRE RENT_HEAD_HIRE,trcs.PLEDGE_BACK_PRICE RENT_PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE RENT_PLEDGE_LAST_PRICE,
+				trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+					(case  
+						when trcp.RECP_ID is not null and (trcp.RECP_STATUS=1 OR trcp.RECP_STATUS=3) then 0
+						when trcd.RECP_ID is null then ISNULL(trcs.LEASE_RZE,0)
+						when trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+											WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NULL) then (isnull(trcs.LEASE_RZE,0))					
+						when trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+											WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NOT NULL) then 
+										(
+										SELECT
+											(case 
+											when MIN(isnull(TT.REDUCE_OWN_PRICE,0))-MIN(TT.REN_PRICE)>0 then 
+												(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end)+(min(TT.IRR_MONTH_PRICE)-min(TT.REDUCE_OWN_PRICE))
+											else
+												(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end) +(min(TT.IRR_MONTH_PRICE)-min(TT.REN_PRICE))
+											end) NET_FINANCE
+										FROM
+											T_RENT_COLLECTIONDETAIL TT 
+										WHERE
+											 TT.STATUS = 0 
+											AND TT.RECP_ID = trcd.RECP_ID
+											and ISNULL(TT.REDUCE_OWN_PRICE,0)>0)
+					end) REAL_OWN_PRICE
+				 from T_RENT_CONTRACT trc 
+				left join (select max(EQMT_ID) EQMT_ID,RECT_ID,STATUS from T_RENT_CONTRACTDETAIL group by RECT_ID,STATUS) t4 on t4.RECT_ID=trc.RECT_ID and t4.STATUS=0
+				left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID and trcs.STATUS=0
+				left join T_RENT_CONTRACTSCHEMAIRR trcsi on trcsi.RECS_ID=trcs.RECS_ID and trcsi.STATUS=0
+				left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+				left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+				where trc.RECT_ID=#RECT_ID# and trc.STATUS=0
+				group by
+				trc.RECT_ID,trcs.LEASE_TOPRIC,trcs.PLEDGE_ENTER_AG,trcs.PLEDGE_ENTER_MCTOAG,trcs.LEASE_RZE,trcs.HEAD_HIRE,trcs.PLEDGE_BACK_PRICE,trcs.PLEDGE_LAST_PRICE,
+				trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS
+				) tapplydate
+			group by tapplydate.RECT_ID		 
+		 ]]>	
+	</select>
+	
+	<!-- Add by Michael 2012 02/07 增加供应商的连保、回购金额  -->	
+	<select id="findSuplTrueBySupplierId" parameterClass="map" resultClass="java.util.HashMap">
+	<![CDATA[
+		select round(SUM(NET_FINANCE),2) NET_FINANCE,SUPL_TRUE from(
+		select tssp.ID,tssp.NAME,t.ID CREDIT_ID,t.WIND_STATE, 
+		trc.RECT_ID, 
+		trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+		(case 
+		when tpcs.SUPL_TRUE is null then '4'
+		when (tpcs.SUPL_TRUE ='2' or tpcs.SUPL_TRUE ='3') then '3'
+		else
+		tpcs.SUPL_TRUE
+		end
+		) SUPL_TRUE,
+		(case when t.WIND_STATE!=1 then 0 
+				when t.WIND_STATE=1 and trc.RECT_ID is null then (isnull(tpcs.LEASE_RZE,0))
+				when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then (isnull(tpcs.LEASE_RZE,0))
+				when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+									WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NULL) then (isnull(tpcs.LEASE_RZE,0))
+				when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+				when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+									WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NOT NULL) then (
+								SELECT
+								(
+								SELECT
+									(case 
+									when MIN(isnull(TT.REDUCE_OWN_PRICE,0))-MIN(TT.REN_PRICE)>0 then 
+										(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end)+(min(TT.IRR_MONTH_PRICE)-min(TT.REDUCE_OWN_PRICE))
+									else
+										(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end) +(min(TT.IRR_MONTH_PRICE)-min(TT.REN_PRICE))
+									end) NET_FINANCE
+								FROM
+									T_RENT_COLLECTIONDETAIL TT 
+								WHERE
+									 TT.STATUS = 0 
+									AND TT.RECP_ID = trcd.RECP_ID
+									and ISNULL(TT.REDUCE_OWN_PRICE,0)>0)
+									)
+			end) NET_FINANCE
+		 from T_PRJT_CREDIT t
+		 left join T_PRJT_CREDITSCHEME tpcs
+		 on t.id=tpcs.CREDIT_ID and tpcs.status=0
+		 left join (select max(SUEQ_ID) SUEQ_ID,CREDIT_ID from T_PRJT_CREDITEQUIPMENT where EQMT_STATUS=0 group by CREDIT_ID ) trcq on trcq.CREDIT_ID=t.ID
+		 LEFT join T_SUPL_EQUIPMENT  tse on tse.SUEQ_ID=trcq.SUEQ_ID
+		 LEFT join T_SUPL_SUPPLIER tssp on tssp.ID=tse.SUPPLIER_ID
+		left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+		left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0  
+		left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+		where tssp.ID=#ID# and t.STATUS=0 and t.WIND_STATE=1 
+		and tpcs.SUPL_TRUE<>4
+		group by tssp.ID,tssp.NAME,t.ID ,t.WIND_STATE,
+		trc.RECT_ID,
+		trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS,tpcs.LEASE_RZE,tpcs.SUPL_TRUE
+		) tt
+		group by tt.SUPL_TRUE	
+	 ]]>		
+	</select>
+	
+	<!-- Add by Michael 2012 02/07 增加客户的连保、回购金额  -->	
+	<select id="findSuplTrueByCustId" parameterClass="map" resultClass="java.util.HashMap">	
+	<![CDATA[
+		select round(SUM(NET_FINANCE),2) NET_FINANCE,SUPL_TRUE from(
+		select t.ID ,t.WIND_STATE,
+			trc.RECT_ID,
+			(case 
+			when trcp.SUPL_TRUE is null then '4'
+			when (trcp.SUPL_TRUE ='2' or trcp.SUPL_TRUE ='3') then '3'
+			else
+			trcp.SUPL_TRUE
+			end
+			) SUPL_TRUE,
+			trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+				(case when t.WIND_STATE!=1 then 0 
+					when t.WIND_STATE=1 and trc.RECT_ID is null then (isnull(trcs.LEASE_RZE,0))
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then (isnull(trcs.LEASE_RZE,0))
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+										WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NULL) then (isnull(trcs.LEASE_RZE,0))
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+					when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+										WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NOT NULL) then 
+					(
+					SELECT
+					(
+					SELECT
+						(case 
+						when MIN(isnull(TT.REDUCE_OWN_PRICE,0))-MIN(TT.REN_PRICE)>0 then 
+							(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end)+(min(TT.IRR_MONTH_PRICE)-min(TT.REDUCE_OWN_PRICE))
+						else
+							(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end) +(min(TT.IRR_MONTH_PRICE)-min(TT.REN_PRICE))
+						end) NET_FINANCE
+					FROM
+						T_RENT_COLLECTIONDETAIL TT 
+					WHERE
+						 TT.STATUS = 0 
+						AND TT.RECP_ID = trcd.RECP_ID
+						and ISNULL(TT.REDUCE_OWN_PRICE,0)>0)
+					)
+				end) NET_FINANCE
+			 from T_PRJT_CREDIT t
+			left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+			left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID and trcs.STATUS=0
+			left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+			left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+			where t.CUST_ID=#NEWCUST_ID# and t.STATUS=0 and t.WIND_STATE=1
+			group by t.ID ,t.WIND_STATE,
+			trc.RECT_ID,
+			trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS,trcs.LEASE_RZE,trcp.SUPL_TRUE
+			) tt
+		group by tt.SUPL_TRUE
+		]]>
+	</select>
+
+	<!-- Add by Michael 2012 02/07 增加担保人 法人的连保、回购金额  -->	
+	<select id="findSuplTrueByVouchCropId" parameterClass="map" resultClass="java.util.HashMap">		
+	<![CDATA[
+	select round(SUM(NET_FINANCE),2) NET_FINANCE,SUPL_TRUE from(
+		select tpvcc.CORP_NAME_CN,tpvcc.ORGANIZATION_CODE_CERTIFICATE,t.ID CREDIT_ID,t.WIND_STATE,
+			trc.RECT_ID,
+			(case 
+			when trcp.SUPL_TRUE is null then '4'
+			when (trcp.SUPL_TRUE ='2' or trcp.SUPL_TRUE ='3') then '3'
+			else
+			trcp.SUPL_TRUE
+			end
+			) SUPL_TRUE,
+				trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+				(case when t.WIND_STATE!=1 then 0 
+						when t.WIND_STATE=1 and trc.RECT_ID is null then (isnull(t1.LEASE_RZE,0))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then (isnull(t1.LEASE_RZE,0))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+											WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NULL) then (isnull(t1.LEASE_RZE,0))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+											WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NOT NULL) then (
+										SELECT
+											(case 
+											when MIN(isnull(TT.REDUCE_OWN_PRICE,0))-MIN(TT.REN_PRICE)>0 then 
+												(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end)+(min(TT.IRR_MONTH_PRICE)-min(TT.REDUCE_OWN_PRICE))
+											else
+												(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end) +(min(TT.IRR_MONTH_PRICE)-min(TT.REN_PRICE))
+											end) NET_FINANCE
+										FROM
+											T_RENT_COLLECTIONDETAIL TT 
+										WHERE
+											 TT.STATUS = 0 
+											AND TT.RECP_ID = trcd.RECP_ID
+											and ISNULL(TT.REDUCE_OWN_PRICE,0)>0
+									)
+					end) NET_FINANCE
+				 from 
+				T_PRJT_CREDIT t
+				left join T_PRJT_VOUCHCUSTOMERCORP tpvcc on tpvcc.PRCD_ID=t.ID
+				left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID and t1.STATUS=0
+				left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+				left join T_RENT_CONTRACTSCHEMA trcs on trcs.RECT_ID=trc.RECT_ID and trcs.STATUS=0
+				left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+				left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+				where tpvcc.CORP_NAME_CN=#NAME# and tpvcc.ORGANIZATION_CODE_CERTIFICATE=#CODE# and t.STATUS=0 and t.WIND_STATE=1 and (trcp.RECP_STATUS<>1 and trcp.RECP_STATUS<>3)
+				group by tpvcc.CORP_NAME_CN,tpvcc.ORGANIZATION_CODE_CERTIFICATE,t.ID ,t.WIND_STATE,t1.LEASE_TOPRIC,
+				trc.RECT_ID,trcs.LEASE_TOPRIC,
+				trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS,trcp.SUPL_TRUE,t1.LEASE_RZE	
+				) tt
+		group by tt.SUPL_TRUE	
+		]]>
+	</select>
+	
+	<!-- Add by Michael 2012 02/07 增加担保人自然人的连保、回购金额  -->	
+	<select id="findSuplTrueByVouchNatuId" parameterClass="map" resultClass="java.util.HashMap">		
+	<![CDATA[
+	select round(SUM(NET_FINANCE),2) NET_FINANCE,SUPL_TRUE from(
+		select tpcn.CUST_NAME,tpcn.NATU_IDCARD,t.ID CREDIT_ID,t.WIND_STATE,
+			trc.RECT_ID,
+				(case 
+			when trcp.SUPL_TRUE is null then '4'
+			when (trcp.SUPL_TRUE ='2' or trcp.SUPL_TRUE ='3') then '3'
+			else
+			trcp.SUPL_TRUE
+			end
+			) SUPL_TRUE,
+				trcp.RECP_ID PLAN_RECP_ID,trcd.RECP_ID DETAIL_RECP_ID,
+				(case when t.WIND_STATE!=1 then 0 
+						when t.WIND_STATE=1 and trc.RECT_ID is null then (isnull(t1.LEASE_RZE,0))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is null then (isnull(t1.LEASE_RZE,0))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+											WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NULL) then (isnull(t1.LEASE_RZE,0))
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and (trcp.RECP_STATUS=3 OR trcp.RECP_STATUS=1) then 0
+						when t.WIND_STATE=1 and trc.RECT_ID is not null and trcd.RECP_ID is not null and ((SELECT MIN(TT.NET_FINANCE) FROM T_RENT_COLLECTIONDETAIL TT 
+											WHERE TT.STATUS = 0 AND TT.RECP_ID = trcd.RECP_ID AND ISNULL(TT.REDUCE_OWN_PRICE,0)>0) IS NOT NULL) then (
+								SELECT
+									(case 
+									when MIN(isnull(TT.REDUCE_OWN_PRICE,0))-MIN(TT.REN_PRICE)>0 then 
+										(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end)+(min(TT.IRR_MONTH_PRICE)-min(TT.REDUCE_OWN_PRICE))
+									else
+										(case when min(TT.NET_FINANCE)>0 then min(TT.NET_FINANCE) else 0 end) +(min(TT.IRR_MONTH_PRICE)-min(TT.REN_PRICE))
+									end) NET_FINANCE
+								FROM
+									T_RENT_COLLECTIONDETAIL TT 
+								WHERE
+								 TT.STATUS = 0 
+								AND TT.RECP_ID = trcd.RECP_ID
+								and ISNULL(TT.REDUCE_OWN_PRICE,0)>0
+								)
+					end) NET_FINANCE
+				 from 
+				 T_PRJT_CREDIT t
+				left join T_PRJT_CREDITVOUCHNATU tpcn on tpcn.PRCD_ID=t.ID
+				left join T_PRJT_CREDITSCHEME t1 on t.ID=t1.CREDIT_ID and t1.STATUS=0
+				left join T_RENT_CONTRACT trc on trc.PRCD_ID=t.ID and trc.STATUS=0
+				left join T_RENT_COLLECTIONPLAN trcp on trcp.RECT_ID=trc.RECT_ID and trcp.STATUS=0
+				left join T_RENT_COLLECTIONDETAIL trcd on trcd.RECP_ID=trcp.RECP_ID and ISNULL(trcd.REDUCE_OWN_PRICE,0)+ISNULL(trcd.REDUCE_LOSS_PRICE,0)+ISNULL(trcd.REDUCE_OTHER_PRICE,0)+ISNULL(trcd.REDUCE_REN_PRICE,0)>0
+				
+				where tpcn.CUST_NAME=#NAME# and tpcn.NATU_IDCARD=#CODE# and t.STATUS=0 and t.WIND_STATE=1 and (trcp.RECP_STATUS<>1 and trcp.RECP_STATUS<>3)
+				group by tpcn.CUST_NAME,tpcn.NATU_IDCARD,t.ID ,t.WIND_STATE,
+				trc.RECT_ID,
+				trcp.RECP_ID,trcd.RECP_ID,trcp.RECP_STATUS,trcp.SUPL_TRUE,t1.LEASE_RZE
+				) tt
+		group by tt.SUPL_TRUE	
+		]]>
+	</select>	
+	
+		<!-- Add by Michael 2012 08-20 查询  -->	
+	<select id="getAllSupplierByFinanceDate" parameterClass="map" resultClass="java.util.HashMap">		
+		<![CDATA[
+			select distinct tss.NAME,tss.ID from t_prjt_credit tpc
+			left join (select max(sueq_id) sueq_id,credit_id from T_PRJT_CREDITEQUIPMENT where eqmt_status=0  group by CREDIT_ID) tpce
+			on tpc.ID=tpce.CREDIT_ID 
+			left join T_SUPL_EQUIPMENT tse on tpce.sueq_id=tse.SUEQ_ID
+			left join T_SUPL_SUPPLIER tss on tse.SUPPLIER_ID=tss.ID 
+			where tpc.STATUS=0 and tpc.FINANCECONTRACT_DATE is not null 
+			]]>
+			<isNotEmpty prepend="and" property="searchValue">
+				<![CDATA[
+					(	
+						tss.NAME LIKE '%$searchValue$%' 
+					 )
+				  ]]>
+			</isNotEmpty>
+			<![CDATA[
+				and (tpc.FINANCECONTRACT_DATE>=#START_DATE# and tpc.FINANCECONTRACT_DATE<=#END_DATE#)
+			]]>
+	</select>
+			<!-- Add by Michael 2012 08-20 查询  -->	
+	<select id="getAllSupplierByFinanceDate_count" parameterClass="map" resultClass="java.lang.Integer">		
+		<![CDATA[
+		select count(*) from (
+			select distinct tss.NAME,tss.ID from t_prjt_credit tpc
+			left join (select max(sueq_id) sueq_id,credit_id from T_PRJT_CREDITEQUIPMENT where eqmt_status=0  group by CREDIT_ID) tpce
+			on tpc.ID=tpce.CREDIT_ID 
+			left join T_SUPL_EQUIPMENT tse on tpce.sueq_id=tse.SUEQ_ID
+			left join T_SUPL_SUPPLIER tss on tse.SUPPLIER_ID=tss.ID 
+			where tpc.STATUS=0 and tpc.FINANCECONTRACT_DATE is not null 
+			]]>
+			<isNotEmpty prepend="and" property="searchValue">
+				<![CDATA[
+					(	
+						tss.NAME LIKE '%$searchValue$%' 
+					 )
+				  ]]>
+			</isNotEmpty>
+			<![CDATA[
+			and (tpc.FINANCECONTRACT_DATE>=#START_DATE# and tpc.FINANCECONTRACT_DATE<=#END_DATE#)
+			) tt
+		]]>
+	</select>
+	
+		<!-- Add by Michael 2012 08-20 根据供应商ID查询客户案件状况  -->	
+	<select id="getCustRentListBySupplID" parameterClass="map" resultClass="java.util.HashMap">		
+		<![CDATA[	
+			select t33.ID,t33.RECT_ID,t33.RECP_ID,t33.LEASE_CODE,t33.CUST_NAME,tpcs.LEASE_RZE,t33.LEASE_CODE+'-1' as RECP_CODE
+			from (select t11.ID,t22.RECT_ID,t22.RECP_ID,t22.EQMT_ID,t22.LEASE_CODE,t22.CUST_NAME,t22.PRCD_ID
+					from
+					(
+					select t1.ID,t2.SUEQ_ID,t3.EQMT_ID
+					from T_SUPL_SUPPLIER t1
+					left join T_SUPL_EQUIPMENT t2 on t2.SUPPLIER_ID = t1.ID and t2.STATUS = 0
+					left join T_EQMT_EQUIPMENT t3 on t3.SUEQ_ID = t2.SUEQ_ID and t3.STATUS = 0
+					where t1.STATUS = 0 
+					)t11 
+				left join(
+					select t1.RECT_ID,t2.RECD_ID,t2.RECP_ID,t2.EQMT_ID,t1.LEASE_CODE,t1.CUST_NAME,t1.PRCD_ID
+					from t_prjt_credit tpc 
+					left join T_RENT_CONTRACT t1 on tpc.lease_code=t1.lease_code and t1.status=0
+					left join T_RENT_CONTRACTDETAIL t2 on t2.RECT_ID = t1.RECT_ID and t2.STATUS = 0
+					LEFT JOIN T_RENT_COLLECTIONDETAIL T3 ON T3.RECP_ID=t2.RECP_ID
+					where tpc.STATUS = 0 
+					and (tpc.FINANCECONTRACT_DATE>=#START_DATE# and tpc.FINANCECONTRACT_DATE<=#END_DATE#)
+					GROUP BY t1.RECT_ID,t2.RECD_ID,t2.RECP_ID,t2.EQMT_ID,t1.LEASE_CODE,t1.CUST_NAME,t1.PRCD_ID
+				) t22 
+				on t22.eqmt_id = t11.eqmt_id				
+			) t33 
+			left join T_PRJT_CREDITSCHEME tpcs
+			on tpcs.CREDIT_ID=t33.PRCD_ID
+			and tpcs.STATUS=0 
+			WHERE t33.ID=#supplierid# and t33.RECT_ID is not null				
+			group by t33.ID,t33.RECT_ID,t33.RECP_ID,t33.LEASE_CODE,t33.CUST_NAME,tpcs.SUPL_TRUE,tpcs.LEASE_RZE
+			order by tpcs.SUPL_TRUE
+		]]>
+	</select>
+	
+		<!-- Add By Michael 2012 08-21 根据合同的id找到没有付钱的支付表,并统计出总期数,未交期数 -->
+	<select id="getCustRentDataByRectID" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[
+		select case when max(t22.RECP_STATUS)=3 then 0
+		else
+		COUNT(t11.PERIOD_NUM) 
+		end  WEIJIAOQISHU,t22.ZONGQISHU 
+	  from 
+		(			
+      SELECT distinct t.RECP_ID, LEASE_PERIOD*LEASE_TERM ZONGQISHU,RECP_STATUS
+      FROM T_RENT_COLLECTIONPLAN  t
+      left join T_RENT_COLLECTIONDETAIL t1 on t1.RECP_ID=t.RECP_ID
+      WHERE RECT_ID=#RECT_ID#) t22	  
+	  left join	  
+	  (select t3.RECP_ID, t3.PERIOD_NUM,t3.MONTH_PRICE,t3.IRR_MONTH_PRICE,t3.LAST_PRICE
+	       from (select t2.RECP_ID, t1.PERIOD_NUM,t1.MONTH_PRICE,t1.IRR_MONTH_PRICE,t1.LAST_PRICE 
+	             from T_RENT_COLLECTIONDETAIL t1
+				 left join T_RENT_COLLECTIONPLAN t2  on t2.RECP_ID=t1.RECP_ID
+				 where t2.RECT_ID=#RECT_ID# and t1.STATUS=0 and  t2.STATUS=0 
+						) t3
+			where t3.PERIOD_NUM not in (SELECT T.PERIOD_NUM
+									    	FROM T_RENT_COLLECTIONDETAIL T
+												LEFT JOIN (SELECT RECD_PERIOD,SUM(REAL_PRICE) REAL_PRICEcount,max(RECP_ID) recp_id 
+															    FROM T_FINA_COLLECTIONBILL t 
+																WHERE
+																	t.FICB_TYPE=0 
+																	AND t.FICB_ITEM= #C#
+																	AND T.FICB_STATE = 5 
+																	AND t.STATUS=0
+																	AND t.RECP_ID = #RECP_ID#
+																GROUP BY  RECD_PERIOD
+															) T1 ON T1.recp_id = T.recp_id AND T1.RECD_PERIOD = T.PERIOD_NUM
+											WHERE ((T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) <= 0.005
+																				AND (T1.REAL_PRICEcount - T.IRR_MONTH_PRICE) >= -0.005)
+																				AND T.STATUS = 0 
+																				AND T.RECP_ID = #RECP_ID#)
+				) t11
+			 on t11.RECP_ID=t22.RECP_ID
+			group by t22.ZONGQISHU
+		]]>		
+	</select>
+		
+		<!-- Add By Michael 2012 08-21 根据支付表ID查逾期状况  -->
+	<select id="getCustRentDunDayByRecpID" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+		select 	tfcbd.RECP_ID,dun_day,recd_period		
+			from              
+			(select recp_id,datediff(d,tfcb.pay_date,opposing_date)  dun_day,recd_period
+			from t_fina_collectionbill tfcb
+			left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+			where
+			 (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+			and tfi.red_type is null and tfcb.FICB_type='0'
+			and tfcb.FICB_ITEM='租金' 
+			and datediff(d,tfcb.pay_date,opposing_date)>0 
+			group by RECP_ID,recp_code,pay_date,recd_period,ficb_item,cust_code,opposing_date,datediff(d,tfcb.pay_date,opposing_date)) tfcbd
+			left join
+			t_rent_collectionplan  trcp
+			on tfcbd.recp_id=trcp.RECP_ID and trcp.STATUS=0
+			left join t_rent_contract trc 
+			on trcp.rect_id =trc.rect_id and trc.status=0
+			left join
+			t_rent_collectiondetail trcd
+			on trcd.RECP_ID = trcp.RECP_ID and trcd.PERIOD_NUM=tfcbd.recd_period and trcd.status=0
+			where trcp.RECP_ID=#RECP_ID#
+			union all
+			select trcp.recp_id,
+			datediff(d,trcp.pay_date,getdate())  dun_day,trcp.period_num			
+			from (          
+			 select trcp.recp_code,
+			     trcp.recp_id,
+			     trcp.rect_id,
+			     trcp.warn_status,
+			     trcd.pay_date,
+			     trcd.period_num, 
+			     trcp.fine_type,
+			     trcp.fine_rate,
+			     isnull(trcd.IRR_MONTH_PRICE, 0) month_price,  
+			     isnull(trcd.reduce_own_price, 0) reduce_price,trc.CUST_NAME
+			from t_rent_collectionplan trcp
+			left join t_rent_contract trc on trcp.rect_id =
+			trc.rect_id
+			left join t_rent_collectiondetail trcd on trcp.recp_id =
+			trcd.recp_id
+			where trcp.status = 0 and trc.status=0
+			  and (trcp.fund_status=0 or trcp.fund_status=1)
+			 and  trcd.pay_date < = cast(getdate() as datetime)-1
+			and isnull(trcd.IRR_MONTH_PRICE, 0)-isnull(trcd.reduce_own_price, 0)>0.001) trcp 
+			left join  
+			(select tfcb.recp_id, max(tfi.opposing_date) opposing_date,max(tfcb.RECD_PERIOD) RECD_PERIOD
+			  from t_fina_collectionbill tfcb
+			  left join t_fina_income tfi on tfcb.fiin_id = tfi.fiin_id
+			 where tfi.opposing_date <= cast(getdate() as datetime)
+			 and (tfcb.ficb_state=4 or tfcb.ficb_state=5)
+			 and tfi.red_type is null 
+			 group by recp_id
+			 ) tfcd 
+			on trcp.recp_id = tfcd.recp_id and tfcd.RECD_PERIOD=trcp.period_num
+			where (case when tfcd.opposing_date is null or
+			tfcd.opposing_date <= trcp.pay_date then
+			datediff(d,trcp.pay_date,getdate()) else
+			datediff(d,tfcd.opposing_date,getdate()) end) > 0 
+			and trcp.RECP_ID=#RECP_ID#
+		]]>		
+	</select>
+	
+		<!-- Add By Michael 2012 08-21 根据供应商ID查找供应商的合同和设备数  -->
+	<select id="getCustRentSuplTrueListBySuplID" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[		
+			select t11.id,count(distinct(t22.rect_id)) counti,t22.SUPL_TRUE,tqmt.NUM
+			from
+			(
+			select t1.ID,t2.SUEQ_ID,t3.EQMT_ID
+			from T_SUPL_SUPPLIER t1
+			left join T_SUPL_EQUIPMENT t2 on t2.SUPPLIER_ID = t1.ID and t2.STATUS = 0
+			left join T_EQMT_EQUIPMENT t3 on t3.SUEQ_ID = t2.SUEQ_ID and t3.STATUS = 0
+			where t1.STATUS = 0 
+			)t11 
+			left join(
+					select t1.RECT_ID,t2.RECD_ID,t2.EQMT_ID,tpcs.SUPL_TRUE
+					from T_RENT_CONTRACT t1
+					left join T_RENT_CONTRACTDETAIL t2 on t2.RECT_ID = t1.RECT_ID and t2.STATUS = 0
+					left join T_PRJT_CREDITSCHEME  tpcs on tpcs.credit_id=t1.prcd_id and tpcs.STATUS=0
+					where t1.STATUS = 0
+					) t22 on t22.eqmt_id = t11.eqmt_id
+		      left join (select count(*) NUM,RECT_ID from T_RENT_CONTRACTDETAIL where status=0 group by RECT_ID) tqmt
+		      on tqmt.RECT_ID = t22.RECT_ID
+			where t22.RECT_ID is not null and id=#supplierid#
+			group by t11.ID,t22.SUPL_TRUE,tqmt.NUM
+		]]>		
+	</select>	
+	
+			<!-- Add By Michael 2012 08-21 根据供应商ID查找供应商的授信状况  -->
+	<select id="getSuplGrantDetailBySuplID" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select * from T_PRODUCT_GRANTPLAN
+			where STATUS=0 and PRODUCT_ID=#supplierid# and GRANT_PRICE<>0 and CONVERT(date,END_DATE,23)>=GETDATE()
+			and CUGP_STATUS='0'
+		]]>		
+	</select>	
+	
+				<!-- Add By Michael 2012 08-23 根据供应商ID查找供应商往来函备注  -->
+	<select id="getSupplierBusinessMemoByID" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[	
+			select * from T_SUPPLIER_BUSINESS_MEMO
+			where SUPPLIER_ID=#supplier_id#
+		]]>		
+	</select>	
+	
+		<!-- Add by Michael 2012 08/25 增加 供应商往来函备注 -->	
+		<insert id="createSupplierBusinessMemo" parameterClass="map">
+		<![CDATA[
+		INSERT INTO T_SUPPLIER_BUSINESS_MEMO
+				  ( SUPPLIER_ID,MEMO,CREATE_ID,CREATE_TIME)
+			VALUES( #supplier_id#,#memo#,#s_employeeId#,getdate())
+		]]>
+	</insert>	
+	
+		<!-- Add by Michael 2012 08/25 修改 供应商往来函备注 -->
+	<update id="modifySupplierBusinessMemo" parameterClass="map" >
+		UPDATE 
+			T_SUPPLIER_BUSINESS_MEMO
+		SET
+			MEMO = #memo#,MODIFY_ID=#s_employeeId#,MODIFY_TIME=getdate()
+		WHERE
+			SUPPLIER_ID = #supplier_id# 
+	</update>
+	
+	<!-- 查询即将要到期一个的供应商授信状况  -->
+	<select id="getSupplierGrantPriceExpire" parameterClass="map" resultClass="java.util.HashMap">
+		<![CDATA[		
+			select s.[NAME], s.SUPP_LEVEL
+			, LIEN_GRANT_PRICE, p.LIEN_START_DATE,LIEN_END_DATE
+			, REPURCH_GRANT_PRICE, p.REPURCH_START_DATE, REPURCH_END_DATE
+			, ADVANCEMACHINE_GRANT_PRICE, p.ADVANCE_START_DATE, ADVANCE_END_DATE
+			, VOICE_CREDIT, p.VOICE_START_DATE, VOICE_END_DATE
+			from T_PRODUCT_GRANTPLAN p
+			left join T_SUPL_SUPPLIER s on p.PRODUCT_ID = s.ID
+			where CUGP_STATUS = 0
+			and p.STATUS = 0
+			and (
+				(
+				  LIEN_GRANT_PRICE > 0 and LIEN_HAS = 'Y'
+				  and datediff(day, LIEN_END_DATE, getdate()) <= 90
+				  and datediff(day, getdate(), LIEN_END_DATE) <= 30
+				)or(
+				  REPURCH_GRANT_PRICE > 0 and REPURCH_HAS = 'Y'
+				  and datediff(day, REPURCH_END_DATE, getdate()) <= 90
+				  and datediff(day, getdate(), REPURCH_END_DATE) <= 30
+				)or(
+				  ADVANCEMACHINE_GRANT_PRICE > 0 and ADVANCEMACHINE_HAS = 'Y'
+				  and datediff(day, ADVANCE_END_DATE, getdate()) <= 90
+				  and datediff(day, getdate(), ADVANCE_END_DATE) <= 30
+				)or(
+				  VOICE_CREDIT > 0 and VOICE_HAS = 'Y'
+				  and datediff(day, VOICE_END_DATE, getdate()) <= 90
+				  and datediff(day, getdate(), VOICE_END_DATE) <= 30
+				)
+			)
+			order by LIEN_END_DATE,REPURCH_END_DATE
+			,ADVANCE_END_DATE,VOICE_END_DATE
+		]]>		
+	</select>	
+	
+	<select id="getApprovedOutstanding" resultClass="java.lang.Double" parameterClass="map">
+		select sum(t.LEASE_RZE) from (
+		  select prcd.CREDIT_RUNCODE as CREDIT_RUNCODE, 
+		  prcd.LEASE_CODE,
+		  prcs.LEASE_RZE as LEASE_RZE
+		  from T_PRJT_CREDIT prcd
+		  left join T_PRJT_CREDITSCHEME prcs on prcs.CREDIT_ID = prcd.ID
+		  where prcd.STATUS = 0
+		  and 
+		  exists(
+		    select 0 from T_PRJT_RISK_CONTROL prc
+		    where prc.STATE = 1
+		    and prc.CREDIT_ID = prcd.ID
+		  )
+		  and exists(
+		    select 0 from T_PRJT_CREDITEQUIPMENT preq
+		    where preq.BRAND like '%$suplName$%'
+		    and preq.CREDIT_ID = prcd.ID
+		  )
+		  and prcs.SUPL_TRUE = #suplTrue#
+		  and prcd.FINANCECONTRACT_DATE is null
+		
+		)t
+	</select>
+	
+	<select id="getReportForCustPerformance" parameterClass="map" resultClass="java.util.HashMap">
+		select * from T_REPORT_PERFORMANCE_CUST
+		where STATUS = 0
+		<isNotEmpty property="customer">
+			and CUST_ID = #customer#
+		</isNotEmpty>
+		
+	</select>
+	
+	<select id="getBaseInfoForReport" parameterClass="map" resultClass="java.util.HashMap">
+		select pc.ID
+		  , pc.CREDIT_RUNCODE
+		  , pc.LEASE_CODE 
+		  , cu.CUST_NAME
+		  , ps.TR_IRR_RATE
+		  , ps.LEASE_TERM
+		  , dd.FLAG
+		  , ps.SUPL_TRUE
+		from T_PRJT_CREDIT pc
+		left join T_CUST_CUSTOMER cu on pc.CUST_ID = cu.CUST_ID
+		left join T_PRJT_CREDITSCHEME ps on ps.CREDIT_ID = pc.ID
+		left join T_DATA_DICTIONARY dd on dd.CODE = ps.SUPL_TRUE
+		and dd.[TYPE] = '供应商保证'
+		where pc.STATUS = 0
+		and exists(
+		  select 0 from T_PRJT_RISK_CONTROL r
+		  where STATE = 1 and STATUS = 0
+		  and r.CREDIT_ID = pc.ID
+		)
+		<isEqual property="select_type" compareValue="1">
+			and pc.cust_id = #custId#
+			order by ps.SUPL_TRUE
+		</isEqual>
+		<isEqual property="select_type" compareValue="2">
+			and pc.ID in(
+				select tpc.ID 
+				from T_PRJT_CREDIT tpc
+				where tpc.STATUS = 0
+				and (
+					exists(
+					  select 0 from T_PRJT_VOUCHCUSTOMERCORP vc
+					  where vc.CORP_NAME_CN = #guarantor#
+					  and vc.STATUS = 0
+					  and vc.PRCD_ID = tpc.ID
+					)
+					or exists(
+					  select 0 from T_PRJT_CREDITVOUCHNATU vu
+					  where vu.CUST_NAME = #guarantor#
+					  and vu.STATUS = 0
+					  and vu.PRCD_ID = tpc.ID
+					)
+				)
+			)
+			order by ps.SUPL_TRUE
+		</isEqual>
+	</select>
+	
+	<select id="getReportForGuarantorPerformance" parameterClass="map" resultClass="java.util.HashMap">
+		select * from T_REPORT_PERFORMANCE_GUARANTOR
+		where STATUS = 0
+		<isNotEmpty property="guarantor">
+			and GUARANTOR = #guarantor#
+		</isNotEmpty>
+		
+	</select>
+	
+</sqlMap>

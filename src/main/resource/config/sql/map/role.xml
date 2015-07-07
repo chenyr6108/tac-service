@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="role">
+	<!-- 插入一条角色记录 -->
+	 <statement  id="create" parameterClass="map" resultClass="java.util.HashMap">  
+	     insert into fil_permission_role(name,memo,status,create_date,modify_date) 
+	     values(#name#,#memo#,0,getdate(),getdate()) 
+	 </statement > 
+	 
+	
+	  <!-- 查询所有可用角色的个数 -->
+	 <select id="getAllRoles_count" parameterClass="map" resultClass="int">
+	 	select COUNT(ID) CNT from  fil_permission_role where status=0 
+	 	<isNotEmpty prepend="and" property="content">
+	 		name like '%$content$%'
+	 	</isNotEmpty>
+	 </select>
+	 
+	  <!-- 查询所有角色的个数 -->
+	 <select id="getAllRoles" parameterClass="map" resultClass="java.util.HashMap">
+	 	select r.ID,r.NAME,r.MEMO,r.CREATE_DATE,ISNULL(c.c,0)as USERCOUNT 
+		from  fil_permission_role r
+		left join (select count(0) c, u.ROLE_ID from T_USER_USER2ROLE u
+		where u.STATUS = 0
+		and exists (select uu.ID from T_USER_USER uu where uu.id = u.EMPLOYEE_ID and uu.status = 0)
+		group by u.ROLE_ID) c
+		on c.ROLE_ID = r.ID
+		where r.status=0
+	 	<isNotEmpty prepend="and" property="content">
+	 		name like '%$content$%'
+	 	</isNotEmpty> 
+	 	order by id desc
+	 </select>
+	 
+	 <!-- 根据id查询一个角色 -->
+	 <select id="getRoleByID" parameterClass="map" resultClass="java.util.HashMap">
+	 	select ID,NAME,MEMO,CREATE_DATE from  fil_permission_role where 
+	 	id=#id#
+	 </select> 
+	 
+	 <!-- 根据角色id更新该角色 -->
+	 <statement id="update" parameterClass="map" resultClass="java.util.HashMap">
+	 	update fil_permission_role set name=#name#,memo=#memo#,modify_date=getdate()
+	 	where id=#id#
+	 </statement>
+	 
+	  <!-- 根据角色id作废一个角色 -->
+	 <statement id="invalid" parameterClass="map" resultClass="java.util.HashMap">
+	 	update fil_permission_role set status=1
+	 	where id=#roleId#
+	 </statement>
+	 
+	 <delete id="deleteRes2RolForRol" parameterClass="map">
+		delete from FIL_PERMISSION_RESOURCE2ROLE
+		where ROLE_ID = #roleId#
+	</delete>
+	<delete id="deleteUser2RolForRol" parameterClass="map">
+		delete from T_USER_USER2ROLE
+		where ROLE_ID = #roleId#
+	</delete>
+	 
+	 <!-- 根据角色id，资源id，作废该条关系记录 -->
+	 <statement id="invalidReource" parameterClass="map" resultClass="java.util.HashMap">
+	 	update fil_permission_resource2role set status=1
+	 	where role_id=#roleId# and resource_id=#resourceId#
+	 </statement>
+	 
+	  <!-- 根据角色id，资源id，添加一条关系记录 -->
+	 <statement id="validReource" parameterClass="map" resultClass="java.util.HashMap">
+	 	insert into  fil_permission_resource2role(role_id,resource_id,create_date,status)
+	 	VALUES(#roleId#,#resourceId#,getdate(),0)
+	 </statement>
+	 
+	  <!-- 根据角色id，查询该角色下的所有用户信息的个数 -->
+	 <select id="loadUserForDeploy_count" parameterClass="map" resultClass="int">
+	 		select COUNT(TUU.ID) CNT
+				  from t_user_user tuu
+				  left join (select *
+				               from t_user_user2role
+				              where role_id =#id# 
+				                and status = 0) tuu2r on tuu.id = tuu2r.employee_id
+	        left join t_dept_department tdd on tuu.dept_id=tdd.id              
+			 where role_id is not null and tuu.status=0
+			 <isNotEmpty prepend="and" property="content">
+			 	(tuu.name like '%$content$%' or tuu.code like '%$content$%')
+			 </isNotEmpty> 
+	 </select>
+	 
+	 <!-- 根据角色id，查询该角色下的所有用户信息 -->
+	 <select id="loadUserForDeploy" parameterClass="map" resultClass="java.util.HashMap">
+		 	select TUU.ID ID, TUU.NAME NAME, CODE, TDD.DEPT_NAME DEPT_NAME, JOB
+				  from t_user_user tuu
+				  left join (select *
+				               from t_user_user2role
+				              where role_id =#id# 
+				                and status = 0) tuu2r on tuu.id = tuu2r.employee_id
+	        left join t_dept_department tdd on tuu.dept_id=tdd.id              
+			 where role_id is not null and tuu.status=0
+			 <isNotEmpty prepend="and" property="content">
+			 	(tuu.name like '%$content$%' or tuu.code like '%$content$%' or tdd.dept_name like '%$content$%')
+			 </isNotEmpty>
+			 order by tuu.id desc
+	 </select>
+	 
+	 
+	 <!-- 根据角色id，查询不在该角色下的所有用户信息的个数 -->
+	 <select id="loadUserNoForDeploy_count" parameterClass="map" resultClass="int">
+	 	select COUNT(TUU.ID) CNT
+			  from t_user_user tuu
+			  left join (select *
+			               from t_user_user2role
+			              where role_id = #id# 
+			                and status = 0) tuu2r on tuu.id = tuu2r.employee_id
+			  left join t_dept_department tdd on tuu.dept_id=tdd.id            
+			 where role_id is null and tuu.status=0
+			 <isNotEmpty prepend="and" property="content">
+			 	(tuu.name like '%$content$%' or tuu.code like '%$content$%' or tdd.dept_name like '%$content$%')
+			 </isNotEmpty> 
+	 </select>
+	 
+	 
+	  <!-- 根据角色id，查询不在该角色下的所有用户信息 -->
+	 <select id="loadUserNoForDeploy" parameterClass="map" resultClass="java.util.HashMap">
+	 	select TUU.ID ID, TUU.NAME NAME, CODE, TDD.DEPT_NAME DEPT_NAME, JOB
+			  from t_user_user tuu
+			  left join (select *
+			               from t_user_user2role
+			              where role_id = #id# 
+			                and status = 0) tuu2r on tuu.id = tuu2r.employee_id
+			  left join t_dept_department tdd on tuu.dept_id=tdd.id                 
+			 where role_id is null and tuu.status=0
+			 <isNotEmpty prepend="and" property="content">
+			 	(tuu.name like '%$content$%' or tuu.code like '%$content$%' or tdd.dept_name like '%$content$%')
+			 </isNotEmpty>
+			 order by tuu.id desc
+	 </select>
+	 
+	 <!-- 添加一条用户角色关系 -->
+	 <statement id="validUser2Role"  parameterClass="map"  resultClass="java.util.HashMap">
+	 	insert into t_user_user2role(role_id,employee_id,status,create_date)
+	 	values(#roleId#,#employeeId#,0,getdate())
+	 </statement>
+	 
+	 <!-- 作废一条用户角色关系 -->
+	  <statement id="invalidUser2Role" parameterClass="map"  resultClass="java.util.HashMap">
+	  	update t_user_user2role set status=1 where role_id=#roleId# and employee_id=#employeeId#
+	  </statement>
+</sqlMap>

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN"
+	"http://www.ibatis.com/dtd/sql-map-2.dtd">
+	
+<sqlMap namespace="uploadComposeExcel">
+<!-- Modify by Michael 2012-3-8 增加来款上传流水号 -->
+	<insert id="create" parameterClass="map">
+		insert into t_fina_income
+			( 
+			receipt_bankno,
+			receipt_unit,
+			opposing_date,
+			opposing_dateTag,
+			income_money,
+			payment_money,
+			left_money,
+			commission_money,
+			opposing_type,
+			opposing_bankName,
+			opposing_flag,
+			opposing_address,
+			opposing_bankno,
+			opposing_unit,
+			opposing_explain,
+			opposing_summary,
+			opposing_postscript,
+			LOCKED,
+			DECOMPOSE_STATUS,
+			EXPORT_FLAG,
+			EXPORT_COUNT,
+			TYPE,
+			STATUS,
+			virtual_code,
+			UPLOAD_TIME,
+			UPLOAD_USER_ID,
+			income_finance_code,
+			OPPOSING_MEMO,
+			OPPOSING_UNIT_TRUE
+			)
+		values
+		( 
+		    #receipt_bankno#,
+		    #receipt_unit#,
+			#opposing_date#,
+			#opposing_dateTag#,
+			#income_money#,
+			#payment_money#,
+			#left_money#,
+			#commission_money#,
+			#opposing_type#,
+			#opposing_bankName#,
+			#opposing_flag#,
+			#opposing_address#,
+			#opposing_bankno#,
+			#opposing_unit#,
+			#opposing_explain#,
+			#opposing_summary#,
+			#opposing_postscript#,
+			0,
+			2,
+			0,
+			0,
+			0,
+			0,
+			#opposing_xuli#	,
+			getdate(),
+			#s_employeeId#,
+			#income_finance_code#,
+			#opposing_memo#,		
+			#OPPOSING_UNIT_TRUE#
+		)
+		<selectKey resultClass="java.lang.Long" keyProperty="fiin_id">
+			SELECT @@IDENTITY fiin_id
+		</selectKey>
+	</insert>
+	
+	
+	<insert id="createBonus" parameterClass="map">
+		insert into T_BONUS_DETAIL
+			( 
+			CONTRACT_CODE, 
+			BONUS_NAME, 
+			CREATE_TIME, 
+			CREATE_ID, 
+			MODIFY_TIME, 
+			MODIFY_ID, 
+			STATUS, 
+			STATE, 
+			UP_DATE, 
+			TYPE_NUMBER, 
+			TYPE_ID, 
+			TYPE_NAME, 
+			REMARK, 
+			UPMONEY
+			)
+		values
+		( 
+		   #contract_code#,
+		   #name#,
+		   getdate(),
+		   #s_employeeId#,
+		   getdate(),
+		   #s_employeeId#,
+		   0,
+		   0,
+		   getdate(),
+		   #typenumber#,
+		   #typeId#,
+		   #typeName#,
+		   #remark#,
+		   #upmoney#
+		)
+	</insert>
+	
+	<!-- Add by Mcihael 2013 03-28 增加查询客户虚拟账号 -->
+	<select id="queryCustVirtualCode" parameterClass="map"
+		resultClass="java.util.HashMap">
+		select virtual_code from T_CUST_CUSTOMER where cust_name = #opposing_unit#
+	</select>
+
+	<!-- Add by Mcihael 2013 03-28 增加根据来款备注查询客户虚拟账号 -->
+	<select id="queryCustVirtualCodeByOppoMemo" parameterClass="map"
+		resultClass="java.util.HashMap">
+		select virtual_code from T_CUST_CUSTOMER where cust_name = #opposing_memo#
+	</select>	
+	
+	<!-- 根据虚拟帐号得到来款人名称 -->
+	<select id="getIncomeNameByVirtualCode" parameterClass="map" resultClass="java.util.HashMap">
+		select cust_name from T_CUST_CUSTOMER where virtual_code = #opposing_xuli#
+	</select>	
+	
+</sqlMap>
